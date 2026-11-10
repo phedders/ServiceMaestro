@@ -9,6 +9,7 @@ export interface RenderItem {
   keyOverride?: string | null;
   transpose: number;
   maxLines: number;
+  verseOrder?: string | null;
 }
 
 const NOTES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
@@ -101,8 +102,7 @@ function parseSong(lyrics: string): Block[] {
   return blocks.filter((b) => b.lines.length > 0);
 }
 
-function parseText(content: string): Block[] {
-  const rawLines = content.replace(/\r\n?/g, "\n").split("\n");
+function parseText(content: string): Block[] {  const rawLines = content.replace(/\r\n?/g, "\n").split("\n");
   const blocks: Block[] = [];
   let current: Block = { section: null, lines: [] };
 
@@ -150,6 +150,73 @@ export function renderLine(text: string, semitones: number): string {
   return out;
 }
 
+function normalize(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+function sectionAliases(label: string): string[] {
+  const key = normalize(label);
+  const aliases = new Set([key]);
+  const verse = key.match(/^v(?:erse)?(\d*)([a-z]?)$/);
+  if (verse) {
+    aliases.add(`v${verse[1] ?? ""}${verse[2] ?? ""}`);
+    aliases.add(`verse${verse[1] ?? ""}${verse[2] ?? ""}`);
+  }
+  const chorus = key.match(/^c(?:h?orus)?(\d*)([a-z]?)$/);
+  if (chorus) {
+    aliases.add(`c${chorus[1] ?? ""}${chorus[2] ?? ""}`);
+    aliases.add(`chorus${chorus[1] ?? ""}${chorus[2] ?? ""}`);
+  }
+  const bridge = key.match(/^b(?:ridge)?(\d*)([a-z]?)$/);
+  if (bridge) {
+    aliases.add(`b${bridge[1] ?? ""}${bridge[2] ?? ""}`);
+    aliases.add(`bridge${bridge[1] ?? ""}${bridge[2] ?? ""}`);
+  }
+  if (key === "prechorus" || key === "pc" || key === "pre") {
+    aliases.add("prechorus");
+    aliases.add("pc");
+    aliases.add("p");
+  }
+  if (key === "i" || key === "intro") aliases.add("intro");
+  if (key === "t" || key === "turnaround") aliases.add("turnaround");
+  if (key === "e" || key === "ending" || key === "end") aliases.add("ending");
+  if (key === "o" || key === "outro") aliases.add("outro");
+  if (["int", "instr", "inst", "instrumental"].includes(key)) {
+    aliases.add("int");
+    aliases.add("instrumental");
+  }
+  return [...aliases];
+}
+
+function orderBlocks(blocks: Block[], verseOrder: string | null | undefined): Block[] {
+  const tokens = (verseOrder ?? "").split(/\s+/).filter(Boolean);
+  if (!tokens.length) return blocks;
+
+  const exact = new Map<string, Block>();
+  const alias = new Map<string, Block>();
+  for (const block of blocks) {
+    if (!block.section) continue;
+    exact.set(normalize(block.section), block);
+    for (const key of sectionAliases(block.section)) {
+      if (!alias.has(key)) alias.set(key, block);
+    }
+  }
+
+  const ordered: Block[] = [];
+  const used = new Set<Block>();
+  for (const token of tokens) {
+    const normalized = normalize(token);
+    const block = exact.get(normalized) ?? alias.get(normalized);
+    if (!block) continue;
+    ordered.push(block);
+    used.add(block);
+  }
+  for (const block of blocks) {
+    if (!used.has(block)) ordered.push(block);
+  }
+  return ordered.length ? ordered : blocks;
+}
+
 function chunkBlock(block: Block, maxLines: number): Block[] {
   const chunks: Line[][] = [];
   for (let i = 0; i < block.lines.length; i += maxLines) {
@@ -170,9 +237,10 @@ export function buildPages(item: RenderItem, liveTranspose = 0): LivePage[] {
   const maxLines = Math.max(1, item.maxLines || 4);
   const blocks =
     item.kind === "song" ? parseSong(item.lyrics ?? "") : parseText(item.content ?? "");
+  const orderedBlocks = item.kind === "song" ? orderBlocks(blocks, item.verseOrder) : blocks;
 
   const pages: Block[] = [];
-  for (const block of blocks) {
+  for (const block of orderedBlocks) {
     const chunks = chunkBlock(block, maxLines);
     pages.push(...chunks);
     if (block.hardBreakAfter && pages.length) {

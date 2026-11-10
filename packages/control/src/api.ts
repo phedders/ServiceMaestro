@@ -6,6 +6,7 @@ import type {
   LiveState,
   PublicUser,
   SetlistDetail,
+  SetlistRevisionInfo,
   SetlistSummary,
   Song,
   SongAsset,
@@ -118,6 +119,10 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ ids }),
     }),
+  revisions: (id: string) =>
+    request<{ revisions: SetlistRevisionInfo[] }>(`/api/setlists/${id}/revisions`),
+  publish: (id: string) =>
+    request<{ revision: SetlistRevisionInfo }>(`/api/setlists/${id}/publish`, { method: "POST" }),
 
   live: () => request<{ state: LiveState }>("/api/live"),
   startLive: (setlistId: string, status: "live" | "rehearsal" = "live") =>
@@ -136,6 +141,11 @@ export const api = {
       body: JSON.stringify({ text, mode }),
     }),
   stopLive: () => request<{ state: LiveState }>("/api/live/stop", { method: "POST" }),
+  applyLive: (payload: { setlistId?: string; revisionId?: string; mode: "after-current" | "now" }) =>
+    request<{ state: LiveState }>("/api/live/apply", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
 
   layout: () => request<{ layout: DashboardLayout; isDefault: boolean }>("/api/dashboard/layout"),
   saveLayout: (layout: DashboardLayout) =>

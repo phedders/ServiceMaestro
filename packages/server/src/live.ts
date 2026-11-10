@@ -1,21 +1,35 @@
 import { randomUUID } from "node:crypto";
 import type { Server } from "socket.io";
-import type { LiveState, SetlistItem, Song } from "@wlm/shared";
+import type {
+  LiveApplyMode,
+  LiveState,
+  SetlistRevisionInfo,
+  Song,
+} from "@wlm/shared";
 import { db } from "./db.js";
 import { buildPages, type RenderItem } from "./render.js";
 
 interface SnapshotItem extends RenderItem {
+  itemId: string | null;
   songId: string | null;
   notes: string | null;
+}
+
+interface PendingUpdate {
+  items: SnapshotItem[];
+  revisionId: string | null;
+  revisionNo: number | null;
 }
 
 interface SessionRecord {
   id: string;
   setlistId: string | null;
+  revisionId: string | null;
   setlistName: string;
   status: "live" | "rehearsal";
   items: SnapshotItem[];
   transient: SnapshotItem | null;
+  pending: PendingUpdate | null;
   state: LiveState;
 }
 
@@ -42,6 +56,129 @@ export function idleState(): LiveState {
     items: [],
     version: 0,
     updatedAt: now(),
+    pendingUpdate: false,
+    pendingRevision: null,
+  };
+}
+
+function summaries(items: SnapshotItem[]): LiveState["items"] {
+  return items.map((item, index) => ({
+    index,
+    kind: item.kind,
+    title: item.title,
+    notes: item.notes,
+  }));
+}
+
+function resolveSetlistItems(setlistId: string): { name: string; items: SnapshotItem[] } {
+  const setlist = db.prepare("SELECT id, name FROM setlists WHERE id = ?").get(setlistId) as
+    | { id: string; name: string }
+    | undefined;
+  if (!setlist) throw new Error("Set list not found");
+
+  const rows = db
+    .prepare("SELECT * FROM setlist_items WHERE setlist_id = ? ORDER BY position ASC, rowid ASC")
+    .all(setlistId) as Array<{
+    id: string;
+    kind: "song" | "text";
+    song_id: string | null;
+    title: string;
+    content: string | null;
+    key_override: string | null;
+    transpose: number;
+    max_lines: number;
+    verse_order: string | null;
+    notes: string | null;
+  }>;
+
+  const items: SnapshotItem[] = rows.map((row) => {
+    if (row.kind === "song" && row.song_id) {
+      const song = db.prepare("SELECT * FROM songs WHERE id = ?").get(row.song_id) as
+        | Song
+        | undefined;
+      return {
+        kind: "song",
+        itemId: row.id,
+        songId: row.song_id,
+        title: row.title || song?.title || "Untitled song",
+        lyrics: song?.lyrics ?? "",
+        key: song?.key ?? null,
+        keyOverride: row.key_override,
+        transpose: row.transpose,
+        maxLines: row.max_lines,
+        verseOrder: row.verse_order ?? song?.verseOrder ?? null,
+        notes: row.notes,
+      };
+    }
+    return {
+      kind: "text",
+      itemId: row.id,
+      songId: null,
+      title: row.title || "Text",
+      content: row.content ?? "",
+      transpose: 0,
+      maxLines: row.max_lines,
+      verseOrder: null,
+      notes: row.notes,
+    };
+  });
+
+  if (!items.length) throw new Error("Set list is empty");
+  return { name: setlist.name, items };
+}
+
+function createRevision(
+  setlistId: string,
+  items: SnapshotItem[],
+  userId: string | null,
+): { id: string; revisionNo: number } {
+  const row = db
+    .prepare("SELECT COALESCE(MAX(revision_no), 0) + 1 AS next FROM setlist_revisions WHERE setlist_id = ?")
+    .get(setlistId) as { next: number };
+  const id = randomUUID();
+  db.prepare(
+    `INSERT INTO setlist_revisions (id, setlist_id, revision_no, snapshot_json, created_at, created_by)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+  ).run(id, setlistId, row.next, JSON.stringify(items), now(), userId);
+  return { id, revisionNo: row.next };
+}
+
+function revisionRow(id: string):
+  | { id: string; setlist_id: string; revision_no: number; snapshot_json: string; created_at: string; created_by: string | null }
+  | undefined {
+  return db.prepare("SELECT * FROM setlist_revisions WHERE id = ?").get(id) as
+    | {
+        id: string;
+        setlist_id: string;
+        revision_no: number;
+        snapshot_json: string;
+        created_at: string;
+        created_by: string | null;
+      }
+    | undefined;
+}
+
+function mapRevision(row: {
+  id: string;
+  setlist_id: string;
+  revision_no: number;
+  snapshot_json: string;
+  created_at: string;
+  created_by: string | null;
+}): SetlistRevisionInfo {
+  let count = 0;
+  try {
+    count = (JSON.parse(row.snapshot_json) as unknown[]).length;
+  } catch {
+    count = 0;
+  }
+  return {
+    id: row.id,
+    setlistId: row.setlist_id,
+    revisionNo: row.revision_no,
+    itemCount: count,
+    createdAt: row.created_at,
+    createdBy: row.created_by,
   };
 }
 
@@ -58,14 +195,18 @@ class LiveService {
   }
 
   getState(): LiveState {
-    return this.active ? { ...this.active.state, pages: this.active.state.pages } : idleState();
+    if (!this.active) return idleState();
+    const state = this.active.state;
+    state.pendingUpdate = Boolean(this.active.pending);
+    state.pendingRevision = this.active.pending?.revisionNo ?? null;
+    return { ...state, pages: state.pages };
   }
 
   private restore(): void {
     const row = db
       .prepare(
-        `SELECT s.id, s.setlist_id, s.setlist_name, s.snapshot_json, s.status,
-                l.state_json
+        `SELECT s.id, s.setlist_id, s.revision_id, s.setlist_name, s.snapshot_json,
+                s.pending_json, s.status, l.state_json
          FROM service_sessions s
          LEFT JOIN live_state l ON l.session_id = s.id
          WHERE s.status IN ('live', 'rehearsal')
@@ -75,8 +216,10 @@ class LiveService {
       | {
           id: string;
           setlist_id: string | null;
+          revision_id: string | null;
           setlist_name: string;
           snapshot_json: string;
+          pending_json: string | null;
           status: "live" | "rehearsal";
           state_json: string | null;
         }
@@ -86,13 +229,20 @@ class LiveService {
       const items = JSON.parse(row.snapshot_json) as SnapshotItem[];
       const state = row.state_json ? (JSON.parse(row.state_json) as LiveState) : null;
       if (!state) return;
+      const pending = row.pending_json
+        ? (JSON.parse(row.pending_json) as PendingUpdate)
+        : null;
+      state.pendingUpdate = Boolean(pending);
+      state.pendingRevision = pending?.revisionNo ?? null;
       this.active = {
         id: row.id,
         setlistId: row.setlist_id,
+        revisionId: row.revision_id,
         setlistName: row.setlist_name,
         status: row.status,
         items,
         transient: null,
+        pending,
         state,
       };
       if (this.active.state.itemIndex < 0) {
@@ -105,72 +255,25 @@ class LiveService {
     }
   }
 
-  start(setlistId: string, status: "live" | "rehearsal"): LiveState {
-    const setlist = db
-      .prepare("SELECT id, name FROM setlists WHERE id = ?")
-      .get(setlistId) as { id: string; name: string } | undefined;
-    if (!setlist) throw new Error("Set list not found");
-
-    const rows = db
-      .prepare(
-        "SELECT * FROM setlist_items WHERE setlist_id = ? ORDER BY position ASC, rowid ASC",
-      )
-      .all(setlistId) as Array<{
-      id: string;
-      kind: "song" | "text";
-      song_id: string | null;
-      title: string;
-      content: string | null;
-      key_override: string | null;
-      transpose: number;
-      max_lines: number;
-      notes: string | null;
-    }>;
-
-    const items: SnapshotItem[] = rows.map((row) => {
-      if (row.kind === "song" && row.song_id) {
-        const song = db.prepare("SELECT * FROM songs WHERE id = ?").get(row.song_id) as
-          | (Song & { key: string | null })
-          | undefined;
-        return {
-          kind: "song",
-          songId: row.song_id,
-          title: row.title || song?.title || "Untitled song",
-          lyrics: song?.lyrics ?? "",
-          key: song?.key ?? null,
-          keyOverride: row.key_override,
-          transpose: row.transpose,
-          maxLines: row.max_lines,
-          notes: row.notes,
-        };
-      }
-      return {
-        kind: "text",
-        songId: null,
-        title: row.title || "Text",
-        content: row.content ?? "",
-        transpose: 0,
-        maxLines: row.max_lines,
-        notes: row.notes,
-      };
-    });
-
-    if (!items.length) throw new Error("Set list is empty");
-
+  start(setlistId: string, status: "live" | "rehearsal", userId: string | null = null): LiveState {
+    const { name, items } = resolveSetlistItems(setlistId);
+    const revision = createRevision(setlistId, items, userId);
     const id = randomUUID();
+
     db.prepare(
       "UPDATE service_sessions SET status = 'ended', ended_at = ? WHERE status IN ('live', 'rehearsal')",
     ).run(now());
     db.prepare(
-      `INSERT INTO service_sessions (id, setlist_id, setlist_name, snapshot_json, status, started_at)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-    ).run(id, setlist.id, setlist.name, JSON.stringify(items), status, now());
+      `INSERT INTO service_sessions
+       (id, setlist_id, revision_id, setlist_name, snapshot_json, pending_json, status, started_at)
+       VALUES (?, ?, ?, ?, ?, NULL, ?, ?)`,
+    ).run(id, setlistId, revision.id, name, JSON.stringify(items), status, now());
 
     const first = items[0];
     const state: LiveState = {
       sessionId: id,
-      setlistId: setlist.id,
-      setlistName: setlist.name,
+      setlistId,
+      setlistName: name,
       status,
       itemIndex: 0,
       pageIndex: 0,
@@ -182,23 +285,22 @@ class LiveService {
       transpose: 0,
       footer: "",
       pages: [],
-      items: items.map((item, index) => ({
-        index,
-        kind: item.kind,
-        title: item.title,
-        notes: item.notes,
-      })),
+      items: summaries(items),
       version: 1,
       updatedAt: now(),
+      pendingUpdate: false,
+      pendingRevision: null,
     };
 
     this.active = {
       id,
-      setlistId: setlist.id,
-      setlistName: setlist.name,
+      setlistId,
+      revisionId: revision.id,
+      setlistName: name,
       status,
       items,
       transient: null,
+      pending: null,
       state,
     };
     this.renderCurrent();
@@ -220,10 +322,96 @@ class LiveService {
     return state;
   }
 
+  publish(setlistId: string, userId: string | null): SetlistRevisionInfo {
+    const { items } = resolveSetlistItems(setlistId);
+    const revision = createRevision(setlistId, items, userId);
+    const row = revisionRow(revision.id)!;
+    return mapRevision(row);
+  }
+
+  listRevisions(setlistId: string): SetlistRevisionInfo[] {
+    const rows = db
+      .prepare("SELECT * FROM setlist_revisions WHERE setlist_id = ? ORDER BY revision_no DESC")
+      .all(setlistId) as Array<{
+      id: string;
+      setlist_id: string;
+      revision_no: number;
+      snapshot_json: string;
+      created_at: string;
+      created_by: string | null;
+    }>;
+    return rows.map(mapRevision);
+  }
+
+  applyCurrent(setlistId: string, mode: LiveApplyMode, userId: string | null): LiveState {
+    if (!this.active) throw new Error("No live session");
+    const { items, name } = resolveSetlistItems(setlistId);
+    const revision = createRevision(setlistId, items, userId);
+    this.active.setlistId = setlistId;
+    this.active.setlistName = name;
+    this.active.state.setlistId = setlistId;
+    this.active.state.setlistName = name;
+    return this.applySnapshot(items, revision.id, revision.revisionNo, mode);
+  }
+
+  applyRevision(revisionId: string, mode: LiveApplyMode): LiveState {
+    if (!this.active) throw new Error("No live session");
+    const row = revisionRow(revisionId);
+    if (!row) throw new Error("Revision not found");
+    const items = JSON.parse(row.snapshot_json) as SnapshotItem[];
+    if (!items.length) throw new Error("Revision is empty");
+    return this.applySnapshot(items, row.id, row.revision_no, mode);
+  }
+
+  private applySnapshot(
+    items: SnapshotItem[],
+    revisionId: string | null,
+    revisionNo: number | null,
+    mode: LiveApplyMode,
+  ): LiveState {
+    if (!this.active) throw new Error("No live session");
+    const record = this.active;
+    if (mode === "now") {
+      record.items = items;
+      record.revisionId = revisionId;
+      record.pending = null;
+      record.transient = null;
+      record.state.itemIndex = 0;
+      record.state.pageIndex = 0;
+      record.state.items = summaries(items);
+      record.state.pendingUpdate = false;
+      record.state.pendingRevision = null;
+      this.renderCurrent();
+    } else {
+      record.pending = { items, revisionId, revisionNo };
+      record.state.pendingUpdate = true;
+      record.state.pendingRevision = revisionNo;
+    }
+    record.state.version += 1;
+    record.state.updatedAt = now();
+    this.persist();
+    this.broadcast();
+    return this.getState();
+  }
+
+  private applyPending(): void {
+    const record = this.active;
+    if (!record?.pending) return;
+    record.items = record.pending.items;
+    record.revisionId = record.pending.revisionId;
+    record.pending = null;
+    record.transient = null;
+    record.state.itemIndex = 0;
+    record.state.pageIndex = 0;
+    record.state.items = summaries(record.items);
+    record.state.pendingUpdate = false;
+    record.state.pendingRevision = null;
+    this.renderCurrent();
+  }
+
   command(command: Record<string, unknown>): LiveState {
     if (!this.active) return idleState();
-    const record = this.active;
-    const state = record.state;
+    const state = this.active.state;
 
     switch (command.type) {
       case "next":
@@ -238,18 +426,13 @@ class LiveService {
         break;
       }
       case "goto": {
-        if (typeof command.itemIndex === "number") {
-          this.setItem(command.itemIndex);
-        }
-        if (typeof command.pageIndex === "number") {
-          this.setPage(command.pageIndex);
-        }
+        if (typeof command.itemIndex === "number") this.setItem(command.itemIndex);
+        if (typeof command.pageIndex === "number") this.setPage(command.pageIndex);
         break;
       }
-      case "blank": {
+      case "blank":
         state.blank = typeof command.value === "boolean" ? command.value : !state.blank;
         break;
-      }
       case "transpose": {
         const delta = Number(command.delta ?? 0);
         state.transpose = Math.max(-24, Math.min(24, state.transpose + delta));
@@ -257,15 +440,13 @@ class LiveService {
         break;
       }
       case "maxLines": {
-        const value = Number(command.value ?? 4);
-        state.maxLines = Math.max(1, Math.min(30, value));
+        state.maxLines = Math.max(1, Math.min(30, Number(command.value ?? 4)));
         this.renderCurrent();
         break;
       }
-      case "footer": {
+      case "footer":
         state.footer = String(command.text ?? "");
         break;
-      }
       default:
         break;
     }
@@ -277,16 +458,18 @@ class LiveService {
     return this.getState();
   }
 
-  quickText(text: string, mode: "direct" | "setlist"): LiveState {
+  quickText(text: string): LiveState {
     if (!this.active) return idleState();
     const record = this.active;
     const item: SnapshotItem = {
       kind: "text",
+      itemId: null,
       songId: null,
       title: "Quick text",
       content: text,
       transpose: 0,
       maxLines: record.state.maxLines,
+      verseOrder: null,
       notes: null,
     };
     record.transient = item;
@@ -325,17 +508,27 @@ class LiveService {
 
   private move(delta: number): void {
     if (!this.active) return;
-    const { state, items } = this.active;
-    if (this.active.transient) {
-      this.active.transient = null;
-      this.setItem(0);
+    const record = this.active;
+    const { state, items } = record;
+
+    if (record.transient) {
+      record.transient = null;
+      if (record.pending) this.applyPending();
+      else this.setItem(0);
       return;
     }
+
+    if (delta > 0 && record.pending && state.pageIndex >= Math.max(0, state.pageCount - 1)) {
+      this.applyPending();
+      return;
+    }
+
     const nextPage = state.pageIndex + delta;
     if (nextPage >= 0 && nextPage < state.pageCount) {
       state.pageIndex = nextPage;
       return;
     }
+
     const nextItem = state.itemIndex + (delta > 0 ? 1 : -1);
     if (nextItem < 0 || nextItem >= items.length) return;
     this.setItem(nextItem);
@@ -364,8 +557,12 @@ class LiveService {
       `INSERT INTO live_state (session_id, state_json, updated_at) VALUES (?, ?, ?)
        ON CONFLICT(session_id) DO UPDATE SET state_json = excluded.state_json, updated_at = excluded.updated_at`,
     ).run(this.active.id, JSON.stringify(this.active.state), now());
-    db.prepare("UPDATE service_sessions SET status = ? WHERE id = ?").run(
+    db.prepare(
+      "UPDATE service_sessions SET status = ?, revision_id = ?, pending_json = ? WHERE id = ?",
+    ).run(
       this.active.status,
+      this.active.revisionId,
+      this.active.pending ? JSON.stringify(this.active.pending) : null,
       this.active.id,
     );
   }

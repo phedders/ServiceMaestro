@@ -1,5 +1,5 @@
 import type { FastifyInstance } from "fastify";
-import { liveCommandSchema, quickTextSchema, startSessionSchema } from "@wlm/shared";
+import { liveCommandSchema, liveApplySchema, quickTextSchema, startSessionSchema } from "@wlm/shared";
 import { requireAuth, requireRole } from "../auth.js";
 import { live } from "../live.js";
 
@@ -15,7 +15,7 @@ export async function liveRoutes(app: FastifyInstance): Promise<void> {
       const parsed = startSessionSchema.safeParse(request.body);
       if (!parsed.success) return reply.code(400).send({ error: "Invalid start request" });
       try {
-        return { state: live.start(parsed.data.setlistId, parsed.data.status) };
+        return { state: live.start(parsed.data.setlistId, parsed.data.status, request.user?.id ?? null) };
       } catch (error) {
         return reply.code(400).send({ error: (error as Error).message });
       }
@@ -38,7 +38,26 @@ export async function liveRoutes(app: FastifyInstance): Promise<void> {
     async (request, reply) => {
       const parsed = quickTextSchema.safeParse(request.body);
       if (!parsed.success) return reply.code(400).send({ error: "Invalid text" });
-      return { state: live.quickText(parsed.data.text, parsed.data.mode) };
+      return { state: live.quickText(parsed.data.text) };
+    },
+  );
+
+  app.post(
+    "/api/live/apply",
+    { preHandler: [requireAuth, requireRole("admin", "operator", "editor")] },
+    async (request, reply) => {
+      const parsed = liveApplySchema.safeParse(request.body);
+      if (!parsed.success) {
+        return reply.code(400).send({ error: "Invalid apply request", issues: parsed.error.issues });
+      }
+      try {
+        const state = parsed.data.revisionId
+          ? live.applyRevision(parsed.data.revisionId, parsed.data.mode)
+          : live.applyCurrent(parsed.data.setlistId!, parsed.data.mode, request.user?.id ?? null);
+        return { state };
+      } catch (error) {
+        return reply.code(400).send({ error: (error as Error).message });
+      }
     },
   );
 

@@ -16,6 +16,7 @@ export interface Song {
   ccli: string | null;
   key: string | null;
   lyrics: string;
+  verseOrder: string | null;
   sourceFormat: string | null;
   sourcePath: string | null;
   createdAt: string;
@@ -34,6 +35,7 @@ export interface SetlistItem {
   keyOverride: string | null;
   transpose: number;
   maxLines: number;
+  verseOrder: string | null;
   notes: string | null;
 }
 
@@ -50,6 +52,17 @@ export interface SetlistSummary {
 export interface SetlistDetail extends SetlistSummary {
   items: SetlistItem[];
 }
+
+export interface SetlistRevisionInfo {
+  id: string;
+  setlistId: string;
+  revisionNo: number;
+  itemCount: number;
+  createdAt: string;
+  createdBy: string | null;
+}
+
+export type LiveApplyMode = "after-current" | "now";
 
 export interface LiveItemSummary {
   index: number;
@@ -82,6 +95,8 @@ export interface LiveState {
   items: LiveItemSummary[];
   version: number;
   updatedAt: string;
+  pendingUpdate: boolean;
+  pendingRevision: number | null;
 }
 
 export interface LayoutItem {
@@ -205,6 +220,7 @@ export const songInputSchema = z.object({
   ccli: z.string().trim().max(50).optional().nullable(),
   key: z.string().trim().max(10).optional().nullable(),
   lyrics: z.string().max(200_000),
+  verseOrder: z.string().trim().max(1000).optional().nullable(),
 });
 
 export const setlistInputSchema = z.object({
@@ -222,6 +238,7 @@ export const setlistItemInputSchema = z.object({
   keyOverride: z.string().trim().max(10).optional().nullable(),
   transpose: z.number().int().min(-24).max(24).optional(),
   maxLines: z.number().int().min(1).max(30).optional(),
+  verseOrder: z.string().trim().max(1000).optional().nullable(),
   notes: z.string().trim().max(2000).optional().nullable(),
 });
 
@@ -251,6 +268,16 @@ export const startSessionSchema = z.object({
   setlistId: z.string().min(1),
   status: z.enum(["live", "rehearsal"]).default("live"),
 });
+
+export const liveApplySchema = z
+  .object({
+    mode: z.enum(["after-current", "now"]).default("after-current"),
+    setlistId: z.string().min(1).optional(),
+    revisionId: z.string().min(1).optional(),
+  })
+  .refine((value) => Boolean(value.setlistId || value.revisionId), {
+    message: "setlistId or revisionId is required",
+  });
 
 const layoutItemSchema = z.object({
   i: z.string().min(1).max(100),

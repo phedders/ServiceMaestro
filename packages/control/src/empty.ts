@@ -18,4 +18,6 @@ export const EMPTY_LIVE: LiveState = {
   items: [],
   version: 0,
   updatedAt: new Date(0).toISOString(),
+  pendingUpdate: false,
+  pendingRevision: null,
 };

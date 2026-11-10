@@ -36,6 +36,7 @@ db.exec(`
     ccli TEXT,
     key TEXT,
     lyrics TEXT NOT NULL,
+    verse_order TEXT,
     source_format TEXT,
     source_path TEXT,
     created_at TEXT NOT NULL,
@@ -63,15 +64,29 @@ db.exec(`
     key_override TEXT,
     transpose INTEGER NOT NULL DEFAULT 0,
     max_lines INTEGER NOT NULL DEFAULT 4,
+    verse_order TEXT,
     notes TEXT
   );
   CREATE INDEX IF NOT EXISTS idx_setlist_items_setlist ON setlist_items(setlist_id, position);
 
+  CREATE TABLE IF NOT EXISTS setlist_revisions (
+    id TEXT PRIMARY KEY,
+    setlist_id TEXT NOT NULL REFERENCES setlists(id) ON DELETE CASCADE,
+    revision_no INTEGER NOT NULL,
+    snapshot_json TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    created_by TEXT,
+    UNIQUE(setlist_id, revision_no)
+  );
+  CREATE INDEX IF NOT EXISTS idx_setlist_revisions_setlist ON setlist_revisions(setlist_id, revision_no);
+
   CREATE TABLE IF NOT EXISTS service_sessions (
     id TEXT PRIMARY KEY,
     setlist_id TEXT,
+    revision_id TEXT,
     setlist_name TEXT NOT NULL,
     snapshot_json TEXT NOT NULL,
+    pending_json TEXT,
     status TEXT NOT NULL,
     started_at TEXT NOT NULL,
     ended_at TEXT
@@ -117,6 +132,10 @@ function ensureColumn(table: string, column: string, definition: string): void {
 
 ensureColumn("songs", "source_format", "TEXT");
 ensureColumn("songs", "source_path", "TEXT");
+ensureColumn("songs", "verse_order", "TEXT");
+ensureColumn("setlist_items", "verse_order", "TEXT");
+ensureColumn("service_sessions", "revision_id", "TEXT");
+ensureColumn("service_sessions", "pending_json", "TEXT");
 db.exec("CREATE INDEX IF NOT EXISTS idx_songs_source_path ON songs(source_path)");
 
 const admin = db.prepare("SELECT id FROM users WHERE role = 'admin' LIMIT 1").get() as

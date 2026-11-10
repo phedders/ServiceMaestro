@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { LiveState, SetlistDetail, SetlistItem, SetlistSummary, Song } from "@wlm/shared";
+import type { LiveState, SetlistDetail, SetlistItem, SetlistRevisionInfo, SetlistSummary, Song } from "@wlm/shared";
 import { api, ApiError } from "../api";
 
 function today(): string {
@@ -24,6 +24,7 @@ function ItemRow({
   const [keyOverride, setKeyOverride] = useState(item.keyOverride ?? "");
   const [transpose, setTranspose] = useState(item.transpose);
   const [maxLines, setMaxLines] = useState(item.maxLines);
+  const [verseOrder, setVerseOrder] = useState(item.verseOrder ?? "");
   const [notes, setNotes] = useState(item.notes ?? "");
   const [saving, setSaving] = useState(false);
 
@@ -31,6 +32,7 @@ function ItemRow({
     setKeyOverride(item.keyOverride ?? "");
     setTranspose(item.transpose);
     setMaxLines(item.maxLines);
+    setVerseOrder(item.verseOrder ?? "");
     setNotes(item.notes ?? "");
   }, [item]);
 
@@ -41,6 +43,7 @@ function ItemRow({
         keyOverride: keyOverride || null,
         transpose: Number(transpose) || 0,
         maxLines: Number(maxLines) || 4,
+        verseOrder: verseOrder || null,
         notes: notes || null,
       });
     } finally {
@@ -97,6 +100,14 @@ function ItemRow({
             onChange={(event) => setMaxLines(Number(event.target.value))}
           />
         </label>
+        <label>
+          Verse order
+          <input
+            value={verseOrder}
+            onChange={(event) => setVerseOrder(event.target.value)}
+            placeholder="auto"
+          />
+        </label>
         <label className="grow">
           Notes
           <input value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Optional" />
@@ -110,9 +121,11 @@ function ItemRow({
 }
 
 export default function SetlistsPage({
+  live,
   onStarted,
   notify,
 }: {
+  live: LiveState;
   onStarted: (state: LiveState) => void;
   notify: (text: string, kind?: "info" | "error") => void;
 }) {
@@ -120,6 +133,8 @@ export default function SetlistsPage({
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detail, setDetail] = useState<SetlistDetail | null>(null);
   const [songs, setSongs] = useState<Song[]>([]);
+  const [revisions, setRevisions] = useState<SetlistRevisionInfo[]>([]);
+  const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const [newName, setNewName] = useState("");
@@ -152,6 +167,10 @@ export default function SetlistsPage({
     setServiceDate(result.setlist.serviceDate);
     setServiceTime(result.setlist.serviceTime ?? "");
     setNotes(result.setlist.notes ?? "");
+    api
+      .revisions(id)
+      .then((revisionResult) => setRevisions(revisionResult.revisions))
+      .catch(() => setRevisions([]));
   }
 
   useEffect(() => {
@@ -252,6 +271,40 @@ export default function SetlistsPage({
     }
   }
 
+  async function publish() {
+    if (!detail) return;
+    setBusy(true);
+    try {
+      const result = await api.publish(detail.id);
+      setRevisions((current) => [result.revision, ...current]);
+      notify(`Published revision ${result.revision.revisionNo}`);
+    } catch (error) {
+      notify(error instanceof ApiError ? error.message : "Could not publish", "error");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function apply(mode: "after-current" | "now") {
+    if (!detail) return;
+    setBusy(true);
+    try {
+      const result = await api.applyLive({ setlistId: detail.id, mode });
+      onStarted(result.state);
+      const revs = await api.revisions(detail.id);
+      setRevisions(revs.revisions);
+      notify(
+        mode === "now"
+          ? "Draft applied immediately"
+          : "Update queued — applies after the current item",
+      );
+    } catch (error) {
+      notify(error instanceof ApiError ? error.message : "Could not apply draft", "error");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   if (loading) return <div className="panel">Loading set lists…</div>;
 
   return (
@@ -306,10 +359,47 @@ export default function SetlistsPage({
         <section className="panel editor-panel">
           <div className="panel-heading">
             <h2>{detail.name}</h2>
-            <button className="button primary" onClick={start}>
-              Start live
-            </button>
+            <div className="button-row">
+              <button className="button ghost" onClick={publish} disabled={busy}>
+                Publish
+              </button>
+              {live.status !== "idle" && live.setlistId === detail.id ? (
+                <>
+                  <button className="button ghost" onClick={() => apply("now")} disabled={busy}>
+                    Apply now
+                  </button>
+                  <button className="button primary" onClick={() => apply("after-current")} disabled={busy}>
+                    Apply draft
+                  </button>
+                </>
+              ) : (
+                <button className="button primary" onClick={start}>
+                  Start live
+                </button>
+              )}
+            </div>
           </div>
+
+          {live.pendingUpdate && live.setlistId === detail.id && (
+            <div className="banner">
+              A published update is queued (revision {live.pendingRevision ?? "?"}); it will apply after the
+              current item.
+            </div>
+          )}
+
+          {revisions.length > 0 && (
+            <details className="revision-list">
+              <summary>{revisions.length} published revisions</summary>
+              <ul>
+                {revisions.map((revision) => (
+                  <li key={revision.id}>
+                    Revision {revision.revisionNo} · {revision.itemCount} items ·{" "}
+                    {new Date(revision.createdAt).toLocaleString()}
+                  </li>
+                ))}
+              </ul>
+            </details>
+          )}
 
           <div className="meta-grid">
             <label>

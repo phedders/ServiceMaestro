@@ -8,6 +8,7 @@ const EMPTY = {
   copyright: "",
   ccli: "",
   key: "",
+  verseOrder: "",
   lyrics: "",
 };
 
@@ -68,6 +69,7 @@ export default function SongsPage({
       copyright: song.copyright ?? "",
       ccli: song.ccli ?? "",
       key: song.key ?? "",
+      verseOrder: song.verseOrder ?? "",
       lyrics: song.lyrics,
     });
   }
@@ -87,6 +89,7 @@ export default function SongsPage({
         copyright: form.copyright.trim() || null,
         ccli: form.ccli.trim() || null,
         key: form.key.trim() || null,
+        verseOrder: form.verseOrder.trim() || null,
         lyrics: form.lyrics,
       };
       const result = selectedId
@@ -247,6 +250,14 @@ export default function SongsPage({
             <input
               value={form.copyright}
               onChange={(event) => setForm({ ...form, copyright: event.target.value })}
+            />
+          </label>
+          <label className="grow">
+            Verse order
+            <input
+              value={form.verseOrder}
+              onChange={(event) => setForm({ ...form, verseOrder: event.target.value })}
+              placeholder="e.g. V1 C V2 C B C"
             />
           </label>
         </div>

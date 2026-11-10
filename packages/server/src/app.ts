@@ -135,7 +135,7 @@ export async function buildApp(): Promise<{ app: FastifyInstance; io: Server }> 
       socket.on("live:quickText", (payload: unknown) => {
         if (!["admin", "editor", "operator"].includes(user.role)) return;
         const parsed = quickTextSchema.safeParse(payload);
-        if (parsed.success) live.quickText(parsed.data.text, parsed.data.mode);
+        if (parsed.success) live.quickText(parsed.data.text);
       });
     }
   });

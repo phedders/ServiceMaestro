@@ -11,6 +11,7 @@ import {
 } from "@wlm/shared";
 import { db } from "../db.js";
 import { requireAuth, requireRole } from "../auth.js";
+import { live } from "../live.js";
 
 interface SetlistRow {
   id: string;
@@ -33,6 +34,7 @@ interface ItemRow {
   key_override: string | null;
   transpose: number;
   max_lines: number;
+  verse_order: string | null;
   notes: string | null;
 }
 
@@ -47,6 +49,7 @@ function mapItem(row: ItemRow): SetlistItem {
     keyOverride: row.key_override,
     transpose: row.transpose,
     maxLines: row.max_lines,
+    verseOrder: row.verse_order,
     notes: row.notes,
   };
 }
@@ -187,8 +190,8 @@ export async function setlistRoutes(app: FastifyInstance): Promise<void> {
       const itemId = randomUUID();
       db.prepare(
         `INSERT INTO setlist_items
-         (id, setlist_id, position, kind, song_id, title, content, key_override, transpose, max_lines, notes)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         (id, setlist_id, position, kind, song_id, title, content, key_override, transpose, max_lines, verse_order, notes)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       ).run(
         itemId,
         id,
@@ -200,6 +203,7 @@ export async function setlistRoutes(app: FastifyInstance): Promise<void> {
         data.keyOverride ?? null,
         data.transpose ?? 0,
         data.maxLines ?? 4,
+        data.verseOrder ?? null,
         data.notes ?? null,
       );
       db.prepare("UPDATE setlists SET updated_at = ? WHERE id = ?").run(new Date().toISOString(), id);
@@ -220,7 +224,7 @@ export async function setlistRoutes(app: FastifyInstance): Promise<void> {
       if (!existing) return reply.code(404).send({ error: "Item not found" });
       const data = parsed.data;
       db.prepare(
-        `UPDATE setlist_items SET title = ?, content = ?, key_override = ?, transpose = ?, max_lines = ?, notes = ?
+        `UPDATE setlist_items SET title = ?, content = ?, key_override = ?, transpose = ?, max_lines = ?, verse_order = ?, notes = ?
          WHERE id = ?`,
       ).run(
         data.title ?? existing.title,
@@ -228,6 +232,7 @@ export async function setlistRoutes(app: FastifyInstance): Promise<void> {
         data.keyOverride !== undefined ? data.keyOverride : existing.key_override,
         data.transpose ?? existing.transpose,
         data.maxLines ?? existing.max_lines,
+        data.verseOrder !== undefined ? data.verseOrder : existing.verse_order,
         data.notes !== undefined ? data.notes : existing.notes,
         itemId,
       );
@@ -269,6 +274,28 @@ export async function setlistRoutes(app: FastifyInstance): Promise<void> {
       });
       updateOrder(parsed.data.ids);
       return { setlist: detail(id) };
+    },
+  );
+
+  app.get("/api/setlists/:id/revisions", { preHandler: requireAuth }, async (request, reply) => {
+    const id = (request.params as { id: string }).id;
+    if (!db.prepare("SELECT id FROM setlists WHERE id = ?").get(id)) {
+      return reply.code(404).send({ error: "Set list not found" });
+    }
+    return { revisions: live.listRevisions(id) };
+  });
+
+  app.post(
+    "/api/setlists/:id/publish",
+    { preHandler: [requireAuth, requireRole("admin", "editor", "operator")] },
+    async (request, reply) => {
+      const id = (request.params as { id: string }).id;
+      try {
+        const revision = live.publish(id, request.user?.id ?? null);
+        return reply.code(201).send({ revision });
+      } catch (error) {
+        return reply.code(400).send({ error: (error as Error).message });
+      }
     },
   );
 }

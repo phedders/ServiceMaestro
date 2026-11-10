@@ -533,6 +533,11 @@ label {
   gap: 16px;
 }
 
+.live-banner {
+  grid-column: span 2;
+  margin: 0;
+}
+
 .preview-panel {
   grid-column: span 2;
 }
@@ -886,7 +891,7 @@ label {
 
 .setlist-item-settings {
   display: grid;
-  grid-template-columns: 100px 100px 100px minmax(120px, 1fr) auto;
+  grid-template-columns: 90px 90px 90px 130px minmax(120px, 1fr) auto;
   gap: 8px;
   align-items: end;
   margin-top: 12px;
@@ -914,6 +919,29 @@ label {
   display: grid;
   place-items: center;
   color: var(--muted);
+}
+
+.banner {
+  border: 1px solid rgba(251, 191, 36, 0.35);
+  background: rgba(251, 191, 36, 0.1);
+  color: #fde68a;
+  border-radius: 9px;
+  padding: 9px 12px;
+  font-size: 0.8rem;
+  margin-bottom: 14px;
+}
+
+.revision-list {
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin-bottom: 14px;
+}
+
+.revision-list ul {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  max-height: 140px;
+  overflow: auto;
 }
 
 /* ------------------------------------------------------------------ */

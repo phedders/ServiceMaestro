@@ -208,6 +208,7 @@ export default function App() {
         )}
         {page === "setlists" && (
           <SetlistsPage
+            live={live}
             onStarted={(state) => {
               setLive(state);
               setPage("live");

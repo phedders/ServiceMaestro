@@ -47,3 +47,18 @@ test("text blank lines create page breaks", () => {
   });
   assert.equal(pages.length, 2);
 });
+
+test("honours verse order and repeats sections", () => {
+  const pages = buildPages({
+    kind: "song",
+    title: "Order",
+    lyrics: "[Verse 1]\nverse one\n\n[Chorus]\nchorus line",
+    verseOrder: "C V1 C",
+    transpose: 0,
+    maxLines: 4,
+  });
+  assert.equal(pages.length, 3);
+  assert.match(pages[0].html, /Chorus/);
+  assert.match(pages[1].html, /Verse 1/);
+  assert.match(pages[2].html, /Chorus/);
+});

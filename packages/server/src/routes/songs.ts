@@ -12,6 +12,7 @@ interface SongRow {
   ccli: string | null;
   key: string | null;
   lyrics: string;
+  verse_order: string | null;
   source_format: string | null;
   source_path: string | null;
   created_at: string;
@@ -27,6 +28,7 @@ function mapSong(row: SongRow): Song {
     ccli: row.ccli,
     key: row.key,
     lyrics: row.lyrics,
+    verseOrder: row.verse_order,
     sourceFormat: row.source_format,
     sourcePath: row.source_path,
     createdAt: row.created_at,
@@ -66,8 +68,8 @@ export async function songRoutes(app: FastifyInstance): Promise<void> {
       const id = randomUUID();
       const now = new Date().toISOString();
       db.prepare(
-        `INSERT INTO songs (id, title, author, copyright, ccli, key, lyrics, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO songs (id, title, author, copyright, ccli, key, lyrics, verse_order, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       ).run(
         id,
         parsed.data.title,
@@ -76,6 +78,7 @@ export async function songRoutes(app: FastifyInstance): Promise<void> {
         parsed.data.ccli ?? null,
         parsed.data.key ?? null,
         parsed.data.lyrics,
+        parsed.data.verseOrder ?? null,
         now,
         now,
       );
@@ -95,7 +98,7 @@ export async function songRoutes(app: FastifyInstance): Promise<void> {
       if (!existing) return reply.code(404).send({ error: "Song not found" });
       const data = parsed.data;
       db.prepare(
-        `UPDATE songs SET title = ?, author = ?, copyright = ?, ccli = ?, key = ?, lyrics = ?, updated_at = ?
+        `UPDATE songs SET title = ?, author = ?, copyright = ?, ccli = ?, key = ?, lyrics = ?, verse_order = ?, updated_at = ?
          WHERE id = ?`,
       ).run(
         data.title ?? existing.title,
@@ -104,6 +107,7 @@ export async function songRoutes(app: FastifyInstance): Promise<void> {
         data.ccli !== undefined ? data.ccli : existing.ccli,
         data.key !== undefined ? data.key : existing.key,
         data.lyrics ?? existing.lyrics,
+        data.verseOrder !== undefined ? data.verseOrder : existing.verse_order,
         new Date().toISOString(),
         id,
       );

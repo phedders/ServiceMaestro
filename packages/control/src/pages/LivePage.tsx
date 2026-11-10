@@ -94,6 +94,11 @@ export default function LivePage({
 
   return (
     <div className="live-layout">
+      {live.pendingUpdate && (
+        <div className="banner live-banner">
+          Update queued for after the current item (revision {live.pendingRevision ?? "?"}).
+        </div>
+      )}
       <section className="panel preview-panel">
         <div className="panel-heading">
           <h2>Preview</h2>

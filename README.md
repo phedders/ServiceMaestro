@@ -60,8 +60,9 @@ The output token defaults to `dev-output`; set `WLM_OUTPUT_TOKEN` in production.
 - **Library import** — scan a folder for OpenLP/OpenLyrics XML, ChordPro and plain-text files; preview titles/formats/warnings, then import. Duplicate CCLI/title entries are skipped. OpenLP `verseOrder` and ChordPro `{comment: …}` sections are honoured; SongSelect legal footers and bar markers are removed.
 - **Scores and tabs for musicians** — upload PDFs, ChordPro, lyrics or images to a song; a musician page lists the service songs and renders PDFs with a bundled PDF.js viewer (page navigation, zoom, fit-to-width), plus text/image assets.
 - **Bible** — reads the three real schema families found in the samples (MyBible `book`/`verse`, BibleDb `books`/`verses`, and JSON), sanitises ESV markup, and provides a translation/book/chapter/verse-range UI with “Display now”.
-- **Set lists** — named, dated, with songs and text items; reorder; per-item key, transpose, max lines and notes.
+- **Set lists** — named, dated, with songs and text items; reorder; per-item key, transpose, max lines, verse order and notes.
 - **Live sessions** — a set list is snapshotted when the session starts, so editing the set list afterwards cannot change the live output.
+- **Publish & apply** — publish a revision, then **apply after the current item** (safe during a service) or **apply now**; queued updates are shown to operators and persisted across restarts.
 - **Live control** — next/previous, page/item navigation, blank, transpose, max-lines, footer and quick text.
 - **Dashboard** — drag/resize widgets (pages, preview, set list, transport, quick text) with **react-grid-layout**; personal layout saved to SQLite. Shared/published layouts and Yjs co-editing are next.
 - **Displays** — vanilla HTML/CSS/JS, no CDN, snapshot-on-connect, transparent main output, full-screen and stage-with-chords variants.
@@ -117,8 +118,7 @@ web-lyric-master/
 
 Not yet implemented:
 
-- Song versions/arrangements and the full song editor; the importer currently normalises into the single lyrics field.
-- Set list revision history + apply-to-live (today live isolation is guaranteed by the session snapshot).
+- Song versions/arrangements beyond the single lyrics field and verse-order override.
 - Dynamic text themes and the full theme editor.
 - Dashboard widget palette/publish and Yjs co-editing.
 - SongSelect provider, CCLI reporting and backups/scan jobs.
