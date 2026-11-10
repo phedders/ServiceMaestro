@@ -29,6 +29,7 @@ const itemSchema = z.object({
   position: z.number().int().min(0),
   kind: z.enum(["song", "text"]),
   title: z.string(),
+  songId: z.string().optional().nullable(),
   keyOverride: z.string().nullable().optional(),
   transpose: z.number().int().optional(),
   maxLines: z.number().int().optional(),
@@ -209,6 +210,7 @@ export function buildSetlistExport(
         position: index,
         kind: "song" as const,
         title: row.title,
+        songId: row.song_id,
         keyOverride: row.key_override,
         transpose: row.transpose,
         maxLines: row.max_lines,
@@ -232,6 +234,7 @@ export function buildSetlistExport(
       position: index,
       kind: "text" as const,
       title: row.title,
+      songId: null,
       keyOverride: row.key_override,
       transpose: row.transpose,
       maxLines: row.max_lines,
@@ -380,7 +383,12 @@ export function importSetlistFile(
     let content = item.content ?? null;
 
     if (item.kind === "song") {
-      const match = findSongForItem(item);
+      const match =
+        (item.songId
+          ? (db.prepare("SELECT id, title FROM songs WHERE id = ?").get(item.songId) as
+              | { id: string; title: string }
+              | undefined)
+          : undefined) ?? findSongForItem(item);
       if (match) {
         songId = match.id;
         songsMatched += 1;

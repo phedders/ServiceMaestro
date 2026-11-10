@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { songInputSchema, type Song } from "@wlm/shared";
 import { db } from "../db.js";
 import { requireAuth, requireRole } from "../auth.js";
+import { saveSongToGit, deleteSongFromGit } from "../git-store.js";
 
 interface SongRow {
   id: string;
@@ -83,6 +84,7 @@ export async function songRoutes(app: FastifyInstance): Promise<void> {
         now,
       );
       const row = db.prepare("SELECT * FROM songs WHERE id = ?").get(id) as SongRow;
+      await saveSongToGit(id).catch((error) => request.log.warn({ err: error }, "git save failed"));
       return reply.code(201).send({ song: mapSong(row) });
     },
   );
@@ -112,6 +114,7 @@ export async function songRoutes(app: FastifyInstance): Promise<void> {
         id,
       );
       const row = db.prepare("SELECT * FROM songs WHERE id = ?").get(id) as SongRow;
+      await saveSongToGit(id).catch((error) => request.log.warn({ err: error }, "git save failed"));
       return { song: mapSong(row) };
     },
   );
@@ -123,6 +126,7 @@ export async function songRoutes(app: FastifyInstance): Promise<void> {
       const id = (request.params as { id: string }).id;
       const result = db.prepare("DELETE FROM songs WHERE id = ?").run(id);
       if (!result.changes) return reply.code(404).send({ error: "Song not found" });
+      await deleteSongFromGit(id).catch((error) => request.log.warn({ err: error }, "git delete failed"));
       return { ok: true };
     },
   );

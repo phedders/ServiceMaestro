@@ -70,9 +70,10 @@ The output token defaults to `dev-output`; set `WLM_OUTPUT_TOKEN` in production.
 - **Live control** — next/previous, page/item navigation, blank, transpose, max-lines, footer and quick text.
 - **Dashboard** — drag/resize widgets (pages, preview, set list, transport, quick text) with **react-grid-layout**; personal layout saved to SQLite. Shared/published layouts and Yjs co-editing are next.
 - **ChurchSuite planning sync** — designed: pull upcoming published services, match songs in a review dialog, and create a draft set list; pending working API credentials (see [10](docs/10-churchsuite-sync.md)).
-- **Git-backed shared data** — designed: separate songs/setlists/(optional) Bibles repositories, standard SSH or HTTP(S)+token URIs, Git LFS for Bibles, and multi-instance sharing. See [11](docs/11-git-data-sync.md).
+- **Git-backed shared data** — designed: local-only repos by default with optional remote, auto-save/push on by default, separate songs/setlists/(optional LFS) Bibles repos, standard SSH or HTTP(S)+token URIs. See [11](docs/11-git-data-sync.md).
 - **Displays** — vanilla HTML/CSS/JS, no CDN, snapshot-on-connect, transparent main output, full-screen and stage-with-chords variants.
 - **Persistence** — SQLite (WAL) for users, sessions, songs, set lists, session snapshots and dashboard layouts; the live session survives a restart.
+- **Git-backed data (local foundation)** — songs and set lists are written to local Git repositories and committed automatically (`autoSave` default on); optional remotes, pull/push and Bibles/LFS are configurable. See [11](docs/11-git-data-sync.md).
 - **Container** — multi-stage Dockerfile, non-root UID 10001, health check, Compose file; image builds and runs.
 
 ## Configuration
@@ -88,6 +89,13 @@ The output token defaults to `dev-output`; set `WLM_OUTPUT_TOKEN` in production.
 | `WLM_OUTPUT_TOKEN` | `dev-output` | Token required by display sockets |
 | `WLM_LOG_LEVEL` | `info` | Fastify log level |
 | `WLM_SECURE_COOKIES` | unset | Set to `1` when serving over HTTPS |
+| `WLM_GIT_ENABLED` | `true` | Enable local/remote Git persistence |
+| `WLM_GIT_AUTO_SAVE` | `true` | Write + commit on each song/set-list change |
+| `WLM_GIT_AUTO_PUSH` | `true` | Push after commit when a remote is configured |
+| `WLM_GIT_SONGS_PATH` | `/data/repos/songs` | Songs repo working tree |
+| `WLM_GIT_SETLISTS_PATH` | `/data/repos/setlists` | Set lists repo working tree |
+| `WLM_GIT_BIBLES_PATH` | `/data/repos/bibles` | Optional Bibles repo |
+| `WLM_CONFIG_FILE` | unset | YAML/JSON config with `git.repositories` and URIs |
 
 ## Docker / Podman
 
@@ -124,10 +132,11 @@ web-lyric-master/
 
 Not yet implemented:
 
+- Song assets (PDF/tab files) in the songs Git repository; Git conflict UI; remote sync exists but has not been exercised against a live remote.
 - Song versions/arrangements beyond the single lyrics field and verse-order override.
 - Dynamic text themes and the full theme editor.
 - Dashboard widget palette/publish and Yjs co-editing.
 - SongSelect provider, CCLI reporting and backups/scan jobs.
 - User/role management beyond the seeded admin; output tokens are currently a single shared token.
 
-The next step is Phase 2 (song authoring + scores), starting with the sample-backed ChordPro/OpenLP/text importers. See the [architecture phases](docs/02-architecture.md#14-phased-delivery).
+The next step is Git asset persistence/conflict handling or the theme editor. See the [architecture phases](docs/02-architecture.md#14-phased-delivery).

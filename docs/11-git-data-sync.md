@@ -4,7 +4,9 @@ Requirement: **song data and set lists live in folders that are checked into Git
 
 Repositories may be accessed over **SSH or HTTP(S) using a standard Git URI**; the URI itself selects the transport. The Bible repository is optional.
 
-This document defines the storage model, sync behaviour, configuration and risks. It is a design; it is not implemented yet.
+Repositories may also be **local-only** for now: a folder initialized as a Git repository with no remote. A remote can be added later without changing the file layout or IDs.
+
+This document defines the storage model, sync behaviour, configuration and risks. The **local-repository foundation, auto-save/commit, startup import/export and optional remote pull/push are implemented**; asset files in the songs repo and the full conflict UI remain follow-up work.
 
 ## 1. Principles
 
@@ -52,6 +54,7 @@ manifest.json?                 # optional repository metadata/version
 
 - Assets live beside songs so one clone carries lyrics and scores.
 - Large PDFs are usually small; if the repo grows, enable Git LFS for `assets/**` (see §8).
+- **Current implementation note:** song/setlist JSON files and local Git commits are implemented; copying score/tab assets into the songs repository is a follow-up. Assets remain in the local asset store for now.
 - Deletions are soft: `"deletedAt"` plus a tombstone, or remove the file and record the tombstone in a `deleted/` index; a hard delete can be resurrected by another instance otherwise.
 
 ### Set lists repository
@@ -129,6 +132,8 @@ Prefer a mounted config file (for example `/config/config.yaml`) with environmen
 ```yaml
 git:
   enabled: true
+  autoSave: true             # write files + commit on every change
+  autoPush: true             # push after commit when a remote exists
   workDir: /data/repos
   author:
     name: Web Lyric Master
@@ -141,22 +146,20 @@ git:
 
 repositories:
   songs:
-    remote: git@github.com:oakhall/songs.git
-    # or: ssh://git@github.com:22/oakhall/songs.git
-    # or: https://x-access-token:<token>@github.com/oakhall/songs.git
-    branch: main
     path: /data/repos/songs
+    remote: ""                 # empty = local-only; add later if desired
+    branch: main
     mode: read-write
   setlists:
-    remote: git@github.com:oakhall/setlists.git
-    branch: main
     path: /data/repos/setlists
+    remote: ""
+    branch: main
     mode: read-write
   bibles:
-    optional: true             # app runs normally without this repo
-    remote: git@github.com:oakhall/bibles.git
-    branch: main
+    optional: true
     path: /data/repos/bibles
+    remote: ""
+    branch: main
     mode: read-only
     lfs: required              # required | auto | off
 ```
@@ -172,6 +175,9 @@ repositories:
 | HTTP (LAN only) | `http://git.internal/oakhall/songs.git` | Allowed but not recommended outside a trusted network |
 
 - No separate “auth mode” switch is needed: if the URI is `ssh:`/scp-like, SSH keys are used; if it is `https:`/`http:`, the URI userinfo/token is used.
+- A repository with an empty/omitted `remote` is **local-only**: it is initialized with `git init`, files are still written and committed locally, and push is skipped. Add a remote later with `git remote add origin <uri>` / set `remote` in config.
+- `autoSave` defaults to **true**: each song/setlist change writes the JSON file and commits it. `autoPush` defaults to **true**: if a remote exists, push after committing; without a remote it is a no-op.
+- If `autoSave` is false, changes stay in SQLite until an explicit “Sync to repositories” action. If `autoPush` is false, commits stay local and are pushed on the next manual sync.
 - Tokens/keys are **never** shown in the UI or logs; the remote is redacted in `/api/git/status`.
 - If a token is embedded in the URI, protect the config file (`chmod 600`, mounted secret). Prefer a Docker/Podman/Incus secret for the whole config file or for `WLM_GIT_<REPO>_REMOTE_FILE`.
 - Git stores the remote URL in `.git/config`; the repository directory is under the protected `/data` volume and must not be exported or committed.
@@ -180,10 +186,15 @@ Environment equivalents:
 
 ```sh
 WLM_GIT_ENABLED=true
-WLM_GIT_SONGS_REMOTE=...
+WLM_GIT_AUTO_SAVE=true
+WLM_GIT_AUTO_PUSH=true
+WLM_GIT_SONGS_PATH=/data/repos/songs
+WLM_GIT_SONGS_REMOTE=          # unset/empty = local-only
 WLM_GIT_SONGS_BRANCH=main
-WLM_GIT_SETLISTS_REMOTE=...
+WLM_GIT_SETLISTS_PATH=/data/repos/setlists
+WLM_GIT_SETLISTS_REMOTE=
 WLM_GIT_SETLISTS_BRANCH=main
+WLM_GIT_BIBLES_PATH=/data/repos/bibles
 WLM_GIT_BIBLES_REMOTE=          # optional; leave unset to disable
 WLM_GIT_BIBLES_OPTIONAL=true
 WLM_GIT_BIBLES_LFS=required
@@ -211,13 +222,15 @@ Rules:
 
 ### Writes
 
-1. Write the JSON file (and assets) atomically (temp file + rename).
+1. With `autoSave: true` (default), write the JSON file (and assets) atomically (temp file + rename).
 2. Commit with a message including the entity and action, e.g. `setlist: update 7c1e "Sunday AM"`.
-3. Push to the configured branch. On failure:
+3. If a remote exists and `autoPush: true` (default), push to the configured branch. On failure:
    - keep the local commit;
    - retry with backoff;
    - show a “not pushed” status in the UI.
 4. Update the SQLite index after the file write.
+5. With `autoSave: false`, skip steps 1–3 until an explicit sync; with `autoPush: false`, commit locally and defer the push.
+6. Local-only repositories have no remote, so push is simply skipped; the commit history still provides versioning.
 
 ### Pulls
 
@@ -356,6 +369,7 @@ services:
 - Commit author identity is configurable; no personal secrets in commits.
 - Set list/song content may be copyrighted; repositories must remain private, with access limited to the church/team.
 - The Bibles repository can be omitted entirely; if configured with LFS, startup verifies `git-lfs` before declaring sync healthy.
+- When the Bibles repo contains translation files, it becomes the active Bible source; otherwise the app keeps using `WLM_BIBLE_DIR`.
 
 ## 10. API and CLI
 
@@ -392,12 +406,12 @@ Resolved:
 2. **Access is by standard Git URI** — SSH (scp-like or `ssh://`) or HTTP(S) with userinfo/token. No separate auth-mode setting.
 3. **Songs, set lists and Bibles are separate repositories** so they can have independent permissions, branches and LFS policy.
 4. **Live sessions/users/dashboards/tokens stay local** in SQLite and are never committed.
+5. **Auto-save and auto-push are configurable and default to true.** Local-only repositories are supported; a remote can be added later.
 
 Outstanding:
 
 1. Actual remote URIs/branches and whether SSH deploy keys or HTTPS tokens will be used for each repo.
-2. Should every save auto-commit/push, or should there be an explicit “Sync now” with background retry?
-3. Conflict policy for set lists: manual resolution, create-copy, or last-write-wins (not recommended)?
-4. Are imported/edited songs allowed to write to the songs repo, or is the songs repo curated and the app read-only?
-5. How should two instances prevent duplicate song creation when both import the same external source? (Stable IDs/content hash + pull-before-write.)
-6. Should song assets also use LFS, or only the optional Bibles repo?
+2. Conflict policy for set lists: manual resolution, create-copy, or last-write-wins (not recommended)?
+3. Are imported/edited songs allowed to write to the songs repo, or is the songs repo curated and the app read-only?
+4. How should two instances prevent duplicate song creation when both import the same external source? (Stable IDs/content hash + pull-before-write.)
+5. Should song assets also use LFS, or only the optional Bibles repo?

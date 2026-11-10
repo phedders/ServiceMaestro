@@ -1,5 +1,6 @@
 import { buildApp } from "./app.js";
 import { HOST, PORT } from "./config.js";
+import { shutdownGit } from "./git-store.js";
 
 const { app, io } = await buildApp();
 
@@ -16,6 +17,7 @@ async function shutdown(signal: string): Promise<void> {
   if (closing) return;
   closing = true;
   app.log.info(`${signal} received, shutting down`);
+  shutdownGit();
   io.close();
   await app.close();
   process.exit(0);

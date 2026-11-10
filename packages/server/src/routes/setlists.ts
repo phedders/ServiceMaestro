@@ -1,4 +1,4 @@
-import type { FastifyInstance } from "fastify";
+import type { FastifyInstance, FastifyRequest } from "fastify";
 import { randomUUID } from "node:crypto";
 import {
   reorderSchema,
@@ -12,6 +12,7 @@ import {
 import { db } from "../db.js";
 import { requireAuth, requireRole } from "../auth.js";
 import { live } from "../live.js";
+import { saveSetlistToGit, deleteSetlistFromGit } from "../git-store.js";
 
 interface SetlistRow {
   id: string;
@@ -66,8 +67,11 @@ function mapSetlist(row: SetlistRow): SetlistSummary {
   };
 }
 
-function detail(id: string): SetlistDetail | null {
-  const row = db
+async function persistGit(id: string, request: FastifyRequest): Promise<void> {
+  await saveSetlistToGit(id).catch((error) => request.log.warn({ err: error }, "git set list save failed"));
+}
+
+function detail(id: string): SetlistDetail | null {  const row = db
     .prepare(
       `SELECT s.*, (SELECT COUNT(*) FROM setlist_items i WHERE i.setlist_id = s.id) AS item_count
        FROM setlists s WHERE s.id = ?`,
@@ -117,6 +121,7 @@ export async function setlistRoutes(app: FastifyInstance): Promise<void> {
         now,
         now,
       );
+      await persistGit(id, request);
       return reply.code(201).send({ setlist: detail(id) });
     },
   );
@@ -142,6 +147,7 @@ export async function setlistRoutes(app: FastifyInstance): Promise<void> {
         new Date().toISOString(),
         id,
       );
+      await persistGit(id, request);
       return { setlist: detail(id) };
     },
   );
@@ -153,6 +159,7 @@ export async function setlistRoutes(app: FastifyInstance): Promise<void> {
       const id = (request.params as { id: string }).id;
       const result = db.prepare("DELETE FROM setlists WHERE id = ?").run(id);
       if (!result.changes) return reply.code(404).send({ error: "Set list not found" });
+      await deleteSetlistFromGit(id).catch((error) => request.log.warn({ err: error }, "git delete failed"));
       return { ok: true };
     },
   );
@@ -207,6 +214,7 @@ export async function setlistRoutes(app: FastifyInstance): Promise<void> {
         data.notes ?? null,
       );
       db.prepare("UPDATE setlists SET updated_at = ? WHERE id = ?").run(new Date().toISOString(), id);
+      await persistGit(id, request);
       return reply.code(201).send({ setlist: detail(id) });
     },
   );
@@ -237,6 +245,7 @@ export async function setlistRoutes(app: FastifyInstance): Promise<void> {
         itemId,
       );
       db.prepare("UPDATE setlists SET updated_at = ? WHERE id = ?").run(new Date().toISOString(), id);
+      await persistGit(id, request);
       return { setlist: detail(id) };
     },
   );
@@ -251,6 +260,7 @@ export async function setlistRoutes(app: FastifyInstance): Promise<void> {
         .run(itemId, id);
       if (!result.changes) return reply.code(404).send({ error: "Item not found" });
       db.prepare("UPDATE setlists SET updated_at = ? WHERE id = ?").run(new Date().toISOString(), id);
+      await persistGit(id, request);
       return { setlist: detail(id) };
     },
   );
@@ -273,6 +283,7 @@ export async function setlistRoutes(app: FastifyInstance): Promise<void> {
         db.prepare("UPDATE setlists SET updated_at = ? WHERE id = ?").run(new Date().toISOString(), id);
       });
       updateOrder(parsed.data.ids);
+      await persistGit(id, request);
       return { setlist: detail(id) };
     },
   );

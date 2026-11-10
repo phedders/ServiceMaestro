@@ -26,6 +26,7 @@ WLM_ADMIN_PASSWORD='change-me' npm start
 | Scores/tabs | Per-song asset upload (PDF, ChordPro, lyrics, image); authenticated signed-style file route; musician page with PDF.js viewer, page nav, zoom and fit-to-width |
 | Set lists | Named/dated services; songs and text items; reorder; per-item key, transpose, max lines, verse order and notes; published revisions |
 | Export/import | Reference JSON and self-contained ZIP bundles (songs/text/assets); preview then import as a new draft, with song matching by CCLI/title |
+| Git local persistence | Songs/setlists written to local Git repos and committed; `autoSave`/`autoPush` configurable (default true); optional remotes, startup import/export, pull interval; Bibles repo optional (LFS in container) |
 | Live sessions | Snapshot-on-start; publish/apply after-current or now; queued updates survive restarts; next/prev, page/item goto, blank, transpose, max lines, footer, quick text |
 | Outputs | Vanilla HTML/CSS/JS; snapshot-on-connect over Socket.IO; transparent main, full-screen, stage with chords; legacy `/obs-*` aliases |
 | Dashboard | `react-grid-layout`; pages, preview, set-list, transport and quick-text widgets; drag/resize; personal layout saved in SQLite; reset to default |
@@ -71,12 +72,12 @@ npm run build
 npm test          # render, importer, Bible, verse-order and transfer tests (16 tests)
 ```
 
-Manual smoke test used: login → create song → create set list → add song/text → start live → display `/display/full` → next/previous/quick text → dashboard drag/save → restart server (state restored) → scan/import 146 sample files (135 imported, 11 duplicates skipped) → Bible translation/book/chapter/range → display passage → upload vocal/lead PDF assets → musician page PDF.js viewer/zoom/page nav → publish revision → apply after-current/now → export JSON/bundle → import as new draft with assets → Docker build/run.
+Manual smoke test used: login → create song → create set list → add song/text → start live → display `/display/full` → next/previous/quick text → dashboard drag/save → restart server (state restored) → scan/import 146 sample files (135 imported, 11 duplicates skipped) → Bible translation/book/chapter/range → display passage → upload vocal/lead PDF assets → musician page PDF.js viewer/zoom/page nav → publish revision → apply after-current/now → export JSON/bundle → import as new draft with assets → local Git repos created and committed → restart with a fresh DB rebuilt songs/set lists from Git → Docker build/run.
 
 ## Next
 
-1. Immutable song versions/arrangements.
-2. Git-backed shared data (songs/setlists/bibles repositories).
+1. Git asset persistence, remote sync hardening and conflict UI.
+2. Immutable song versions/arrangements.
 3. Dynamic text themes.
 4. Dashboard palette/publish, then Yjs co-editing.
 5. SongSelect provider and CCLI reporting.

@@ -322,9 +322,14 @@ export function loadBibleCatalog(dir = BIBLE_DIR): BibleCatalog {
 }
 
 let cached: BibleCatalog | null = null;
+let activeBibleDir = BIBLE_DIR;
+
+export function setBibleDir(dir: string): void {
+  activeBibleDir = dir;
+}
 
 export function getBibleCatalog(): BibleCatalog {
-  if (!cached) cached = loadBibleCatalog();
+  if (!cached) cached = loadBibleCatalog(activeBibleDir);
   return cached;
 }
 
@@ -332,7 +337,7 @@ export function reloadBibleCatalog(): BibleCatalog {
   if (cached) {
     for (const adapter of cached.translations.values()) adapter.close();
   }
-  cached = loadBibleCatalog();
+  cached = loadBibleCatalog(activeBibleDir);
   return cached;
 }
 

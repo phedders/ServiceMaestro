@@ -1,6 +1,6 @@
 # Architecture: Web Lyric Master
 
-Status: **design agreed; Phase 1 walking skeleton implemented, plus sample-backed importers, Bible adapters, song assets, musician PDF viewer, set-list publish/apply-to-live, verse order and export/import** (see [09-phase-1-status.md](09-phase-1-status.md)) — Node.js + TypeScript, Fastify/Socket.IO, SQLite, React control UI with a per-user react-grid-layout dashboard, and vanilla display outputs. Old OBS URLs are aliased. OpenLP, ChordPro, plain-text, Bible and first score/text samples have arrived; additional PDF-score and guitar-tab samples are still pending. Content authoring is detailed in [03-content-model.md](03-content-model.md); SongSelect/scores in [06-songselect-and-scores.md](06-songselect-and-scores.md); Bible schemas in [07-bible-sources.md](07-bible-sources.md); ChurchSuite sync in [10-churchsuite-sync.md](10-churchsuite-sync.md); Git-backed shared data in [11-git-data-sync.md](11-git-data-sync.md); the dashboard layout editor in [08-dashboard-layout-editor.md](08-dashboard-layout-editor.md); container packaging in [05-container-deployment.md](05-container-deployment.md). Based on [01-node-red-analysis.md](01-node-red-analysis.md).
+Status: **design agreed; Phase 1 walking skeleton implemented, plus sample-backed importers, Bible adapters, song assets, musician PDF viewer, set-list publish/apply-to-live, verse order, export/import and local Git persistence** (see [09-phase-1-status.md](09-phase-1-status.md)) — Node.js + TypeScript, Fastify/Socket.IO, SQLite, React control UI with a per-user react-grid-layout dashboard, and vanilla display outputs. Old OBS URLs are aliased. OpenLP, ChordPro, plain-text, Bible and first score/text samples have arrived; additional PDF-score and guitar-tab samples are still pending. Content authoring is detailed in [03-content-model.md](03-content-model.md); SongSelect/scores in [06-songselect-and-scores.md](06-songselect-and-scores.md); Bible schemas in [07-bible-sources.md](07-bible-sources.md); ChurchSuite sync in [10-churchsuite-sync.md](10-churchsuite-sync.md); Git-backed shared data in [11-git-data-sync.md](11-git-data-sync.md); the dashboard layout editor in [08-dashboard-layout-editor.md](08-dashboard-layout-editor.md); container packaging in [05-container-deployment.md](05-container-deployment.md). Based on [01-node-red-analysis.md](01-node-red-analysis.md).
 
 ## 1. Goals
 
@@ -400,6 +400,8 @@ No arbitrary HTML/CSS from operators. Content is sanitized at import/render time
 - File-first persistence with SQLite as an index; startup clone/pull and rebuild.
 - Commit/push after writes, periodic pull, status/conflict reporting.
 - Two instances share songs/set lists; live sessions stay pinned and unchanged by pulls.
+- **Local-only foundation implemented:** local repos, auto-save/commit, startup import/export, optional remote pull/push.
+- Remaining: song assets in Git, conflict UI, live remote validation.
 - See [11-git-data-sync.md](11-git-data-sync.md).
 
 ## 15. Decisions

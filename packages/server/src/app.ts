@@ -6,8 +6,8 @@ import fastifyStatic from "@fastify/static";
 import multipart from "@fastify/multipart";
 import { Server } from "socket.io";
 import { liveCommandSchema, quickTextSchema, type PublicUser } from "@wlm/shared";
-import { COOKIE_NAME, CONTROL_DIST, DISPLAY_DIR, OUTPUT_TOKEN } from "./config.js";
-import { parseCookies, requireAuth, userForToken } from "./auth.js";
+import { COOKIE_NAME, CONTROL_DIST, DISPLAY_DIR, GIT_AUTO_PUSH, GIT_AUTO_SAVE, GIT_ENABLED, OUTPUT_TOKEN } from "./config.js";
+import { parseCookies, requireAuth, requireRole, userForToken } from "./auth.js";
 import { live } from "./live.js";
 import { authRoutes } from "./routes/auth.js";
 import { songRoutes } from "./routes/songs.js";
@@ -18,6 +18,13 @@ import { importRoutes } from "./routes/imports.js";
 import { bibleRoutes } from "./routes/bible.js";
 import { assetRoutes } from "./routes/assets.js";
 import { transferRoutes } from "./routes/transfer.js";
+import {
+  exportAllToGit,
+  gitStatus,
+  initializeGitStorage,
+  pushGit,
+  syncGitFromRemotes,
+} from "./git-store.js";
 
 function sendHtml(reply: FastifyReply, file: string): FastifyReply {
   if (!fs.existsSync(file)) {
@@ -92,6 +99,32 @@ export async function buildApp(): Promise<{ app: FastifyInstance; io: Server }> 
 
   app.get("/api/health", async () => ({ ok: true, name: "web-lyric-master" }));
 
+  app.get("/api/git/status", { preHandler: requireAuth }, async () => ({
+    enabled: GIT_ENABLED,
+    autoSave: GIT_AUTO_SAVE,
+    autoPush: GIT_AUTO_PUSH,
+    repositories: gitStatus(),
+  }));
+
+  app.post(
+    "/api/git/sync",
+    { preHandler: [requireAuth, requireRole("admin", "editor", "operator")] },
+    async () => {
+      await syncGitFromRemotes();
+      return { ok: true, repositories: gitStatus() };
+    },
+  );
+
+  app.post(
+    "/api/git/export",
+    { preHandler: [requireAuth, requireRole("admin", "editor")] },
+    async () => {
+      await exportAllToGit();
+      await pushGit();
+      return { ok: true, repositories: gitStatus() };
+    },
+  );
+
   app.setNotFoundHandler(async (request, reply) => {
     if (request.url.startsWith("/api/") || request.url.startsWith("/socket.io")) {
       return reply.code(404).send({ error: "Not found" });
@@ -145,6 +178,8 @@ export async function buildApp(): Promise<{ app: FastifyInstance; io: Server }> 
   live.attach(io);
 
   app.get("/api/live/state", { preHandler: requireAuth }, async () => ({ state: live.getState() }));
+
+  await initializeGitStorage();
 
   return { app, io };
 }

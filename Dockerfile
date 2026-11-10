@@ -10,7 +10,7 @@ RUN npm prune --omit=dev
 FROM node:24-bookworm-slim
 
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends tini ca-certificates tzdata \
+  && apt-get install -y --no-install-recommends tini ca-certificates tzdata git git-lfs openssh-client \
   && rm -rf /var/lib/apt/lists/* \
   && groupadd -g 10001 wlm \
   && useradd -u 10001 -g wlm -M -s /usr/sbin/nologin wlm
