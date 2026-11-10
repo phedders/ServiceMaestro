@@ -1,5 +1,14 @@
 import { useEffect, useState } from "react";
-import type { LiveState, SetlistDetail, SetlistItem, SetlistRevisionInfo, SetlistSummary, Song } from "@wlm/shared";
+import type {
+  LiveState,
+  SetlistDetail,
+  SetlistImportPreview,
+  SetlistImportReport,
+  SetlistItem,
+  SetlistRevisionInfo,
+  SetlistSummary,
+  Song,
+} from "@wlm/shared";
 import { api, ApiError } from "../api";
 
 function today(): string {
@@ -134,6 +143,10 @@ export default function SetlistsPage({
   const [detail, setDetail] = useState<SetlistDetail | null>(null);
   const [songs, setSongs] = useState<Song[]>([]);
   const [revisions, setRevisions] = useState<SetlistRevisionInfo[]>([]);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importPreview, setImportPreview] = useState<SetlistImportPreview | null>(null);
+  const [importReport, setImportReport] = useState<SetlistImportReport | null>(null);
+  const [importing, setImporting] = useState(false);
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -285,6 +298,40 @@ export default function SetlistsPage({
     }
   }
 
+  async function chooseImport(file: File | null) {
+    setImportFile(file);
+    setImportReport(null);
+    setImportPreview(null);
+    if (!file) return;
+    setImporting(true);
+    try {
+      const result = await api.previewSetlistImport(file);
+      setImportPreview(result.preview);
+    } catch (error) {
+      notify(error instanceof ApiError ? error.message : "Could not read set list file", "error");
+      setImportFile(null);
+    } finally {
+      setImporting(false);
+    }
+  }
+
+  async function confirmImport() {
+    if (!importFile) return;
+    setImporting(true);
+    try {
+      const result = await api.importSetlist(importFile);
+      setImportReport(result.report);
+      setImportPreview(null);
+      setImportFile(null);
+      await loadList(result.report.setlistId);
+      notify(`Imported “${result.report.setlistName}”`);
+    } catch (error) {
+      notify(error instanceof ApiError ? error.message : "Import failed", "error");
+    } finally {
+      setImporting(false);
+    }
+  }
+
   async function apply(mode: "after-current" | "now") {
     if (!detail) return;
     setBusy(true);
@@ -352,6 +399,77 @@ export default function SetlistsPage({
           <button className="button primary full" onClick={createSetlist}>
             Create
           </button>
+        </div>
+
+        <div className="transfer-panel">
+          <h3>Share / backup</h3>
+          {detail && (
+            <div className="button-row">
+              <a className="button ghost small" href={api.exportSetlistUrl(detail.id, "json")}>
+                Export JSON
+              </a>
+              <a className="button ghost small" href={api.exportSetlistUrl(detail.id, "bundle")}>
+                Export bundle
+              </a>
+            </div>
+          )}
+          <label className="button ghost full file-button">
+            {importing ? "Reading…" : "Import set list file"}
+            <input
+              type="file"
+              accept=".json,.zip,.wlm-setlist.json,.wlm-bundle.zip"
+              hidden
+              onChange={(event) => chooseImport(event.target.files?.[0] ?? null)}
+            />
+          </label>
+
+          {importPreview && (
+            <div className="import-preview-card">
+              <strong>{importPreview.name}</strong>
+              <span className="muted">
+                {importPreview.serviceDate}
+                {importPreview.serviceTime ? ` · ${importPreview.serviceTime}` : ""} · {importPreview.itemCount}{" "}
+                items
+              </span>
+              <span className="muted">
+                {importPreview.songCount} songs ({importPreview.songs.filter((song) => song.matched).length}{" "}
+                matched), {importPreview.textCount} text
+              </span>
+              {!importPreview.selfContained && (
+                <span className="hint">Reference file — unmatched songs import as text placeholders.</span>
+              )}
+              <div className="button-row">
+                <button className="button ghost small" onClick={() => chooseImport(null)}>
+                  Cancel
+                </button>
+                <button className="button primary small" onClick={confirmImport} disabled={importing}>
+                  Import as new draft
+                </button>
+              </div>
+            </div>
+          )}
+
+          {importReport && (
+            <div className="import-preview-card">
+              <strong>Imported “{importReport.setlistName}”</strong>
+              <span className="muted">
+                {importReport.importedItems} items · {importReport.songsMatched} matched ·{" "}
+                {importReport.songsCreated} new songs · {importReport.assetsImported} assets
+              </span>
+              {importReport.skipped.length > 0 && (
+                <details>
+                  <summary>{importReport.skipped.length} skipped</summary>
+                  <ul>
+                    {importReport.skipped.map((item, index) => (
+                      <li key={`${item.title}-${index}`}>
+                        {item.title} — {item.reason}
+                      </li>
+                    ))}
+                  </ul>
+                </details>
+              )}
+            </div>
+          )}
         </div>
       </aside>
 

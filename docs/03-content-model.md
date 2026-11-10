@@ -2,7 +2,7 @@
 
 Detailed design for the authoring side of Web Lyric Master, following the new requirements:
 
-> Implementation status: set-list publish/apply-to-live with queued updates, per-item verse order and song verse-order overrides are implemented. Full immutable song versions/arrangements and dynamic text themes remain future work.
+> Implementation status: set-list publish/apply-to-live with queued updates, set-list JSON/bundle export/import, per-item verse order and song verse-order overrides are implemented. Full immutable song versions/arrangements and dynamic text themes remain future work.
 
 - **Everything is based around the set list for a service.**
 - **Set lists are named and dated, and editing one must never affect the live/current service.**

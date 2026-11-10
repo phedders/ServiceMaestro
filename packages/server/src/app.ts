@@ -17,6 +17,7 @@ import { dashboardRoutes } from "./routes/dashboard.js";
 import { importRoutes } from "./routes/imports.js";
 import { bibleRoutes } from "./routes/bible.js";
 import { assetRoutes } from "./routes/assets.js";
+import { transferRoutes } from "./routes/transfer.js";
 
 function sendHtml(reply: FastifyReply, file: string): FastifyReply {
   if (!fs.existsSync(file)) {
@@ -66,6 +67,7 @@ export async function buildApp(): Promise<{ app: FastifyInstance; io: Server }> 
   await app.register(importRoutes);
   await app.register(bibleRoutes);
   await app.register(assetRoutes);
+  await app.register(transferRoutes);
 
   app.get("/", async (_request, reply) => sendHtml(reply, path.join(CONTROL_DIST, "index.html")));
   app.get("/login", async (_request, reply) => sendHtml(reply, path.join(CONTROL_DIST, "index.html")));

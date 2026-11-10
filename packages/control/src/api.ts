@@ -6,6 +6,8 @@ import type {
   LiveState,
   PublicUser,
   SetlistDetail,
+  SetlistImportPreview,
+  SetlistImportReport,
   SetlistRevisionInfo,
   SetlistSummary,
   Song,
@@ -123,6 +125,34 @@ export const api = {
     request<{ revisions: SetlistRevisionInfo[] }>(`/api/setlists/${id}/revisions`),
   publish: (id: string) =>
     request<{ revision: SetlistRevisionInfo }>(`/api/setlists/${id}/publish`, { method: "POST" }),
+  exportSetlistUrl: (id: string, format: "json" | "bundle") =>
+    `/api/setlists/${id}/export?format=${format}`,
+  previewSetlistImport: async (file: File): Promise<{ preview: SetlistImportPreview }> => {
+    const form = new FormData();
+    form.append("file", file);
+    const response = await fetch("/api/setlists/import/preview", {
+      method: "POST",
+      body: form,
+      credentials: "include",
+    });
+    const text = await response.text();
+    const data = text ? JSON.parse(text) : null;
+    if (!response.ok) throw new ApiError(response.status, data?.error ?? response.statusText);
+    return data;
+  },
+  importSetlist: async (file: File): Promise<{ report: SetlistImportReport }> => {
+    const form = new FormData();
+    form.append("file", file);
+    const response = await fetch("/api/setlists/import", {
+      method: "POST",
+      body: form,
+      credentials: "include",
+    });
+    const text = await response.text();
+    const data = text ? JSON.parse(text) : null;
+    if (!response.ok) throw new ApiError(response.status, data?.error ?? response.statusText);
+    return data;
+  },
 
   live: () => request<{ state: LiveState }>("/api/live"),
   startLive: (setlistId: string, status: "live" | "rehearsal" = "live") =>

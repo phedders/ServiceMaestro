@@ -25,6 +25,7 @@ WLM_ADMIN_PASSWORD='change-me' npm start
 | Bible | Schema detection for MyBible `book`/`verse`, BibleDb `books`/`verses` and JSON; sanitised verses; translation/book/chapter/from-to UI; display as quick text |
 | Scores/tabs | Per-song asset upload (PDF, ChordPro, lyrics, image); authenticated signed-style file route; musician page with PDF.js viewer, page nav, zoom and fit-to-width |
 | Set lists | Named/dated services; songs and text items; reorder; per-item key, transpose, max lines, verse order and notes; published revisions |
+| Export/import | Reference JSON and self-contained ZIP bundles (songs/text/assets); preview then import as a new draft, with song matching by CCLI/title |
 | Live sessions | Snapshot-on-start; publish/apply after-current or now; queued updates survive restarts; next/prev, page/item goto, blank, transpose, max lines, footer, quick text |
 | Outputs | Vanilla HTML/CSS/JS; snapshot-on-connect over Socket.IO; transparent main, full-screen, stage with chords; legacy `/obs-*` aliases |
 | Dashboard | `react-grid-layout`; pages, preview, set-list, transport and quick-text widgets; drag/resize; personal layout saved in SQLite; reset to default |
@@ -39,6 +40,7 @@ GET/POST/PATCH/DELETE /api/songs…
 GET/POST/PATCH/DELETE /api/setlists…  POST /api/setlists/:id/items
 POST /api/setlists/:id/reorder       GET /api/setlists/:id/revisions
 POST /api/setlists/:id/publish
+GET  /api/setlists/:id/export        POST /api/setlists/import[/preview]
 GET  /api/live                        POST /api/live/start
 POST /api/live/command                POST /api/live/quick-text
 POST /api/live/apply                  POST /api/live/stop
@@ -66,15 +68,16 @@ Socket.IO: `live:snapshot` events to `control` and `outputs` rooms; commands ove
 ```sh
 npm run typecheck
 npm run build
-npm test          # render/transposition, importer, Bible and verse-order tests (13 tests)
+npm test          # render, importer, Bible, verse-order and transfer tests (16 tests)
 ```
 
-Manual smoke test used: login → create song → create set list → add song/text → start live → display `/display/full` → next/previous/quick text → dashboard drag/save → restart server (state restored) → scan/import 146 sample files (135 imported, 11 duplicates skipped) → Bible translation/book/chapter/range → display passage → upload vocal/lead PDF assets → musician page PDF.js viewer/zoom/page nav → publish revision → apply after-current/now → Docker build/run.
+Manual smoke test used: login → create song → create set list → add song/text → start live → display `/display/full` → next/previous/quick text → dashboard drag/save → restart server (state restored) → scan/import 146 sample files (135 imported, 11 duplicates skipped) → Bible translation/book/chapter/range → display passage → upload vocal/lead PDF assets → musician page PDF.js viewer/zoom/page nav → publish revision → apply after-current/now → export JSON/bundle → import as new draft with assets → Docker build/run.
 
 ## Next
 
 1. Immutable song versions/arrangements.
-2. Dynamic text themes.
-3. Dashboard palette/publish, then Yjs co-editing.
-4. SongSelect provider and CCLI reporting.
-5. ChurchSuite planning sync (pending working API credentials) — see [10-churchsuite-sync.md](10-churchsuite-sync.md).
+2. Git-backed shared data (songs/setlists/bibles repositories).
+3. Dynamic text themes.
+4. Dashboard palette/publish, then Yjs co-editing.
+5. SongSelect provider and CCLI reporting.
+6. ChurchSuite planning sync (pending working API credentials) — see [10-churchsuite-sync.md](10-churchsuite-sync.md).

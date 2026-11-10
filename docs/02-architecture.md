@@ -1,6 +1,6 @@
 # Architecture: Web Lyric Master
 
-Status: **design agreed; Phase 1 walking skeleton implemented, plus sample-backed importers, Bible adapters, song assets, musician PDF viewer, set-list publish/apply-to-live and verse order** (see [09-phase-1-status.md](09-phase-1-status.md)) — Node.js + TypeScript, Fastify/Socket.IO, SQLite, React control UI with a per-user react-grid-layout dashboard, and vanilla display outputs. Old OBS URLs are aliased. OpenLP, ChordPro, plain-text, Bible and first score/text samples have arrived; additional PDF-score and guitar-tab samples are still pending. Content authoring is detailed in [03-content-model.md](03-content-model.md); SongSelect/scores in [06-songselect-and-scores.md](06-songselect-and-scores.md); Bible schemas in [07-bible-sources.md](07-bible-sources.md); ChurchSuite sync in [10-churchsuite-sync.md](10-churchsuite-sync.md); the dashboard layout editor in [08-dashboard-layout-editor.md](08-dashboard-layout-editor.md); container packaging in [05-container-deployment.md](05-container-deployment.md). Based on [01-node-red-analysis.md](01-node-red-analysis.md).
+Status: **design agreed; Phase 1 walking skeleton implemented, plus sample-backed importers, Bible adapters, song assets, musician PDF viewer, set-list publish/apply-to-live, verse order and export/import** (see [09-phase-1-status.md](09-phase-1-status.md)) — Node.js + TypeScript, Fastify/Socket.IO, SQLite, React control UI with a per-user react-grid-layout dashboard, and vanilla display outputs. Old OBS URLs are aliased. OpenLP, ChordPro, plain-text, Bible and first score/text samples have arrived; additional PDF-score and guitar-tab samples are still pending. Content authoring is detailed in [03-content-model.md](03-content-model.md); SongSelect/scores in [06-songselect-and-scores.md](06-songselect-and-scores.md); Bible schemas in [07-bible-sources.md](07-bible-sources.md); ChurchSuite sync in [10-churchsuite-sync.md](10-churchsuite-sync.md); Git-backed shared data in [11-git-data-sync.md](11-git-data-sync.md); the dashboard layout editor in [08-dashboard-layout-editor.md](08-dashboard-layout-editor.md); container packaging in [05-container-deployment.md](05-container-deployment.md). Based on [01-node-red-analysis.md](01-node-red-analysis.md).
 
 ## 1. Goals
 
@@ -93,6 +93,7 @@ The authoritative schema is in [03-content-model.md §6](03-content-model.md#6-d
 | Scores/assets | `song_assets`, `asset_jobs` | ChordPro, PDF scores, guitar tabs; checksums and signed access |
 | Integrations | `provider_accounts`, `external_songs`, `song_external_refs`, `usage_events` | Encrypted credentials, external ids, CCLI usage reporting |
 | ChurchSuite | `integration_accounts`, `external_plans`, `external_plan_links`, `sync_runs` | Planning import, song mappings and re-sync state (see [10](10-churchsuite-sync.md)) |
+| Git sync | `repo_state` + `repo`/`repo_path`/`content_hash` on songs/setlists | File-backed shared repositories and index state (see [11](11-git-data-sync.md)) |
 | Dynamic text | `text_items`, `text_item_versions` | Reusable presentation text with sanitized HTML and page breaks |
 | Themes | `themes`, `theme_versions` | Modular tokens/layout/CSS, versioned and pinned |
 | Media | `images` | Scanned images, dimensions, thumbnails |
@@ -241,6 +242,8 @@ Rules:
 Set list export/import formats, conflict handling and the bundle layout are defined in [03-content-model.md §12](03-content-model.md#12-set-list-export--import).
 
 ChurchSuite planning-sync endpoints (`/api/integrations/churchsuite/...`) are designed in [10-churchsuite-sync.md](10-churchsuite-sync.md); they are not implemented yet.
+
+Git repository sync endpoints (`/api/git/...`) are designed in [11-git-data-sync.md](11-git-data-sync.md); they are not implemented yet.
 
 Output URLs should accept stable, revocable per-output tokens (stored hashed), e.g.:
 
@@ -391,6 +394,13 @@ No arbitrary HTML/CSS from operators. Content is sanitized at import/render time
 - Song-matching dialog with CCLI/title/fuzzy suggestions, duplicate handling and remembered mappings.
 - Create draft set lists; re-sync diffs; apply-to-live remains explicit.
 - See [10-churchsuite-sync.md](10-churchsuite-sync.md).
+
+**Phase 8 — Git-backed shared data**
+- Songs, set lists and Bibles in configured Git repositories (separate remotes).
+- File-first persistence with SQLite as an index; startup clone/pull and rebuild.
+- Commit/push after writes, periodic pull, status/conflict reporting.
+- Two instances share songs/set lists; live sessions stay pinned and unchanged by pulls.
+- See [11-git-data-sync.md](11-git-data-sync.md).
 
 ## 15. Decisions
 

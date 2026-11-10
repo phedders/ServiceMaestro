@@ -17,6 +17,8 @@ A self-hosted server application for running church service visuals: manage song
 > - [Dashboard layout editor](docs/08-dashboard-layout-editor.md)
 > - [Phase 1 status](docs/09-phase-1-status.md) — what is implemented and what is next.
 > - [ChurchSuite planning sync](docs/10-churchsuite-sync.md) — API analysis, credential findings and song-matching design.
+> - [Git-backed shared data](docs/11-git-data-sync.md) — songs/setlists/bibles repositories shared between instances.
+> - [Waiting list](docs/12-waiting-list.md) — blocked items and what they need.
 
 ## Quick start
 
@@ -64,6 +66,7 @@ The output token defaults to `dev-output`; set `WLM_OUTPUT_TOKEN` in production.
 - **Set lists** — named, dated, with songs and text items; reorder; per-item key, transpose, max lines, verse order and notes.
 - **Live sessions** — a set list is snapshotted when the session starts, so editing the set list afterwards cannot change the live output.
 - **Publish & apply** — publish a revision, then **apply after the current item** (safe during a service) or **apply now**; queued updates are shown to operators and persisted across restarts.
+- **Export/import** — download a reference JSON or self-contained ZIP bundle (songs, text, PDF/tab assets) and import it as a new draft with a preview; matching uses CCLI/title and never affects a live service.
 - **Live control** — next/previous, page/item navigation, blank, transpose, max-lines, footer and quick text.
 - **Dashboard** — drag/resize widgets (pages, preview, set list, transport, quick text) with **react-grid-layout**; personal layout saved to SQLite. Shared/published layouts and Yjs co-editing are next.
 - **ChurchSuite planning sync** — designed: pull upcoming published services, match songs in a review dialog, and create a draft set list; pending working API credentials (see [10](docs/10-churchsuite-sync.md)).

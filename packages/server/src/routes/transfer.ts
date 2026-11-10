@@ -1,0 +1,55 @@
+import type { FastifyInstance } from "fastify";
+import { requireAuth, requireRole } from "../auth.js";
+import {
+  exportSetlistBuffer,
+  importSetlistFile,
+  previewSetlistImport,
+} from "../setlist-transfer.js";
+
+export async function transferRoutes(app: FastifyInstance): Promise<void> {
+  app.get("/api/setlists/:id/export", { preHandler: requireAuth }, async (request, reply) => {
+    const id = (request.params as { id: string }).id;
+    const format = String((request.query as { format?: string }).format ?? "json");
+    try {
+      const result = exportSetlistBuffer(id, format === "bundle");
+      return reply
+        .type(result.contentType)
+        .header("content-disposition", `attachment; filename="${result.filename}"`)
+        .send(result.buffer);
+    } catch (error) {
+      return reply.code(404).send({ error: (error as Error).message });
+    }
+  });
+
+  app.post(
+    "/api/setlists/import/preview",
+    { preHandler: [requireAuth, requireRole("admin", "editor", "operator")] },
+    async (request, reply) => {
+      const file = await request.file({ limits: { fileSize: 200 * 1024 * 1024, files: 1 } });
+      if (!file) return reply.code(400).send({ error: "No file uploaded" });
+      try {
+        const buffer = await file.toBuffer();
+        return { preview: previewSetlistImport(buffer, file.filename) };
+      } catch (error) {
+        return reply.code(400).send({ error: (error as Error).message });
+      }
+    },
+  );
+
+  app.post(
+    "/api/setlists/import",
+    { preHandler: [requireAuth, requireRole("admin", "editor", "operator")] },
+    async (request, reply) => {
+      const file = await request.file({ limits: { fileSize: 200 * 1024 * 1024, files: 1 } });
+      if (!file) return reply.code(400).send({ error: "No file uploaded" });
+      try {
+        const buffer = await file.toBuffer();
+        return reply
+          .code(201)
+          .send({ report: importSetlistFile(buffer, file.filename, request.user?.id ?? null) });
+      } catch (error) {
+        return reply.code(400).send({ error: (error as Error).message });
+      }
+    },
+  );
+}

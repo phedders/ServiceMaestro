@@ -64,6 +64,33 @@ export interface SetlistRevisionInfo {
 
 export type LiveApplyMode = "after-current" | "now";
 
+export interface SetlistImportPreview {
+  fileName: string;
+  selfContained: boolean;
+  name: string;
+  serviceDate: string;
+  serviceTime: string | null;
+  itemCount: number;
+  songCount: number;
+  textCount: number;
+  songs: Array<{
+    title: string;
+    matched: boolean;
+    matchTitle: string | null;
+    ccli: string | null;
+  }>;
+}
+
+export interface SetlistImportReport {
+  setlistId: string;
+  setlistName: string;
+  importedItems: number;
+  songsCreated: number;
+  songsMatched: number;
+  assetsImported: number;
+  skipped: Array<{ title: string; reason: string }>;
+}
+
 export interface LiveItemSummary {
   index: number;
   kind: ItemKind;

@@ -853,6 +853,45 @@ label {
   gap: 10px;
 }
 
+.transfer-panel {
+  border-top: 1px solid var(--border);
+  margin-top: 18px;
+  padding-top: 16px;
+  display: grid;
+  gap: 9px;
+}
+
+.transfer-panel .button-row {
+  flex-wrap: wrap;
+}
+
+.file-button {
+  text-align: center;
+  cursor: pointer;
+}
+
+.import-preview-card {
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--panel-2);
+  padding: 10px;
+  display: grid;
+  gap: 4px;
+  font-size: 0.78rem;
+}
+
+.import-preview-card .muted,
+.import-preview-card .hint {
+  font-size: 0.7rem;
+}
+
+.import-preview-card ul {
+  margin: 6px 0 0;
+  padding-left: 16px;
+  max-height: 140px;
+  overflow: auto;
+}
+
 .meta-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
