@@ -15,21 +15,62 @@ function today(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
+function previewLines(item: SetlistItem, song: Song | undefined): string {
+  let raw = item.kind === "song" ? (item.content ?? song?.lyrics ?? "") : (item.content ?? "");
+  if (!raw.trim()) return "";
+  raw = raw.replace(/\r/g, "");
+  if (item.kind === "text") {
+    raw = raw
+      .replace(/^---\s*\n[\s\S]*?\n---\s*\n/, "")
+      .replace(/^\s*(?:type|format|mode)\s*:\s*(?:html|htm|markdown|md|rst|text|plain)\s*\n/i, "")
+      .replace(/<[^>]+>/g, " ");
+  }
+  raw = raw.replace(/<!--[\s\S]*?-->/g, "");
+  const lines = raw
+    .split("\n")
+    .map((line) => line.replace(/\s+/g, " ").trim())
+    .filter(Boolean)
+    .slice(0, 6);
+  const text = lines.join("\n");
+  return text.length > 360 ? `${text.slice(0, 360)}…` : text;
+}
+
 function ItemRow({
   item,
+  song,
   first,
   last,
+  dragging,
+  dragOver,
   onMove,
   onDelete,
   onSave,
+  onSaveInventory,
+  onDragStart,
+  onDragEnd,
+  onDragOver,
+  onDrop,
+  notify,
 }: {
   item: SetlistItem;
+  song: Song | undefined;
   first: boolean;
   last: boolean;
+  dragging: boolean;
+  dragOver: boolean;
   onMove: (direction: -1 | 1) => void;
   onDelete: () => void;
   onSave: (payload: Record<string, unknown>) => Promise<void>;
+  onSaveInventory: (payload: Record<string, unknown>) => Promise<void>;
+  onDragStart: () => void;
+  onDragEnd: () => void;
+  onDragOver: () => void;
+  onDrop: () => void;
+  notify: (text: string, kind?: "info" | "error") => void;
 }) {
+  const [editing, setEditing] = useState(false);
+  const [title, setTitle] = useState(item.title);
+  const [content, setContent] = useState(item.content ?? (item.kind === "song" ? song?.lyrics ?? "" : ""));
   const [keyOverride, setKeyOverride] = useState(item.keyOverride ?? "");
   const [transpose, setTranspose] = useState(item.transpose);
   const [verseOrder, setVerseOrder] = useState(item.verseOrder ?? "");
@@ -37,34 +78,133 @@ function ItemRow({
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
+    setTitle(item.title);
+    setContent(item.content ?? (item.kind === "song" ? song?.lyrics ?? "" : ""));
     setKeyOverride(item.keyOverride ?? "");
     setTranspose(item.transpose);
     setVerseOrder(item.verseOrder ?? "");
     setNotes(item.notes ?? "");
-  }, [item]);
+  }, [item, song]);
 
-  async function save() {
+  const displayTitle = item.title || song?.title || "Untitled";
+  const localSongEdit =
+    item.kind === "song" && (item.content != null || (song != null && item.title !== song.title));
+  const preview = previewLines(item, song);
+
+  function resetDraft() {
+    setTitle(item.title);
+    setContent(item.content ?? (item.kind === "song" ? song?.lyrics ?? "" : ""));
+    setKeyOverride(item.keyOverride ?? "");
+    setTranspose(item.transpose);
+    setVerseOrder(item.verseOrder ?? "");
+    setNotes(item.notes ?? "");
+  }
+
+  function closeEditor() {
+    resetDraft();
+    setEditing(false);
+  }
+
+  function toggleEditor() {
+    if (editing) {
+      resetDraft();
+      setEditing(false);
+    } else {
+      setEditing(true);
+    }
+  }
+
+  function payload(): Record<string, unknown> {
+    const nextContent = content;
+    return {
+      title: title.trim() || (item.kind === "song" ? song?.title ?? displayTitle : "Text"),
+      // Songs follow the inventory unless the lyrics were actually changed.
+      content:
+        item.kind === "song"
+          ? song
+            ? nextContent === song.lyrics
+              ? null
+              : nextContent
+            : nextContent || null
+          : nextContent,
+      keyOverride: keyOverride || null,
+      transpose: Number(transpose) || 0,
+      verseOrder: verseOrder || null,
+      notes: notes || null,
+    };
+  }
+
+  async function saveLocal() {
     setSaving(true);
     try {
-      await onSave({
-        keyOverride: keyOverride || null,
-        transpose: Number(transpose) || 0,
-        verseOrder: verseOrder || null,
-        notes: notes || null,
-      });
+      await onSave(payload());
+      setEditing(false);
+    } catch (error) {
+      notify(error instanceof ApiError ? error.message : "Could not save item", "error");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function saveInventory() {
+    setSaving(true);
+    try {
+      await onSaveInventory(payload());
+      setEditing(false);
+    } catch (error) {
+      notify(
+        error instanceof ApiError ? error.message : "Could not save changes to the song library",
+        "error",
+      );
     } finally {
       setSaving(false);
     }
   }
 
   return (
-    <div className="setlist-item">
+    <div
+      className={`setlist-item ${dragging ? "dragging" : ""} ${dragOver ? "drag-over" : ""}`}
+      onDragOver={(event) => {
+        event.preventDefault();
+        onDragOver();
+      }}
+      onDrop={(event) => {
+        event.preventDefault();
+        onDrop();
+      }}
+    >
       <div className="setlist-item-main">
+        <span
+          className="drag-handle"
+          draggable
+          title="Drag to reorder"
+          aria-label="Drag to reorder"
+          onDragStart={(event) => {
+            event.dataTransfer.effectAllowed = "move";
+            event.dataTransfer.setData("text/plain", item.id);
+            onDragStart();
+          }}
+          onDragEnd={onDragEnd}
+        >
+          ⠿
+        </span>
         <span className={`item-icon ${item.kind}`}>{item.kind === "song" ? "♫" : "T"}</span>
-        <div className="setlist-item-title">
-          <strong>{item.title}</strong>
-          <span className="muted">{item.kind === "song" ? "Song" : "Text"}</span>
-        </div>
+        <button
+          type="button"
+          className="setlist-item-summary"
+          onClick={toggleEditor}
+          title={editing ? "Close editor" : "Click to edit"}
+        >
+          <span className="setlist-item-title-row">
+            <strong>{displayTitle}</strong>
+            {localSongEdit && <span className="local-badge">Local edit</span>}
+          </span>
+          <span className="muted">
+            {item.kind === "song" ? "Song" : "Text"}
+            {item.notes ? ` · ${item.notes}` : ""}
+          </span>
+          {!editing && preview && <span className="setlist-item-preview">{preview}</span>}
+        </button>
         <div className="setlist-item-actions">
           <button className="button ghost small" disabled={first} onClick={() => onMove(-1)}>
             ↑
@@ -72,46 +212,90 @@ function ItemRow({
           <button className="button ghost small" disabled={last} onClick={() => onMove(1)}>
             ↓
           </button>
+          <button className="button ghost small" onClick={toggleEditor}>
+            {editing ? "Done" : "Edit"}
+          </button>
           <button className="button ghost small danger-text" onClick={onDelete}>
             Remove
           </button>
         </div>
       </div>
-      <div className="setlist-item-settings">
-        <label>
-          Key
-          <input
-            value={keyOverride}
-            placeholder="auto"
-            onChange={(event) => setKeyOverride(event.target.value)}
-          />
-        </label>
-        <label>
-          Transpose
-          <input
-            type="number"
-            min={-24}
-            max={24}
-            value={transpose}
-            onChange={(event) => setTranspose(Number(event.target.value))}
-          />
-        </label>
-        <label>
-          Verse order
-          <input
-            value={verseOrder}
-            onChange={(event) => setVerseOrder(event.target.value)}
-            placeholder="auto"
-          />
-        </label>
-        <label className="grow">
-          Notes
-          <input value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Optional" />
-        </label>
-        <button className="button ghost small" onClick={save} disabled={saving}>
-          {saving ? "Saving…" : "Save"}
-        </button>
-      </div>
+
+      {editing && (
+        <div className="setlist-item-edit">
+          <div className="setlist-item-edit-heading">
+            <strong>{item.kind === "song" ? "Edit song for this set list" : "Edit text"}</strong>
+            {item.kind === "song" && (
+              <span className="muted">
+                Changes stay in this set list unless you choose “Save to song library”.
+              </span>
+            )}
+          </div>
+          <label>
+            Title
+            <input value={title} onChange={(event) => setTitle(event.target.value)} />
+          </label>
+          <label>
+            {item.kind === "song" ? "Lyrics" : "Text"}
+            <textarea
+              className="setlist-item-content"
+              value={content}
+              onChange={(event) => setContent(event.target.value)}
+              rows={item.kind === "song" ? 12 : 8}
+              placeholder={item.kind === "song" ? "Song lyrics and chords…" : "Text or rich text…"}
+            />
+          </label>
+          <div className="setlist-item-settings">
+            <label>
+              Key
+              <input
+                value={keyOverride}
+                placeholder="auto"
+                onChange={(event) => setKeyOverride(event.target.value)}
+              />
+            </label>
+            <label>
+              Transpose
+              <input
+                type="number"
+                min={-24}
+                max={24}
+                value={transpose}
+                onChange={(event) => setTranspose(Number(event.target.value))}
+              />
+            </label>
+            <label>
+              Verse order
+              <input
+                value={verseOrder}
+                onChange={(event) => setVerseOrder(event.target.value)}
+                placeholder="auto"
+              />
+            </label>
+            <label className="grow">
+              Notes
+              <input
+                value={notes}
+                onChange={(event) => setNotes(event.target.value)}
+                placeholder="Optional"
+              />
+            </label>
+          </div>
+          <div className="setlist-item-edit-actions">
+            <button className="button ghost" onClick={closeEditor}>
+              Cancel
+            </button>
+            <button className="button" onClick={saveLocal} disabled={saving}>
+              {saving ? "Saving…" : "Save local"}
+            </button>
+            {item.kind === "song" && item.songId && (
+              <button className="button primary" onClick={saveInventory} disabled={saving}>
+                {saving ? "Saving…" : "Save to song library"}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -136,6 +320,8 @@ export default function SetlistsPage({
   const [importing, setImporting] = useState(false);
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
 
   const [newName, setNewName] = useState("");
   const [newDate, setNewDate] = useState(today());
@@ -249,6 +435,29 @@ export default function SetlistsPage({
     const target = index + direction;
     if (target < 0 || target >= items.length) return;
     [items[index], items[target]] = [items[target], items[index]];
+    try {
+      const result = await api.reorder(
+        detail.id,
+        items.map((candidate) => candidate.id),
+      );
+      setDetail(result.setlist);
+      await loadList(detail.id);
+    } catch (error) {
+      notify(error instanceof ApiError ? error.message : "Could not reorder", "error");
+    }
+  }
+
+  async function dropItem(targetId: string) {
+    const sourceId = dragId;
+    setDragId(null);
+    setDragOverId(null);
+    if (!detail || !sourceId || sourceId === targetId) return;
+    const items = [...detail.items];
+    const from = items.findIndex((candidate) => candidate.id === sourceId);
+    const to = items.findIndex((candidate) => candidate.id === targetId);
+    if (from < 0 || to < 0) return;
+    const [moved] = items.splice(from, 1);
+    items.splice(to, 0, moved);
     try {
       const result = await api.reorder(
         detail.id,
@@ -533,19 +742,45 @@ export default function SetlistsPage({
               <ItemRow
                 key={item.id}
                 item={item}
+                song={songs.find((song) => song.id === item.songId)}
                 first={index === 0}
                 last={index === detail.items.length - 1}
+                dragging={dragId === item.id}
+                dragOver={dragOverId === item.id && dragId !== item.id}
+                onDragStart={() => setDragId(item.id)}
+                onDragEnd={() => {
+                  setDragId(null);
+                  setDragOverId(null);
+                }}
+                onDragOver={() => setDragOverId(item.id)}
+                onDrop={() => dropItem(item.id)}
                 onMove={(direction) => move(item, direction)}
                 onDelete={async () => {
-                  const result = await api.deleteItem(detail.id, item.id);
-                  setDetail(result.setlist);
-                  await loadList(detail.id);
+                  try {
+                    const result = await api.deleteItem(detail.id, item.id);
+                    setDetail(result.setlist);
+                    await loadList(detail.id);
+                  } catch (error) {
+                    notify(error instanceof ApiError ? error.message : "Could not remove item", "error");
+                  }
                 }}
                 onSave={async (payload) => {
                   const result = await api.patchItem(detail.id, item.id, payload);
                   setDetail(result.setlist);
                   await loadList(detail.id);
+                  notify("Saved to this set list");
                 }}
+                onSaveInventory={async (payload) => {
+                  const result = await api.saveItemToInventory(detail.id, item.id, payload);
+                  setDetail(result.setlist);
+                  await loadList(detail.id);
+                  api
+                    .songs()
+                    .then((songResult) => setSongs(songResult.songs))
+                    .catch(() => undefined);
+                  notify("Song library updated");
+                }}
+                notify={notify}
               />
             ))}
             {!detail.items.length && <p className="muted">Add a song or text item below.</p>}

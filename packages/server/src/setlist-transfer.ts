@@ -216,6 +216,7 @@ export function buildSetlistExport(
         maxLines: row.max_lines,
         verseOrder: row.verse_order,
         notes: row.notes,
+        content: row.content,
         song: song
           ? {
               title: song.title,
@@ -424,7 +425,7 @@ export function importSetlistFile(
       songId ? "song" : "text",
       songId,
       item.title,
-      songId ? null : content,
+      content,
       item.keyOverride ?? null,
       item.transpose ?? 0,
       item.maxLines ?? 4,

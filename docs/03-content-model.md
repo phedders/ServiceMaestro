@@ -56,7 +56,7 @@ Ordered list; each item has a kind:
 
 | Kind | References | Per-item settings |
 | --- | --- | --- |
-| `song` | song version + arrangement | key override, transpose, verse order override, notes |
+| `song` | song version + arrangement | key override, transpose, verse order override, notes, local title/lyrics override (set-list only by default) |
 | `text` | text item version | theme override, page breaks, notes |
 | `bible` | translation + reference | from/to verses, translation, theme |
 | `image` | image id | fit (`contain`/`cover`), background, notes |
@@ -65,6 +65,7 @@ Ordered list; each item has a kind:
 A **placeholder** is useful for service plans: it keeps the order meaningful without creating output. It is skipped by `next`/`prev` unless explicitly focused.
 
 - Per-item **snapshot title** is stored for stable display even if the library entry is renamed later.
+- Song title/lyrics edits in the set-list editor are **local to that set list** by default. “Save to song library” explicitly pushes the edited title, lyrics, key and verse order back to the song inventory.
 - **Same song twice** with different keys/arrangements is allowed.
 - Deleting an item in the draft never removes it from the pinned live revision.
 
@@ -456,6 +457,8 @@ Set lists:
 GET    /api/setlists?from=&to=
 POST   /api/setlists                          { name, service_date, service_time }
 GET    /api/setlists/:id                      head + revision list
+PATCH  /api/setlists/:id/items/:itemId        local title/lyrics/key/notes edits
+POST   /api/setlists/:id/items/:itemId/save-to-inventory  push edits to the song library
 POST   /api/setlists/:id/revisions            create draft from head
 GET    /api/setlists/:id/revisions/:no
 PATCH  /api/setlists/:id/revisions/:no        items/order/settings (If-Match)
@@ -497,6 +500,7 @@ GET    /api/providers/:id/search               authorized SongSelect search
 POST   /api/providers/:id/assets/:asset/download
 GET    /api/assets/:id/file                    authenticated, signed, range-capable
 GET    /api/musicians/services/:id             service + score readiness
+GET    /musicians                              standalone read-only musician view
 ```
 
 Provider access, licensing and failure handling are in [06-songselect-and-scores.md](06-songselect-and-scores.md).
@@ -515,12 +519,11 @@ Library
   Providers      SongSelect/session status (authorized integrations only)
 
 Musicians
-  Services       current/recent set lists; current + next song
-  Scores         PDF viewer, ChordPro view, guitar tabs, notes; offline cache
+  Services       standalone /musicians: current/next set lists, items, lyrics, scores and tabs; read-only
 
 Set Lists
   Calendar/list  named + dated services; duplicate; archive; export/import (JSON or bundle)
-  Editor         draft revision, drag/drop, live badge, diff preview, apply-to-live
+  Editor         draft revision, drag handle/drag-drop, inline preview/edit, live badge, diff preview, apply-to-live
 
 Live (Control)
   Current service: pages, set list queue, quick text, next/prev, blank/fade

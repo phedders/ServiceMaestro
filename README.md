@@ -3,7 +3,7 @@
 A self-hosted server application for running church service visuals: manage song lyrics, set lists and dynamic text, then drive them onto **separate HTTP frontends** that OBS (or any browser) can use as sources.
 
 > **Status: Phase 1 walking skeleton is implemented and runnable.**
-> Live sessions, set lists, songs, quick text, OBS-ready outputs and a per-user grid dashboard work end-to-end. Importers, Bible, scores, multi-user layout co-editing and the SongSelect provider are designed but not yet built.
+> Live sessions, set lists, songs, Bible, quick text and OBS-ready outputs work end-to-end. The grid dashboard page is temporarily hidden while its live-control semantics are reworked. Importers, multi-user layout co-editing and the SongSelect provider are designed but not yet built.
 >
 > Design documents:
 >
@@ -57,14 +57,18 @@ Or `npm run dev` runs both (server on 8080, control on 5173).
 
 The output token defaults to `dev-output`; set `WLM_OUTPUT_TOKEN` in production. Displays receive a **full snapshot on connect**, so refreshing or reconnecting OBS never blanks the screen.
 
+### Musicians view
+
+Open <http://localhost:8080/musicians> to see the read-only musician view. It defaults to the current/next dated service, lets each musician open the set list on their own device, and shows lyrics, notes, score PDFs and tabs without touching the live session.
+
 ## What works now
 
 - **Authentication** — local accounts, scrypt password hashing, HTTP-only sessions. One seeded `admin`; user management is next.
 - **Songs** — create/edit lyrics with inline chords (`A[C]mazing`), section labels (`[Verse 1]`), key, author, CCLI and copyright.
 - **Library import** — scan a folder for OpenLP/OpenLyrics XML, ChordPro and plain-text files; preview titles/formats/warnings, then import. Duplicate CCLI/title entries are skipped. OpenLP `verseOrder` and ChordPro `{comment: …}` sections are honoured; SongSelect legal footers and bar markers are removed.
-- **Scores and tabs for musicians** — upload PDFs, ChordPro, lyrics or images to a song; a musician page lists the service songs and renders PDFs with a bundled PDF.js viewer (page navigation, zoom, fit-to-width), plus text/image assets.
-- **Bible** — reads the three real schema families found in the samples (MyBible `book`/`verse`, BibleDb `books`/`verses`, and JSON), sanitises ESV markup, and provides a translation/book/chapter/verse-range UI with “Display now”.
-- **Set lists** — named, dated, with songs and text items; reorder; per-item key, transpose, max lines, verse order and notes.
+- **Scores and tabs for musicians** — upload PDFs, ChordPro, lyrics or images to a song; the standalone `/musicians` view lists upcoming/current services, opens a service read-only and renders lyrics plus PDFs with a bundled PDF.js viewer (page navigation, zoom, fit-to-width), text and image assets. It never changes the live session.
+- **Bible** — reads the three real schema families found in the samples (MyBible `book`/`verse`, BibleDb `books`/`verses`, and JSON), sanitises ESV markup, and provides a translation/book/chapter/verse-range UI with **Add to current setlist** and **Add to live session**.
+- **Set lists** — named, dated, with songs and text items; reorder with arrows or a drag handle; click an item to preview and edit its title, lyrics/text, key, transpose, verse order and notes. Song edits stay local to the set list by default, with an explicit **Save to song library** option.
 - **Live sessions** — a set list is snapshotted when the session starts, so editing the set list afterwards cannot change the live output. Sessions start **blank** until the operator shows the first page.
 - **Publish & apply** — publish a revision, then **apply after the current item** (safe during a service) or **apply now**; queued updates are shown to operators and persisted across restarts.
 - **Templated outputs** — main, two-thirds, full, stage and chords; templates come from the set-list repo, a templates folder/repo, or built-in defaults, with fade-in/out changes.
@@ -72,7 +76,7 @@ The output token defaults to `dev-output`; set `WLM_OUTPUT_TOKEN` in production.
 - **Rich text items** — first-line `type: markdown|html|rst|text` or YAML front matter, with page breaks and server-side sanitisation.
 - **Export/import** — download a reference JSON or self-contained ZIP bundle (songs, text, PDF/tab assets) and import it as a new draft with a preview; matching uses CCLI/title and never affects a live service.
 - **Live control** — next/previous, page show, item queue, blank, transpose, max-lines, footer and quick text.
-- **Dashboard** — drag/resize widgets (pages, preview, set list, transport, quick text) with **react-grid-layout**; personal layout saved to SQLite. Shared/published layouts and Yjs co-editing are next.
+- **Dashboard** — the configurable widget dashboard page is currently hidden from the navigation; its widgets changed live output and need a safer design before it returns.
 - **ChurchSuite planning sync** — designed: pull upcoming published services, match songs in a review dialog, and create a draft set list; pending working API credentials (see [10](docs/10-churchsuite-sync.md)).
 - **Git-backed shared data** — designed: local-only repos by default with optional remote, auto-save/push on by default, separate songs/setlists/(optional LFS) Bibles repos, standard SSH or HTTP(S)+token URIs. See [11](docs/11-git-data-sync.md).
 - **Displays** — vanilla HTML/CSS/JS, no CDN, snapshot-on-connect, transparent main output, full-screen and stage-with-chords variants.
@@ -124,7 +128,7 @@ web-lyric-master/
 ├── packages/
 │   ├── shared/       TypeScript types + Zod schemas
 │   ├── server/       Fastify API, SQLite, Socket.IO, live state, rendering
-│   ├── control/      React + Vite operator UI + react-grid-layout dashboard
+│   ├── control/      React + Vite operator UI (dashboard temporarily hidden) + standalone musicians view
 │   └── display/      Vanilla OBS display pages (main / full / stage)
 ├── docs/             Design documents
 ├── samples/          Git-ignored real inputs (Bible, ChordPro, OpenLP, SongSelect)

@@ -12,7 +12,7 @@ import {
 import { db } from "../db.js";
 import { requireAuth, requireRole } from "../auth.js";
 import { live } from "../live.js";
-import { saveSetlistToGit, deleteSetlistFromGit } from "../git-store.js";
+import { saveSetlistToGit, deleteSetlistFromGit, saveSongToGit } from "../git-store.js";
 
 interface SetlistRow {
   id: string;
@@ -37,6 +37,14 @@ interface ItemRow {
   max_lines: number;
   verse_order: string | null;
   notes: string | null;
+}
+
+interface SongRow {
+  id: string;
+  title: string;
+  key: string | null;
+  lyrics: string;
+  verse_order: string | null;
 }
 
 function mapItem(row: ItemRow): SetlistItem {
@@ -245,6 +253,64 @@ export async function setlistRoutes(app: FastifyInstance): Promise<void> {
         itemId,
       );
       db.prepare("UPDATE setlists SET updated_at = ? WHERE id = ?").run(new Date().toISOString(), id);
+      await persistGit(id, request);
+      return { setlist: detail(id) };
+    },
+  );
+
+  app.post(
+    "/api/setlists/:id/items/:itemId/save-to-inventory",
+    { preHandler: [requireAuth, requireRole("admin", "editor")] },
+    async (request, reply) => {
+      const { id, itemId } = request.params as { id: string; itemId: string };
+      const parsed = setlistItemPatchSchema.safeParse(request.body ?? {});
+      if (!parsed.success) return reply.code(400).send({ error: "Invalid item", issues: parsed.error.issues });
+      const existing = db
+        .prepare("SELECT * FROM setlist_items WHERE id = ? AND setlist_id = ?")
+        .get(itemId, id) as ItemRow | undefined;
+      if (!existing) return reply.code(404).send({ error: "Item not found" });
+      if (existing.kind !== "song" || !existing.song_id) {
+        return reply.code(400).send({ error: "Only song items can be saved to the song library" });
+      }
+      const song = db
+        .prepare("SELECT id, title, key, lyrics, verse_order FROM songs WHERE id = ?")
+        .get(existing.song_id) as SongRow | undefined;
+      if (!song) return reply.code(404).send({ error: "Song not found" });
+
+      const data = parsed.data;
+      const title = (data.title !== undefined ? data.title.trim() : existing.title) || song.title;
+      const content = data.content !== undefined ? data.content : existing.content;
+      const key = data.keyOverride !== undefined ? data.keyOverride : existing.key_override;
+      const transpose = data.transpose ?? existing.transpose;
+      const maxLines = data.maxLines ?? existing.max_lines;
+      const verseOrder = data.verseOrder !== undefined ? data.verseOrder : existing.verse_order;
+      const notes = data.notes !== undefined ? data.notes : existing.notes;
+      const now = new Date().toISOString();
+
+      const apply = db.transaction(() => {
+        db.prepare(
+          `UPDATE songs SET title = ?, key = ?, lyrics = ?, verse_order = ?, updated_at = ? WHERE id = ?`,
+        ).run(
+          title,
+          key !== undefined ? key : song.key,
+          content !== undefined && content !== null ? content : song.lyrics,
+          verseOrder !== undefined ? verseOrder : song.verse_order,
+          now,
+          song.id,
+        );
+        // The item now follows the library version again; transpose, notes and
+        // screen/page settings remain specific to this set list.
+        db.prepare(
+          `UPDATE setlist_items SET title = ?, content = NULL, key_override = NULL,
+             transpose = ?, max_lines = ?, verse_order = NULL, notes = ? WHERE id = ?`,
+        ).run(title, transpose, maxLines, notes, itemId);
+        db.prepare("UPDATE setlists SET updated_at = ? WHERE id = ?").run(now, id);
+      });
+      apply();
+
+      await saveSongToGit(song.id).catch((error) =>
+        request.log.warn({ err: error }, "git song save failed"),
+      );
       await persistGit(id, request);
       return { setlist: detail(id) };
     },

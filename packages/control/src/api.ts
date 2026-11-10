@@ -115,6 +115,11 @@ export const api = {
       method: "PATCH",
       body: JSON.stringify(payload),
     }),
+  saveItemToInventory: (id: string, itemId: string, payload: Record<string, unknown>) =>
+    request<{ setlist: SetlistDetail }>(`/api/setlists/${id}/items/${itemId}/save-to-inventory`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
   deleteItem: (id: string, itemId: string) =>
     request<{ setlist: SetlistDetail }>(`/api/setlists/${id}/items/${itemId}`, { method: "DELETE" }),
   reorder: (id: string, ids: string[]) =>

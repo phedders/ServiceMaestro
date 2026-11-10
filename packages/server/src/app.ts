@@ -79,6 +79,8 @@ export async function buildApp(): Promise<{ app: FastifyInstance; io: Server }> 
 
   app.get("/", async (_request, reply) => sendHtml(reply, path.join(CONTROL_DIST, "index.html")));
   app.get("/login", async (_request, reply) => sendHtml(reply, path.join(CONTROL_DIST, "index.html")));
+  app.get("/musicians", async (_request, reply) => sendHtml(reply, path.join(CONTROL_DIST, "index.html")));
+  app.get("/musicians/", async (_request, reply) => sendHtml(reply, path.join(CONTROL_DIST, "index.html")));
   app.get("/favicon.ico", async (_request, reply) => reply.code(204).send());
 
   const displayPages: Record<string, string> = {

@@ -1,6 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
-import type { BibleBook, BiblePassage, BibleTranslationInfo, LiveState } from "@wlm/shared";
+import type {
+  BibleBook,
+  BiblePassage,
+  BibleTranslationInfo,
+  LiveState,
+  SetlistSummary,
+} from "@wlm/shared";
 import { api, ApiError } from "../api";
+import { pickCurrentSetlist } from "../service-date";
 
 export default function BiblePage({
   live,
@@ -21,6 +28,9 @@ export default function BiblePage({
   const [to, setTo] = useState(1);
   const [loading, setLoading] = useState(true);
   const [includeReference, setIncludeReference] = useState(true);
+  const [setlists, setSetlists] = useState<SetlistSummary[]>([]);
+  const [targetSetlist, setTargetSetlist] = useState("");
+  const [adding, setAdding] = useState(false);
 
   useEffect(() => {
     api
@@ -48,6 +58,20 @@ export default function BiblePage({
       })
       .catch((error) => notify(error instanceof ApiError ? error.message : "Could not load books", "error"));
   }, [translation]);
+
+  useEffect(() => {
+    api
+      .setlists()
+      .then((result) => {
+        setSetlists(result.setlists);
+        const preferred =
+          (live.setlistId && result.setlists.find((setlist) => setlist.id === live.setlistId)?.id) ||
+          pickCurrentSetlist(result.setlists)?.id ||
+          "";
+        setTargetSetlist(preferred);
+      })
+      .catch(() => undefined);
+  }, []);
 
   useEffect(() => {
     if (!translation || !bookNumber || !chapter) return;
@@ -80,11 +104,38 @@ export default function BiblePage({
     } (${passage.translationName})`;
   }
 
-  function display() {
-    if (!verses.length) return;
+  function passageBody() {
+    if (!verses.length) return "";
     const text = verses.map((verse) => verse.text).join("\n");
-    const body = includeReference ? `${reference()}\n${text}` : text;
-    onQuickText(body);
+    return includeReference ? `${reference()}\n${text}` : text;
+  }
+
+  function display() {
+    const body = passageBody();
+    if (body) onQuickText(body);
+  }
+
+  async function addToSetlist() {
+    const body = passageBody();
+    if (!targetSetlist || !body) return;
+    setAdding(true);
+    try {
+      await api.addItem(targetSetlist, {
+        kind: "text",
+        title: reference() || "Bible passage",
+        content: body,
+      });
+      const target = setlists.find((setlist) => setlist.id === targetSetlist);
+      notify(
+        target
+          ? `Added ${reference()} to “${target.name}”`
+          : `Added ${reference()} to the current set list`,
+      );
+    } catch (error) {
+      notify(error instanceof ApiError ? error.message : "Could not add passage to set list", "error");
+    } finally {
+      setAdding(false);
+    }
   }
 
   if (loading) return <div className="panel">Loading translations…</div>;
@@ -177,22 +228,47 @@ export default function BiblePage({
             />
             Include reference
           </label>
-          <div className="button-row">
-            <button
-              className="button"
-              onClick={() => {
-                navigator.clipboard?.writeText(
-                  verses.map((verse) => verse.text).join("\n"),
-                );
-                notify("Passage copied");
-              }}
-              disabled={!verses.length}
-            >
-              Copy text
-            </button>
-            <button className="button primary" onClick={display} disabled={!verses.length || live.status === "idle"}>
-              Display now
-            </button>
+          <div className="bible-target">
+            <label>
+              Current set list
+              <select value={targetSetlist} onChange={(event) => setTargetSetlist(event.target.value)}>
+                {!setlists.length && <option value="">No set lists yet</option>}
+                {setlists.map((setlist) => (
+                  <option key={setlist.id} value={setlist.id}>
+                    {setlist.name} — {setlist.serviceDate}
+                    {setlist.serviceTime ? ` ${setlist.serviceTime}` : ""}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div className="button-row">
+              <button
+                className="button ghost"
+                onClick={() => {
+                  navigator.clipboard?.writeText(verses.map((verse) => verse.text).join("\n"));
+                  notify("Passage copied");
+                }}
+                disabled={!verses.length}
+              >
+                Copy text
+              </button>
+              <button
+                className="button"
+                onClick={addToSetlist}
+                disabled={!targetSetlist || !verses.length || adding}
+                title="Adds a text item to the selected set list without changing the live output"
+              >
+                {adding ? "Adding…" : "Add to current setlist"}
+              </button>
+              <button
+                className="button primary"
+                onClick={display}
+                disabled={!verses.length || live.status === "idle"}
+                title="Shows the passage immediately; it is not saved to the set list"
+              >
+                Add to live session
+              </button>
+            </div>
           </div>
         </div>
       </section>

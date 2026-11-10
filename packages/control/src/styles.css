@@ -33,6 +33,37 @@ body {
   color: var(--text);
 }
 
+.standalone-shell {
+  min-height: 100vh;
+}
+
+.standalone-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--border);
+  background: #0a1018;
+}
+
+.standalone-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.standalone-header-actions .button {
+  text-decoration: none;
+}
+
+.standalone-main {
+  max-width: 1500px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
 button,
 input,
 select,
@@ -260,7 +291,8 @@ code {
   gap: 4px;
 }
 
-.nav button {
+.nav button,
+.nav-link {
   border: 0;
   background: transparent;
   color: var(--muted);
@@ -271,14 +303,17 @@ code {
   gap: 10px;
   align-items: center;
   font-size: 0.9rem;
+  text-decoration: none;
 }
 
-.nav button:hover {
+.nav button:hover,
+.nav-link:hover {
   background: rgba(255, 255, 255, 0.04);
   color: var(--text);
 }
 
-.nav button.active {
+.nav button.active,
+.nav-link.active {
   background: var(--accent-soft);
   color: #dff5ff;
   box-shadow: inset 2px 0 0 var(--accent);
@@ -934,37 +969,133 @@ label {
   padding: 12px;
   margin-bottom: 10px;
   background: var(--panel-2);
+  transition: border-color 120ms ease, opacity 120ms ease;
+}
+
+.setlist-item.dragging {
+  opacity: 0.45;
+}
+
+.setlist-item.drag-over {
+  border-color: rgba(76, 194, 255, 0.75);
+  box-shadow: 0 0 0 2px rgba(76, 194, 255, 0.12);
+}
+
+.drag-handle {
+  cursor: grab;
+  color: var(--muted);
+  font-size: 1.05rem;
+  line-height: 1;
+  padding: 4px 2px;
+  user-select: none;
+  flex: 0 0 auto;
+}
+
+.drag-handle:active {
+  cursor: grabbing;
 }
 
 .setlist-item-main {
   display: flex;
   gap: 10px;
-  align-items: center;
+  align-items: flex-start;
 }
 
-.setlist-item-title {
+.setlist-item-summary {
   flex: 1;
+  min-width: 0;
   display: grid;
-  gap: 1px;
+  gap: 3px;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  color: var(--text);
+  padding: 0;
+  cursor: pointer;
 }
 
-.setlist-item-title span {
+.setlist-item-summary:hover strong {
+  color: var(--accent);
+}
+
+.setlist-item-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.setlist-item-summary .muted {
   font-size: 0.7rem;
+}
+
+.local-badge {
+  border: 1px solid rgba(251, 191, 36, 0.4);
+  background: rgba(251, 191, 36, 0.12);
+  color: #fde68a;
+  border-radius: 999px;
+  padding: 1px 7px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.setlist-item-preview {
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 5;
+  -webkit-box-orient: vertical;
 }
 
 .setlist-item-actions {
   display: flex;
   gap: 4px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.setlist-item-edit {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  display: grid;
+  gap: 10px;
+}
+
+.setlist-item-edit-heading {
+  display: grid;
+  gap: 2px;
+}
+
+.setlist-item-edit-heading .muted {
+  font-size: 0.7rem;
+}
+
+.setlist-item-content {
+  font-family: "JetBrains Mono", "Fira Code", ui-monospace, monospace;
+  font-size: 0.8rem;
+  line-height: 1.55;
+  min-height: 160px;
+}
+
+.setlist-item-edit-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .setlist-item-settings {
   display: grid;
-  grid-template-columns: 90px 90px 130px minmax(120px, 1fr) auto;
+  grid-template-columns: 90px 90px 130px minmax(120px, 1fr);
   gap: 8px;
   align-items: end;
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid var(--border);
 }
 
 .add-grid {
@@ -1207,11 +1338,22 @@ label {
 .bible-actions {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-end;
   gap: 16px;
   margin-top: 16px;
   padding-top: 14px;
   border-top: 1px solid var(--border);
+}
+
+.bible-target {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.bible-target label {
+  min-width: 260px;
 }
 
 .checkbox {
@@ -1259,6 +1401,15 @@ label {
   .bible-actions {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .bible-target {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .bible-target label {
+    min-width: 0;
   }
 }
 
@@ -1322,6 +1473,80 @@ label {
 
 .musicians-viewer {
   min-height: 640px;
+}
+
+.musicians-setlists {
+  max-height: 70vh;
+  overflow: auto;
+}
+
+.musician-items {
+  display: grid;
+  gap: 8px;
+}
+
+.musician-item {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--panel-2);
+  overflow: hidden;
+}
+
+.musician-item.selected {
+  border-color: rgba(76, 194, 255, 0.5);
+}
+
+.musician-item-head {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  text-align: left;
+  padding: 12px 14px;
+}
+
+.musician-item-head > span:last-child {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.musician-item-head .muted {
+  font-size: 0.72rem;
+}
+
+.musician-notes {
+  color: #fde68a;
+  font-size: 0.74rem;
+}
+
+.musician-item-body {
+  border-top: 1px solid var(--border);
+  padding: 14px;
+  display: grid;
+  gap: 12px;
+}
+
+.lyrics-view {
+  margin: 0;
+  max-height: 46vh;
+  overflow: auto;
+  white-space: pre-wrap;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 0.82rem;
+  line-height: 1.65;
+  color: #dbe6f4;
+  background: #101720;
+  border-radius: 8px;
+  padding: 14px;
+}
+
+.musician-score {
+  display: grid;
+  gap: 10px;
 }
 
 .asset-tabs {
@@ -1585,6 +1810,15 @@ label {
 
   .app {
     grid-template-columns: 1fr;
+  }
+
+  .standalone-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .standalone-main {
+    padding: 16px;
   }
 
   .sidebar {

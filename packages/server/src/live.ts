@@ -104,7 +104,8 @@ function resolveSetlistItems(setlistId: string): { name: string; items: Snapshot
         itemId: row.id,
         songId: row.song_id,
         title: row.title || song?.title || "Untitled song",
-        lyrics: song?.lyrics ?? "",
+        // A song item may carry a local lyric override for this set list only.
+        lyrics: row.content ?? song?.lyrics ?? "",
         key: song?.key ?? null,
         keyOverride: row.key_override,
         transpose: row.transpose,

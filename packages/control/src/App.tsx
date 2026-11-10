@@ -7,11 +7,10 @@ import Login from "./components/Login";
 import LivePage from "./pages/LivePage";
 import SetlistsPage from "./pages/SetlistsPage";
 import SongsPage from "./pages/SongsPage";
-import DashboardPage from "./pages/DashboardPage";
 import BiblePage from "./pages/BiblePage";
 import MusiciansPage from "./pages/MusiciansPage";
 
-type Page = "live" | "setlists" | "songs" | "bible" | "musicians" | "dashboard";
+type Page = "live" | "setlists" | "songs" | "bible";
 
 interface Toast {
   id: number;
@@ -20,6 +19,8 @@ interface Toast {
 }
 
 export default function App() {
+  const standaloneMusicians =
+    typeof window !== "undefined" && /^\/musicians\/?$/.test(window.location.pathname);
   const [user, setUser] = useState<PublicUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState<Page>("live");
@@ -42,15 +43,15 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || standaloneMusicians) return;
     api
       .live()
       .then((result) => setLive(result.state))
       .catch(() => undefined);
-  }, [user]);
+  }, [user, standaloneMusicians]);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || standaloneMusicians) return;
     const socket: Socket = io({ withCredentials: true });
     socket.on("connect", () => setConnected(true));
     socket.on("disconnect", () => setConnected(false));
@@ -59,7 +60,7 @@ export default function App() {
     return () => {
       socket.disconnect();
     };
-  }, [user]);
+  }, [user, standaloneMusicians]);
 
   const command = async (payload: Record<string, unknown>) => {
     try {
@@ -106,10 +107,6 @@ export default function App() {
         return "Songs";
       case "bible":
         return "Bible";
-      case "musicians":
-        return "Musicians";
-      case "dashboard":
-        return "Dashboard";
     }
   }, [page]);
 
@@ -125,6 +122,43 @@ export default function App() {
           setPage("live");
         }}
       />
+    );
+  }
+
+  if (standaloneMusicians) {
+    return (
+      <div className="standalone-shell">
+        <header className="standalone-header">
+          <div className="brand">
+            <div className="brand-mark">♪</div>
+            <div>
+              <strong>Web Lyric Master</strong>
+              <span>Musicians · read-only service view</span>
+            </div>
+          </div>
+          <div className="standalone-header-actions">
+            <span className="muted">
+              {user.username} · {user.role}
+            </span>
+            <a className="button ghost" href="/">
+              Control
+            </a>
+            <button className="button ghost" onClick={logout}>
+              Sign out
+            </button>
+          </div>
+        </header>
+        <main className="standalone-main">
+          <MusiciansPage notify={notify} />
+        </main>
+        <div className="toasts">
+          {toasts.map((toast) => (
+            <div key={toast.id} className={`toast ${toast.kind}`}>
+              {toast.text}
+            </div>
+          ))}
+        </div>
+      </div>
     );
   }
 
@@ -152,12 +186,9 @@ export default function App() {
           <button className={page === "bible" ? "active" : ""} onClick={() => setPage("bible")}>
             <span className="nav-icon">✝</span> Bible
           </button>
-          <button className={page === "musicians" ? "active" : ""} onClick={() => setPage("musicians")}>
+          <a className="nav-link" href="/musicians" target="_blank" rel="noreferrer">
             <span className="nav-icon">♪</span> Musicians
-          </button>
-          <button className={page === "dashboard" ? "active" : ""} onClick={() => setPage("dashboard")}>
-            <span className="nav-icon">▦</span> Dashboard
-          </button>
+          </a>
         </nav>
 
         <div className="sidebar-footer">
@@ -219,15 +250,6 @@ export default function App() {
         )}
         {page === "songs" && <SongsPage notify={notify} />}
         {page === "bible" && <BiblePage live={live} onQuickText={quickText} notify={notify} />}
-        {page === "musicians" && <MusiciansPage live={live} notify={notify} />}
-        {page === "dashboard" && (
-          <DashboardPage
-            live={live}
-            onCommand={command}
-            onQuickText={quickText}
-            notify={notify}
-          />
-        )}
       </main>
 
       <div className="toasts">

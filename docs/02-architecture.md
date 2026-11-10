@@ -1,6 +1,6 @@
 # Architecture: Web Lyric Master
 
-Status: **design agreed; Phase 1 walking skeleton implemented, plus sample-backed importers, Bible adapters, song assets, musician PDF viewer, set-list publish/apply-to-live, verse order, export/import and local Git persistence** (see [09-phase-1-status.md](09-phase-1-status.md)) — Node.js + TypeScript, Fastify/Socket.IO, SQLite, React control UI with a per-user react-grid-layout dashboard, and vanilla display outputs. Old OBS URLs are aliased. OpenLP, ChordPro, plain-text, Bible and first score/text samples have arrived; additional PDF-score and guitar-tab samples are still pending. Content authoring is detailed in [03-content-model.md](03-content-model.md); SongSelect/scores in [06-songselect-and-scores.md](06-songselect-and-scores.md); Bible schemas in [07-bible-sources.md](07-bible-sources.md); ChurchSuite sync in [10-churchsuite-sync.md](10-churchsuite-sync.md); Git-backed shared data in [11-git-data-sync.md](11-git-data-sync.md); the dashboard layout editor in [08-dashboard-layout-editor.md](08-dashboard-layout-editor.md); container packaging in [05-container-deployment.md](05-container-deployment.md). Based on [01-node-red-analysis.md](01-node-red-analysis.md).
+Status: **design agreed; Phase 1 walking skeleton implemented, plus sample-backed importers, Bible adapters, song assets, standalone musician view, set-list publish/apply-to-live, verse order, export/import and local Git persistence** (see [09-phase-1-status.md](09-phase-1-status.md)) — Node.js + TypeScript, Fastify/Socket.IO, SQLite, React control UI (grid dashboard temporarily hidden), and vanilla display outputs. Old OBS URLs are aliased. OpenLP, ChordPro, plain-text, Bible and first score/text samples have arrived; additional PDF-score and guitar-tab samples are still pending. Content authoring is detailed in [03-content-model.md](03-content-model.md); SongSelect/scores in [06-songselect-and-scores.md](06-songselect-and-scores.md); Bible schemas in [07-bible-sources.md](07-bible-sources.md); ChurchSuite sync in [10-churchsuite-sync.md](10-churchsuite-sync.md); Git-backed shared data in [11-git-data-sync.md](11-git-data-sync.md); the dashboard layout editor in [08-dashboard-layout-editor.md](08-dashboard-layout-editor.md); container packaging in [05-container-deployment.md](05-container-deployment.md). Based on [01-node-red-analysis.md](01-node-red-analysis.md).
 
 ## 1. Goals
 
@@ -228,6 +228,7 @@ Rules:
 | `/api/themes`, `/api/themes/:id/versions`, `/preview` | Modular themes | editor/admin |
 | `/api/setlists`, `/api/setlists/:id/revisions/:no`, `/apply-to-live`, `/duplicate` | Named/dated set lists, drafts, apply-to-live | editor/operator |
 | `/api/setlists/:id/export`, `/api/setlists/import` | Reference JSON / bundle export and import | editor/operator |
+| `/api/setlists/:id/items/:itemId/save-to-inventory` | Push local song edits into the library | editor/admin |
 | `/api/sessions` | Start/stop rehearsal/live sessions | operator |
 | `/api/bible/translations`, `/books`, `/chapters`, `/passage` | Bible data | operator |
 | `/api/images`, `/api/images/upload`, `/api/scan` | Media + import | operator/admin |
@@ -239,7 +240,7 @@ Rules:
 | `/display/stage` | Stage monitor (chords, notes, next) | `?token=` |
 | `/display/chords` | Chords view | `?token=` |
 | `/display/image` | Image/slide output | `?token=` |
-| `/musicians` | Musician UI: set list, ChordPro, scores, tabs | session + `musician` role |
+| `/musicians` | Standalone read-only musician view: services, items, lyrics, scores and tabs; never changes live | session |
 | `/healthz`, `/metrics` | Ops | local |
 
 Set list export/import formats, conflict handling and the bundle layout are defined in [03-content-model.md §12](03-content-model.md#12-set-list-export--import).

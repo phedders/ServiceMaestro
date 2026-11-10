@@ -312,7 +312,7 @@ function importSetlist(manifest: SetlistManifest): void {
       songId ? "song" : "text",
       songId,
       item.title,
-      songId ? null : content,
+      content,
       item.keyOverride ?? null,
       item.transpose ?? 0,
       item.maxLines ?? 4,
