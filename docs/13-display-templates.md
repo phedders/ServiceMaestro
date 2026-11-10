@@ -129,13 +129,15 @@ Scope:
 - **Stage and chords always keep their fixed styling**, regardless of the main/two-thirds config.
 - Max lines controls **page splitting** for line-based songs and text; `<!-- page -->` / `<!--- page --->` / `<hr class="page-break">` markers force additional breaks. Rich Markdown/HTML/RST items use the explicit markers as their page boundaries.
 - Settings persist in the database and are broadcast to outputs immediately. The per-item “Lines/page” control has been removed from the set-list editor; the screen-level setting is authoritative.
-- The **Show** button still reveals a blank screen, and selecting a page/item clears blank and fades it in.
+- The **Show** button reveals a blank screen. **Selecting a page** shows and fades it in; **selecting a set-list item** only queues its page list and leaves the current output unchanged.
 
 ## 5. Blank on session start
 
 Starting a live session now sets `blank: true`. Outputs remain black/transparent until the operator presses **Show** or advances; the preview shows the **BLANK** state.
 
-**Selecting a page or item** (from the Pages/Items lists or the dashboard) counts as an explicit show: `blank` is cleared in the same command and the display fades the selected page in directly. The **Show** button remains for revealing the current page without changing it.
+**Selecting a page** (from the Pages list or dashboard) is an explicit show: `blank` is cleared in the same command and the display fades the selected page in directly.
+
+**Selecting a set-list item** only **queues** that item's page list. It does not change the live output, page, title or blank state; the Pages panel switches to the queued item and the first page is shown only when the operator clicks a page (or uses Show/Next as appropriate). The **Show** button remains for revealing the current live page without changing it.
 
 ## 6. Preview pane size
 

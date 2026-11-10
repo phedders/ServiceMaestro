@@ -28,7 +28,7 @@ WLM_ADMIN_PASSWORD='change-me' npm start
 | Display config | Live-page font/colour/size/max-lines panel; styles apply to main/two-thirds, stage/chords fixed; max lines drives page splitting |
 | Export/import | Reference JSON and self-contained ZIP bundles (songs/text/assets); preview then import as a new draft, with song matching by CCLI/title |
 | Git local persistence | Songs/setlists written to local Git repos and committed; `autoSave`/`autoPush` configurable (default true); optional remotes, startup import/export, pull interval; Bibles repo optional (LFS in container) |
-| Live sessions | Snapshot-on-start; starts blank; publish/apply after-current or now; queued updates survive restarts; next/prev, page/item goto, blank, transpose, max lines, footer, quick text || Display templates | main, two-thirds, full, stage, chords; HTML/CSS lookup from set-list repo, templates folder/repo or built-ins; fade in/out |
+| Live sessions | Snapshot-on-start; starts blank; page selection shows/fades; item selection only queues pages; publish/apply after-current or now; queued updates survive restarts; next/prev, page/item navigation, blank, transpose, max lines, footer, quick text || Display templates | main, two-thirds, full, stage, chords; HTML/CSS lookup from set-list repo, templates folder/repo or built-ins; fade in/out |
 | Rich text | First-line/front-matter `type: markdown|html|rst|text`, sanitised render, page breaks |
 | Outputs | Vanilla HTML/CSS/JS; snapshot-on-connect over Socket.IO; transparent main, full-screen, stage with chords; legacy `/obs-*` aliases |
 | Dashboard | `react-grid-layout`; pages, preview, set-list, transport and quick-text widgets; drag/resize; personal layout saved in SQLite; reset to default |

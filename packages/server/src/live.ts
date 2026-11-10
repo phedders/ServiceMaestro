@@ -257,6 +257,9 @@ class LiveService {
         pending,
         state,
       };
+      this.active.state.queuedItemIndex = null;
+      this.active.state.queuedTitle = null;
+      this.active.state.queuedPages = [];
       if (this.active.state.itemIndex < 0) {
         this.active.state.itemIndex = 0;
         this.active.state.pageIndex = 0;
@@ -303,6 +306,9 @@ class LiveService {
       updatedAt: now(),
       pendingUpdate: false,
       pendingRevision: null,
+      queuedItemIndex: null,
+      queuedTitle: null,
+      queuedPages: [],
       displayConfig,
     };
 
@@ -397,6 +403,9 @@ class LiveService {
   ): LiveState {
     if (!this.active) throw new Error("No live session");
     const record = this.active;
+    record.state.queuedItemIndex = null;
+    record.state.queuedTitle = null;
+    record.state.queuedPages = [];
     if (mode === "now") {
       record.items = items;
       record.revisionId = revisionId;
@@ -453,16 +462,22 @@ class LiveService {
       }
       case "goto": {
         let selected = false;
+        if (typeof command.pageIndex === "number") {
+          if (state.queuedItemIndex != null) {
+            this.setItem(state.queuedItemIndex);
+          }
+          this.setPage(command.pageIndex);
+          selected = true;
+        }
         if (typeof command.itemIndex === "number") {
           this.setItem(command.itemIndex);
           selected = true;
         }
-        if (typeof command.pageIndex === "number") {
-          this.setPage(command.pageIndex);
-          selected = true;
-        }
-        // Selecting a page/item is an explicit "show" action.
         if (selected) state.blank = false;
+        break;
+      }
+      case "queueItem": {
+        this.queueItem(Number(command.itemIndex));
         break;
       }
       case "blank":
@@ -526,11 +541,24 @@ class LiveService {
     const { state, items } = this.active;
     if (index < 0 || index >= items.length) return;
     this.active.transient = null;
+    state.queuedItemIndex = null;
+    state.queuedTitle = null;
+    state.queuedPages = [];
     state.itemIndex = index;
     state.pageIndex = 0;
     state.mode = items[index].kind;
     state.title = items[index].title;
     this.renderCurrent();
+  }
+
+  private queueItem(index: number): void {
+    if (!this.active) return;
+    const { state, items } = this.active;
+    if (!Number.isFinite(index) || index < 0 || index >= items.length) return;
+    const item = items[index];
+    state.queuedItemIndex = index;
+    state.queuedTitle = item.title;
+    state.queuedPages = buildPages(item, state.transpose);
   }
 
   private setPage(index: number): void {
@@ -582,6 +610,11 @@ class LiveService {
     record.state.pageIndex = Math.max(0, Math.min(record.state.pageIndex, pages.length - 1));
     record.state.title = item.title;
     record.state.mode = item.kind;
+
+    if (record.state.queuedItemIndex != null) {
+      const queued = record.items[record.state.queuedItemIndex];
+      if (queued) record.state.queuedPages = buildPages(queued, record.state.transpose);
+    }
   }
 
   private persist(): void {

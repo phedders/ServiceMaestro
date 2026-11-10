@@ -188,7 +188,11 @@ export default function LivePage({
         <div className="panel-heading">
           <h2>Pages</h2>
           <span className="muted">
-            {live.pageCount ? `${live.pageIndex + 1} / ${live.pageCount}` : "0 pages"}
+            {live.queuedItemIndex != null
+              ? `Queued: ${live.queuedTitle ?? "item"} · ${live.queuedPages?.length ?? 0} pages`
+              : live.pageCount
+                ? `${live.pageIndex + 1} / ${live.pageCount}`
+                : "0 pages"}
           </span>
         </div>
         <PageList live={live} onCommand={onCommand} />

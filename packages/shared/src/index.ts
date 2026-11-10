@@ -134,6 +134,9 @@ export interface LiveState {
   items: LiveItemSummary[];
   templates?: Record<string, DisplayTemplate>;
   displayConfig?: DisplayConfig;
+  queuedItemIndex?: number | null;
+  queuedTitle?: string | null;
+  queuedPages?: LivePage[];
   version: number;
   updatedAt: string;
   pendingUpdate: boolean;
@@ -294,6 +297,7 @@ export const liveCommandSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("prev") }),
   z.object({ type: z.literal("page"), delta: z.number().int().min(-50).max(50) }),
   z.object({ type: z.literal("goto"), itemIndex: z.number().int().min(0).optional(), pageIndex: z.number().int().min(0).optional() }),
+  z.object({ type: z.literal("queueItem"), itemIndex: z.number().int().min(0) }),
   z.object({ type: z.literal("blank"), value: z.boolean().optional() }),
   z.object({ type: z.literal("transpose"), delta: z.number().int().min(-12).max(12) }),
   z.object({ type: z.literal("maxLines"), value: z.number().int().min(1).max(30) }),
