@@ -233,8 +233,10 @@ Rules:
 | `/api/live/*` | Commands (POST fallback) | operator |
 | `/media/...` | Images/thumbnails/fonts | output token or signed path |
 | `/display/main` | Lower-third / main lyric output | `?token=` or `?key=` |
+| `/display/two-thirds` | Two-thirds output | `?token=` |
 | `/display/full` | Full-screen output | `?token=` |
 | `/display/stage` | Stage monitor (chords, notes, next) | `?token=` |
+| `/display/chords` | Chords view | `?token=` |
 | `/display/image` | Image/slide output | `?token=` |
 | `/musicians` | Musician UI: set list, ChordPro, scores, tabs | session + `musician` role |
 | `/healthz`, `/metrics` | Ops | local |
@@ -409,7 +411,7 @@ No arbitrary HTML/CSS from operators. Content is sanitized at import/render time
 Resolved:
 
 1. **Stack** — Node.js 24 + TypeScript end-to-end; Fastify + Socket.IO, SQLite (`better-sqlite3`), React + Vite control UI, vanilla display pages (see §3).
-2. **OBS URL stability** — keep `/obs-main`, `/obs-mainfull`, `/obs-stage` as aliases of `/display/main`, `/display/full`, `/display/stage` (see §8).
+2. **OBS URL stability** — keep `/obs-main`, `/obs-mainfull`, `/obs-stage` as aliases of `/display/main`, `/display/full`, `/display/stage`; add `/obs-two-thirds` and `/obs-chords` (see §8).
 3. **Content model** — set lists are the unit of work; named/dated, revisioned, editable without touching live; versioned songs/text/themes; detailed in [03-content-model.md](03-content-model.md).
 4. **Set list export/import** — reference JSON plus self-contained bundle with media, preview/conflict handling, never touching live; defined in [03-content-model.md §12](03-content-model.md#12-set-list-export--import).
 5. **Container target** — single process, single writable volume, one port; runs on Docker, Podman (rootless), Incus and LXC; detailed in [05-container-deployment.md](05-container-deployment.md).

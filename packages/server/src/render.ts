@@ -1,4 +1,8 @@
 import type { LivePage } from "@wlm/shared";
+import { marked } from "marked";
+import rst2html from "rst2html";
+import sanitizeHtml from "sanitize-html";
+import { parse as parseYaml } from "yaml";
 
 export interface RenderItem {
   kind: "song" | "text";
@@ -12,8 +16,7 @@ export interface RenderItem {
   verseOrder?: string | null;
 }
 
-const NOTES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
-const NOTE_INDEX: Record<string, number> = {
+const NOTES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];const NOTE_INDEX: Record<string, number> = {
   C: 0, "C#": 1, Db: 1, D: 2, "D#": 3, Eb: 3, E: 4, F: 5,
   "F#": 6, Gb: 6, G: 7, "G#": 8, Ab: 8, A: 9, "A#": 10, Bb: 10, B: 11,
 };
@@ -102,7 +105,8 @@ function parseSong(lyrics: string): Block[] {
   return blocks.filter((b) => b.lines.length > 0);
 }
 
-function parseText(content: string): Block[] {  const rawLines = content.replace(/\r\n?/g, "\n").split("\n");
+function parseText(content: string): Block[] {
+  const rawLines = content.replace(/\r\n?/g, "\n").split("\n");
   const blocks: Block[] = [];
   let current: Block = { section: null, lines: [] };
 
@@ -121,6 +125,87 @@ function parseText(content: string): Block[] {  const rawLines = content.replace
   if (current.lines.length) blocks.push(current);
   return blocks;
 }
+
+export type TextFormat = "text" | "html" | "markdown" | "rst";
+
+export interface ParsedTextContent {
+  format: TextFormat;
+  body: string;
+  metadata: Record<string, unknown>;
+}
+
+function normalizeTextFormat(value: unknown): TextFormat {
+  const key = String(value ?? "text").toLowerCase().replace(/[^a-z]/g, "");
+  if (key === "html" || key === "htm") return "html";
+  if (key === "markdown" || key === "md") return "markdown";
+  if (key === "rst" || key === "restructuredtext" || key === "restructured") return "rst";
+  return "text";
+}
+
+export function parseTextContent(content: string): ParsedTextContent {
+  let body = content.replace(/\r\n?/g, "\n");
+  let metadata: Record<string, unknown> = {};
+
+  const frontMatter = body.match(/^---\s*\n([\s\S]*?)\n---\s*(?:\n|$)/);
+  if (frontMatter) {
+    try {
+      const parsed = parseYaml(frontMatter[1]);
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        metadata = parsed as Record<string, unknown>;
+      }
+    } catch {
+      // Malformed metadata is treated as normal text.
+    }
+    body = body.slice(frontMatter[0].length);
+  } else {
+    const firstLine = body.split("\n", 1)[0] ?? "";
+    const match = firstLine.match(
+      /^\s*(?:type|format|mode)\s*:\s*(html|htm|markdown|md|rst|restructuredtext|restructured|text|plain)\s*$/i,
+    );
+    if (match) {
+      metadata = { type: match[1] };
+      body = body.slice(firstLine.length).replace(/^\n/, "");
+    }
+  }
+
+  const format = normalizeTextFormat(metadata.type ?? metadata.format ?? metadata.mode ?? "text");
+  return { format, body, metadata };
+}
+
+const RICH_PAGE_BREAK = /<!--\s*page\s*-->|<hr\b[^>]*class=["'][^"']*page-break[^"']*["'][^>]*>/gi;
+
+function sanitizeRichHtml(html: string): string {
+  return sanitizeHtml(html, {
+    allowedTags: [
+      "div", "span", "p", "h1", "h2", "h3", "h4", "h5", "h6",
+      "ul", "ol", "li", "blockquote", "pre", "code", "em", "strong", "b", "i", "u",
+      "br", "hr", "a", "img", "table", "thead", "tbody", "tr", "th", "td",
+      "sup", "sub", "dl", "dt", "dd",
+    ],
+    allowedAttributes: {
+      "*": ["class"],
+      a: ["href", "title"],
+      img: ["src", "alt", "title"],
+    },
+    allowedSchemes: ["http", "https", "mailto"],
+    allowProtocolRelative: false,
+  });
+}
+
+function renderRichText(body: string, format: TextFormat): string {
+  try {
+    if (format === "markdown") return sanitizeRichHtml(String(marked.parse(body)));
+    if (format === "rst") return sanitizeRichHtml(rst2html(body));
+    if (format === "html") return sanitizeRichHtml(body);
+  } catch {
+    // Fall through to escaped text.
+  }
+  return body
+    .split("\n")
+    .map((line) => `<div class="line">${escapeHtml(line)}</div>`)
+    .join("");
+}
+
 
 function chordToken(value: string): string | null {
   if (value === "|" || value === "||:" || value === ":||" || value === "||") return null;
@@ -235,8 +320,24 @@ export function buildPages(item: RenderItem, liveTranspose = 0): LivePage[] {
   const keyShift = keyDelta(item.key ?? null, item.keyOverride ?? null);
   const semitones = base + liveTranspose + keyShift;
   const maxLines = Math.max(1, item.maxLines || 4);
-  const blocks =
-    item.kind === "song" ? parseSong(item.lyrics ?? "") : parseText(item.content ?? "");
+  let blocks: Block[];
+  if (item.kind === "text") {
+    const parsed = parseTextContent(item.content ?? "");
+    if (parsed.format !== "text") {
+      const chunks = parsed.body
+        .split(RICH_PAGE_BREAK)
+        .map((chunk) => chunk.trim())
+        .filter(Boolean);
+      return chunks.map((chunk, index) => ({
+        index,
+        section: null,
+        html: `<div class="slide-inner text-html">${renderRichText(chunk, parsed.format)}</div>`,
+      }));
+    }
+    blocks = parseText(parsed.body);
+  } else {
+    blocks = parseSong(item.lyrics ?? "");
+  }
   const orderedBlocks = item.kind === "song" ? orderBlocks(blocks, item.verseOrder) : blocks;
 
   const pages: Block[] = [];

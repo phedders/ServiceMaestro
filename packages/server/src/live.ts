@@ -8,6 +8,7 @@ import type {
 } from "@wlm/shared";
 import { db } from "./db.js";
 import { buildPages, type RenderItem } from "./render.js";
+import { resolveTemplates } from "./templates.js";
 
 interface SnapshotItem extends RenderItem {
   itemId: string | null;
@@ -195,11 +196,17 @@ class LiveService {
   }
 
   getState(): LiveState {
-    if (!this.active) return idleState();
+    if (!this.active) {
+      return { ...idleState(), templates: resolveTemplates(null) };
+    }
     const state = this.active.state;
     state.pendingUpdate = Boolean(this.active.pending);
     state.pendingRevision = this.active.pending?.revisionNo ?? null;
-    return { ...state, pages: state.pages };
+    return {
+      ...state,
+      pages: state.pages,
+      templates: resolveTemplates(this.active.setlistId),
+    };
   }
 
   private restore(): void {
@@ -280,7 +287,7 @@ class LiveService {
       pageCount: 0,
       mode: first.kind,
       title: first.title,
-      blank: false,
+      blank: true,
       maxLines: first.maxLines,
       transpose: 0,
       footer: "",

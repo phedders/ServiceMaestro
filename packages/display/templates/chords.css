@@ -1,0 +1,55 @@
+body[data-target="chords"] {
+  background: #000;
+}
+
+.wlm-chords {
+  justify-content: flex-start;
+  align-items: center;
+  text-align: center;
+  padding: 6vh 8vw 4vh;
+  gap: 2vh;
+}
+
+.wlm-chords .wlm-meta {
+  font-size: clamp(0.8rem, 1.1vw, 1.4rem);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.wlm-chords .wlm-content {
+  font-size: clamp(1.7rem, 3.4vw, 4.4rem);
+  line-height: 1.35;
+}
+
+.wlm-chords .wlm-content .slide-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4em;
+}
+
+.wlm-chords .line {
+  white-space: pre-wrap;
+}
+
+.wlm-chords .chord {
+  display: inline-block;
+  font-size: 0.58em;
+  vertical-align: super;
+  margin-right: 0.2em;
+  color: var(--chord, #ffd479);
+  font-weight: 700;
+}
+
+.wlm-chords .section-label {
+  font-size: 0.4em;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.wlm-chords .wlm-footer {
+  margin-top: auto;
+  font-size: clamp(0.7rem, 1vw, 1.2rem);
+  color: rgba(255, 255, 255, 0.55);
+}

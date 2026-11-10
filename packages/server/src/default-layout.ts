@@ -5,10 +5,10 @@ export const DEFAULT_LAYOUT: DashboardLayout = {
   layouts: {
     lg: [
       { i: "pages", x: 0, y: 0, w: 6, h: 8, minW: 4, minH: 4 },
-      { i: "preview", x: 6, y: 0, w: 6, h: 8, minW: 4, minH: 4 },
+      { i: "preview", x: 6, y: 0, w: 6, h: 4, minW: 4, minH: 3 },
+      { i: "transport", x: 6, y: 4, w: 6, h: 4, minW: 4, minH: 3 },
       { i: "setlist", x: 0, y: 8, w: 6, h: 8, minW: 4, minH: 4 },
-      { i: "transport", x: 6, y: 8, w: 6, h: 4, minW: 4, minH: 3 },
-      { i: "quicktext", x: 6, y: 12, w: 6, h: 4, minW: 4, minH: 3 },
+      { i: "quicktext", x: 6, y: 8, w: 6, h: 4, minW: 4, minH: 3 },
     ],
   },
   widgets: {

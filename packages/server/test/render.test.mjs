@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { transposeChord, keyDelta, buildPages, renderLine } from "../dist/render.js";
+import { transposeChord, keyDelta, buildPages, renderLine, parseTextContent } from "../dist/render.js";
 
 test("transposes simple and slash chords", () => {
   assert.equal(transposeChord("C", 2), "D");
@@ -61,4 +61,37 @@ test("honours verse order and repeats sections", () => {
   assert.match(pages[0].html, /Chorus/);
   assert.match(pages[1].html, /Verse 1/);
   assert.match(pages[2].html, /Chorus/);
+});
+
+test("renders markdown text items and strips scripts", () => {
+  const pages = buildPages({
+    kind: "text",
+    title: "Welcome",
+    content: "type: markdown\n# Hello\n\n**bold** text\n\n<script>alert(1)</script>",
+    transpose: 0,
+    maxLines: 4,
+  });
+  assert.equal(pages.length, 1);
+  assert.match(pages[0].html, /<h1>Hello<\/h1>/);
+  assert.match(pages[0].html, /<strong>bold<\/strong>/);
+  assert.doesNotMatch(pages[0].html, /script|alert/);
+});
+
+test("supports front-matter HTML text and page breaks", () => {
+  const pages = buildPages({
+    kind: "text",
+    title: "Notices",
+    content: "---\ntype: html\n---\n<h2>One</h2>\n<!-- page -->\n<p>Two</p>",
+    transpose: 0,
+    maxLines: 4,
+  });
+  assert.equal(pages.length, 2);
+  assert.match(pages[0].html, /<h2>One<\/h2>/);
+  assert.match(pages[1].html, /<p>Two<\/p>/);
+});
+
+test("parses text metadata first lines", () => {
+  assert.equal(parseTextContent("type: markdown\n# Hi").format, "markdown");
+  assert.equal(parseTextContent("---\nformat: rst\n---\nTitle\n=====").format, "rst");
+  assert.equal(parseTextContent("type: text\nplain").format, "text");
 });

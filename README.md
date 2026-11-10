@@ -19,6 +19,7 @@ A self-hosted server application for running church service visuals: manage song
 > - [ChurchSuite planning sync](docs/10-churchsuite-sync.md) — API analysis, credential findings and song-matching design.
 > - [Git-backed shared data](docs/11-git-data-sync.md) — songs/setlists/bibles repositories shared between instances.
 > - [Waiting list](docs/12-waiting-list.md) — blocked items and what they need.
+> - [Display templates and text formats](docs/13-display-templates.md) — templated outputs, Markdown/HTML/RST text items, blank start and preview sizing.
 
 ## Quick start
 
@@ -64,8 +65,10 @@ The output token defaults to `dev-output`; set `WLM_OUTPUT_TOKEN` in production.
 - **Scores and tabs for musicians** — upload PDFs, ChordPro, lyrics or images to a song; a musician page lists the service songs and renders PDFs with a bundled PDF.js viewer (page navigation, zoom, fit-to-width), plus text/image assets.
 - **Bible** — reads the three real schema families found in the samples (MyBible `book`/`verse`, BibleDb `books`/`verses`, and JSON), sanitises ESV markup, and provides a translation/book/chapter/verse-range UI with “Display now”.
 - **Set lists** — named, dated, with songs and text items; reorder; per-item key, transpose, max lines, verse order and notes.
-- **Live sessions** — a set list is snapshotted when the session starts, so editing the set list afterwards cannot change the live output.
+- **Live sessions** — a set list is snapshotted when the session starts, so editing the set list afterwards cannot change the live output. Sessions start **blank** until the operator shows the first page.
 - **Publish & apply** — publish a revision, then **apply after the current item** (safe during a service) or **apply now**; queued updates are shown to operators and persisted across restarts.
+- **Templated outputs** — main, two-thirds, full, stage and chords; templates come from the set-list repo, a templates folder/repo, or built-in defaults, with fade-in/out changes.
+- **Rich text items** — first-line `type: markdown|html|rst|text` or YAML front matter, with page breaks and server-side sanitisation.
 - **Export/import** — download a reference JSON or self-contained ZIP bundle (songs, text, PDF/tab assets) and import it as a new draft with a preview; matching uses CCLI/title and never affects a live service.
 - **Live control** — next/previous, page/item navigation, blank, transpose, max-lines, footer and quick text.
 - **Dashboard** — drag/resize widgets (pages, preview, set list, transport, quick text) with **react-grid-layout**; personal layout saved to SQLite. Shared/published layouts and Yjs co-editing are next.
@@ -96,6 +99,7 @@ The output token defaults to `dev-output`; set `WLM_OUTPUT_TOKEN` in production.
 | `WLM_GIT_SETLISTS_PATH` | `/data/repos/setlists` | Set lists repo working tree |
 | `WLM_GIT_BIBLES_PATH` | `/data/repos/bibles` | Optional Bibles repo |
 | `WLM_CONFIG_FILE` | unset | YAML/JSON config with `git.repositories` and URIs |
+| `WLM_TEMPLATES_DIR` | `/data/templates` | Display template folder (after the set-list repo lookup) |
 
 ## Docker / Podman
 

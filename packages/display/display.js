@@ -2,11 +2,10 @@
   const target = document.body.dataset.target || "main";
   const params = new URLSearchParams(window.location.search);
   const token = params.get("token") || "dev-output";
-
-  const stage = document.getElementById("stage");
-  const content = document.getElementById("content");
-  const footer = document.getElementById("footer");
-  const meta = document.getElementById("meta");
+  const root = document.getElementById("wlm-root");
+  const style = document.createElement("style");
+  style.id = "wlm-template-style";
+  document.head.appendChild(style);
 
   const socket = window.io({
     auth: { outputToken: token },
@@ -15,42 +14,84 @@
     reconnectionDelayMax: 4000,
   });
 
-  let lastPage = -1;
+  let lastHtml = "";
+  let lastCss = "";
+  let fadeTimer = null;
 
-  function render(state) {
-    if (!state) return;
+  function escapeHtml(value) {
+    return String(value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  function templateFor(state) {
+    const templates = state.templates || {};
+    return (
+      templates[target] ||
+      (target === "full" ? templates.two_thirds : null) ||
+      templates.main || {
+        html: '<div class="wlm-template"><div class="wlm-content">{{content}}</div><div class="wlm-footer">{{footer}}</div></div>',
+        css: "",
+      }
+    );
+  }
+
+  function compose(state, template) {
+    const page = state.pages && state.pages[state.pageIndex];
+    const pageNumber = page ? state.pageIndex + 1 : 0;
+    const replacements = {
+      content: page ? page.html : "",
+      footer: escapeHtml(state.footer || ""),
+      title: escapeHtml(state.title || ""),
+      section: escapeHtml(page?.section || ""),
+      page: String(pageNumber),
+      pageCount: String(state.pageCount || 0),
+      role: target,
+      meta: page ? ` · ${pageNumber} / ${state.pageCount}` : "",
+    };
+    return template.html.replace(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g, (_match, key) =>
+      Object.prototype.hasOwnProperty.call(replacements, key) ? replacements[key] : "",
+    );
+  }
+
+  function apply(state) {
     const page = state.pages && state.pages[state.pageIndex];
     const idle = !page || state.mode === "idle";
-
-    document.body.classList.toggle("blank", Boolean(state.blank));
+    const blank = Boolean(state.blank) || idle;
+    document.body.classList.toggle("blank", blank);
     document.body.classList.toggle("idle", idle);
 
-    content.innerHTML = page ? page.html : "";
-    footer.textContent = state.footer || "";
+    const template = templateFor(state);
+    const html = compose(state, template);
+    if (html === lastHtml && template.css === lastCss) return;
 
-    if (target === "stage") {
-      const parts = [];
-      if (state.title) parts.push(state.title);
-      if (page) parts.push(`${state.pageIndex + 1} / ${state.pageCount}`);
-      if (state.transpose) parts.push(`transpose ${state.transpose > 0 ? "+" : ""}${state.transpose}`);
-      meta.textContent = parts.join("  ·  ");
-    }
+    const commit = () => {
+      if (template.css !== lastCss) {
+        style.textContent = template.css;
+        lastCss = template.css;
+      }
+      root.innerHTML = html;
+      lastHtml = html;
+      requestAnimationFrame(() => document.body.classList.remove("wlm-fading"));
+    };
 
-    const pageIndex = page ? page.index : -1;
-    if (pageIndex !== lastPage) {
-      stage.classList.remove("fade");
-      void stage.offsetWidth;
-      stage.classList.add("fade");
-      lastPage = pageIndex;
+    if (root.innerHTML) {
+      document.body.classList.add("wlm-fading");
+      if (fadeTimer) clearTimeout(fadeTimer);
+      fadeTimer = setTimeout(commit, 190);
+    } else {
+      commit();
     }
   }
 
-  socket.on("live:snapshot", render);
+  socket.on("live:snapshot", apply);
   socket.on("connect", () => document.body.classList.remove("offline"));
   socket.on("disconnect", () => document.body.classList.add("offline"));
   socket.on("connect_error", () => document.body.classList.add("offline"));
 
-  // A quick local blank toggle for operators using a display page directly.
   window.addEventListener("keydown", (event) => {
     if (event.key === "b" || event.key === "B") {
       document.body.classList.toggle("blank");

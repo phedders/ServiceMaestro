@@ -1,0 +1,49 @@
+body[data-target="main"] {
+  background: transparent;
+}
+
+.wlm-main {
+  justify-content: flex-end;
+  align-items: stretch;
+  text-align: center;
+  padding: 6vh 6vw 7vh;
+}
+
+.wlm-main .wlm-content {
+  width: 100%;
+  font-size: clamp(2.2rem, 4.4vw, 5.5rem);
+  line-height: 1.18;
+  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.6);
+}
+
+.wlm-main .wlm-content .slide-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35em;
+}
+
+.wlm-main .line {
+  white-space: pre-wrap;
+}
+
+.wlm-main .chord {
+  display: none;
+}
+
+.wlm-main .section-label {
+  display: none;
+}
+
+.wlm-main .wlm-footer {
+  margin-top: 1.6vh;
+  text-align: center;
+  font-size: clamp(0.7rem, 1.1vw, 1.2rem);
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.wlm-main .text-html h1,
+.wlm-main .text-html h2,
+.wlm-main .text-html h3 {
+  margin: 0 0 0.4em;
+}

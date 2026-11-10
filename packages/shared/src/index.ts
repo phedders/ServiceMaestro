@@ -104,6 +104,11 @@ export interface LivePage {
   html: string;
 }
 
+export interface DisplayTemplate {
+  html: string;
+  css: string;
+}
+
 export interface LiveState {
   sessionId: string;
   setlistId: string | null;
@@ -120,6 +125,7 @@ export interface LiveState {
   footer: string;
   pages: LivePage[];
   items: LiveItemSummary[];
+  templates?: Record<string, DisplayTemplate>;
   version: number;
   updatedAt: string;
   pendingUpdate: boolean;

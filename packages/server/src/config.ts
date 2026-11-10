@@ -55,7 +55,7 @@ function stringEnv(name: string, fallback: string): string {
 }
 
 export interface GitRepoConfig {
-  name: "songs" | "setlists" | "bibles";
+  name: "songs" | "setlists" | "bibles" | "templates";
   path: string;
   remote: string | null;
   branch: string;
@@ -75,6 +75,7 @@ export const BIBLE_DIR = path.resolve(
   process.env.WLM_BIBLE_DIR ?? path.join(packageRoot, "../../samples/bible"),
 );
 export const ASSETS_DIR = path.join(DATA_DIR, "assets");
+export const TEMPLATES_DIR = path.resolve(process.env.WLM_TEMPLATES_DIR ?? path.join(DATA_DIR, "templates"));
 export const OUTPUT_TOKEN = process.env.WLM_OUTPUT_TOKEN ?? "dev-output";
 export const ADMIN_PASSWORD = process.env.WLM_ADMIN_PASSWORD ?? "admin";
 export const SESSION_DAYS = Number(process.env.WLM_SESSION_DAYS ?? 7);
@@ -99,7 +100,7 @@ export const GIT_KNOWN_HOSTS_FILE =
   process.env.WLM_GIT_KNOWN_HOSTS_FILE ?? gitConfig.knownHostsFile;
 
 function repo(
-  name: "songs" | "setlists" | "bibles",
+  name: "songs" | "setlists" | "bibles" | "templates",
   defaultPath: string,
   optional = false,
 ): GitRepoConfig {
@@ -122,8 +123,9 @@ function repo(
   };
 }
 
-export const GIT_REPOS: Record<"songs" | "setlists" | "bibles", GitRepoConfig> = {
+export const GIT_REPOS: Record<"songs" | "setlists" | "bibles" | "templates", GitRepoConfig> = {
   songs: repo("songs", path.join(DATA_DIR, "repos", "songs")),
   setlists: repo("setlists", path.join(DATA_DIR, "repos", "setlists")),
   bibles: repo("bibles", path.join(DATA_DIR, "repos", "bibles"), true),
+  templates: repo("templates", path.join(DATA_DIR, "repos", "templates"), true),
 };

@@ -27,7 +27,9 @@ WLM_ADMIN_PASSWORD='change-me' npm start
 | Set lists | Named/dated services; songs and text items; reorder; per-item key, transpose, max lines, verse order and notes; published revisions |
 | Export/import | Reference JSON and self-contained ZIP bundles (songs/text/assets); preview then import as a new draft, with song matching by CCLI/title |
 | Git local persistence | Songs/setlists written to local Git repos and committed; `autoSave`/`autoPush` configurable (default true); optional remotes, startup import/export, pull interval; Bibles repo optional (LFS in container) |
-| Live sessions | Snapshot-on-start; publish/apply after-current or now; queued updates survive restarts; next/prev, page/item goto, blank, transpose, max lines, footer, quick text |
+| Live sessions | Snapshot-on-start; starts blank; publish/apply after-current or now; queued updates survive restarts; next/prev, page/item goto, blank, transpose, max lines, footer, quick text |
+| Display templates | main, two-thirds, full, stage, chords; HTML/CSS lookup from set-list repo, templates folder/repo or built-ins; fade in/out |
+| Rich text | First-line/front-matter `type: markdown|html|rst|text`, sanitised render, page breaks |
 | Outputs | Vanilla HTML/CSS/JS; snapshot-on-connect over Socket.IO; transparent main, full-screen, stage with chords; legacy `/obs-*` aliases |
 | Dashboard | `react-grid-layout`; pages, preview, set-list, transport and quick-text widgets; drag/resize; personal layout saved in SQLite; reset to default |
 | Rendering | Server-side page splitting, chord transposition (slash chords), HTML escaping, section labels |
@@ -69,10 +71,10 @@ Socket.IO: `live:snapshot` events to `control` and `outputs` rooms; commands ove
 ```sh
 npm run typecheck
 npm run build
-npm test          # render, importer, Bible, verse-order and transfer tests (16 tests)
+npm test          # render, importer, Bible, verse-order, text-format and transfer tests (19 tests)
 ```
 
-Manual smoke test used: login → create song → create set list → add song/text → start live → display `/display/full` → next/previous/quick text → dashboard drag/save → restart server (state restored) → scan/import 146 sample files (135 imported, 11 duplicates skipped) → Bible translation/book/chapter/range → display passage → upload vocal/lead PDF assets → musician page PDF.js viewer/zoom/page nav → publish revision → apply after-current/now → export JSON/bundle → import as new draft with assets → local Git repos created and committed → restart with a fresh DB rebuilt songs/set lists from Git → Docker build/run.
+Manual smoke test used: login → create song → create set list → add song/text → start live (blank) → show → display `/display/two-thirds` and `/display/chords` from templates → next/previous/quick text → markdown quick text → dashboard drag/save → restart server (state restored) → scan/import 146 sample files (135 imported, 11 duplicates skipped) → Bible translation/book/chapter/range → display passage → upload vocal/lead PDF assets → musician page PDF.js viewer/zoom/page nav → publish revision → apply after-current/now → export JSON/bundle → import as new draft with assets → local Git repos created and committed → restart with a fresh DB rebuilt songs/set lists from Git → Docker build/run.
 
 ## Next
 

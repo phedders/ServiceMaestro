@@ -591,8 +591,12 @@ export default function SetlistsPage({
                 value={textContent}
                 onChange={(event) => setTextContent(event.target.value)}
                 rows={4}
-                placeholder="Liturgy, notices, prayer…"
+                placeholder={"type: markdown\n# Welcome\n\n**Please stand** as we begin."}
               />
+              <span className="hint">
+                First line can be <code>type: markdown</code>, <code>type: html</code> or{" "}
+                <code>type: rst</code>. Use <code>&lt;!-- page --&gt;</code> for a page break.
+              </span>
               <button className="button" onClick={addText} disabled={!textContent.trim()}>
                 Add to set list
               </button>

@@ -256,7 +256,27 @@ Set list items reference a text item version and may override the theme version 
 - **Send preview** to a display output (operator-only) without adding it to the live set list.
 - Same HTML allow-list as songs, plus block-level elements (`h1`–`h3`, `p`, `ul`, `ol`, `li`, `blockquote`, `hr`, `img` from managed media only). Scripts, styles, iframes and external URLs remain forbidden.
 
-### 4.3 Why a separate editor (not just quick text)
+### 4.3 Content formats
+
+A text item can select its renderer on the first line, or with YAML front matter:
+
+```text
+type: markdown
+# Welcome
+
+**Please stand** as we begin.
+```
+
+```text
+---
+type: html
+---
+<h1>Welcome</h1>
+```
+
+Supported types: `text` (default), `markdown`/`md`, `html`, `rst`/`restructuredtext`. Rich output is rendered server-side and sanitized (no scripts, styles, iframes or event handlers). Page breaks use `<!-- page -->` or `<hr class="page-break">`; plain text keeps blank-line/max-line pagination. See [13-display-templates.md](13-display-templates.md).
+
+### 4.4 Why a separate editor (not just quick text)
 
 The existing system has "quick text" (blank lines → pages). That stays as a shortcut, but authored text items add: named reuse, versioning, themes, explicit page control, and safe HTML. Quick text creates a transient `text_item` under the hood, so everything shares one renderer.
 

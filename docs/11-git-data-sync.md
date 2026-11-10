@@ -112,6 +112,35 @@ setlists/
 - Published revisions contain the **resolved snapshot** (song lyrics/metadata as of publish) so a set list remains reproducible even if the song changes later.
 - The local live session stores the revision ID and commit SHA it pinned.
 
+### Templates
+
+Display templates are HTML + CSS pairs for the four output roles:
+
+```
+templates/
+  main.html / main.css
+  two_thirds.html / two_thirds.css
+  stage.html / stage.css
+  chords.html / chords.css
+  full.html / full.css          # optional; falls back to two_thirds
+```
+
+Placeholders available inside the HTML:
+
+`{{content}}`, `{{footer}}`, `{{title}}`, `{{section}}`, `{{page}}`, `{{pageCount}}`, `{{role}}`, `{{meta}}`.
+
+Lookup order:
+
+1. per-service templates in the **set lists repo**:
+   `templates/<setlist-id>/<role>.html` / `.css`
+2. global templates in the **set lists repo**:
+   `templates/<role>.html` / `.css`
+3. **templates folder** (`WLM_TEMPLATES_DIR`, default `/data/templates`)
+4. **templates repo** (`/data/repos/templates/templates/…` or its root)
+5. built-in templates shipped with the display package
+
+The first HTML found wins; CSS is read from the same directory. `full` falls back to `two_thirds`. The default templates fade content changes in and out; custom templates should keep the `.wlm-template` class for the transition.
+
 ### Bibles repository
 
 ```
@@ -162,6 +191,12 @@ repositories:
     branch: main
     mode: read-only
     lfs: required              # required | auto | off
+  templates:
+    optional: true
+    path: /data/repos/templates
+    remote: ""
+    branch: main
+    mode: read-only
 ```
 
 ### Remote URI forms
@@ -198,6 +233,9 @@ WLM_GIT_BIBLES_PATH=/data/repos/bibles
 WLM_GIT_BIBLES_REMOTE=          # optional; leave unset to disable
 WLM_GIT_BIBLES_OPTIONAL=true
 WLM_GIT_BIBLES_LFS=required
+WLM_GIT_TEMPLATES_PATH=/data/repos/templates
+WLM_GIT_TEMPLATES_REMOTE=       # optional
+WLM_TEMPLATES_DIR=/data/templates
 WLM_GIT_SSH_KEY_FILE=/run/secrets/git_ssh_key
 WLM_GIT_KNOWN_HOSTS_FILE=/run/secrets/git_known_hosts
 ```

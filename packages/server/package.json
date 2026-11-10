@@ -19,6 +19,9 @@
     "better-sqlite3": "^13.0.3",
     "fastify": "^5.2.1",
     "fflate": "^0.8.3",
+    "marked": "^18.2.0",
+    "rst2html": "^1.0.4",
+    "sanitize-html": "^2.18.1",
     "simple-git": "^4.0.2",
     "socket.io": "^4.8.1",
     "yaml": "^2.9.1",
@@ -27,6 +30,7 @@
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.12",
     "@types/node": "^22.10.7",
+    "@types/sanitize-html": "^2.16.2",
     "tsx": "^4.19.2",
     "typescript": "^5.7.3"
   }
