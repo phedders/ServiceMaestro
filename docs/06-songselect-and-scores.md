@@ -2,6 +2,8 @@
 
 Design for pulling song resources from CCLI SongSelect into the library and presenting ChordPro, PDF scores and guitar tabs to musicians.
 
+> Implementation status: ChordPro import, per-song asset uploads (PDF/ChordPro/lyrics/image), authenticated asset serving and the musician PDF viewer are implemented. SongSelect provider integration itself remains opt-in/not built, per the constraints below.
+
 > **Important constraint (researched 2026-11):** CCLI has **retired the SongSelect API Partner Program and is not accepting new partners**; ChordPro downloads are reported to be available **directly on songselect.ccli.com** (Premium), not through the partner API, and the terms of use govern automated access. This design therefore treats SongSelect as a **pluggable provider** and defaults to **authorized/manual import**; no scraping or paywall bypass is part of the design. A church must use its own SongSelect subscription and comply with CCLI's terms.
 
 References:

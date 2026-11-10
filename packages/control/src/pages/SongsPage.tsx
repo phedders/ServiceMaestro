@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import type { Song, SongImportReport, SongImportScan } from "@wlm/shared";
+import type { Song, SongAsset, SongImportReport, SongImportScan } from "@wlm/shared";
 import { api, ApiError } from "../api";
 
 const EMPTY = {
@@ -25,6 +25,12 @@ export default function SongsPage({
   const [scanning, setScanning] = useState(false);
   const [importing, setImporting] = useState(false);
   const [importReport, setImportReport] = useState<SongImportReport | null>(null);
+  const [assets, setAssets] = useState<SongAsset[]>([]);
+  const [assetFile, setAssetFile] = useState<File | null>(null);
+  const [assetKind, setAssetKind] = useState("score_pdf");
+  const [assetTitle, setAssetTitle] = useState("");
+  const [assetKey, setAssetKey] = useState("");
+  const [uploadingAsset, setUploadingAsset] = useState(false);
 
   async function load() {
     const result = await api.songs();
@@ -34,6 +40,17 @@ export default function SongsPage({
   useEffect(() => {
     load().catch(() => notify("Could not load songs", "error"));
   }, []);
+
+  useEffect(() => {
+    if (!selectedId) {
+      setAssets([]);
+      return;
+    }
+    api
+      .songAssets(selectedId)
+      .then((result) => setAssets(result.assets))
+      .catch(() => setAssets([]));
+  }, [selectedId]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -97,8 +114,38 @@ export default function SongsPage({
     }
   }
 
-  async function scanFolder() {
-    setScanning(true);
+  async function uploadAsset() {
+    if (!selectedId || !assetFile) return;
+    setUploadingAsset(true);
+    try {
+      const result = await api.uploadAsset(selectedId, assetFile, {
+        kind: assetKind,
+        title: assetTitle.trim() || undefined,
+        key: assetKey.trim() || form.key || undefined,
+      });
+      setAssets((current) => [...current, result.asset]);
+      setAssetFile(null);
+      setAssetTitle("");
+      notify("Asset uploaded");
+    } catch (error) {
+      notify(error instanceof ApiError ? error.message : "Could not upload asset", "error");
+    } finally {
+      setUploadingAsset(false);
+    }
+  }
+
+  async function removeAsset(asset: SongAsset) {
+    if (!confirm(`Remove “${asset.title}”?`)) return;
+    try {
+      await api.deleteAsset(asset.id);
+      setAssets((current) => current.filter((candidate) => candidate.id !== asset.id));
+      notify("Asset removed");
+    } catch (error) {
+      notify(error instanceof ApiError ? error.message : "Could not remove asset", "error");
+    }
+  }
+
+  async function scanFolder() {    setScanning(true);
     setImportReport(null);
     try {
       const result = await api.scanImports();
@@ -218,6 +265,69 @@ export default function SongsPage({
           Put chords in square brackets before the syllable: <code>a[C]mazing</code>. Blank lines separate
           sections. A line like <code>[Verse 1]</code> becomes a section label.
         </p>
+
+        <div className="assets-panel">
+          <div className="panel-heading">
+            <h3>Files for musicians</h3>
+            <span className="muted">{assets.length} attached</span>
+          </div>
+          {selectedId ? (
+            <>
+              <div className="asset-upload">
+                <input
+                  type="file"
+                  accept=".pdf,.txt,.png,.jpg,.jpeg,.webp,.cho,.crd,.chordpro"
+                  onChange={(event) => setAssetFile(event.target.files?.[0] ?? null)}
+                />
+                <select value={assetKind} onChange={(event) => setAssetKind(event.target.value)}>
+                  <option value="score_pdf">Score PDF</option>
+                  <option value="guitar_tab">Guitar tab</option>
+                  <option value="chordpro">ChordPro file</option>
+                  <option value="lyrics">Lyrics file</option>
+                  <option value="image">Image</option>
+                </select>
+                <input
+                  value={assetKey}
+                  onChange={(event) => setAssetKey(event.target.value)}
+                  placeholder={form.key || "Key"}
+                />
+                <input
+                  value={assetTitle}
+                  onChange={(event) => setAssetTitle(event.target.value)}
+                  placeholder="Title (optional)"
+                />
+                <button className="button primary" onClick={uploadAsset} disabled={!assetFile || uploadingAsset}>
+                  {uploadingAsset ? "Uploading…" : "Upload"}
+                </button>
+              </div>
+              <div className="asset-list">
+                {assets.map((asset) => (
+                  <div key={asset.id} className="asset-row">
+                    <span className={`badge ${asset.kind}`}>{asset.kind.replace("_", " ")}</span>
+                    <div>
+                      <strong>{asset.title}</strong>
+                      <span className="muted">
+                        {asset.key ? `${asset.key} · ` : ""}
+                        {(asset.bytes / 1024).toFixed(0)} KB
+                      </span>
+                    </div>
+                    <div className="button-row">
+                      <a className="button ghost small" href={`/api/assets/${asset.id}/file`} target="_blank" rel="noreferrer">
+                        Open
+                      </a>
+                      <button className="button ghost small danger-text" onClick={() => removeAsset(asset)}>
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                ))}
+                {!assets.length && <p className="muted">No score or tab files yet.</p>}
+              </div>
+            </>
+          ) : (
+            <p className="muted">Save the song first, then attach PDF scores or tabs.</p>
+          )}
+        </div>
       </section>
       </div>
 

@@ -2,10 +2,11 @@ import fs from "node:fs";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import Database from "better-sqlite3";
-import { ADMIN_PASSWORD, DATA_DIR } from "./config.js";
+import { ADMIN_PASSWORD, ASSETS_DIR, DATA_DIR } from "./config.js";
 import { hashPassword } from "./password.js";
 
 fs.mkdirSync(DATA_DIR, { recursive: true });
+fs.mkdirSync(ASSETS_DIR, { recursive: true });
 
 export const db = new Database(path.join(DATA_DIR, "app.sqlite"));
 db.pragma("journal_mode = WAL");
@@ -87,6 +88,24 @@ db.exec(`
     layout_json TEXT NOT NULL,
     updated_at TEXT NOT NULL
   );
+
+  CREATE TABLE IF NOT EXISTS song_assets (
+    id TEXT PRIMARY KEY,
+    song_id TEXT NOT NULL REFERENCES songs(id) ON DELETE CASCADE,
+    kind TEXT NOT NULL,
+    title TEXT NOT NULL,
+    key TEXT,
+    format TEXT NOT NULL,
+    mime TEXT NOT NULL,
+    path TEXT NOT NULL,
+    bytes INTEGER NOT NULL,
+    sha256 TEXT NOT NULL,
+    pages INTEGER,
+    source TEXT,
+    created_at TEXT NOT NULL,
+    created_by TEXT
+  );
+  CREATE INDEX IF NOT EXISTS idx_song_assets_song ON song_assets(song_id);
 `);
 
 function ensureColumn(table: string, column: string, definition: string): void {

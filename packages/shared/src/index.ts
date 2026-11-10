@@ -171,6 +171,24 @@ export interface BiblePassage {
   verses: BibleVerse[];
 }
 
+export type SongAssetKind = "score_pdf" | "guitar_tab" | "chordpro" | "lyrics" | "image";
+
+export interface SongAsset {
+  id: string;
+  songId: string;
+  kind: SongAssetKind;
+  title: string;
+  key: string | null;
+  format: string;
+  mime: string;
+  bytes: number;
+  sha256: string;
+  pages: number | null;
+  source: string | null;
+  createdAt: string;
+  createdBy: string | null;
+}
+
 /* ------------------------------------------------------------------ */
 /* Validation schemas                                                  */
 /* ------------------------------------------------------------------ */

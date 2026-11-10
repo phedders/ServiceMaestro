@@ -1011,6 +1011,81 @@ label {
   gap: 8px;
 }
 
+/* ------------------------------------------------------------------ */
+/* Song assets                                                         */
+/* ------------------------------------------------------------------ */
+
+.assets-panel {
+  margin-top: 22px;
+  border-top: 1px solid var(--border);
+  padding-top: 18px;
+  display: grid;
+  gap: 12px;
+}
+
+.asset-upload {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) 140px 90px minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.asset-upload input[type="file"] {
+  padding: 6px;
+  font-size: 0.74rem;
+}
+
+.asset-list {
+  display: grid;
+  gap: 6px;
+}
+
+.asset-row {
+  display: grid;
+  grid-template-columns: 100px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 8px 10px;
+  background: var(--panel-2);
+}
+
+.asset-row div {
+  display: grid;
+  gap: 2px;
+  font-size: 0.78rem;
+}
+
+.asset-row .muted {
+  font-size: 0.7rem;
+}
+
+.badge.score_pdf {
+  background: rgba(76, 194, 255, 0.14);
+  color: #93dcff;
+}
+
+.badge.guitar_tab {
+  background: rgba(251, 191, 36, 0.14);
+  color: #fcd34d;
+}
+
+.badge.chordpro {
+  background: rgba(74, 222, 128, 0.14);
+  color: #86efac;
+}
+
+.badge.lyrics {
+  background: rgba(167, 139, 250, 0.14);
+  color: #c4b5fd;
+}
+
+.badge.image {
+  background: rgba(255, 107, 107, 0.14);
+  color: #ffb2b2;
+}
+
 .lyrics-field textarea {
   font-family: "JetBrains Mono", "Fira Code", ui-monospace, monospace;
   font-size: 0.82rem;
@@ -1088,6 +1163,155 @@ label {
   .bible-actions {
     flex-direction: column;
     align-items: stretch;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Musicians                                                           */
+/* ------------------------------------------------------------------ */
+
+.musicians-page {
+  display: grid;
+  gap: 16px;
+}
+
+.musicians-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 20px;
+}
+
+.musicians-toolbar label {
+  min-width: 280px;
+}
+
+.musicians-grid {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.musicians-songs {
+  display: grid;
+  gap: 6px;
+  align-content: start;
+}
+
+.musician-song {
+  text-align: left;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: var(--panel-2);
+  color: var(--text);
+  padding: 10px 12px;
+  display: grid;
+  gap: 3px;
+}
+
+.musician-song span {
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.musician-song:hover {
+  border-color: #3a4a60;
+}
+
+.musician-song.current {
+  border-color: rgba(76, 194, 255, 0.5);
+  background: var(--accent-soft);
+}
+
+.musicians-viewer {
+  min-height: 640px;
+}
+
+.asset-tabs {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.pdf-viewer {
+  display: grid;
+  gap: 10px;
+}
+
+.pdf-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.pdf-canvas-wrap {
+  background: #20262f;
+  border-radius: 10px;
+  padding: 16px;
+  overflow: auto;
+  max-height: 68vh;
+  display: flex;
+  justify-content: center;
+}
+
+.pdf-canvas-wrap canvas {
+  background: #fff;
+  border-radius: 4px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+}
+
+.pdf-loading,
+.pdf-error {
+  padding: 40px;
+  text-align: center;
+  color: var(--muted);
+}
+
+.pdf-error {
+  color: #ffb2b2;
+}
+
+.text-asset {
+  max-height: 68vh;
+  overflow: auto;
+  background: #101720;
+  border-radius: 10px;
+  padding: 18px;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 0.82rem;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+.image-asset {
+  display: block;
+  max-width: 100%;
+  max-height: 68vh;
+  margin: 0 auto;
+  border-radius: 8px;
+}
+
+@media (max-width: 1100px) {
+  .musicians-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .musicians-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .musicians-toolbar label {
+    min-width: 0;
+  }
+
+  .asset-upload {
+    grid-template-columns: 1fr 1fr;
   }
 }
 

@@ -15,6 +15,7 @@ export const SONGS_DIR = path.resolve(
 export const BIBLE_DIR = path.resolve(
   process.env.WLM_BIBLE_DIR ?? path.join(packageRoot, "../../samples/bible"),
 );
+export const ASSETS_DIR = path.join(DATA_DIR, "assets");
 export const OUTPUT_TOKEN = process.env.WLM_OUTPUT_TOKEN ?? "dev-output";
 export const ADMIN_PASSWORD = process.env.WLM_ADMIN_PASSWORD ?? "admin";
 export const SESSION_DAYS = Number(process.env.WLM_SESSION_DAYS ?? 7);

@@ -8,6 +8,7 @@ import type {
   SetlistDetail,
   SetlistSummary,
   Song,
+  SongAsset,
   SongImportReport,
   SongImportScan,
 } from "@wlm/shared";
@@ -56,6 +57,29 @@ export const api = {
   updateSong: (id: string, payload: Partial<Song>) =>
     request<{ song: Song }>(`/api/songs/${id}`, { method: "PATCH", body: JSON.stringify(payload) }),
   deleteSong: (id: string) => request<{ ok: true }>(`/api/songs/${id}`, { method: "DELETE" }),
+
+  songAssets: (id: string) => request<{ assets: SongAsset[] }>(`/api/songs/${id}/assets`),
+  uploadAsset: async (
+    songId: string,
+    file: File,
+    meta: { kind: string; title?: string; key?: string },
+  ): Promise<{ asset: SongAsset }> => {
+    const form = new FormData();
+    form.append("file", file);
+    form.append("kind", meta.kind);
+    if (meta.title) form.append("title", meta.title);
+    if (meta.key) form.append("key", meta.key);
+    const response = await fetch(`/api/songs/${songId}/assets`, {
+      method: "POST",
+      body: form,
+      credentials: "include",
+    });
+    const text = await response.text();
+    const data = text ? JSON.parse(text) : null;
+    if (!response.ok) throw new ApiError(response.status, data?.error ?? response.statusText);
+    return data;
+  },
+  deleteAsset: (id: string) => request<{ ok: true }>(`/api/assets/${id}`, { method: "DELETE" }),
 
   scanImports: () => request<SongImportScan>("/api/import/scan"),
   applyImports: (paths?: string[]) =>
