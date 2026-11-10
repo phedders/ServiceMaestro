@@ -10,6 +10,7 @@ services:
       WLM_TZ: Europe/London
       WLM_ADMIN_PASSWORD: ${WLM_ADMIN_PASSWORD:-change-me}
       WLM_OUTPUT_TOKEN: ${WLM_OUTPUT_TOKEN:-dev-output}
+      WLM_SONGS_DIR: /library/songs
     volumes:
       - ./data:/data
       - ./library/songs:/library/songs:ro

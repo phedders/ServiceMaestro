@@ -13,6 +13,7 @@ import { songRoutes } from "./routes/songs.js";
 import { setlistRoutes } from "./routes/setlists.js";
 import { liveRoutes } from "./routes/live.js";
 import { dashboardRoutes } from "./routes/dashboard.js";
+import { importRoutes } from "./routes/imports.js";
 
 function sendHtml(reply: FastifyReply, file: string): FastifyReply {
   if (!fs.existsSync(file)) {
@@ -58,6 +59,7 @@ export async function buildApp(): Promise<{ app: FastifyInstance; io: Server }> 
   await app.register(setlistRoutes);
   await app.register(liveRoutes);
   await app.register(dashboardRoutes);
+  await app.register(importRoutes);
 
   app.get("/", async (_request, reply) => sendHtml(reply, path.join(CONTROL_DIST, "index.html")));
   app.get("/login", async (_request, reply) => sendHtml(reply, path.join(CONTROL_DIST, "index.html")));

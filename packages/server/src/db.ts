@@ -35,6 +35,8 @@ db.exec(`
     ccli TEXT,
     key TEXT,
     lyrics TEXT NOT NULL,
+    source_format TEXT,
+    source_path TEXT,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
   );
@@ -86,6 +88,17 @@ db.exec(`
     updated_at TEXT NOT NULL
   );
 `);
+
+function ensureColumn(table: string, column: string, definition: string): void {
+  const rows = db.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>;
+  if (!rows.some((row) => row.name === column)) {
+    db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+  }
+}
+
+ensureColumn("songs", "source_format", "TEXT");
+ensureColumn("songs", "source_path", "TEXT");
+db.exec("CREATE INDEX IF NOT EXISTS idx_songs_source_path ON songs(source_path)");
 
 const admin = db.prepare("SELECT id FROM users WHERE role = 'admin' LIMIT 1").get() as
   | { id: string }

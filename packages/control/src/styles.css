@@ -924,6 +924,93 @@ label {
   grid-template-columns: 320px minmax(0, 1fr);
 }
 
+.songs-page {
+  display: grid;
+  gap: 16px;
+}
+
+.import-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.import-list {
+  display: grid;
+  gap: 6px;
+  max-height: 340px;
+  overflow: auto;
+}
+
+.import-row {
+  display: grid;
+  grid-template-columns: 78px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 8px 10px;
+  background: var(--panel-2);
+}
+
+.import-row div {
+  display: grid;
+  gap: 2px;
+  font-size: 0.78rem;
+}
+
+.import-row .muted {
+  font-size: 0.7rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.import-row .badge {
+  text-align: center;
+}
+
+.badge.openlp {
+  background: rgba(74, 222, 128, 0.14);
+  color: #86efac;
+}
+
+.badge.chordpro {
+  background: rgba(76, 194, 255, 0.14);
+  color: #93dcff;
+}
+
+.badge.text {
+  background: rgba(167, 139, 250, 0.14);
+  color: #c4b5fd;
+}
+
+.import-warning {
+  color: var(--warning);
+  font-size: 0.7rem;
+  cursor: help;
+}
+
+.import-errors,
+.import-report {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.import-errors ul,
+.import-report ul {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  max-height: 180px;
+  overflow: auto;
+}
+
+.import-report {
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+  display: grid;
+  gap: 8px;
+}
+
 .lyrics-field textarea {
   font-family: "JetBrains Mono", "Fira Code", ui-monospace, monospace;
   font-size: 0.82rem;

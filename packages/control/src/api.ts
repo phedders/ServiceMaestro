@@ -5,6 +5,8 @@ import type {
   SetlistDetail,
   SetlistSummary,
   Song,
+  SongImportReport,
+  SongImportScan,
 } from "@wlm/shared";
 
 export class ApiError extends Error {
@@ -51,6 +53,13 @@ export const api = {
   updateSong: (id: string, payload: Partial<Song>) =>
     request<{ song: Song }>(`/api/songs/${id}`, { method: "PATCH", body: JSON.stringify(payload) }),
   deleteSong: (id: string) => request<{ ok: true }>(`/api/songs/${id}`, { method: "DELETE" }),
+
+  scanImports: () => request<SongImportScan>("/api/import/scan"),
+  applyImports: (paths?: string[]) =>
+    request<SongImportReport>("/api/import/apply", {
+      method: "POST",
+      body: JSON.stringify(paths ? { paths } : {}),
+    }),
 
   setlists: () => request<{ setlists: SetlistSummary[] }>("/api/setlists"),
   setlist: (id: string) => request<{ setlist: SetlistDetail }>(`/api/setlists/${id}`),

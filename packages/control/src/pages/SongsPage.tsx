@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import type { Song } from "@wlm/shared";
+import type { Song, SongImportReport, SongImportScan } from "@wlm/shared";
 import { api, ApiError } from "../api";
 
 const EMPTY = {
@@ -21,6 +21,10 @@ export default function SongsPage({
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [form, setForm] = useState({ ...EMPTY });
   const [saving, setSaving] = useState(false);
+  const [scan, setScan] = useState<SongImportScan | null>(null);
+  const [scanning, setScanning] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [importReport, setImportReport] = useState<SongImportReport | null>(null);
 
   async function load() {
     const result = await api.songs();
@@ -93,9 +97,38 @@ export default function SongsPage({
     }
   }
 
+  async function scanFolder() {
+    setScanning(true);
+    setImportReport(null);
+    try {
+      const result = await api.scanImports();
+      setScan(result);
+      notify(`Found ${result.files.length} importable files`);
+    } catch (error) {
+      notify(error instanceof ApiError ? error.message : "Could not scan songs folder", "error");
+    } finally {
+      setScanning(false);
+    }
+  }
+
+  async function importAll() {
+    setImporting(true);
+    try {
+      const result = await api.applyImports();
+      setImportReport(result);
+      await load();
+      notify(`Imported ${result.imported}, updated ${result.updated}`);
+    } catch (error) {
+      notify(error instanceof ApiError ? error.message : "Import failed", "error");
+    } finally {
+      setImporting(false);
+    }
+  }
+
   return (
-    <div className="two-column songs-layout">
-      <aside className="panel list-panel">
+    <div className="songs-page">
+      <div className="two-column songs-layout">
+        <aside className="panel list-panel">
         <div className="panel-heading">
           <h2>Songs</h2>
           <button className="button primary small" onClick={newSong}>
@@ -185,6 +218,91 @@ export default function SongsPage({
           Put chords in square brackets before the syllable: <code>a[C]mazing</code>. Blank lines separate
           sections. A line like <code>[Verse 1]</code> becomes a section label.
         </p>
+      </section>
+      </div>
+
+      <section className="panel import-panel">
+        <div className="panel-heading">
+          <div>
+            <h2>Import from folder</h2>
+            <p className="muted">
+              Scans OpenLP XML, ChordPro and plain-text files. Duplicate CCLI/title entries are skipped.
+            </p>
+          </div>
+          <div className="button-row">
+            <button className="button" onClick={scanFolder} disabled={scanning}>
+              {scanning ? "Scanning…" : "Scan folder"}
+            </button>
+            <button className="button primary" onClick={importAll} disabled={importing || !scan?.files.length}>
+              {importing ? "Importing…" : "Import all"}
+            </button>
+          </div>
+        </div>
+
+        {scan && (
+          <p className="hint">
+            {scan.files.length} files in <code>{scan.root}</code>
+            {scan.errors.length ? ` · ${scan.errors.length} errors` : ""}
+            {scan.skipped ? ` · ${scan.skipped} empty` : ""}
+          </p>
+        )}
+
+        {scan && scan.files.length > 0 && (
+          <div className="import-list">
+            {scan.files.map((file) => (
+              <div key={file.path} className="import-row">
+                <span className={`badge ${file.format}`}>{file.format}</span>
+                <div>
+                  <strong>{file.title}</strong>
+                  <span className="muted">
+                    {file.author ? `${file.author} · ` : ""}
+                    {file.path}
+                  </span>
+                </div>
+                {file.warnings.length > 0 && (
+                  <span className="import-warning" title={file.warnings.join("\n")}>
+                    {file.warnings.length} warning{file.warnings.length === 1 ? "" : "s"}
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {scan && !scan.files.length && <p className="muted">No importable files found.</p>}
+
+        {scan && scan.errors.length > 0 && (
+          <details className="import-errors">
+            <summary>{scan.errors.length} parse errors</summary>
+            <ul>
+              {scan.errors.map((error) => (
+                <li key={error.path}>
+                  <code>{error.path}</code> — {error.error}
+                </li>
+              ))}
+            </ul>
+          </details>
+        )}
+
+        {importReport && (
+          <div className="import-report">
+            <strong>
+              Imported {importReport.imported}, updated {importReport.updated}
+            </strong>
+            {importReport.skipped.length > 0 && (
+              <details>
+                <summary>{importReport.skipped.length} skipped</summary>
+                <ul>
+                  {importReport.skipped.map((item) => (
+                    <li key={item.path}>
+                      <code>{item.path}</code> — {item.reason}
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            )}
+          </div>
+        )}
       </section>
     </div>
   );

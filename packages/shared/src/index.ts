@@ -16,6 +16,8 @@ export interface Song {
   ccli: string | null;
   key: string | null;
   lyrics: string;
+  sourceFormat: string | null;
+  sourcePath: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -108,6 +110,34 @@ export interface DashboardLayout {
     sm?: LayoutItem[];
   };
   widgets: Record<string, WidgetConfig>;
+}
+
+export interface SongImportPreview {
+  path: string;
+  bytes: number;
+  format: "openlp" | "chordpro" | "text";
+  title: string;
+  author: string | null;
+  copyright: string | null;
+  ccli: string | null;
+  key: string | null;
+  lyrics: string;
+  warnings: string[];
+}
+
+export interface SongImportScan {
+  root: string;
+  files: SongImportPreview[];
+  errors: Array<{ path: string; error: string }>;
+  skipped: number;
+}
+
+export interface SongImportReport {
+  imported: number;
+  updated: number;
+  skipped: Array<{ path: string; reason: string }>;
+  errors: Array<{ path: string; error: string }>;
+  songs: Array<{ id: string; title: string; path: string }>;
 }
 
 /* ------------------------------------------------------------------ */

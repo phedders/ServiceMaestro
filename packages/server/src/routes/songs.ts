@@ -12,6 +12,8 @@ interface SongRow {
   ccli: string | null;
   key: string | null;
   lyrics: string;
+  source_format: string | null;
+  source_path: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -25,6 +27,8 @@ function mapSong(row: SongRow): Song {
     ccli: row.ccli,
     key: row.key,
     lyrics: row.lyrics,
+    sourceFormat: row.source_format,
+    sourcePath: row.source_path,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
