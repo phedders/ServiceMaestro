@@ -90,6 +90,40 @@ test("supports front-matter HTML text and page breaks", () => {
   assert.match(pages[1].html, /<p>Two<\/p>/);
 });
 
+test("supports inline styles and the legacy style-attribute typo", () => {
+  const styled = buildPages({
+    kind: "text",
+    title: "Styled",
+    content: 'type:html\nThis is <span style="font-size:200%">big</span>',
+    transpose: 0,
+    maxLines: 4,
+  });
+  assert.match(styled[0].html, /style="font-size:200%"/);
+  assert.match(styled[0].html, /<span/);
+
+  const legacy = buildPages({
+    kind: "text",
+    title: "Legacy",
+    content: 'type:html\nThis is <style="font-size=200%">big</style>',
+    transpose: 0,
+    maxLines: 4,
+  });
+  assert.match(legacy[0].html, /<span style="font-size:200%">big<\/span>/);
+  assert.doesNotMatch(legacy[0].html, /<style/);
+});
+
+test("rich text does not use the flex line container", () => {
+  const pages = buildPages({
+    kind: "text",
+    title: "Strong",
+    content: "type:html\nThis is <strong>big</strong>",
+    transpose: 0,
+    maxLines: 4,
+  });
+  assert.match(pages[0].html, /^<div class="text-html">/);
+  assert.doesNotMatch(pages[0].html, /slide-inner/);
+});
+
 test("parses text metadata first lines", () => {
   assert.equal(parseTextContent("type: markdown\n# Hi").format, "markdown");
   assert.equal(parseTextContent("---\nformat: rst\n---\nTitle\n=====").format, "rst");

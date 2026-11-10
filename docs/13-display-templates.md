@@ -97,6 +97,23 @@ Rendering:
 - All rich output sanitized with `sanitize-html`: scripts, styles, iframes, event handlers and data URLs are removed; standard headings, lists, tables, code, links and images are allowed.
 - Plain text remains escaped and line-based.
 
+### Inline styling
+
+A safe subset of inline CSS is allowed on elements:
+
+`font-size`, `font-weight`, `font-style`, `text-decoration`, `text-align`, `line-height`, `color`, `background-color`.
+
+Examples:
+
+```html
+This is <span style="font-size:200%">big</span>.
+This is <strong>bold</strong> and <em>italic</em>.
+```
+
+The common typo `<style="font-size=200%">big</style>` is also accepted and treated as `<span style="font-size:200%">big</span>`; real `<style>` blocks remain disallowed.
+
+Rich text uses a block container (`.text-html`), not the flex line container used for plain text, so `<strong>`/`<span>` do not introduce line breaks.
+
 ## 4. Blank on session start
 
 Starting a live session now sets `blank: true`. Outputs remain black/transparent until the operator presses **Show** or advances; the preview shows the **BLANK** state.

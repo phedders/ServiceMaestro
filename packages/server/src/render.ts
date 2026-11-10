@@ -183,20 +183,44 @@ function sanitizeRichHtml(html: string): string {
       "sup", "sub", "dl", "dt", "dd",
     ],
     allowedAttributes: {
-      "*": ["class"],
+      "*": ["class", "style"],
       a: ["href", "title"],
       img: ["src", "alt", "title"],
+    },
+    allowedStyles: {
+      "*": {
+        "font-size": [/^\d+(?:\.\d+)?(?:%|px|em|rem|vw|vh|pt)$/],
+        "font-weight": [/^(?:normal|bold|[1-9]00)$/],
+        "font-style": [/^(?:normal|italic|oblique)$/],
+        "text-decoration": [/^(?:none|underline|overline|line-through)$/],
+        "text-align": [/^(?:left|right|center|justify)$/],
+        "line-height": [/^\d+(?:\.\d+)?$/],
+        color: [/^#[0-9a-f]{3,8}$/i, /^rgb\([^)]*\)$/i, /^[a-z]+$/i],
+        "background-color": [/^#[0-9a-f]{3,8}$/i, /^rgb\([^)]*\)$/i, /^[a-z]+$/i],
+      },
     },
     allowedSchemes: ["http", "https", "mailto"],
     allowProtocolRelative: false,
   });
 }
 
+/**
+ * Accept the common typo `<style="font-size=200%">big</style>` as an inline span.
+ * Real `<style>` blocks remain disallowed and are removed by the sanitizer.
+ */
+function normalizeInlineStyleTags(html: string): string {
+  return html.replace(
+    /<style\s*=\s*(["'])([^"']*)\1\s*>([\s\S]*?)<\/style>/gi,
+    (_match, _quote, css: string, content: string) =>
+      `<span style="${css.replace(/=/g, ":")}">${content}</span>`,
+  );
+}
+
 function renderRichText(body: string, format: TextFormat): string {
   try {
     if (format === "markdown") return sanitizeRichHtml(String(marked.parse(body)));
     if (format === "rst") return sanitizeRichHtml(rst2html(body));
-    if (format === "html") return sanitizeRichHtml(body);
+    if (format === "html") return sanitizeRichHtml(normalizeInlineStyleTags(body));
   } catch {
     // Fall through to escaped text.
   }
@@ -331,7 +355,7 @@ export function buildPages(item: RenderItem, liveTranspose = 0): LivePage[] {
       return chunks.map((chunk, index) => ({
         index,
         section: null,
-        html: `<div class="slide-inner text-html">${renderRichText(chunk, parsed.format)}</div>`,
+        html: `<div class="text-html">${renderRichText(chunk, parsed.format)}</div>`,
       }));
     }
     blocks = parseText(parsed.body);
