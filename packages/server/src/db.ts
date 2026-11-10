@@ -104,6 +104,15 @@ db.exec(`
     updated_at TEXT NOT NULL
   );
 
+  CREATE TABLE IF NOT EXISTS display_config (
+    id TEXT PRIMARY KEY,
+    font_family TEXT NOT NULL,
+    text_color TEXT NOT NULL,
+    text_scale REAL NOT NULL,
+    max_lines INTEGER NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+
   CREATE TABLE IF NOT EXISTS song_assets (
     id TEXT PRIMARY KEY,
     song_id TEXT NOT NULL REFERENCES songs(id) ON DELETE CASCADE,
@@ -137,6 +146,18 @@ ensureColumn("setlist_items", "verse_order", "TEXT");
 ensureColumn("service_sessions", "revision_id", "TEXT");
 ensureColumn("service_sessions", "pending_json", "TEXT");
 db.exec("CREATE INDEX IF NOT EXISTS idx_songs_source_path ON songs(source_path)");
+
+db.prepare(
+  `INSERT INTO display_config (id, font_family, text_color, text_scale, max_lines, updated_at)
+   VALUES ('default', ?, ?, ?, ?, ?)
+   ON CONFLICT(id) DO NOTHING`,
+).run(
+  '"Clear Sans", "Segoe UI", system-ui, -apple-system, sans-serif',
+  "#ffffff",
+  1,
+  4,
+  new Date().toISOString(),
+);
 
 const admin = db.prepare("SELECT id FROM users WHERE role = 'admin' LIMIT 1").get() as
   | { id: string }

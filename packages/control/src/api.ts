@@ -3,6 +3,7 @@ import type {
   BiblePassage,
   BibleTranslationInfo,
   DashboardLayout,
+  DisplayConfig,
   LiveState,
   PublicUser,
   SetlistDetail,
@@ -184,6 +185,13 @@ export const api = {
       body: JSON.stringify(layout),
     }),
   resetLayout: () => request<{ layout: DashboardLayout }>("/api/dashboard/layout/reset", { method: "POST" }),
+
+  displayConfig: () => request<{ config: DisplayConfig }>("/api/display/config"),
+  saveDisplayConfig: (config: DisplayConfig) =>
+    request<{ config: DisplayConfig; state: LiveState }>("/api/display/config", {
+      method: "PUT",
+      body: JSON.stringify(config),
+    }),
 
   bibleTranslations: () => request<{ translations: BibleTranslationInfo[] }>("/api/bible/translations"),
   bibleBooks: (translation: string) =>

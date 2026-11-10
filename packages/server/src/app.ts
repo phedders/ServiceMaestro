@@ -5,10 +5,11 @@ import cookie from "@fastify/cookie";
 import fastifyStatic from "@fastify/static";
 import multipart from "@fastify/multipart";
 import { Server } from "socket.io";
-import { liveCommandSchema, quickTextSchema, type PublicUser } from "@wlm/shared";
+import { displayConfigSchema, liveCommandSchema, quickTextSchema, type PublicUser } from "@wlm/shared";
 import { COOKIE_NAME, CONTROL_DIST, DISPLAY_DIR, GIT_AUTO_PUSH, GIT_AUTO_SAVE, GIT_ENABLED, OUTPUT_TOKEN } from "./config.js";
 import { parseCookies, requireAuth, requireRole, userForToken } from "./auth.js";
 import { live } from "./live.js";
+import { getDisplayConfig, saveDisplayConfig } from "./display-config.js";
 import { authRoutes } from "./routes/auth.js";
 import { songRoutes } from "./routes/songs.js";
 import { setlistRoutes } from "./routes/setlists.js";
@@ -103,6 +104,24 @@ export async function buildApp(): Promise<{ app: FastifyInstance; io: Server }> 
   app.get("/obs-chords", async (_request, reply) => sendHtml(reply, path.join(DISPLAY_DIR, "chords.html")));
 
   app.get("/api/health", async () => ({ ok: true, name: "web-lyric-master" }));
+
+  app.get("/api/display/config", { preHandler: requireAuth }, async () => ({
+    config: getDisplayConfig(),
+  }));
+
+  app.put(
+    "/api/display/config",
+    { preHandler: [requireAuth, requireRole("admin", "editor", "operator")] },
+    async (request, reply) => {
+      const parsed = displayConfigSchema.safeParse(request.body);
+      if (!parsed.success) {
+        return reply.code(400).send({ error: "Invalid display config", issues: parsed.error.issues });
+      }
+      const config = saveDisplayConfig(parsed.data);
+      const state = live.updateDisplayConfig(config);
+      return { config, state };
+    },
+  );
 
   app.get("/api/git/status", { preHandler: requireAuth }, async () => ({
     enabled: GIT_ENABLED,

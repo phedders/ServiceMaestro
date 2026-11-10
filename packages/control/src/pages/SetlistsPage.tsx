@@ -32,7 +32,6 @@ function ItemRow({
 }) {
   const [keyOverride, setKeyOverride] = useState(item.keyOverride ?? "");
   const [transpose, setTranspose] = useState(item.transpose);
-  const [maxLines, setMaxLines] = useState(item.maxLines);
   const [verseOrder, setVerseOrder] = useState(item.verseOrder ?? "");
   const [notes, setNotes] = useState(item.notes ?? "");
   const [saving, setSaving] = useState(false);
@@ -40,7 +39,6 @@ function ItemRow({
   useEffect(() => {
     setKeyOverride(item.keyOverride ?? "");
     setTranspose(item.transpose);
-    setMaxLines(item.maxLines);
     setVerseOrder(item.verseOrder ?? "");
     setNotes(item.notes ?? "");
   }, [item]);
@@ -51,7 +49,6 @@ function ItemRow({
       await onSave({
         keyOverride: keyOverride || null,
         transpose: Number(transpose) || 0,
-        maxLines: Number(maxLines) || 4,
         verseOrder: verseOrder || null,
         notes: notes || null,
       });
@@ -97,16 +94,6 @@ function ItemRow({
             max={24}
             value={transpose}
             onChange={(event) => setTranspose(Number(event.target.value))}
-          />
-        </label>
-        <label>
-          Lines/page
-          <input
-            type="number"
-            min={1}
-            max={30}
-            value={maxLines}
-            onChange={(event) => setMaxLines(Number(event.target.value))}
           />
         </label>
         <label>

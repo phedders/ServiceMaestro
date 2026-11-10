@@ -1,10 +1,18 @@
 import { useEffect, useState } from "react";
-import type { LiveState, SetlistSummary } from "@wlm/shared";
+import type { DisplayConfig, LiveState, SetlistSummary } from "@wlm/shared";
 import { api, ApiError } from "../api";
 import { SlidePreview } from "../components/SlidePreview";
 import { Transport } from "../components/Transport";
 import { ItemList, PageList } from "../components/LivePanels";
 import { QuickText } from "../components/QuickText";
+
+const FONT_OPTIONS = [
+  { label: "Clear Sans / system", value: '"Clear Sans", "Segoe UI", system-ui, -apple-system, sans-serif' },
+  { label: "System sans-serif", value: 'system-ui, -apple-system, "Segoe UI", sans-serif' },
+  { label: "Serif", value: 'Georgia, "Times New Roman", serif' },
+  { label: "Humanist sans", value: '"Trebuchet MS", "Segoe UI", sans-serif' },
+  { label: "Monospace", value: '"JetBrains Mono", ui-monospace, SFMono-Regular, monospace' },
+];
 
 export default function LivePage({
   live,
@@ -24,6 +32,43 @@ export default function LivePage({
   const [mode, setMode] = useState<"live" | "rehearsal">("live");
   const [starting, setStarting] = useState(false);
   const [footer, setFooter] = useState(live.footer);
+  const [displayConfig, setDisplayConfig] = useState<DisplayConfig>(
+    live.displayConfig ?? {
+      fontFamily: '"Clear Sans", "Segoe UI", system-ui, -apple-system, sans-serif',
+      textColor: "#ffffff",
+      textScale: 1,
+      maxLines: 4,
+    },
+  );
+  const [configSaving, setConfigSaving] = useState(false);
+
+  useEffect(() => {
+    if (live.displayConfig) {
+      setDisplayConfig(live.displayConfig);
+      return;
+    }
+    api
+      .displayConfig()
+      .then((result) => setDisplayConfig(result.config))
+      .catch(() => undefined);
+  }, [
+    live.displayConfig?.fontFamily,
+    live.displayConfig?.textColor,
+    live.displayConfig?.textScale,
+    live.displayConfig?.maxLines,
+  ]);
+
+  async function saveConfig() {
+    setConfigSaving(true);
+    try {
+      await api.saveDisplayConfig(displayConfig);
+      notify("Display settings saved");
+    } catch (error) {
+      notify(error instanceof ApiError ? error.message : "Could not save display settings", "error");
+    } finally {
+      setConfigSaving(false);
+    }
+  }
 
   useEffect(() => {
     setFooter(live.footer);
@@ -155,6 +200,69 @@ export default function LivePage({
           <span className="muted">Display immediately</span>
         </div>
         <QuickText onSend={onQuickText} />
+      </section>
+
+      <section className="panel wide-panel">
+        <div className="panel-heading">
+          <div>
+            <h2>Display config</h2>
+            <p className="muted">Applies to main and two-thirds. Stage and chords keep their fixed style.</p>
+          </div>
+          <button className="button primary" onClick={saveConfig} disabled={configSaving}>
+            {configSaving ? "Saving…" : "Save display config"}
+          </button>
+        </div>
+        <div className="display-config-grid">
+          <label>
+            Font
+            <select
+              value={displayConfig.fontFamily}
+              onChange={(event) => setDisplayConfig({ ...displayConfig, fontFamily: event.target.value })}
+            >
+              {FONT_OPTIONS.map((font) => (
+                <option key={font.value} value={font.value}>
+                  {font.label}
+                </option>
+              ))}
+              {!FONT_OPTIONS.some((font) => font.value === displayConfig.fontFamily) && (
+                <option value={displayConfig.fontFamily}>Custom</option>
+              )}
+            </select>
+          </label>
+          <label>
+            Text colour
+            <input
+              type="color"
+              value={displayConfig.textColor}
+              onChange={(event) => setDisplayConfig({ ...displayConfig, textColor: event.target.value })}
+            />
+          </label>
+          <label>
+            Text size · {Math.round(displayConfig.textScale * 100)}%
+            <input
+              type="range"
+              min={50}
+              max={200}
+              step={5}
+              value={displayConfig.textScale * 100}
+              onChange={(event) =>
+                setDisplayConfig({ ...displayConfig, textScale: Number(event.target.value) / 100 })
+              }
+            />
+          </label>
+          <label>
+            Max lines / page
+            <input
+              type="number"
+              min={1}
+              max={20}
+              value={displayConfig.maxLines}
+              onChange={(event) =>
+                setDisplayConfig({ ...displayConfig, maxLines: Number(event.target.value) || 4 })
+              }
+            />
+          </label>
+        </div>
       </section>
     </div>
   );

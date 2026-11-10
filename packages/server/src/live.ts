@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { Server } from "socket.io";
 import type {
+  DisplayConfig,
   LiveApplyMode,
   LiveState,
   SetlistRevisionInfo,
@@ -9,6 +10,7 @@ import type {
 import { db } from "./db.js";
 import { buildPages, type RenderItem } from "./render.js";
 import { resolveTemplates } from "./templates.js";
+import { getDisplayConfig } from "./display-config.js";
 
 interface SnapshotItem extends RenderItem {
   itemId: string | null;
@@ -196,16 +198,19 @@ class LiveService {
   }
 
   getState(): LiveState {
+    const config = getDisplayConfig();
     if (!this.active) {
-      return { ...idleState(), templates: resolveTemplates(null) };
+      return { ...idleState(), templates: resolveTemplates(null), displayConfig: config };
     }
     const state = this.active.state;
     state.pendingUpdate = Boolean(this.active.pending);
     state.pendingRevision = this.active.pending?.revisionNo ?? null;
+    state.displayConfig = config;
     return {
       ...state,
       pages: state.pages,
       templates: resolveTemplates(this.active.setlistId),
+      displayConfig: config,
     };
   }
 
@@ -277,6 +282,7 @@ class LiveService {
     ).run(id, setlistId, revision.id, name, JSON.stringify(items), status, now());
 
     const first = items[0];
+    const displayConfig = getDisplayConfig();
     const state: LiveState = {
       sessionId: id,
       setlistId,
@@ -288,7 +294,7 @@ class LiveService {
       mode: first.kind,
       title: first.title,
       blank: true,
-      maxLines: first.maxLines,
+      maxLines: displayConfig.maxLines,
       transpose: 0,
       footer: "",
       pages: [],
@@ -297,6 +303,7 @@ class LiveService {
       updatedAt: now(),
       pendingUpdate: false,
       pendingRevision: null,
+      displayConfig,
     };
 
     this.active = {
@@ -368,6 +375,18 @@ class LiveService {
     const items = JSON.parse(row.snapshot_json) as SnapshotItem[];
     if (!items.length) throw new Error("Revision is empty");
     return this.applySnapshot(items, row.id, row.revision_no, mode);
+  }
+
+  updateDisplayConfig(config: DisplayConfig): LiveState {
+    if (!this.active) return this.getState();
+    this.active.state.displayConfig = config;
+    this.active.state.maxLines = config.maxLines;
+    this.renderCurrent();
+    this.active.state.version += 1;
+    this.active.state.updatedAt = now();
+    this.persist();
+    this.broadcast();
+    return this.getState();
   }
 
   private applySnapshot(
@@ -494,7 +513,6 @@ class LiveService {
     record.state.itemIndex = -1;
     record.state.pageIndex = 0;
     record.state.blank = false;
-    record.state.maxLines = 4;
     this.renderCurrent();
     record.state.version += 1;
     record.state.updatedAt = now();
@@ -512,7 +530,6 @@ class LiveService {
     state.pageIndex = 0;
     state.mode = items[index].kind;
     state.title = items[index].title;
-    state.maxLines = items[index].maxLines;
     this.renderCurrent();
   }
 

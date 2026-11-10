@@ -109,6 +109,13 @@ export interface DisplayTemplate {
   css: string;
 }
 
+export interface DisplayConfig {
+  fontFamily: string;
+  textColor: string;
+  textScale: number;
+  maxLines: number;
+}
+
 export interface LiveState {
   sessionId: string;
   setlistId: string | null;
@@ -126,6 +133,7 @@ export interface LiveState {
   pages: LivePage[];
   items: LiveItemSummary[];
   templates?: Record<string, DisplayTemplate>;
+  displayConfig?: DisplayConfig;
   version: number;
   updatedAt: string;
   pendingUpdate: boolean;
@@ -325,8 +333,14 @@ const layoutItemSchema = z.object({
   static: z.boolean().optional(),
 });
 
-export const dashboardLayoutSchema = z.object({
-  version: z.literal(1),
+export const displayConfigSchema = z.object({
+  fontFamily: z.string().trim().min(1).max(200),
+  textColor: z.string().trim().regex(/^#[0-9a-f]{6}$/i),
+  textScale: z.number().min(0.5).max(2.5),
+  maxLines: z.number().int().min(1).max(30),
+});
+
+export const dashboardLayoutSchema = z.object({  version: z.literal(1),
   layouts: z.object({
     lg: z.array(layoutItemSchema).max(100),
     md: z.array(layoutItemSchema).max(100).optional(),

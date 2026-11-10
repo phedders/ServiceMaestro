@@ -222,6 +222,7 @@ Rules:
 | `/api/musicians/services`, `/api/musicians/services/:id` | Musician service view and score readiness | musician |
 | `/api/usage/report` | CCLI usage export | admin |
 | `/api/widgets`, `/api/dashboards/*` | Dashboard layout registry, personal/shared layouts, publish | per dashboard role |
+| `/api/display/config` | Font, colour, size and max-lines display settings | operator |
 | `/collab/dashboards/:id` (WS) | Yjs collaborative layout editing + presence | edit permission |
 | `/api/text-items`, `/api/text-items/:id/versions`, `/preview` | Dynamic text authoring | editor |
 | `/api/themes`, `/api/themes/:id/versions`, `/preview` | Modular themes | editor/admin |

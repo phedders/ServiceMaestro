@@ -1,9 +1,22 @@
+import type { CSSProperties } from "react";
 import type { LiveState } from "@wlm/shared";
 
 export function SlidePreview({ live, compact = false }: { live: LiveState; compact?: boolean }) {
   const page = live.pages[live.pageIndex];
+  const config = live.displayConfig;
   return (
-    <div className={`slide-preview ${compact ? "compact" : ""} ${live.blank ? "blanked" : ""}`}>
+    <div
+      className={`slide-preview ${compact ? "compact" : ""} ${live.blank ? "blanked" : ""}`}
+      style={
+        config
+          ? ({
+              color: config.textColor,
+              fontFamily: config.fontFamily,
+              "--wlm-text-scale": config.textScale,
+            } as CSSProperties)
+          : undefined
+      }
+    >
       <div className="slide-preview-inner">
         {page ? (
           <div className="slide-html" dangerouslySetInnerHTML={{ __html: page.html }} />

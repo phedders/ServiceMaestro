@@ -172,7 +172,7 @@ export function parseTextContent(content: string): ParsedTextContent {
   return { format, body, metadata };
 }
 
-const RICH_PAGE_BREAK = /<!--\s*page\s*-->|<hr\b[^>]*class=["'][^"']*page-break[^"']*["'][^>]*>/gi;
+const PAGE_BREAK_RE = /<!--\s*-?\s*page\s*-?\s*-->|<hr\b[^>]*class=["'][^"']*page-break[^"']*["'][^>]*>/gi;
 
 function sanitizeRichHtml(html: string): string {
   return sanitizeHtml(html, {
@@ -349,7 +349,7 @@ export function buildPages(item: RenderItem, liveTranspose = 0): LivePage[] {
     const parsed = parseTextContent(item.content ?? "");
     if (parsed.format !== "text") {
       const chunks = parsed.body
-        .split(RICH_PAGE_BREAK)
+        .split(PAGE_BREAK_RE)
         .map((chunk) => chunk.trim())
         .filter(Boolean);
       return chunks.map((chunk, index) => ({
@@ -358,11 +358,15 @@ export function buildPages(item: RenderItem, liveTranspose = 0): LivePage[] {
         html: `<div class="text-html">${renderRichText(chunk, parsed.format)}</div>`,
       }));
     }
-    blocks = parseText(parsed.body);
+    blocks = parsed.body
+      .split(PAGE_BREAK_RE)
+      .flatMap((segment) => parseText(segment));
   } else {
-    blocks = parseSong(item.lyrics ?? "");
+    blocks = (item.lyrics ?? "")
+      .split(PAGE_BREAK_RE)
+      .flatMap((segment) => orderBlocks(parseSong(segment), item.verseOrder));
   }
-  const orderedBlocks = item.kind === "song" ? orderBlocks(blocks, item.verseOrder) : blocks;
+  const orderedBlocks = blocks;
 
   const pages: Block[] = [];
   for (const block of orderedBlocks) {

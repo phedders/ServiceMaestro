@@ -114,12 +114,29 @@ The common typo `<style="font-size=200%">big</style>` is also accepted and treat
 
 Rich text uses a block container (`.text-html`), not the flex line container used for plain text, so `<strong>`/`<span>` do not introduce line breaks.
 
-## 4. Blank on session start
+## 4. Display config (Live page)
+
+A **Display config** panel on the Live page controls:
+
+- **Font** — a curated list of local/system font stacks.
+- **Text colour** — default text colour.
+- **Text size** — 50–200% scale.
+- **Max lines per page** — the number of lines after which a song/text/Bible item is split into another page.
+
+Scope:
+
+- Font, colour and size apply **only to main and two-thirds** (and `full`, which shares the two-thirds style).
+- **Stage and chords always keep their fixed styling**, regardless of the main/two-thirds config.
+- Max lines controls **page splitting** for line-based songs and text; `<!-- page -->` / `<!--- page --->` / `<hr class="page-break">` markers force additional breaks. Rich Markdown/HTML/RST items use the explicit markers as their page boundaries.
+- Settings persist in the database and are broadcast to outputs immediately. The per-item “Lines/page” control has been removed from the set-list editor; the screen-level setting is authoritative.
+- The **Show** button still reveals a blank screen, and selecting a page/item clears blank and fades it in.
+
+## 5. Blank on session start
 
 Starting a live session now sets `blank: true`. Outputs remain black/transparent until the operator presses **Show** or advances; the preview shows the **BLANK** state.
 
 **Selecting a page or item** (from the Pages/Items lists or the dashboard) counts as an explicit show: `blank` is cleared in the same command and the display fades the selected page in directly. The **Show** button remains for revealing the current page without changing it.
 
-## 5. Preview pane size
+## 6. Preview pane size
 
 The Live page preview is no longer full-width: it sits beside the Transport panel at roughly the same height, with a maximum height of 280 px. The default dashboard layout gives Preview the same grid height as Transport (4 rows); existing saved layouts are unchanged, and **Reset** restores the new default.

@@ -64,6 +64,20 @@
     document.body.classList.toggle("blank", blank);
     document.body.classList.toggle("idle", idle);
 
+    const config = state.displayConfig || {};
+    if (target === "main" || target === "two_thirds" || target === "full") {
+      root.style.setProperty("--wlm-text-scale", String(config.textScale ?? 1));
+      root.style.setProperty("--wlm-text-color", config.textColor || "#ffffff");
+      root.style.setProperty(
+        "--wlm-font-family",
+        config.fontFamily || '"Clear Sans", "Segoe UI", system-ui, -apple-system, sans-serif',
+      );
+    } else {
+      root.style.removeProperty("--wlm-text-scale");
+      root.style.removeProperty("--wlm-text-color");
+      root.style.removeProperty("--wlm-font-family");
+    }
+
     const template = templateFor(state);
     const html = compose(state, template);
     if (html === lastHtml && template.css === lastCss) return;

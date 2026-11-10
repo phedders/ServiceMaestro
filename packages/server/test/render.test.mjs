@@ -112,8 +112,20 @@ test("supports inline styles and the legacy style-attribute typo", () => {
   assert.doesNotMatch(legacy[0].html, /<style/);
 });
 
-test("rich text does not use the flex line container", () => {
+test("honours explicit page markers in songs", () => {
   const pages = buildPages({
+    kind: "song",
+    title: "Marker",
+    lyrics: "[Verse 1]\nline one\nline two<!-- page -->line three",
+    transpose: 0,
+    maxLines: 10,
+  });
+  assert.equal(pages.length, 2);
+  assert.match(pages[0].html, /line two/);
+  assert.match(pages[1].html, /line three/);
+});
+
+test("rich text does not use the flex line container", () => {  const pages = buildPages({
     kind: "text",
     title: "Strong",
     content: "type:html\nThis is <strong>big</strong>",

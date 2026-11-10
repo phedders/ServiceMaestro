@@ -24,11 +24,11 @@ WLM_ADMIN_PASSWORD='change-me' npm start
 | Library import | Folder scan for OpenLP XML, ChordPro and plain text; preview + warnings; duplicate CCLI/title skip; OpenLP `verseOrder` and ChordPro comment sections honoured; legal footers/bar markers removed |
 | Bible | Schema detection for MyBible `book`/`verse`, BibleDb `books`/`verses` and JSON; sanitised verses; translation/book/chapter/from-to UI; display as quick text |
 | Scores/tabs | Per-song asset upload (PDF, ChordPro, lyrics, image); authenticated signed-style file route; musician page with PDF.js viewer, page nav, zoom and fit-to-width |
-| Set lists | Named/dated services; songs and text items; reorder; per-item key, transpose, max lines, verse order and notes; published revisions |
+| Set lists | Named/dated services; songs and text items; reorder; per-item key, transpose, verse order and notes; published revisions |
+| Display config | Live-page font/colour/size/max-lines panel; styles apply to main/two-thirds, stage/chords fixed; max lines drives page splitting |
 | Export/import | Reference JSON and self-contained ZIP bundles (songs/text/assets); preview then import as a new draft, with song matching by CCLI/title |
 | Git local persistence | Songs/setlists written to local Git repos and committed; `autoSave`/`autoPush` configurable (default true); optional remotes, startup import/export, pull interval; Bibles repo optional (LFS in container) |
-| Live sessions | Snapshot-on-start; starts blank; publish/apply after-current or now; queued updates survive restarts; next/prev, page/item goto, blank, transpose, max lines, footer, quick text |
-| Display templates | main, two-thirds, full, stage, chords; HTML/CSS lookup from set-list repo, templates folder/repo or built-ins; fade in/out |
+| Live sessions | Snapshot-on-start; starts blank; publish/apply after-current or now; queued updates survive restarts; next/prev, page/item goto, blank, transpose, max lines, footer, quick text || Display templates | main, two-thirds, full, stage, chords; HTML/CSS lookup from set-list repo, templates folder/repo or built-ins; fade in/out |
 | Rich text | First-line/front-matter `type: markdown|html|rst|text`, sanitised render, page breaks |
 | Outputs | Vanilla HTML/CSS/JS; snapshot-on-connect over Socket.IO; transparent main, full-screen, stage with chords; legacy `/obs-*` aliases |
 | Dashboard | `react-grid-layout`; pages, preview, set-list, transport and quick-text widgets; drag/resize; personal layout saved in SQLite; reset to default |
@@ -71,10 +71,10 @@ Socket.IO: `live:snapshot` events to `control` and `outputs` rooms; commands ove
 ```sh
 npm run typecheck
 npm run build
-npm test          # render, importer, Bible, verse-order, text-format and transfer tests (19 tests)
+npm test          # render, importer, Bible, verse-order, text-format, page-marker and transfer tests (22 tests)
 ```
 
-Manual smoke test used: login → create song → create set list → add song/text → start live (blank) → show → display `/display/two-thirds` and `/display/chords` from templates → next/previous/quick text → markdown quick text → dashboard drag/save → restart server (state restored) → scan/import 146 sample files (135 imported, 11 duplicates skipped) → Bible translation/book/chapter/range → display passage → upload vocal/lead PDF assets → musician page PDF.js viewer/zoom/page nav → publish revision → apply after-current/now → export JSON/bundle → import as new draft with assets → local Git repos created and committed → restart with a fresh DB rebuilt songs/set lists from Git → Docker build/run.
+Manual smoke test used: login → create song → create set list → add song/text → start live (blank) → show/select page (reveals and fades) → display `/display/two-thirds` and `/display/chords` from templates → configure font/colour/size/max-lines (main/two-thirds only) → markdown quick text with page markers → dashboard drag/save → restart server (state restored) → scan/import 146 sample files (135 imported, 11 duplicates skipped) → Bible translation/book/chapter/range → display passage → upload vocal/lead PDF assets → musician page PDF.js viewer/zoom/page nav → publish revision → apply after-current/now → export JSON/bundle → import as new draft with assets → local Git repos created and committed → restart with a fresh DB rebuilt songs/set lists from Git → Docker build/run.
 
 ## Next
 

@@ -68,6 +68,7 @@ The output token defaults to `dev-output`; set `WLM_OUTPUT_TOKEN` in production.
 - **Live sessions** — a set list is snapshotted when the session starts, so editing the set list afterwards cannot change the live output. Sessions start **blank** until the operator shows the first page.
 - **Publish & apply** — publish a revision, then **apply after the current item** (safe during a service) or **apply now**; queued updates are shown to operators and persisted across restarts.
 - **Templated outputs** — main, two-thirds, full, stage and chords; templates come from the set-list repo, a templates folder/repo, or built-in defaults, with fade-in/out changes.
+- **Display config** — Live-page panel for font, text colour, text size and max lines per page; applies to main/two-thirds, while stage and chords keep their fixed style.
 - **Rich text items** — first-line `type: markdown|html|rst|text` or YAML front matter, with page breaks and server-side sanitisation.
 - **Export/import** — download a reference JSON or self-contained ZIP bundle (songs, text, PDF/tab assets) and import it as a new draft with a preview; matching uses CCLI/title and never affects a live service.
 - **Live control** — next/previous, page/item navigation, blank, transpose, max-lines, footer and quick text.

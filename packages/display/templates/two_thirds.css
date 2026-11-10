@@ -12,8 +12,10 @@ body[data-target="full"] {
 
 .wlm-two-thirds .wlm-content {
   width: 100%;
-  font-size: clamp(2rem, 4vw, 5.2rem);
+  font-size: calc(clamp(2rem, 4vw, 5.2rem) * var(--wlm-text-scale, 1));
   line-height: 1.2;
+  color: var(--wlm-text-color, #ffffff);
+  font-family: var(--wlm-font-family, inherit);
 }
 
 .wlm-two-thirds .wlm-content .slide-inner {

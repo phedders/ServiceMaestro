@@ -56,7 +56,7 @@ Ordered list; each item has a kind:
 
 | Kind | References | Per-item settings |
 | --- | --- | --- |
-| `song` | song version + arrangement | key override, transpose, verse order override, max lines, notes |
+| `song` | song version + arrangement | key override, transpose, verse order override, notes |
 | `text` | text item version | theme override, page breaks, notes |
 | `bible` | translation + reference | from/to verses, translation, theme |
 | `image` | image id | fit (`contain`/`cover`), background, notes |
@@ -154,7 +154,7 @@ Disallowed: `script`, `style`, `iframe`, `object`, `link`, event handlers, inlin
 - **Alternative arrangements** are named presets ("Full", "Short", "Acoustic", "Communion") with their own order and page breaks.
 - A **set list item** picks an arrangement and may override the verse order for that item only.
 - **Pagination**:
-  - automatic: `max_lines` per page (per set list item, default from song metadata);
+  - automatic: `max_lines` from the **screen display config** (Live page), with `<!-- page -->` / page-break markers as explicit guides;
   - explicit breaks: `---` on its own line, or a per-section break marker in the editor;
   - explicit breaks win over automatic splitting;
   - the editor previews the resulting pages as slide thumbnails;
@@ -207,7 +207,7 @@ Layout (desktop):
 - **Section detection**: blank lines → stanzas; `[Verse 1]`/`CHORUS` recognised; manual split/merge.
 - **Chord tools**: detect chord lines, align to lyrics, chord palette, "remove chords", "show as Nashville".
 - **Arrangement builder**: drag section chips into a verse order; save as named arrangement; set default.
-- **Page controls**: max lines slider, insert/remove page breaks, live thumbnail preview, warnings for overlong lines.
+- **Page controls**: page-break markers, live thumbnail preview, warnings for overlong lines; max lines is configured on the Live page display config.
 - **Key controls**: original key detector + manual override, default key, preferred keys, transpose preview.
 - **Metadata panel**: title, alternate title, authors, copyright, CCLI, language, tags.
 - **Validation panel**: unknown chords, unsupported HTML, line overflow, unreferenced sections, duplicate labels.

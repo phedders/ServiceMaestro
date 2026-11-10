@@ -11,8 +11,10 @@ body[data-target="main"] {
 
 .wlm-main .wlm-content {
   width: 100%;
-  font-size: clamp(2.2rem, 4.4vw, 5.5rem);
+  font-size: calc(clamp(2.2rem, 4.4vw, 5.5rem) * var(--wlm-text-scale, 1));
   line-height: 1.18;
+  color: var(--wlm-text-color, #ffffff);
+  font-family: var(--wlm-font-family, inherit);
   text-shadow: 0 2px 18px rgba(0, 0, 0, 0.6);
 }
 
