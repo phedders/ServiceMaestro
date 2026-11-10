@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+
+# Environment / runtime data
+.env
+.env.local
+data/
+packages/*/data/
+*.sqlite
+*.sqlite3
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/
+
+# Logs
+npm-debug.log*
+yarn-error.log*
+
+# Real sample inputs (lyrics/Bible may be copyrighted) — keep the folder README only
+samples/*
+!samples/README.md

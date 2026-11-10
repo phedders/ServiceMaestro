@@ -1,0 +1,26 @@
+services:
+  web-lyric-master:
+    build: .
+    image: web-lyric-master:dev
+    container_name: web-lyric-master
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      WLM_TZ: Europe/London
+      WLM_ADMIN_PASSWORD: ${WLM_ADMIN_PASSWORD:-change-me}
+      WLM_OUTPUT_TOKEN: ${WLM_OUTPUT_TOKEN:-dev-output}
+    volumes:
+      - ./data:/data
+      - ./library/songs:/library/songs:ro
+      - ./library/bible:/library/bible:ro
+      - ./library/images:/library/images
+    read_only: true
+    tmpfs:
+      - /tmp:size=256m
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    mem_limit: 512m
+    cpus: 1.0

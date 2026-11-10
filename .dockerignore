@@ -1,0 +1,13 @@
+node_modules
+**/node_modules
+data
+**/data
+dist
+**/dist
+.git
+.gitignore
+docs
+samples
+*.md
+!packages/**/README.md
+npm-debug.log*

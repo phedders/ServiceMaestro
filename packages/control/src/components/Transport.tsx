@@ -1,0 +1,74 @@
+import type { LiveState } from "@wlm/shared";
+
+export function Transport({
+  live,
+  onCommand,
+  compact = false,
+}: {
+  live: LiveState;
+  onCommand: (payload: Record<string, unknown>) => void;
+  compact?: boolean;
+}) {
+  const active = live.status !== "idle";
+  return (
+    <div className={`transport ${compact ? "compact" : ""}`}>
+      <div className="transport-row">
+        <button className="button" disabled={!active} onClick={() => onCommand({ type: "prev" })}>
+          ← Previous
+        </button>
+        <button className="button primary" disabled={!active} onClick={() => onCommand({ type: "next" })}>
+          Next →
+        </button>
+        <button
+          className={`button ${live.blank ? "danger" : "ghost"}`}
+          disabled={!active}
+          onClick={() => onCommand({ type: "blank", value: !live.blank })}
+        >
+          {live.blank ? "Show" : "Blank"}
+        </button>
+      </div>
+      <div className="transport-row">
+        <div className="stepper">
+          <span>Transpose</span>
+          <button className="button ghost small" disabled={!active} onClick={() => onCommand({ type: "transpose", delta: -1 })}>
+            −
+          </button>
+          <strong>{live.transpose > 0 ? `+${live.transpose}` : live.transpose}</strong>
+          <button className="button ghost small" disabled={!active} onClick={() => onCommand({ type: "transpose", delta: 1 })}>
+            +
+          </button>
+        </div>
+        <div className="stepper">
+          <span>Lines / page</span>
+          <button
+            className="button ghost small"
+            disabled={!active}
+            onClick={() => onCommand({ type: "maxLines", value: Math.max(1, live.maxLines - 1) })}
+          >
+            −
+          </button>
+          <strong>{live.maxLines}</strong>
+          <button
+            className="button ghost small"
+            disabled={!active}
+            onClick={() => onCommand({ type: "maxLines", value: Math.min(20, live.maxLines + 1) })}
+          >
+            +
+          </button>
+        </div>
+      </div>
+      <div className="transport-meta">
+        {active ? (
+          <>
+            <span>{live.title || live.setlistName}</span>
+            <span>
+              page {live.pageCount ? live.pageIndex + 1 : 0} / {live.pageCount}
+            </span>
+          </>
+        ) : (
+          <span>Start a session to control the output.</span>
+        )}
+      </div>
+    </div>
+  );
+}

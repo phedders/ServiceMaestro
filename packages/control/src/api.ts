@@ -1,0 +1,111 @@
+import type {
+  DashboardLayout,
+  LiveState,
+  PublicUser,
+  SetlistDetail,
+  SetlistSummary,
+  Song,
+} from "@wlm/shared";
+
+export class ApiError extends Error {
+  status: number;
+  issues?: unknown;
+  constructor(status: number, message: string, issues?: unknown) {
+    super(message);
+    this.status = status;
+    this.issues = issues;
+  }
+}
+
+async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const headers = new Headers(options.headers);
+  if (options.body && !headers.has("content-type")) {
+    headers.set("content-type", "application/json");
+  }
+  const response = await fetch(path, {
+    ...options,
+    headers,
+    credentials: "include",
+  });
+  const text = await response.text();
+  const data = text ? JSON.parse(text) : null;
+  if (!response.ok) {
+    throw new ApiError(response.status, data?.error ?? response.statusText, data?.issues);
+  }
+  return data as T;
+}
+
+export const api = {
+  login: (username: string, password: string) =>
+    request<{ user: PublicUser }>("/api/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ username, password }),
+    }),
+  logout: () => request<{ ok: true }>("/api/auth/logout", { method: "POST" }),
+  me: () => request<{ user: PublicUser | null }>("/api/auth/me"),
+
+  songs: (q = "") => request<{ songs: Song[] }>(`/api/songs${q ? `?q=${encodeURIComponent(q)}` : ""}`),
+  song: (id: string) => request<{ song: Song }>(`/api/songs/${id}`),
+  createSong: (payload: Partial<Song>) =>
+    request<{ song: Song }>("/api/songs", { method: "POST", body: JSON.stringify(payload) }),
+  updateSong: (id: string, payload: Partial<Song>) =>
+    request<{ song: Song }>(`/api/songs/${id}`, { method: "PATCH", body: JSON.stringify(payload) }),
+  deleteSong: (id: string) => request<{ ok: true }>(`/api/songs/${id}`, { method: "DELETE" }),
+
+  setlists: () => request<{ setlists: SetlistSummary[] }>("/api/setlists"),
+  setlist: (id: string) => request<{ setlist: SetlistDetail }>(`/api/setlists/${id}`),
+  createSetlist: (payload: { name: string; serviceDate: string; serviceTime?: string; notes?: string }) =>
+    request<{ setlist: SetlistDetail }>("/api/setlists", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  updateSetlist: (id: string, payload: Record<string, unknown>) =>
+    request<{ setlist: SetlistDetail }>(`/api/setlists/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }),
+  deleteSetlist: (id: string) => request<{ ok: true }>(`/api/setlists/${id}`, { method: "DELETE" }),
+  addItem: (id: string, payload: Record<string, unknown>) =>
+    request<{ setlist: SetlistDetail }>(`/api/setlists/${id}/items`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  patchItem: (id: string, itemId: string, payload: Record<string, unknown>) =>
+    request<{ setlist: SetlistDetail }>(`/api/setlists/${id}/items/${itemId}`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }),
+  deleteItem: (id: string, itemId: string) =>
+    request<{ setlist: SetlistDetail }>(`/api/setlists/${id}/items/${itemId}`, { method: "DELETE" }),
+  reorder: (id: string, ids: string[]) =>
+    request<{ setlist: SetlistDetail }>(`/api/setlists/${id}/reorder`, {
+      method: "POST",
+      body: JSON.stringify({ ids }),
+    }),
+
+  live: () => request<{ state: LiveState }>("/api/live"),
+  startLive: (setlistId: string, status: "live" | "rehearsal" = "live") =>
+    request<{ state: LiveState }>("/api/live/start", {
+      method: "POST",
+      body: JSON.stringify({ setlistId, status }),
+    }),
+  command: (payload: Record<string, unknown>) =>
+    request<{ state: LiveState }>("/api/live/command", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  quickText: (text: string, mode: "direct" | "setlist" = "direct") =>
+    request<{ state: LiveState }>("/api/live/quick-text", {
+      method: "POST",
+      body: JSON.stringify({ text, mode }),
+    }),
+  stopLive: () => request<{ state: LiveState }>("/api/live/stop", { method: "POST" }),
+
+  layout: () => request<{ layout: DashboardLayout; isDefault: boolean }>("/api/dashboard/layout"),
+  saveLayout: (layout: DashboardLayout) =>
+    request<{ layout: DashboardLayout }>("/api/dashboard/layout", {
+      method: "PUT",
+      body: JSON.stringify(layout),
+    }),
+  resetLayout: () => request<{ layout: DashboardLayout }>("/api/dashboard/layout/reset", { method: "POST" }),
+};
