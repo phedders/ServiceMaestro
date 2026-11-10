@@ -16,6 +16,7 @@ A self-hosted server application for running church service visuals: manage song
 > - [Bible source formats](docs/07-bible-sources.md)
 > - [Dashboard layout editor](docs/08-dashboard-layout-editor.md)
 > - [Phase 1 status](docs/09-phase-1-status.md) — what is implemented and what is next.
+> - [ChurchSuite planning sync](docs/10-churchsuite-sync.md) — API analysis, credential findings and song-matching design.
 
 ## Quick start
 
@@ -65,6 +66,7 @@ The output token defaults to `dev-output`; set `WLM_OUTPUT_TOKEN` in production.
 - **Publish & apply** — publish a revision, then **apply after the current item** (safe during a service) or **apply now**; queued updates are shown to operators and persisted across restarts.
 - **Live control** — next/previous, page/item navigation, blank, transpose, max-lines, footer and quick text.
 - **Dashboard** — drag/resize widgets (pages, preview, set list, transport, quick text) with **react-grid-layout**; personal layout saved to SQLite. Shared/published layouts and Yjs co-editing are next.
+- **ChurchSuite planning sync** — designed: pull upcoming published services, match songs in a review dialog, and create a draft set list; pending working API credentials (see [10](docs/10-churchsuite-sync.md)).
 - **Displays** — vanilla HTML/CSS/JS, no CDN, snapshot-on-connect, transparent main output, full-screen and stage-with-chords variants.
 - **Persistence** — SQLite (WAL) for users, sessions, songs, set lists, session snapshots and dashboard layouts; the live session survives a restart.
 - **Container** — multi-stage Dockerfile, non-root UID 10001, health check, Compose file; image builds and runs.

@@ -77,3 +77,4 @@ Manual smoke test used: login → create song → create set list → add song/t
 2. Dynamic text themes.
 3. Dashboard palette/publish, then Yjs co-editing.
 4. SongSelect provider and CCLI reporting.
+5. ChurchSuite planning sync (pending working API credentials) — see [10-churchsuite-sync.md](10-churchsuite-sync.md).
