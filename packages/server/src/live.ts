@@ -433,8 +433,17 @@ class LiveService {
         break;
       }
       case "goto": {
-        if (typeof command.itemIndex === "number") this.setItem(command.itemIndex);
-        if (typeof command.pageIndex === "number") this.setPage(command.pageIndex);
+        let selected = false;
+        if (typeof command.itemIndex === "number") {
+          this.setItem(command.itemIndex);
+          selected = true;
+        }
+        if (typeof command.pageIndex === "number") {
+          this.setPage(command.pageIndex);
+          selected = true;
+        }
+        // Selecting a page/item is an explicit "show" action.
+        if (selected) state.blank = false;
         break;
       }
       case "blank":

@@ -118,6 +118,8 @@ Rich text uses a block container (`.text-html`), not the flex line container use
 
 Starting a live session now sets `blank: true`. Outputs remain black/transparent until the operator presses **Show** or advances; the preview shows the **BLANK** state.
 
+**Selecting a page or item** (from the Pages/Items lists or the dashboard) counts as an explicit show: `blank` is cleared in the same command and the display fades the selected page in directly. The **Show** button remains for revealing the current page without changing it.
+
 ## 5. Preview pane size
 
 The Live page preview is no longer full-width: it sits beside the Transport panel at roughly the same height, with a maximum height of 280 px. The default dashboard layout gives Preview the same grid height as Transport (4 rows); existing saved layouts are unchanged, and **Reset** restores the new default.
