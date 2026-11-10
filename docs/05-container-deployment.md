@@ -42,7 +42,7 @@ RUN npm run build && npm prune --omit=dev
 
 FROM node:24-bookworm-slim
 RUN apt-get update \
- && apt-get install -y --no-install-recommends tini ca-certificates tzdata \
+ && apt-get install -y --no-install-recommends tini ca-certificates tzdata git git-lfs openssh-client \
  && rm -rf /var/lib/apt/lists/* \
  && groupadd -g 10001 wlm && useradd -u 10001 -g wlm -M -s /usr/sbin/nologin wlm
 WORKDIR /app
@@ -64,7 +64,7 @@ Native modules (`better-sqlite3`, `sharp`) are installed in the builder; the run
 
 | Container path | Mode | Contents |
 | --- | --- | --- |
-| `/data` | **rw** | `app.sqlite`, `assets/` (ChordPro/PDF/tabs), `cache/` (thumbs, Bible cache), `imports/`, `exports/`, `logs/` (optional), `backups/` (optional) |
+| `/data` | **rw** | `app.sqlite`, `assets/` (ChordPro/PDF/tabs), `repos/` (Git clones), `cache/` (thumbs, Bible cache), `imports/`, `exports/`, `logs/` (optional), `backups/` (optional) |
 | `/library/songs` | ro (default) | OpenLP, ChordPro and text source directories |
 | `/library/bible` | ro | One SQLite file per translation |
 | `/library/images` | rw if uploads enabled, else ro | Slides, notices, logos, backgrounds |
@@ -105,7 +105,7 @@ Environment-first, with optional file values and `_FILE` secret support:
 | `WLM_LOG_LEVEL` | `info` | `debug`/`info`/`warn`/`error` |
 | `WLM_TRUST_PROXY` | `false` | Honour `X-Forwarded-*` behind TLS proxy |
 
-Secrets are never printed; `_FILE` variants allow Docker/Podman secrets and Incus/LXC files.
+Secrets are never printed; `_FILE` variants allow Docker/Podman secrets and Incus/LXC files. Git repositories use `WLM_GIT_*` remotes (`ssh://` or `https://token@…`), SSH key/known-hosts secrets, and optional Git LFS for Bibles — see [11-git-data-sync.md](11-git-data-sync.md).
 
 ## 5. Docker / Podman
 
@@ -173,7 +173,7 @@ Run a normal Debian container and a systemd unit; the app is the same Node build
 
 ```sh
 incus launch images:debian/12 wlm
-incus exec wlm -- bash -c 'apt-get update && apt-get install -y curl ca-certificates tini tzdata'
+incus exec wlm -- bash -c 'apt-get update && apt-get install -y curl ca-certificates tini tzdata git git-lfs openssh-client'
 
 # Install a pinned Node 24 runtime (official binary tarball avoids distro lag)
 incus exec wlm -- bash -c '

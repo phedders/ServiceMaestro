@@ -1,17 +1,19 @@
 # Git-backed shared data (songs, set lists, Bibles)
 
-Requirement: **song data and set lists live in folders that are checked into Git**, and the configuration specifies separate remote Git repositories for **songs**, **set lists** and **Bibles**. Two independent instances can then use the same data: for example, a personal instance creates a set list, pushes it, and the church live system pulls it.
+Requirement: **song data and set lists live in folders that are checked into Git**, and the configuration specifies remote Git repositories for **songs**, **set lists** and (optionally) **Bibles**. Two independent instances can then use the same data: for example, a personal instance creates a set list, pushes it, and the church live system pulls it.
+
+Repositories may be accessed over **SSH or HTTP(S) using a standard Git URI**; the URI itself selects the transport. The Bible repository is optional.
 
 This document defines the storage model, sync behaviour, configuration and risks. It is a design; it is not implemented yet.
 
 ## 1. Principles
 
 1. **Files are the source of truth.** Songs, set lists and Bibles are stored as files in their repositories. SQLite becomes an index/cache plus local live-session state, not the authoritative library.
-2. **Separate repositories per data type.** Songs, set lists and Bibles have independent remotes, branches and permissions. Bibles are normally read-only.
+2. **Separate repositories per data type.** Songs, set lists and Bibles have independent remotes, branches and permissions. Bibles are **optional** and normally read-only; when enabled they use **Git LFS**.
 3. **Stable IDs.** Every song, set list, item and revision uses a UUID that survives export, import, Git pulls and instance changes. Titles are not identifiers.
 4. **Pull before read/write; push after change.** Writes are committed locally and pushed when possible. Remote changes are pulled periodically; offline instances keep local commits and retry.
 5. **Never force-push.** Conflicts are surfaced, not discarded. Live sessions are pinned to a specific revision/commit and are unaffected by later pulls.
-6. **No secrets in repositories.** Git credentials come from environment/Docker/Podman/Incus secrets. Remotes are configured without embedded tokens.
+6. **No secrets in repository content.** Credentials may be supplied in a standard remote URI or via SSH keys; they live only in the mounted configuration/secrets, are never committed, and are redacted from logs and API responses.
 
 ## 2. Repository layouts
 
@@ -122,7 +124,7 @@ bible/
 
 ## 3. Configuration
 
-Prefer a mounted config file (for example `/config/config.yaml`) with environment overrides for secrets:
+Prefer a mounted config file (for example `/config/config.yaml`) with environment overrides. Remotes use **standard Git URIs**; the transport is selected by the URI scheme.
 
 ```yaml
 git:
@@ -140,6 +142,8 @@ git:
 repositories:
   songs:
     remote: git@github.com:oakhall/songs.git
+    # or: ssh://git@github.com:22/oakhall/songs.git
+    # or: https://x-access-token:<token>@github.com/oakhall/songs.git
     branch: main
     path: /data/repos/songs
     mode: read-write
@@ -149,11 +153,28 @@ repositories:
     path: /data/repos/setlists
     mode: read-write
   bibles:
+    optional: true             # app runs normally without this repo
     remote: git@github.com:oakhall/bibles.git
     branch: main
     path: /data/repos/bibles
     mode: read-only
+    lfs: required              # required | auto | off
 ```
+
+### Remote URI forms
+
+| Transport | Example | Notes |
+| --- | --- | --- |
+| SSH (scp-like) | `git@github.com:oakhall/songs.git` | Uses `sshKeyFile` + `knownHostsFile` |
+| SSH URL | `ssh://git@git.example.org:2222/oakhall/songs.git` | Port supported |
+| HTTPS token | `https://x-access-token:<token>@github.com/oakhall/songs.git` | Token is part of the standard URI |
+| HTTPS user/token | `https://user:<token>@git.example.org/oakhall/songs.git` | For servers that require a username |
+| HTTP (LAN only) | `http://git.internal/oakhall/songs.git` | Allowed but not recommended outside a trusted network |
+
+- No separate “auth mode” switch is needed: if the URI is `ssh:`/scp-like, SSH keys are used; if it is `https:`/`http:`, the URI userinfo/token is used.
+- Tokens/keys are **never** shown in the UI or logs; the remote is redacted in `/api/git/status`.
+- If a token is embedded in the URI, protect the config file (`chmod 600`, mounted secret). Prefer a Docker/Podman/Incus secret for the whole config file or for `WLM_GIT_<REPO>_REMOTE_FILE`.
+- Git stores the remote URL in `.git/config`; the repository directory is under the protected `/data` volume and must not be exported or committed.
 
 Environment equivalents:
 
@@ -162,17 +183,20 @@ WLM_GIT_ENABLED=true
 WLM_GIT_SONGS_REMOTE=...
 WLM_GIT_SONGS_BRANCH=main
 WLM_GIT_SETLISTS_REMOTE=...
-WLM_GIT_BIBLES_REMOTE=...
+WLM_GIT_SETLISTS_BRANCH=main
+WLM_GIT_BIBLES_REMOTE=          # optional; leave unset to disable
+WLM_GIT_BIBLES_OPTIONAL=true
+WLM_GIT_BIBLES_LFS=required
 WLM_GIT_SSH_KEY_FILE=/run/secrets/git_ssh_key
 WLM_GIT_KNOWN_HOSTS_FILE=/run/secrets/git_known_hosts
 ```
 
 Rules:
 
-- Remote URLs must **not** contain credentials.
 - SSH deploy keys are per-repository and least-privilege: read-only for Bibles, read-write for songs/setlists.
-- HTTPS tokens are supported through a credential helper or `WLM_GIT_HTTPS_TOKEN_FILE`.
+- HTTPS tokens should be scoped to the repository and read-only where possible.
 - The app commits with a configured author identity; signed commits are optional.
+- A missing **optional** repository is not fatal: the app logs a warning and continues with local/other data.
 
 ## 4. Sync behaviour
 
@@ -276,11 +300,16 @@ repo_state (
 - **Bibles:** read-only; if local edits exist, refuse to pull/rebase and warn.
 - No force pushes, no automatic deletion of remote history.
 
-## 8. Large files and Git LFS
+## 8. Large files, optional Bibles and Git LFS
 
-- PDFs/tabs are typically 50–200 KB; fine in normal Git.
-- Bible SQLite files are 10–25 MB each and should use **Git LFS** or a separate repository with LFS to avoid repository bloat.
-- Enable `.gitattributes`:
+- PDFs/tabs are typically 50–200 KB; fine in normal Git. Song assets can optionally use LFS if they grow.
+- The **Bibles repository is optional**. Without it, the app uses a local `WLM_BIBLE_DIR` mount. When configured, prefer Git LFS because SQLite files are 10–25 MB each and Git history grows quickly.
+- Repository setting: `lfs: required | auto | off` (default `required` for Bibles).
+  - `required`: if `git-lfs` is unavailable or `git lfs pull` fails, the Bibles repo is marked unhealthy and a clear warning is shown; the app keeps using the last cached files if present.
+  - `auto`: use LFS when `.gitattributes` or the remote indicates it, otherwise plain Git.
+  - `off`: never invoke LFS.
+- On clone/pull: run `git lfs install --local` (once) and `git lfs pull` when LFS is required/auto. Check `git lfs version` at startup; expose the result in `/api/git/status`.
+- Enable `.gitattributes` in the Bibles (and optionally songs assets) repository:
 
 ```
 *.sqlite filter=lfs diff=lfs merge=lfs -text
@@ -288,11 +317,11 @@ repo_state (
 assets/**/*.pdf filter=lfs diff=lfs merge=lfs -text
 ```
 
-- If LFS is unavailable, accept the size or keep Bibles out of Git and use the existing read-only directory mount; the configuration allows that.
+- If LFS is unavailable and Bibles are required, accept the size or keep Bibles out of Git and use the existing read-only directory mount; the configuration allows `bibles.optional: true` or omitting the remote.
 
 ## 9. Container and security
 
-- Add `git` and `openssh-client` to the runtime image (small compared to the app).
+- Add `git`, `git-lfs` and `openssh-client` to the runtime image (small compared to the app).
 - Mount the SSH key and known-hosts file as secrets, e.g.:
 
 ```yaml
@@ -308,10 +337,25 @@ services:
       WLM_GIT_KNOWN_HOSTS_FILE: /config/known_hosts
 ```
 
+- For HTTPS-token remotes, pass the full URI through the config secret rather than putting it in the image or Compose file:
+
+```yaml
+secrets:
+  git_config:
+    file: ./secrets/wlm-config.yaml
+services:
+  web-lyric-master:
+    secrets:
+      - git_config
+    environment:
+      WLM_CONFIG_FILE: /run/secrets/wlm-config.yaml
+```
+
 - Run Git as UID 10001; the repositories live under the writable `/data` volume.
-- Never print tokens/keys; redact remote URLs in logs.
+- Never print tokens/keys; redact remote URLs (userinfo) in logs and API responses.
 - Commit author identity is configurable; no personal secrets in commits.
 - Set list/song content may be copyrighted; repositories must remain private, with access limited to the church/team.
+- The Bibles repository can be omitted entirely; if configured with LFS, startup verifies `git-lfs` before declaring sync healthy.
 
 ## 10. API and CLI
 
@@ -340,13 +384,20 @@ wlm git push setlists
 3. **Bibles and LFS** — read-only Bibles repo (LFS optional), catalog reload after pull.
 4. **Operational polish** — retry queue, conflicts UI, manual sync, backups, docs.
 
-## 12. Open decisions
+## 12. Decisions and open questions
 
-1. Are the three repositories separate as stated, or one repository with `songs/`, `setlists/`, `bibles/` folders? (Separate gives independent permissions and LFS, at the cost of three tokens/keys.)
-2. Remote URLs, branches, SSH vs HTTPS and who owns the deploy keys.
-3. Git LFS for Bibles/PDFs, or plain Git with size limits?
-4. Should every save auto-commit/push, or should there be an explicit “Sync now” with background retry?
-5. Conflict policy for set lists: manual resolution, create-copy, or last-write-wins (not recommended)?
-6. Are imported/edited songs allowed to write to the songs repo, or is the songs repo curated and the app read-only?
-7. Where do live sessions, users, dashboard layouts and tokens live? (Recommended: local SQLite, never Git.)
-8. How should two instances prevent duplicate song creation when both import the same external source? (Stable IDs/content hash + pull-before-write.)
+Resolved:
+
+1. **Bibles repository is optional**; when configured it is read-only and uses Git LFS (`lfs: required` by default).
+2. **Access is by standard Git URI** — SSH (scp-like or `ssh://`) or HTTP(S) with userinfo/token. No separate auth-mode setting.
+3. **Songs, set lists and Bibles are separate repositories** so they can have independent permissions, branches and LFS policy.
+4. **Live sessions/users/dashboards/tokens stay local** in SQLite and are never committed.
+
+Outstanding:
+
+1. Actual remote URIs/branches and whether SSH deploy keys or HTTPS tokens will be used for each repo.
+2. Should every save auto-commit/push, or should there be an explicit “Sync now” with background retry?
+3. Conflict policy for set lists: manual resolution, create-copy, or last-write-wins (not recommended)?
+4. Are imported/edited songs allowed to write to the songs repo, or is the songs repo curated and the app read-only?
+5. How should two instances prevent duplicate song creation when both import the same external source? (Stable IDs/content hash + pull-before-write.)
+6. Should song assets also use LFS, or only the optional Bibles repo?

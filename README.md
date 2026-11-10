@@ -70,6 +70,7 @@ The output token defaults to `dev-output`; set `WLM_OUTPUT_TOKEN` in production.
 - **Live control** — next/previous, page/item navigation, blank, transpose, max-lines, footer and quick text.
 - **Dashboard** — drag/resize widgets (pages, preview, set list, transport, quick text) with **react-grid-layout**; personal layout saved to SQLite. Shared/published layouts and Yjs co-editing are next.
 - **ChurchSuite planning sync** — designed: pull upcoming published services, match songs in a review dialog, and create a draft set list; pending working API credentials (see [10](docs/10-churchsuite-sync.md)).
+- **Git-backed shared data** — designed: separate songs/setlists/(optional) Bibles repositories, standard SSH or HTTP(S)+token URIs, Git LFS for Bibles, and multi-instance sharing. See [11](docs/11-git-data-sync.md).
 - **Displays** — vanilla HTML/CSS/JS, no CDN, snapshot-on-connect, transparent main output, full-screen and stage-with-chords variants.
 - **Persistence** — SQLite (WAL) for users, sessions, songs, set lists, session snapshots and dashboard layouts; the live session survives a restart.
 - **Container** — multi-stage Dockerfile, non-root UID 10001, health check, Compose file; image builds and runs.
