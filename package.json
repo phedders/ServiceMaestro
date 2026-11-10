@@ -7,6 +7,7 @@
   ],
   "scripts": {
     "predev": "npm run build -w @wlm/shared",
+    "pretypecheck": "npm run build -w @wlm/shared",
     "dev": "concurrently -k -n server,control -c blue,magenta \"npm run dev -w @wlm/server\" \"npm run dev -w @wlm/control\"",
     "build": "npm run build -w @wlm/shared && npm run build -w @wlm/control && npm run build -w @wlm/server",
     "start": "npm run start -w @wlm/server",

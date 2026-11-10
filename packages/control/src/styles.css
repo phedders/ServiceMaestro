@@ -1019,6 +1019,79 @@ label {
 }
 
 /* ------------------------------------------------------------------ */
+/* Bible                                                               */
+/* ------------------------------------------------------------------ */
+
+.bible-page {
+  display: grid;
+  gap: 16px;
+}
+
+.bible-controls {
+  display: grid;
+  grid-template-columns: 2fr 2fr 0.7fr 0.7fr 0.7fr;
+  gap: 10px;
+}
+
+.bible-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+.checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.checkbox input {
+  width: auto;
+}
+
+.bible-passage {
+  max-height: 58vh;
+  overflow: auto;
+  padding-right: 8px;
+}
+
+.bible-passage p {
+  margin: 0 0 0.85em;
+  line-height: 1.65;
+  color: #dbe6f4;
+}
+
+.bible-passage sup {
+  color: var(--accent);
+  font-size: 0.7em;
+  margin-right: 0.35em;
+  font-weight: 700;
+}
+
+@media (max-width: 1100px) {
+  .bible-controls {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .bible-controls {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .bible-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+/* ------------------------------------------------------------------ */
 /* Dashboard                                                           */
 /* ------------------------------------------------------------------ */
 

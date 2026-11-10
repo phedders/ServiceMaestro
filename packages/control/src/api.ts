@@ -1,4 +1,7 @@
 import type {
+  BibleBook,
+  BiblePassage,
+  BibleTranslationInfo,
   DashboardLayout,
   LiveState,
   PublicUser,
@@ -117,4 +120,22 @@ export const api = {
       body: JSON.stringify(layout),
     }),
   resetLayout: () => request<{ layout: DashboardLayout }>("/api/dashboard/layout/reset", { method: "POST" }),
+
+  bibleTranslations: () => request<{ translations: BibleTranslationInfo[] }>("/api/bible/translations"),
+  bibleBooks: (translation: string) =>
+    request<{ books: BibleBook[] }>(`/api/bible/books?translation=${encodeURIComponent(translation)}`),
+  bibleChapter: (translation: string, book: number, chapter: number) =>
+    request<{ passage: BiblePassage }>(
+      `/api/bible/chapter?translation=${encodeURIComponent(translation)}&book=${book}&chapter=${chapter}`,
+    ),
+  biblePassage: (translation: string, book: number, chapter: number, from?: number, to?: number) => {
+    const params = new URLSearchParams({
+      translation,
+      book: String(book),
+      chapter: String(chapter),
+    });
+    if (from) params.set("from", String(from));
+    if (to) params.set("to", String(to));
+    return request<{ passage: BiblePassage }>(`/api/bible/passage?${params.toString()}`);
+  },
 };

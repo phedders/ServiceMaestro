@@ -22,6 +22,7 @@ WLM_ADMIN_PASSWORD='change-me' npm start
 | Auth | Local users, scrypt hashes, DB-backed sessions, HTTP-only cookie, roles (`admin`, `editor`, `operator`, `musician`, `viewer`) |
 | Songs | Create/edit/list/delete; title, author, key, CCLI, copyright, lyrics with inline `[C]` chords and `[Verse 1]` labels |
 | Library import | Folder scan for OpenLP XML, ChordPro and plain text; preview + warnings; duplicate CCLI/title skip; OpenLP `verseOrder` and ChordPro comment sections honoured; legal footers/bar markers removed |
+| Bible | Schema detection for MyBible `book`/`verse`, BibleDb `books`/`verses` and JSON; sanitised verses; translation/book/chapter/from-to UI; display as quick text |
 | Set lists | Named/dated services; songs and text items; reorder; per-item key, transpose, max lines, notes |
 | Live sessions | Snapshot-on-start; next/prev, page/item goto, blank, transpose, max lines, footer, quick text; persisted across restarts |
 | Outputs | Vanilla HTML/CSS/JS; snapshot-on-connect over Socket.IO; transparent main, full-screen, stage with chords; legacy `/obs-*` aliases |
@@ -40,6 +41,8 @@ GET  /api/live                        POST /api/live/start
 POST /api/live/command                POST /api/live/quick-text
 POST /api/live/stop
 GET/PUT/POST /api/dashboard/layout…
+GET  /api/bible/translations|books|chapter|passage
+POST /api/bible/reload
 ```
 
 Socket.IO: `live:snapshot` events to `control` and `outputs` rooms; commands over REST (socket commands also accepted).
@@ -49,7 +52,7 @@ Socket.IO: `live:snapshot` events to `control` and `outputs` rooms; commands ove
 - **Set list revisions** are represented by the **live session snapshot** rather than a full revision table. Editing a set list cannot affect a running service; publishing/applying revisions is still to come.
 - **One shared output token** (`WLM_OUTPUT_TOKEN`), no per-output tokens or presence yet.
 - **One seeded admin**; user management UI is not built.
-- **No Bible/scores/tabs yet** — the sample files are waiting; importers for OpenLP, ChordPro and plain text are implemented.
+- **No scores/tabs yet** — PDF/tab assets and the musician UI are next; the sample files are waiting.
 - **Dashboard** supports personal layouts only; widget palette, shared publishing and Yjs co-editing are Phase 2/3.
 - **Chord rendering** is inline (chords above the following syllable in the stage view); a proper two-row chord layout is a later refinement.
 - **No CSRF tokens** or per-output auth yet; do not expose the app directly to the public internet.
@@ -59,15 +62,15 @@ Socket.IO: `live:snapshot` events to `control` and `outputs` rooms; commands ove
 ```sh
 npm run typecheck
 npm run build
-npm test          # render/transposition + importer unit tests (10 tests)
+npm test          # render/transposition, importer and Bible adapter tests (12 tests)
 ```
 
-Manual smoke test used: login → create song → create set list → add song/text → start live → display `/display/full` → next/previous/quick text → dashboard drag/save → restart server (state restored) → scan/import 146 sample files (135 imported, 11 duplicates skipped) → Docker build/run.
+Manual smoke test used: login → create song → create set list → add song/text → start live → display `/display/full` → next/previous/quick text → dashboard drag/save → restart server (state restored) → scan/import 146 sample files (135 imported, 11 duplicates skipped) → Bible translation/book/chapter/range → display passage → Docker build/run.
 
 ## Next
 
-1. Bible schema adapters and the passage UI.
-2. Song versions/arrangements + PDF/tab assets and the musician UI.
-3. Set list revisions and apply-to-live.
-4. Dynamic text themes.
-5. Dashboard palette/publish, then Yjs co-editing.
+1. Song versions/arrangements + PDF/tab assets and the musician UI.
+2. Set list revisions and apply-to-live.
+3. Dynamic text themes.
+4. Dashboard palette/publish, then Yjs co-editing.
+5. SongSelect provider and CCLI reporting.

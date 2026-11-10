@@ -8,8 +8,9 @@ import LivePage from "./pages/LivePage";
 import SetlistsPage from "./pages/SetlistsPage";
 import SongsPage from "./pages/SongsPage";
 import DashboardPage from "./pages/DashboardPage";
+import BiblePage from "./pages/BiblePage";
 
-type Page = "live" | "setlists" | "songs" | "dashboard";
+type Page = "live" | "setlists" | "songs" | "bible" | "dashboard";
 
 interface Toast {
   id: number;
@@ -102,6 +103,8 @@ export default function App() {
         return "Set lists";
       case "songs":
         return "Songs";
+      case "bible":
+        return "Bible";
       case "dashboard":
         return "Dashboard";
     }
@@ -142,6 +145,9 @@ export default function App() {
           </button>
           <button className={page === "songs" ? "active" : ""} onClick={() => setPage("songs")}>
             <span className="nav-icon">♫</span> Songs
+          </button>
+          <button className={page === "bible" ? "active" : ""} onClick={() => setPage("bible")}>
+            <span className="nav-icon">✝</span> Bible
           </button>
           <button className={page === "dashboard" ? "active" : ""} onClick={() => setPage("dashboard")}>
             <span className="nav-icon">▦</span> Dashboard
@@ -205,6 +211,7 @@ export default function App() {
           />
         )}
         {page === "songs" && <SongsPage notify={notify} />}
+        {page === "bible" && <BiblePage live={live} onQuickText={quickText} notify={notify} />}
         {page === "dashboard" && (
           <DashboardPage
             live={live}

@@ -58,6 +58,7 @@ The output token defaults to `dev-output`; set `WLM_OUTPUT_TOKEN` in production.
 - **Authentication** — local accounts, scrypt password hashing, HTTP-only sessions. One seeded `admin`; user management is next.
 - **Songs** — create/edit lyrics with inline chords (`A[C]mazing`), section labels (`[Verse 1]`), key, author, CCLI and copyright.
 - **Library import** — scan a folder for OpenLP/OpenLyrics XML, ChordPro and plain-text files; preview titles/formats/warnings, then import. Duplicate CCLI/title entries are skipped. OpenLP `verseOrder` and ChordPro `{comment: …}` sections are honoured; SongSelect legal footers and bar markers are removed.
+- **Bible** — reads the three real schema families found in the samples (MyBible `book`/`verse`, BibleDb `books`/`verses`, and JSON), sanitises ESV markup, and provides a translation/book/chapter/verse-range UI with “Display now”.
 - **Set lists** — named, dated, with songs and text items; reorder; per-item key, transpose, max lines and notes.
 - **Live sessions** — a set list is snapshotted when the session starts, so editing the set list afterwards cannot change the live output.
 - **Live control** — next/previous, page/item navigation, blank, transpose, max-lines, footer and quick text.
@@ -74,6 +75,7 @@ The output token defaults to `dev-output`; set `WLM_OUTPUT_TOKEN` in production.
 | `WLM_HOST` | `0.0.0.0` | Bind address |
 | `WLM_DATA_DIR` | `packages/server/data` | SQLite + runtime data |
 | `WLM_SONGS_DIR` | `samples/` (local) | Source directory scanned for OpenLP/ChordPro/text imports |
+| `WLM_BIBLE_DIR` | `samples/bible/` (local) | SQLite/JSON Bible translations |
 | `WLM_ADMIN_PASSWORD` | `admin` | Password for the seeded admin |
 | `WLM_OUTPUT_TOKEN` | `dev-output` | Token required by display sockets |
 | `WLM_LOG_LEVEL` | `info` | Fastify log level |
@@ -114,7 +116,7 @@ web-lyric-master/
 
 Not yet implemented:
 
-- Bible adapters, PDF scores/tabs and the musician UI.
+- PDF scores/tabs and the musician UI.
 - Song versions/arrangements and the full song editor; the importer currently normalises into the single lyrics field.
 - Set list revision history + apply-to-live (today live isolation is guaranteed by the session snapshot).
 - Dynamic text themes and the full theme editor.

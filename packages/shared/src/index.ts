@@ -140,6 +140,37 @@ export interface SongImportReport {
   songs: Array<{ id: string; title: string; path: string }>;
 }
 
+export interface BibleTranslationInfo {
+  code: string;
+  name: string;
+  schema: "mybible" | "bibledb" | "json";
+  books: number;
+  verses: number;
+  copyright: string | null;
+}
+
+export interface BibleBook {
+  number: number;
+  name: string;
+  chapters: number;
+}
+
+export interface BibleVerse {
+  number: number;
+  text: string;
+}
+
+export interface BiblePassage {
+  translation: string;
+  translationName: string;
+  book: number;
+  bookName: string;
+  chapter: number;
+  from: number;
+  to: number;
+  verses: BibleVerse[];
+}
+
 /* ------------------------------------------------------------------ */
 /* Validation schemas                                                  */
 /* ------------------------------------------------------------------ */

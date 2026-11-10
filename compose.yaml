@@ -5,12 +5,13 @@ services:
     container_name: web-lyric-master
     restart: unless-stopped
     ports:
-      - "8080:8080"
+      - "6111:8080"
     environment:
       WLM_TZ: Europe/London
       WLM_ADMIN_PASSWORD: ${WLM_ADMIN_PASSWORD:-change-me}
       WLM_OUTPUT_TOKEN: ${WLM_OUTPUT_TOKEN:-dev-output}
       WLM_SONGS_DIR: /library/songs
+      WLM_BIBLE_DIR: /library/bible
     volumes:
       - ./data:/data
       - ./library/songs:/library/songs:ro

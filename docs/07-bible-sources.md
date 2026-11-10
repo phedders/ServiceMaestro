@@ -1,5 +1,7 @@
 # Bible source formats (from the sample files)
 
+> Implementation status: adapters for all three schema families below are implemented (`packages/server/src/bible.ts`) with translation/book/chapter/verse-range APIs and a Bible page in the control UI.
+
 Findings from the Bible files dropped into `samples/bible/` on 2026-11-10. Files are treated as read-only source data; the application never writes to them.
 
 ## 1. Files received

@@ -25,3 +25,6 @@ yarn-error.log*
 # Real sample inputs (lyrics/Bible may be copyrighted) — keep the folder README only
 samples/*
 !samples/README.md
+
+# Production bind-mount data (never commit)
+library/
