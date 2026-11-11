@@ -10,6 +10,7 @@ import type {
 } from "@sm/shared";
 import { db } from "./db.js";
 import { getAsset, listAssets, saveAsset } from "./assets.js";
+import { addDefaultVerseTags } from "./lyrics.js";
 
 const FORMAT = "sm.setlist";
 const FORMAT_VERSION = 1;
@@ -456,7 +457,7 @@ export function importSetlistFile(
           item.song.copyright ?? null,
           item.song.ccli ?? null,
           item.song.key ?? null,
-          item.song.lyrics,
+          addDefaultVerseTags(item.song.lyrics),
           item.song.verseOrder ?? null,
           item.song.lyricsMarkdown ? 1 : 0,
           now,

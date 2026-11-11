@@ -13,6 +13,7 @@ import {
 import { getGitSettings } from "./settings.js";
 import { buildSetlistExport, parseSetlistFile, type SetlistManifest } from "./setlist-transfer.js";
 import { reloadBibleCatalog, setBibleDir } from "./bible.js";
+import { addDefaultVerseTags } from "./lyrics.js";
 
 interface RepoRuntime {
   config: GitRepoConfig;
@@ -305,7 +306,7 @@ function importSetlist(manifest: SetlistManifest): void {
             item.song.copyright ?? null,
             item.song.ccli ?? null,
             item.song.key ?? null,
-            item.song.lyrics,
+            addDefaultVerseTags(item.song.lyrics),
             item.song.verseOrder ?? null,
             now,
             now,
@@ -362,7 +363,7 @@ function importSongsFromRepo(runtime: RepoRuntime): number {
           song.copyright ?? null,
           song.ccli ?? null,
           song.key ?? null,
-          song.lyrics,
+          addDefaultVerseTags(song.lyrics),
           song.verseOrder ?? null,
           song.lyricsMarkdown ? 1 : 0,
           song.updatedAt ?? new Date().toISOString(),
@@ -381,7 +382,7 @@ function importSongsFromRepo(runtime: RepoRuntime): number {
           song.copyright ?? null,
           song.ccli ?? null,
           song.key ?? null,
-          song.lyrics,
+          addDefaultVerseTags(song.lyrics),
           song.verseOrder ?? null,
           song.lyricsMarkdown ? 1 : 0,
           song.createdAt ?? new Date().toISOString(),

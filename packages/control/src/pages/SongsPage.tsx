@@ -245,6 +245,7 @@ export default function SongsPage({
         : await api.createSong(payload);
       await load();
       setSelectedId(result.song.id);
+      setForm((current) => ({ ...current, lyrics: result.song.lyrics }));
       notify(selectedId ? "Song saved" : "Song created");
     } catch (error) {
       notify(error instanceof ApiError ? error.message : "Could not save song", "error");

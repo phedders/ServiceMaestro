@@ -10,6 +10,7 @@ import {
 import { db } from "../db.js";
 import { requireAuth, requireRole } from "../auth.js";
 import { saveSongToGit, deleteSongFromGit } from "../git-store.js";
+import { addDefaultVerseTags } from "../lyrics.js";
 
 interface SongRow {
   id: string;
@@ -119,7 +120,7 @@ export async function songRoutes(app: FastifyInstance): Promise<void> {
         parsed.data.copyright ?? null,
         parsed.data.ccli ?? null,
         parsed.data.key ?? null,
-        parsed.data.lyrics,
+        addDefaultVerseTags(parsed.data.lyrics),
         parsed.data.verseOrder ?? null,
         parsed.data.lyricsMarkdown ? 1 : 0,
         now,
@@ -151,7 +152,7 @@ export async function songRoutes(app: FastifyInstance): Promise<void> {
         data.copyright !== undefined ? data.copyright : existing.copyright,
         data.ccli !== undefined ? data.ccli : existing.ccli,
         data.key !== undefined ? data.key : existing.key,
-        data.lyrics ?? existing.lyrics,
+        data.lyrics !== undefined ? addDefaultVerseTags(data.lyrics) : existing.lyrics,
         data.verseOrder !== undefined ? data.verseOrder : existing.verse_order,
         data.lyricsMarkdown !== undefined ? (data.lyricsMarkdown ? 1 : 0) : existing.lyrics_markdown,
         new Date().toISOString(),

@@ -94,6 +94,16 @@ test("imports plain text with a title line", () => {
   assert.match(song.lyrics, /\n\n/);
 });
 
+test("adds sequential verse tags when imported lyrics have no tags", () => {
+  const song = parseSongFile(
+    "untagged.txt",
+    `Untagged Song\n\nFirst verse line one\nFirst verse line two\n\nSecond verse line one\nSecond verse line two`,
+  );
+  assert.equal(song.format, "text");
+  assert.match(song.lyrics, /^\[V1\]\nFirst verse line one/);
+  assert.match(song.lyrics, /\[V2\]\nSecond verse line one/);
+});
+
 test("recognises bare verse headings in plain text imports", () => {
   const song = parseSongFile(
     "bare.txt",

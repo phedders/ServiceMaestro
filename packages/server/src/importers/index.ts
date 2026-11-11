@@ -1,3 +1,4 @@
+import { addDefaultVerseTags } from "../lyrics.js";
 import { bareSectionLabel } from "../section-labels.js";
 
 export type ImportFormat = "openlp" | "chordpro" | "text";
@@ -469,7 +470,11 @@ export function detectFormat(filename: string, content: string): ImportFormat {
 
 export function parseSongFile(filename: string, content: string): ImportedSong {
   const format = detectFormat(filename, content);
-  if (format === "openlp") return parseOpenLp(filename, content);
-  if (format === "chordpro") return parseChordPro(filename, content);
-  return parsePlainText(filename, content);
+  const song =
+    format === "openlp"
+      ? parseOpenLp(filename, content)
+      : format === "chordpro"
+        ? parseChordPro(filename, content)
+        : parsePlainText(filename, content);
+  return { ...song, lyrics: addDefaultVerseTags(song.lyrics) };
 }
