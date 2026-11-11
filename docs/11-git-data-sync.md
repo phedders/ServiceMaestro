@@ -37,6 +37,7 @@ manifest.json?                 # optional repository metadata/version
   "schemaVersion": 2,
   "id": "a8e0…",
   "title": "Amazing Grace",
+  "alternateTitles": "Amazing Grace (My Chains Are Gone), Newton",
   "author": "John Newton",
   "copyright": "Public Domain",
   "ccli": "22025",

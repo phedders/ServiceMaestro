@@ -4,6 +4,7 @@ import { api, ApiError } from "../api";
 
 const EMPTY = {
   title: "",
+  alternateTitles: "",
   author: "",
   copyright: "",
   ccli: "",
@@ -60,7 +61,9 @@ export default function SongsPage({
     const q = search.trim().toLowerCase();
     if (!q) return songs;
     return songs.filter((song) =>
-      [song.title, song.author, song.lyrics].filter(Boolean).some((value) => value!.toLowerCase().includes(q)),
+      [song.title, song.alternateTitles, song.author, song.lyrics]
+        .filter(Boolean)
+        .some((value) => value!.toLowerCase().includes(q)),
     );
   }, [songs, search]);
 
@@ -99,6 +102,7 @@ export default function SongsPage({
     setNewOrderText("");
     setForm({
       title: song.title,
+      alternateTitles: song.alternateTitles ?? "",
       author: song.author ?? "",
       copyright: song.copyright ?? "",
       ccli: song.ccli ?? "",
@@ -122,6 +126,7 @@ export default function SongsPage({
     try {
       const payload = {
         title: form.title.trim(),
+        alternateTitles: form.alternateTitles.trim() || null,
         author: form.author.trim() || null,
         copyright: form.copyright.trim() || null,
         ccli: form.ccli.trim() || null,
@@ -227,7 +232,7 @@ export default function SongsPage({
           className="search"
           value={search}
           onChange={(event) => setSearch(event.target.value)}
-          placeholder="Search title, author or lyrics…"
+          placeholder="Search title, alternative titles, author or lyrics…"
         />
         <div className="song-list">
           {filtered.map((song) => (
@@ -266,6 +271,14 @@ export default function SongsPage({
           <label className="grow">
             Title
             <input value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} />
+          </label>
+          <label className="grow">
+            Alternative titles
+            <input
+              value={form.alternateTitles}
+              onChange={(event) => setForm({ ...form, alternateTitles: event.target.value })}
+              placeholder="Other names, separated by commas or new lines"
+            />
           </label>
           <label>
             Key

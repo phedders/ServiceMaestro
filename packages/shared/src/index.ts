@@ -22,6 +22,7 @@ export interface SongVerseOrder {
 export interface Song {
   id: string;
   title: string;
+  alternateTitles: string | null;
   author: string | null;
   copyright: string | null;
   ccli: string | null;
@@ -284,6 +285,7 @@ export const loginSchema = z.object({
 
 export const songInputSchema = z.object({
   title: z.string().trim().min(1).max(300),
+  alternateTitles: z.string().trim().max(2000).optional().nullable(),
   author: z.string().trim().max(300).optional().nullable(),
   copyright: z.string().trim().max(500).optional().nullable(),
   ccli: z.string().trim().max(50).optional().nullable(),

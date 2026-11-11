@@ -17,6 +17,7 @@ const MAX_BUNDLE = 200 * 1024 * 1024;
 
 const songSchema = z.object({
   title: z.string(),
+  alternateTitles: z.string().nullable().optional(),
   author: z.string().nullable().optional(),
   copyright: z.string().nullable().optional(),
   ccli: z.string().nullable().optional(),
@@ -124,6 +125,7 @@ export function parseSetlistFile(buffer: Buffer, filename: string): ParsedSetlis
 function songRow(id: string): {
   id: string;
   title: string;
+  alternate_titles: string | null;
   author: string | null;
   copyright: string | null;
   ccli: string | null;
@@ -134,12 +136,13 @@ function songRow(id: string): {
 } | undefined {
   return db
     .prepare(
-      "SELECT id, title, author, copyright, ccli, key, lyrics, verse_order, lyrics_markdown FROM songs WHERE id = ?",
+      "SELECT id, title, alternate_titles, author, copyright, ccli, key, lyrics, verse_order, lyrics_markdown FROM songs WHERE id = ?",
     )
     .get(id) as
     | {
         id: string;
         title: string;
+        alternate_titles: string | null;
         author: string | null;
         copyright: string | null;
         ccli: string | null;
@@ -239,6 +242,7 @@ export function buildSetlistExport(
         song: song
           ? {
               title: song.title,
+              alternateTitles: song.alternate_titles,
               author: song.author,
               copyright: song.copyright,
               ccli: song.ccli,
@@ -419,11 +423,12 @@ export function importSetlistFile(
         songId = randomUUID();
         db.prepare(
           `INSERT INTO songs
-           (id, title, author, copyright, ccli, key, lyrics, verse_order, lyrics_markdown, source_format, source_path, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'import', NULL, ?, ?)`,
+           (id, title, alternate_titles, author, copyright, ccli, key, lyrics, verse_order, lyrics_markdown, source_format, source_path, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'import', NULL, ?, ?)`,
         ).run(
           songId,
           item.song.title,
+          item.song.alternateTitles ?? null,
           item.song.author ?? null,
           item.song.copyright ?? null,
           item.song.ccli ?? null,

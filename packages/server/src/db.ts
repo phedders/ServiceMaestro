@@ -164,6 +164,7 @@ function ensureColumn(table: string, column: string, definition: string): void {
 ensureColumn("songs", "source_format", "TEXT");
 ensureColumn("songs", "source_path", "TEXT");
 ensureColumn("songs", "verse_order", "TEXT");
+ensureColumn("songs", "alternate_titles", "TEXT");
 ensureColumn("songs", "lyrics_markdown", "INTEGER NOT NULL DEFAULT 0");
 ensureColumn("setlist_items", "verse_order", "TEXT");
 ensureColumn("setlist_items", "text_format", "TEXT");

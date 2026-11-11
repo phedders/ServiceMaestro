@@ -33,6 +33,7 @@ const songFileSchema = z.object({
   schemaVersion: z.number().optional(),
   id: z.string(),
   title: z.string(),
+  alternateTitles: z.string().nullable().optional(),
   author: z.string().nullable().optional(),
   copyright: z.string().nullable().optional(),
   ccli: z.string().nullable().optional(),
@@ -163,6 +164,7 @@ function songJson(id: string): string | null {
     | {
         id: string;
         title: string;
+        alternate_titles: string | null;
         author: string | null;
         copyright: string | null;
         ccli: string | null;
@@ -185,6 +187,7 @@ function songJson(id: string): string | null {
       schemaVersion: 2,
       id: row.id,
       title: row.title,
+      alternateTitles: row.alternate_titles,
       author: row.author,
       copyright: row.copyright,
       ccli: row.ccli,
@@ -346,10 +349,11 @@ function importSongsFromRepo(runtime: RepoRuntime): number {
       const existing = db.prepare("SELECT id FROM songs WHERE id = ?").get(song.id);
       if (existing) {
         db.prepare(
-          `UPDATE songs SET title = ?, author = ?, copyright = ?, ccli = ?, key = ?, lyrics = ?,
+          `UPDATE songs SET title = ?, alternate_titles = ?, author = ?, copyright = ?, ccli = ?, key = ?, lyrics = ?,
              verse_order = ?, lyrics_markdown = ?, updated_at = ? WHERE id = ?`,
         ).run(
           song.title,
+          song.alternateTitles ?? null,
           song.author ?? null,
           song.copyright ?? null,
           song.ccli ?? null,
@@ -363,11 +367,12 @@ function importSongsFromRepo(runtime: RepoRuntime): number {
       } else {
         db.prepare(
           `INSERT INTO songs
-           (id, title, author, copyright, ccli, key, lyrics, verse_order, lyrics_markdown, source_format, source_path, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'git', NULL, ?, ?)`,
+           (id, title, alternate_titles, author, copyright, ccli, key, lyrics, verse_order, lyrics_markdown, source_format, source_path, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'git', NULL, ?, ?)`,
         ).run(
           song.id,
           song.title,
+          song.alternateTitles ?? null,
           song.author ?? null,
           song.copyright ?? null,
           song.ccli ?? null,

@@ -65,6 +65,16 @@ function initialTextState(item: SetlistItem): { format: TextFormat; content: str
   };
 }
 
+function songFirstLines(song: Song): string {
+  return song.lyrics
+    .replace(/\r/g, "")
+    .split("\n")
+    .map((line) => line.replace(/\[[^\]]+\]/g, " ").replace(/\s+/g, " ").trim())
+    .filter(Boolean)
+    .slice(0, 4)
+    .join("\n");
+}
+
 function ItemRow({
   item,
   song,
@@ -418,6 +428,13 @@ export default function SetlistsPage({
   const [notes, setNotes] = useState("");
 
   const [songToAdd, setSongToAdd] = useState("");
+  const [songSearch, setSongSearch] = useState("");
+  const [songSearchFields, setSongSearchFields] = useState({
+    title: true,
+    firstLines: true,
+    alternateTitles: true,
+    body: false,
+  });
   const [textTitle, setTextTitle] = useState("");
   const [textContent, setTextContent] = useState("");
   const [textFormat, setTextFormat] = useState<TextFormat>("markdown");
@@ -636,6 +653,17 @@ export default function SetlistsPage({
       setBusy(false);
     }
   }
+
+  const songQuery = songSearch.trim().toLowerCase();
+  const filteredSongs = songs.filter((song) => {
+    if (!songQuery) return true;
+    const fields: string[] = [];
+    if (songSearchFields.title) fields.push(song.title);
+    if (songSearchFields.alternateTitles) fields.push(song.alternateTitles ?? "");
+    if (songSearchFields.firstLines) fields.push(songFirstLines(song));
+    if (songSearchFields.body) fields.push(song.lyrics);
+    return fields.some((value) => value.toLowerCase().includes(songQuery));
+  });
 
   if (loading) return <div className="panel">Loading set lists…</div>;
 
@@ -878,15 +906,50 @@ export default function SetlistsPage({
           <div className="add-grid">
             <div className="add-card">
               <h3>Add song</h3>
+              <input
+                className="search"
+                value={songSearch}
+                onChange={(event) => setSongSearch(event.target.value)}
+                placeholder="Search songs…"
+              />
+              <div className="song-search-fields">
+                {(
+                  [
+                    ["title", "Titles"],
+                    ["firstLines", "First lines"],
+                    ["alternateTitles", "Alternative titles"],
+                    ["body", "Body / lyrics"],
+                  ] as const
+                ).map(([key, label]) => (
+                  <label key={key} className="checkbox">
+                    <input
+                      type="checkbox"
+                      checked={songSearchFields[key]}
+                      onChange={(event) =>
+                        setSongSearchFields((current) => ({ ...current, [key]: event.target.checked }))
+                      }
+                    />
+                    {label}
+                  </label>
+                ))}
+              </div>
+              <span className="hint">
+                {songQuery
+                  ? `${filteredSongs.length} match${filteredSongs.length === 1 ? "" : "es"}`
+                  : `${songs.length} songs`}
+              </span>
               <select value={songToAdd} onChange={(event) => setSongToAdd(event.target.value)}>
                 <option value="">Choose a song…</option>
-                {songs.map((song) => (
+                {filteredSongs.map((song) => (
                   <option key={song.id} value={song.id}>
                     {song.title}
                     {song.author ? ` — ${song.author}` : ""}
                   </option>
                 ))}
               </select>
+              {songQuery && !filteredSongs.length && (
+                <span className="hint">No songs match the selected search fields.</span>
+              )}
               <button className="button" onClick={addSong} disabled={!songToAdd}>
                 Add to set list
               </button>

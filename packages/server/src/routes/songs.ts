@@ -14,6 +14,7 @@ import { saveSongToGit, deleteSongFromGit } from "../git-store.js";
 interface SongRow {
   id: string;
   title: string;
+  alternate_titles: string | null;
   author: string | null;
   copyright: string | null;
   ccli: string | null;
@@ -60,6 +61,7 @@ function mapSong(row: SongRow): Song {
   return {
     id: row.id,
     title: row.title,
+    alternateTitles: row.alternate_titles,
     author: row.author,
     copyright: row.copyright,
     ccli: row.ccli,
@@ -82,10 +84,10 @@ export async function songRoutes(app: FastifyInstance): Promise<void> {
       ? (db
           .prepare(
             `SELECT * FROM songs
-             WHERE title LIKE ? OR author LIKE ? OR lyrics LIKE ?
+             WHERE title LIKE ? OR alternate_titles LIKE ? OR author LIKE ? OR lyrics LIKE ?
              ORDER BY title COLLATE NOCASE ASC LIMIT 500`,
           )
-          .all(`%${query}%`, `%${query}%`, `%${query}%`) as SongRow[])
+          .all(`%${query}%`, `%${query}%`, `%${query}%`, `%${query}%`) as SongRow[])
       : (db.prepare("SELECT * FROM songs ORDER BY title COLLATE NOCASE ASC LIMIT 500").all() as SongRow[]);
     return { songs: rows.map(mapSong) };
   });
@@ -107,11 +109,12 @@ export async function songRoutes(app: FastifyInstance): Promise<void> {
       const id = randomUUID();
       const now = new Date().toISOString();
       db.prepare(
-        `INSERT INTO songs (id, title, author, copyright, ccli, key, lyrics, verse_order, lyrics_markdown, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO songs (id, title, alternate_titles, author, copyright, ccli, key, lyrics, verse_order, lyrics_markdown, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       ).run(
         id,
         parsed.data.title,
+        parsed.data.alternateTitles ?? null,
         parsed.data.author ?? null,
         parsed.data.copyright ?? null,
         parsed.data.ccli ?? null,
@@ -139,10 +142,11 @@ export async function songRoutes(app: FastifyInstance): Promise<void> {
       if (!existing) return reply.code(404).send({ error: "Song not found" });
       const data = parsed.data;
       db.prepare(
-        `UPDATE songs SET title = ?, author = ?, copyright = ?, ccli = ?, key = ?, lyrics = ?, verse_order = ?,
+        `UPDATE songs SET title = ?, alternate_titles = ?, author = ?, copyright = ?, ccli = ?, key = ?, lyrics = ?, verse_order = ?,
            lyrics_markdown = ?, updated_at = ? WHERE id = ?`,
       ).run(
         data.title ?? existing.title,
+        data.alternateTitles !== undefined ? data.alternateTitles : existing.alternate_titles,
         data.author !== undefined ? data.author : existing.author,
         data.copyright !== undefined ? data.copyright : existing.copyright,
         data.ccli !== undefined ? data.ccli : existing.ccli,

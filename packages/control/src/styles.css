@@ -1206,6 +1206,21 @@ label {
   gap: 10px;
 }
 
+.song-search-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+}
+
+.song-search-fields .checkbox {
+  font-size: 0.72rem;
+  gap: 5px;
+}
+
+.song-search-fields .checkbox input {
+  width: auto;
+}
+
 /* ------------------------------------------------------------------ */
 /* Config, fonts and song metadata                                     */
 /* ------------------------------------------------------------------ */
