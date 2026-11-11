@@ -57,15 +57,16 @@
         : page
           ? page.html
           : "";
+    const isImage = state.mode === "image";
     const replacements = {
       content: livePages,
       footer: escapeHtml(state.footer || ""),
-      title: escapeHtml(state.title || ""),
-      section: escapeHtml(page?.section || ""),
+      title: isImage ? "" : escapeHtml(state.title || ""),
+      section: isImage ? "" : escapeHtml(page?.section || ""),
       page: String(pageNumber),
       pageCount: String(state.pageCount || 0),
       role: target,
-      meta: page ? ` · ${pageNumber} / ${state.pageCount}` : "",
+      meta: page && !isImage ? ` · ${pageNumber} / ${state.pageCount}` : "",
     };
     return template.html.replace(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g, (_match, key) =>
       Object.prototype.hasOwnProperty.call(replacements, key) ? replacements[key] : "",

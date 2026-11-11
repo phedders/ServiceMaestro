@@ -69,8 +69,7 @@ export async function buildApp(): Promise<{ app: FastifyInstance; io: Server }> 
     root: DISPLAY_DIR,
     prefix: "/display-assets/",
     decorateReply: false,
-    cacheControl: true,
-    maxAge: "5m",
+    cacheControl: false,
   });
 
   await app.register(fastifyStatic, {

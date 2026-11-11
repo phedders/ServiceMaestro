@@ -226,6 +226,10 @@ body.idle .sm-template {
   white-space: pre-wrap;
 }
 
+.sm-meta:empty {
+  display: none;
+}
+
 .sm-page-upcoming {
   margin-top: 2.4vh;
   padding-top: 1.8vh;
