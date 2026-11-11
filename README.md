@@ -79,6 +79,7 @@ Open <http://localhost:8080/musicians> to see the read-only musician view. It de
 - **Settings page** — import Google Fonts by family name or CSS URL; files are cached in `/data/fonts` and served locally. ChurchSuite credential status and connection testing live here too. Configurable keyboard shortcuts cover hide/show, page navigation and set-list item navigation, and a global setting chooses whether page navigation stops at item boundaries or continues into the previous/next item.
 - **Export/import** — download a reference JSON or self-contained ZIP bundle (songs, text, PDF/tab assets) and import it as a new draft with a preview; matching uses CCLI/title and never affects a live service.
 - **Live control** — next/previous, page show, item queue, append an item’s pages to the current live queue with its **+** button, blank, transpose, max-lines, footer and quick text.
+- **Help page** — built-in operator guide with service-day quick start, publish/apply guidance, item and image tips, display/OBS URLs, current keyboard shortcuts and troubleshooting.
 - **Layout** — collapse the left sidebar or move navigation into a top bar; smaller screens automatically use the top-bar layout.
 - **Song word joins** — SongSelect/SongPro split words such as `can - not` or `sat - is - fied` display joined on lower-third/centered two-thirds/stage and keep the split form in the chords view.
 - **Dashboard** — the configurable widget dashboard page is currently hidden from the navigation; its widgets changed live output and need a safer design before it returns.

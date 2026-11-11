@@ -36,6 +36,7 @@ SM_ADMIN_PASSWORD='change-me' npm start
 | Rich text | Format dropdown (Markdown default, plain, HTML, RST); legacy headers extracted into metadata; per-item left/centre alignment; inline page markers or multiple page boxes; sanitised render, page breaks |
 | Song presentation | Optional inline Markdown styling ignored on stage/chords; SongSelect/SongPro `-` split-word joins on presentation views |
 | Outputs | Vanilla HTML/CSS/JS; snapshot-on-connect over Socket.IO; transparent main, full-screen, stage with chords; legacy `/obs-*` aliases |
+| Help | Built-in operator guide covering quick start, live control, publishing, content types, OBS output URLs, current shortcuts and troubleshooting |
 | Layout | Collapsible sidebar, optional top-bar navigation, automatic top-bar layout on small screens |
 | Dashboard | Page temporarily hidden from navigation — its widgets changed live output and need a safer design. Layout service remains for later work. |
 | Rendering | Server-side page splitting by lines/words with smart 1080p estimates, chord transposition (slash chords), HTML escaping, section labels |

@@ -10,6 +10,7 @@ import SongsPage from "./pages/SongsPage";
 import BiblePage from "./pages/BiblePage";
 import MusiciansPage from "./pages/MusiciansPage";
 import SettingsPage from "./pages/SettingsPage";
+import HelpPage from "./pages/HelpPage";
 import ChurchsuitePage from "./pages/ChurchsuitePage";
 import ImagesPage from "./pages/ImagesPage";
 import {
@@ -20,7 +21,7 @@ import {
   type KeyboardShortcuts,
 } from "./keyboard";
 
-type Page = "live" | "setlists" | "songs" | "images" | "bible" | "churchsuite" | "settings";
+type Page = "live" | "setlists" | "songs" | "images" | "bible" | "churchsuite" | "settings" | "help";
 
 interface Toast {
   id: number;
@@ -228,6 +229,8 @@ export default function App() {
         return "ChurchSuite";
       case "settings":
         return "Settings";
+      case "help":
+        return "Help";
     }
   }, [page]);
 
@@ -355,6 +358,13 @@ export default function App() {
           >
             <span className="nav-icon">⚙</span> Settings
           </button>
+          <button
+            className={page === "help" ? "active" : ""}
+            onClick={() => setPage("help")}
+            title="Open the service-day guide and troubleshooting reference"
+          >
+            <span className="nav-icon">?</span> Help
+          </button>
         </nav>
 
         <div className="sidebar-footer">
@@ -445,6 +455,7 @@ export default function App() {
           <ChurchsuitePage notify={notify} onOpenSetlists={() => setPage("setlists")} />
         )}
         {page === "settings" && <SettingsPage notify={notify} />}
+        {page === "help" && <HelpPage onOpenSettings={() => setPage("settings")} />}
       </main>
 
       <div className="toasts">
