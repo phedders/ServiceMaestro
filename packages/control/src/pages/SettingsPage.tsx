@@ -3,6 +3,7 @@ import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 import {
   DEFAULT_CHURCHSUITE_EMPTY_TYPES,
   type AppSettings,
+  type BibleTranslationInfo,
   type FontOption,
   type GitSettings,
   type GitStatus,
@@ -41,7 +42,9 @@ export default function SettingsPage({
   const [settings, setSettings] = useState<AppSettings>({
     pageNavigation: "stop",
     churchsuiteEmptyTypes: [...DEFAULT_CHURCHSUITE_EMPTY_TYPES],
+    defaultBibleTranslation: null,
   });
+  const [bibleTranslations, setBibleTranslations] = useState<BibleTranslationInfo[]>([]);
   const [emptyType, setEmptyType] = useState("");
   const [savingSettings, setSavingSettings] = useState(false);
   const [git, setGit] = useState<GitStatus | null>(null);
@@ -71,6 +74,10 @@ export default function SettingsPage({
     api
       .settings()
       .then((result) => setSettings(result.settings))
+      .catch(() => undefined);
+    api
+      .bibleTranslations()
+      .then((result) => setBibleTranslations(result.translations))
       .catch(() => undefined);
     api
       .gitStatus()
@@ -174,6 +181,24 @@ export default function SettingsPage({
       notify("Live navigation setting saved");
     } catch (error) {
       notify(error instanceof ApiError ? error.message : "Could not save live navigation", "error");
+    } finally {
+      setSavingSettings(false);
+    }
+  }
+
+  async function updateDefaultBibleTranslation(code: string) {
+    const next = { ...settings, defaultBibleTranslation: code || null };
+    setSettings(next);
+    setSavingSettings(true);
+    try {
+      const result = await api.saveSettings(next);
+      setSettings(result.settings);
+      notify("Default Bible version saved");
+    } catch (error) {
+      notify(
+        error instanceof ApiError ? error.message : "Could not save the default Bible version",
+        "error",
+      );
     } finally {
       setSavingSettings(false);
     }
@@ -344,6 +369,38 @@ export default function SettingsPage({
           “Continue” applies to the previous/next page keyboard shortcuts. Next at the final page
           opens the next item’s first page; previous at the first page opens the previous item’s
           last page. The setting is global for all operators.
+        </p>
+      </section>
+
+      <section className="panel">
+        <div className="panel-heading">
+          <div>
+            <h2>Bible</h2>
+            <p className="muted">
+              Choose the translation opened by default in the Bible module and when adding a Bible
+              passage from a set list.
+            </p>
+          </div>
+          {savingSettings && <span className="muted">Saving…</span>}
+        </div>
+        <label>
+          Default Bible version
+          <select
+            value={settings.defaultBibleTranslation ?? ""}
+            onChange={(event) => updateDefaultBibleTranslation(event.target.value)}
+            disabled={savingSettings}
+          >
+            <option value="">First available translation</option>
+            {bibleTranslations.map((translation) => (
+              <option key={translation.code} value={translation.code}>
+                {translation.name} ({translation.code})
+              </option>
+            ))}
+          </select>
+        </label>
+        <p className="hint">
+          If the selected version is unavailable, the first translation found in the Bible folder is
+          used instead.
         </p>
       </section>
 

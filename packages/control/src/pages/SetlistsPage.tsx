@@ -1144,11 +1144,17 @@ export default function SetlistsPage({
 
   useEffect(() => {
     if (addKind !== "bible" || bibleTranslations.length) return;
-    api
-      .bibleTranslations()
-      .then((result) => {
+    Promise.all([
+      api.bibleTranslations(),
+      api.settings().catch(() => null),
+    ])
+      .then(([result, settings]) => {
         setBibleTranslations(result.translations);
-        if (result.translations[0]) setBibleTranslation(result.translations[0].code);
+        const preferred = settings?.settings.defaultBibleTranslation ?? null;
+        const initial =
+          result.translations.find((translation) => translation.code === preferred) ??
+          result.translations[0];
+        if (initial) setBibleTranslation(initial.code);
         if (!result.translations.length) {
           notify("No Bible translations found in the Bible folder", "error");
         }

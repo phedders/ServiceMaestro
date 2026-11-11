@@ -386,7 +386,8 @@ export default function HelpPage({ onOpenSettings }: { onOpenSettings: () => voi
             <ul className="help-list">
               <li>
                 Choose a translation, book, chapter and verse range. <strong>Include reference</strong>
-                adds the citation to the text.
+                adds the citation to the text. The default translation is selected under{" "}
+                <strong>Settings → Bible</strong>.
               </li>
               <li>
                 <strong>Layout</strong> chooses <strong>Paragraph</strong> or{" "}

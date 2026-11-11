@@ -430,6 +430,7 @@ export const DEFAULT_CHURCHSUITE_EMPTY_TYPES = [
 export interface AppSettings {
   pageNavigation: "stop" | "next-item";
   churchsuiteEmptyTypes: string[];
+  defaultBibleTranslation: string | null;
 }
 
 export interface GitSettings {
@@ -970,6 +971,7 @@ export const appSettingsSchema = z.object({
     .array(z.string().trim().min(1).max(120))
     .max(100)
     .default(DEFAULT_CHURCHSUITE_EMPTY_TYPES),
+  defaultBibleTranslation: z.string().trim().max(40).nullable().default(null),
 });
 
 export const gitSettingsSchema = z.object({

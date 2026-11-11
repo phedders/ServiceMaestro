@@ -5,6 +5,7 @@ import { GIT_AUTO_PUSH, GIT_AUTO_SAVE, GIT_PULL_INTERVAL } from "./config.js";
 const DEFAULTS: AppSettings = {
   pageNavigation: "stop",
   churchsuiteEmptyTypes: [...DEFAULT_CHURCHSUITE_EMPTY_TYPES],
+  defaultBibleTranslation: null,
 };
 
 const GIT_DEFAULTS: GitSettings = {
@@ -39,10 +40,12 @@ export function getAppSettings(): AppSettings {
       // Fall back to the seeded list when the stored value is corrupt.
     }
   }
+  const defaultBibleTranslation = values.get("default_bible_translation")?.trim() || null;
   return {
     pageNavigation:
       pageNavigation === "next-item" ? "next-item" : DEFAULTS.pageNavigation,
     churchsuiteEmptyTypes,
+    defaultBibleTranslation,
   };
 }
 
@@ -54,6 +57,7 @@ export function saveAppSettings(settings: AppSettings): AppSettings {
   );
   write.run("page_navigation", settings.pageNavigation, now);
   write.run("churchsuite_empty_types", JSON.stringify(settings.churchsuiteEmptyTypes), now);
+  write.run("default_bible_translation", settings.defaultBibleTranslation ?? "", now);
   return getAppSettings();
 }
 
