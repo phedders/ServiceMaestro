@@ -1534,6 +1534,24 @@ label {
   align-items: end;
 }
 
+.image-setlist-target {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.image-setlist-target label {
+  min-width: 300px;
+}
+
+.image-setlist-target .hint {
+  margin: 0;
+}
+
 .images-layout {
   display: grid;
   grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
@@ -1635,6 +1653,14 @@ label {
 .image-card-meta .muted {
   font-size: 0.66rem;
   overflow-wrap: anywhere;
+}
+
+.image-card .button-row {
+  flex-wrap: wrap;
+}
+
+.image-card .button-row .button {
+  white-space: nowrap;
 }
 
 /* ------------------------------------------------------------------ */

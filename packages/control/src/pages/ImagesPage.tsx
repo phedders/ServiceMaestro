@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import type { ImageAsset } from "@sm/shared";
+import type { ImageAsset, LiveState, SetlistSummary } from "@sm/shared";
 import { api, ApiError } from "../api";
-import { compactDateTime } from "../service-date";
+import { compactDate, compactDateTime, pickCurrentSetlist } from "../service-date";
 
 interface FolderNode {
   name: string;
@@ -73,11 +73,16 @@ function FolderBranch({
 }
 
 export default function ImagesPage({
+  live,
   notify,
 }: {
+  live: LiveState;
   notify: (text: string, kind?: "info" | "error") => void;
 }) {
   const [images, setImages] = useState<ImageAsset[]>([]);
+  const [setlists, setSetlists] = useState<SetlistSummary[]>([]);
+  const [targetSetlist, setTargetSetlist] = useState("");
+  const [addingPath, setAddingPath] = useState("");
   const [search, setSearch] = useState("");
   const [folder, setFolder] = useState("");
   const [uploadFolder, setUploadFolder] = useState("uploads");
@@ -99,6 +104,17 @@ export default function ImagesPage({
 
   useEffect(() => {
     load();
+    api
+      .setlists()
+      .then((result) => {
+        setSetlists(result.setlists);
+        const preferred =
+          (live.setlistId && result.setlists.find((setlist) => setlist.id === live.setlistId)?.id) ||
+          pickCurrentSetlist(result.setlists)?.id ||
+          "";
+        setTargetSetlist(preferred);
+      })
+      .catch(() => undefined);
   }, []);
 
   const tree = useMemo(() => buildTree(images), [images]);
@@ -131,6 +147,28 @@ export default function ImagesPage({
       notify("Image deleted");
     } catch (error) {
       notify(error instanceof ApiError ? error.message : "Could not delete image", "error");
+    }
+  }
+
+  async function addToSetlist(image: ImageAsset) {
+    if (!targetSetlist) return;
+    setAddingPath(image.path);
+    try {
+      await api.addItem(targetSetlist, {
+        kind: "image",
+        title: image.name,
+        content: image.path,
+      });
+      const target = setlists.find((setlist) => setlist.id === targetSetlist);
+      notify(
+        target
+          ? `Added “${image.name}” to “${target.name}”`
+          : "Image added to the current set list",
+      );
+    } catch (error) {
+      notify(error instanceof ApiError ? error.message : "Could not add image to set list", "error");
+    } finally {
+      setAddingPath("");
     }
   }
 
@@ -174,6 +212,24 @@ export default function ImagesPage({
           Search ignores the selected folder. Supported formats: PNG, JPEG, GIF, WebP, AVIF and SVG;
           maximum 25 MB.
         </p>
+        <div className="image-setlist-target">
+          <label>
+            Add images to set list
+            <select
+              value={targetSetlist}
+              onChange={(event) => setTargetSetlist(event.target.value)}
+            >
+              {!setlists.length && <option value="">No set lists yet</option>}
+              {setlists.map((setlist) => (
+                <option key={setlist.id} value={setlist.id}>
+                  {setlist.name} — {compactDate(setlist.serviceDate)}
+                  {setlist.serviceTime ? ` ${setlist.serviceTime}` : ""}
+                </option>
+              ))}
+            </select>
+          </label>
+          <span className="hint">Use “+ setlist” on any image to add it to this set list.</span>
+        </div>
       </section>
 
       <div className="images-layout">
@@ -206,6 +262,13 @@ export default function ImagesPage({
                     </span>
                   </div>
                   <div className="button-row">
+                    <button
+                      className="button primary small"
+                      onClick={() => addToSetlist(image)}
+                      disabled={!targetSetlist || addingPath === image.path}
+                    >
+                      {addingPath === image.path ? "Adding…" : "+ setlist"}
+                    </button>
                     <button
                       className="button ghost small"
                       onClick={() => {

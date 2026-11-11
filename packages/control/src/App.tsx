@@ -381,7 +381,7 @@ export default function App() {
           />
         )}
         {page === "songs" && <SongsPage live={live} onQuickSong={quickSong} notify={notify} />}
-        {page === "images" && <ImagesPage notify={notify} />}
+        {page === "images" && <ImagesPage live={live} notify={notify} />}
         {page === "bible" && <BiblePage live={live} onQuickText={quickText} notify={notify} />}
         {page === "churchsuite" && (
           <ChurchsuitePage notify={notify} onOpenSetlists={() => setPage("setlists")} />
