@@ -1,5 +1,5 @@
 import type { FastifyInstance } from "fastify";
-import { dashboardLayoutSchema, type DashboardLayout } from "@wlm/shared";
+import { dashboardLayoutSchema, type DashboardLayout } from "@sm/shared";
 import { db } from "../db.js";
 import { requireAuth } from "../auth.js";
 import { DEFAULT_LAYOUT } from "../default-layout.js";

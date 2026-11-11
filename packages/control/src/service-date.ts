@@ -1,4 +1,4 @@
-import type { SetlistSummary } from "@wlm/shared";
+import type { SetlistSummary } from "@sm/shared";
 
 /**
  * Compact ISO-style calendar date (`YYYYMMDD`) used for display and sortable

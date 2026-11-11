@@ -7,7 +7,7 @@ import type {
   SetlistRevisionInfo,
   Song,
   TextFormat,
-} from "@wlm/shared";
+} from "@sm/shared";
 import { db } from "./db.js";
 import { buildPages, type RenderItem } from "./render.js";
 import { resolveTemplates } from "./templates.js";

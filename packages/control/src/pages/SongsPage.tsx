@@ -7,7 +7,7 @@ import type {
   SongImportDecision,
   SongImportReport,
   SongImportScan,
-} from "@wlm/shared";
+} from "@sm/shared";
 import { api, ApiError } from "../api";
 import { PageContentEditor } from "../components/PageContentEditor";
 import { compactDate, pickCurrentSetlist } from "../service-date";

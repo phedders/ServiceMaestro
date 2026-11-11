@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import type { SetlistDetail, SetlistItem, SetlistSummary, Song, SongAsset } from "@wlm/shared";
+import type { SetlistDetail, SetlistItem, SetlistSummary, Song, SongAsset } from "@sm/shared";
 import { api, ApiError } from "../api";
 import { PdfViewer } from "../components/PdfViewer";
 import { compactDate, pickCurrentSetlist } from "../service-date";

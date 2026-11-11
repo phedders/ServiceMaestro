@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { io, type Socket } from "socket.io-client";
-import type { LiveState, PublicUser } from "@wlm/shared";
+import type { LiveState, PublicUser } from "@sm/shared";
 import { api, ApiError } from "./api";
 import { EMPTY_LIVE } from "./empty";
 import Login from "./components/Login";

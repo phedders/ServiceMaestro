@@ -1,4 +1,4 @@
-import type { LiveState } from "@wlm/shared";
+import type { LiveState } from "@sm/shared";
 
 export function PageList({ live, onCommand }: { live: LiveState; onCommand: (payload: Record<string, unknown>) => void }) {
   const pages = live.queuedItemIndex != null ? live.queuedPages ?? [] : live.pages;

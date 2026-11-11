@@ -1,5 +1,5 @@
 import type { FastifyInstance } from "fastify";
-import { churchsuiteImportSchema } from "@wlm/shared";
+import { churchsuiteImportSchema } from "@sm/shared";
 import { requireAuth, requireRole } from "../auth.js";
 import {
   churchsuiteStatus,

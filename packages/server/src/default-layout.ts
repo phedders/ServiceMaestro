@@ -1,4 +1,4 @@
-import type { DashboardLayout } from "@wlm/shared";
+import type { DashboardLayout } from "@sm/shared";
 
 export const DEFAULT_LAYOUT: DashboardLayout = {
   version: 1,

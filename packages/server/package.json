@@ -1,5 +1,5 @@
 {
-  "name": "@wlm/server",
+  "name": "@sm/server",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -15,7 +15,7 @@
     "@fastify/cookie": "^11.0.2",
     "@fastify/multipart": "^10.1.8",
     "@fastify/static": "^10.0.4",
-    "@wlm/shared": "*",
+    "@sm/shared": "*",
     "better-sqlite3": "^13.0.3",
     "fastify": "^5.2.1",
     "fflate": "^0.8.3",

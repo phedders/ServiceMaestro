@@ -5,7 +5,7 @@ import {
   quickSongSchema,
   quickTextSchema,
   startSessionSchema,
-} from "@wlm/shared";
+} from "@sm/shared";
 import { requireAuth, requireRole } from "../auth.js";
 import { live } from "../live.js";
 

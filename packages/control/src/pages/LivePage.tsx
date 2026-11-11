@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { DisplayConfig, FontOption, LiveState, SetlistSummary } from "@wlm/shared";
+import type { DisplayConfig, FontOption, LiveState, SetlistSummary } from "@sm/shared";
 import { api, ApiError } from "../api";
 import { SlidePreview } from "../components/SlidePreview";
 import { Transport } from "../components/Transport";

@@ -5,7 +5,7 @@ import type {
   BibleTranslationInfo,
   LiveState,
   SetlistSummary,
-} from "@wlm/shared";
+} from "@sm/shared";
 import { api, ApiError } from "../api";
 import { compactDate, pickCurrentSetlist } from "../service-date";
 

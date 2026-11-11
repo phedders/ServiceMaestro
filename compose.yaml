@@ -7,16 +7,16 @@ services:
     ports:
       - "6111:8080"
     environment:
-      WLM_TZ: Europe/London
-      WLM_ADMIN_PASSWORD: ${WLM_ADMIN_PASSWORD:-change-me}
-      WLM_OUTPUT_TOKEN: ${WLM_OUTPUT_TOKEN:-dev-output}
-      WLM_SONGS_DIR: /library/songs
-      WLM_BIBLE_DIR: /library/bible
-      WLM_CHURCHSUITE_CLIENT_ID: ${WLM_CHURCHSUITE_CLIENT_ID:-}
-      WLM_CHURCHSUITE_CLIENT_SECRET: ${WLM_CHURCHSUITE_CLIENT_SECRET:-}
-      WLM_CHURCHSUITE_TOKEN_URL: ${WLM_CHURCHSUITE_TOKEN_URL:-https://login.churchsuite.com/oauth2/token}
-      WLM_CHURCHSUITE_SCOPES: ${WLM_CHURCHSUITE_SCOPES:-planning.read}
-      WLM_CHURCHSUITE_API_URL: ${WLM_CHURCHSUITE_API_URL:-https://api.churchsuite.com/v2}
+      SM_TZ: Europe/London
+      SM_ADMIN_PASSWORD: ${SM_ADMIN_PASSWORD:-change-me}
+      SM_OUTPUT_TOKEN: ${SM_OUTPUT_TOKEN:-dev-output}
+      SM_SONGS_DIR: /library/songs
+      SM_BIBLE_DIR: /library/bible
+      SM_CHURCHSUITE_CLIENT_ID: ${SM_CHURCHSUITE_CLIENT_ID:-}
+      SM_CHURCHSUITE_CLIENT_SECRET: ${SM_CHURCHSUITE_CLIENT_SECRET:-}
+      SM_CHURCHSUITE_TOKEN_URL: ${SM_CHURCHSUITE_TOKEN_URL:-https://login.churchsuite.com/oauth2/token}
+      SM_CHURCHSUITE_SCOPES: ${SM_CHURCHSUITE_SCOPES:-planning.read}
+      SM_CHURCHSUITE_API_URL: ${SM_CHURCHSUITE_API_URL:-https://api.churchsuite.com/v2}
     volumes:
       - ./data:/data
       - ./library/songs:/library/songs:ro

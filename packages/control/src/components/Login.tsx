@@ -1,5 +1,5 @@
 import { FormEvent, useState } from "react";
-import type { PublicUser } from "@wlm/shared";
+import type { PublicUser } from "@sm/shared";
 import { api, ApiError } from "../api";
 
 export default function Login({ onLogin }: { onLogin: (user: PublicUser) => void }) {
@@ -65,7 +65,7 @@ export default function Login({ onLogin }: { onLogin: (user: PublicUser) => void
             {busy ? "Signing in…" : "Sign in"}
           </button>
           <p className="hint">
-            The first run creates an <code>admin</code> account. Set <code>WLM_ADMIN_PASSWORD</code>{" "}
+            The first run creates an <code>admin</code> account. Set <code>SM_ADMIN_PASSWORD</code>{" "}
             before starting the server.
           </p>
         </form>

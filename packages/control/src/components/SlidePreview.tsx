@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import type { LiveState } from "@wlm/shared";
+import type { LiveState } from "@sm/shared";
 
 export function SlidePreview({ live, compact = false }: { live: LiveState; compact?: boolean }) {
   const page = live.pages[live.pageIndex];
@@ -12,7 +12,7 @@ export function SlidePreview({ live, compact = false }: { live: LiveState; compa
           ? ({
               color: config.textColor,
               fontFamily: config.fontFamily,
-              "--wlm-text-scale": config.textScale,
+              "--sm-text-scale": config.textScale,
             } as CSSProperties)
           : undefined
       }

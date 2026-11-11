@@ -2,41 +2,41 @@ body[data-target="main"] {
   background: transparent;
 }
 
-.wlm-main {
+.sm-main {
   justify-content: flex-end;
   align-items: stretch;
   text-align: center;
   padding: 6vh 6vw 7vh;
 }
 
-.wlm-main .wlm-content {
+.sm-main .sm-content {
   width: 100%;
-  font-size: calc(clamp(2.2rem, 4.4vw, 5.5rem) * var(--wlm-text-scale, 1));
+  font-size: calc(clamp(2.2rem, 4.4vw, 5.5rem) * var(--sm-text-scale, 1));
   line-height: 1.18;
-  color: var(--wlm-text-color, #ffffff);
-  font-family: var(--wlm-font-family, inherit);
+  color: var(--sm-text-color, #ffffff);
+  font-family: var(--sm-font-family, inherit);
   text-shadow: 0 2px 18px rgba(0, 0, 0, 0.6);
 }
 
-.wlm-main .wlm-content .slide-inner {
+.sm-main .sm-content .slide-inner {
   display: flex;
   flex-direction: column;
   gap: 0.35em;
 }
 
-.wlm-main .line {
+.sm-main .line {
   white-space: pre-wrap;
 }
 
-.wlm-main .chord {
+.sm-main .chord {
   display: none;
 }
 
-.wlm-main .section-label {
+.sm-main .section-label {
   display: none;
 }
 
-.wlm-main .wlm-footer {
+.sm-main .sm-footer {
   margin-top: 1.6vh;
   text-align: center;
   font-size: clamp(0.7rem, 1.1vw, 1.2rem);
@@ -44,32 +44,32 @@ body[data-target="main"] {
   color: rgba(255, 255, 255, 0.65);
 }
 
-.wlm-main .text-html h1,
-.wlm-main .text-html h2,
-.wlm-main .text-html h3 {
+.sm-main .text-html h1,
+.sm-main .text-html h2,
+.sm-main .text-html h3 {
   margin: 0 0 0.4em;
 }
 
-.wlm-main .line strong,
-.wlm-two-thirds .line strong {
+.sm-main .line strong,
+.sm-two-thirds .line strong {
   font-weight: 800;
 }
 
-.wlm-main .line em,
-.wlm-two-thirds .line em {
+.sm-main .line em,
+.sm-two-thirds .line em {
   font-style: italic;
 }
 
-.wlm-main .line mark,
-.wlm-two-thirds .line mark {
+.sm-main .line mark,
+.sm-two-thirds .line mark {
   background: #ffe08a;
   color: #111820;
   border-radius: 0.08em;
   padding: 0 0.08em;
 }
 
-.wlm-main .line code,
-.wlm-two-thirds .line code {
+.sm-main .line code,
+.sm-two-thirds .line code {
   font-family: "JetBrains Mono", ui-monospace, monospace;
   font-size: 0.82em;
   background: rgba(255, 255, 255, 0.14);

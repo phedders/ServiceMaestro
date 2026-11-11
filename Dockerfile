@@ -12,8 +12,8 @@ FROM node:24-trixie-slim
 RUN apt-get update \
   && apt-get install -y --no-install-recommends tini ca-certificates tzdata git git-lfs openssh-client \
   && rm -rf /var/lib/apt/lists/* \
-  && groupadd -g 10001 wlm \
-  && useradd -u 10001 -g wlm -M -s /usr/sbin/nologin wlm
+  && groupadd -g 10001 sm \
+  && useradd -u 10001 -g sm -M -s /usr/sbin/nologin sm
 
 WORKDIR /app
 COPY --from=build /app/package.json ./
@@ -24,9 +24,9 @@ COPY --from=build /app/packages/control/dist ./packages/control/dist
 COPY --from=build /app/packages/display ./packages/display
 
 ENV NODE_ENV=production \
-    WLM_HOST=0.0.0.0 \
-    WLM_PORT=8080 \
-    WLM_DATA_DIR=/data
+    SM_HOST=0.0.0.0 \
+    SM_PORT=8080 \
+    SM_DATA_DIR=/data
 
 RUN mkdir -p /data && chown 10001:10001 /data
 USER 10001:10001

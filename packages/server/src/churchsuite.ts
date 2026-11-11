@@ -28,7 +28,7 @@ function redact(message: string): string {
 async function tokenRequest(): Promise<string> {
   if (!configured()) {
     throw new Error(
-      "ChurchSuite is not configured. Set WLM_CHURCHSUITE_CLIENT_ID and WLM_CHURCHSUITE_CLIENT_SECRET.",
+      "ChurchSuite is not configured. Set SM_CHURCHSUITE_CLIENT_ID and SM_CHURCHSUITE_CLIENT_SECRET.",
     );
   }
   if (cached && cached.expiresAt > Date.now() + 30_000) return cached.token;

@@ -6,13 +6,13 @@
     "packages/*"
   ],
   "scripts": {
-    "predev": "npm run build -w @wlm/shared",
-    "pretypecheck": "npm run build -w @wlm/shared",
-    "dev": "concurrently -k -n server,control -c blue,magenta \"npm run dev -w @wlm/server\" \"npm run dev -w @wlm/control\"",
-    "build": "npm run build -w @wlm/shared && npm run build -w @wlm/control && npm run build -w @wlm/server",
-    "start": "npm run start -w @wlm/server",
-    "typecheck": "npm run typecheck -w @wlm/shared && npm run typecheck -w @wlm/control && npm run typecheck -w @wlm/server",
-    "test": "npm run test -w @wlm/server"
+    "predev": "npm run build -w @sm/shared",
+    "pretypecheck": "npm run build -w @sm/shared",
+    "dev": "concurrently -k -n server,control -c blue,magenta \"npm run dev -w @sm/server\" \"npm run dev -w @sm/control\"",
+    "build": "npm run build -w @sm/shared && npm run build -w @sm/control && npm run build -w @sm/server",
+    "start": "npm run start -w @sm/server",
+    "typecheck": "npm run typecheck -w @sm/shared && npm run typecheck -w @sm/control && npm run typecheck -w @sm/server",
+    "test": "npm run test -w @sm/server"
   },
   "devDependencies": {
     "concurrently": "^9.1.2",

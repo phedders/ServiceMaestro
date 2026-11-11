@@ -595,8 +595,8 @@ Export/import serves four needs: **backup**, **moving a service between installs
 
 | Format | Extension | Contents | Use |
 | --- | --- | --- | --- |
-| Reference | `.wlm-setlist.json` | Set list revision + stable references (ids, versions, hashes), no embedded content | Fast share within the same server/backup; human-readable |
-| Bundle | `.wlm-bundle.zip` | `manifest.json` + full song/text/theme resources + media files + checksums | Portable transfer, archive, restore to a different server |
+| Reference | `.sm-setlist.json` | Set list revision + stable references (ids, versions, hashes), no embedded content | Fast share within the same server/backup; human-readable |
+| Bundle | `.sm-bundle.zip` | `manifest.json` + full song/text/theme resources + media files + checksums | Portable transfer, archive, restore to a different server |
 | CSV (optional, later) | `.csv` | title, kind, order, key | Planning/spreadsheet and print workflows |
 
 The reference format is the canonical schema; the bundle is a ZIP whose `manifest.json` is the same document plus a `resources` section pointing at files inside the archive.
@@ -605,7 +605,7 @@ The reference format is the canonical schema; the bundle is a ZIP whose `manifes
 
 ```jsonc
 {
-  "format": "wlm.setlist",
+  "format": "sm.setlist",
   "formatVersion": 1,
   "exportedAt": "2026-11-10T14:30:00Z",
   "generator": "service-maestro/0.1.0",
@@ -683,7 +683,7 @@ The reference format is the canonical schema; the bundle is a ZIP whose `manifes
 Bundle layout:
 
 ```
-wlm-bundle.zip
+sm-bundle.zip
 ├── manifest.json                 # schema above + resources paths
 ├── resources/
 │   ├── songs/<songId>-v<no>.json
@@ -741,10 +741,10 @@ GET  /api/exports/:jobId/download
 ```
 
 ```
-wlm setlist export <id-or-name> --revision 3 --format bundle --out service.zip
-wlm setlist import service.zip --dry-run
-wlm setlist import service.zip --conflict copy --shift-to 2026-11-22
-wlm backup --all --out backups/2026-11-10.zip
+sm setlist export <id-or-name> --revision 3 --format bundle --out service.zip
+sm setlist import service.zip --dry-run
+sm setlist import service.zip --conflict copy --shift-to 2026-11-22
+sm backup --all --out backups/2026-11-10.zip
 ```
 
 CLI runs in the same container (`docker exec` / `podman exec` / `incus exec`), reusing the same service layer as the API.

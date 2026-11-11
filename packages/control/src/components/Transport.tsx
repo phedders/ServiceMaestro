@@ -1,4 +1,4 @@
-import type { LiveState } from "@wlm/shared";
+import type { LiveState } from "@sm/shared";
 
 export function Transport({
   live,

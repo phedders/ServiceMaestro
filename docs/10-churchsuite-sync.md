@@ -66,12 +66,12 @@ To proceed, one of these is required:
 Create `.env` next to `compose.yaml` (it is gitignored) and restart the container:
 
 ```sh
-WLM_CHURCHSUITE_CLIENT_ID=...          # or _FILE=/run/secrets/churchsuite_client_id
-WLM_CHURCHSUITE_CLIENT_SECRET=...      # or _FILE=/run/secrets/churchsuite_client_secret
-WLM_CHURCHSUITE_TOKEN_URL=https://login.churchsuite.com/oauth2/token
-WLM_CHURCHSUITE_SCOPES=planning.read
-WLM_CHURCHSUITE_API_URL=https://api.churchsuite.com/v2
-WLM_CHURCHSUITE_REDIRECT_URI=...       # authorization-code flow only
+SM_CHURCHSUITE_CLIENT_ID=...          # or _FILE=/run/secrets/churchsuite_client_id
+SM_CHURCHSUITE_CLIENT_SECRET=...      # or _FILE=/run/secrets/churchsuite_client_secret
+SM_CHURCHSUITE_TOKEN_URL=https://login.churchsuite.com/oauth2/token
+SM_CHURCHSUITE_SCOPES=planning.read
+SM_CHURCHSUITE_API_URL=https://api.churchsuite.com/v2
+SM_CHURCHSUITE_REDIRECT_URI=...       # authorization-code flow only
 ```
 
 `docker compose` reads `.env` automatically and passes these values into the container. The
@@ -106,8 +106,8 @@ ChurchSuite user**:
 2. Create or choose a least-privilege user with Planning read access.
 3. Enable API access for that user, then log in as that user.
 4. Open the profile and create an API secret.
-5. Put that user's **identifier** and **secret** in `WLM_CHURCHSUITE_CLIENT_ID` /
-   `WLM_CHURCHSUITE_CLIENT_SECRET` and restart.
+5. Put that user's **identifier** and **secret** in `SM_CHURCHSUITE_CLIENT_ID` /
+   `SM_CHURCHSUITE_CLIENT_SECRET` and restart.
 
 The credentials currently in `.env` returned `unauthorized_client` for client credentials but
 `invalid_grant` for a dummy authorization code, confirming they are OAuth App credentials rather

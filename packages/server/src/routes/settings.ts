@@ -1,5 +1,5 @@
 import type { FastifyInstance } from "fastify";
-import { appSettingsSchema } from "@wlm/shared";
+import { appSettingsSchema } from "@sm/shared";
 import { requireAuth, requireRole } from "../auth.js";
 import { getAppSettings, saveAppSettings } from "../settings.js";
 

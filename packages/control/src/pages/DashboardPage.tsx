@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Responsive, WidthProvider, type Layout, type Layouts } from "react-grid-layout";
 import "react-grid-layout/css/styles.css";
 import "react-resizable/css/styles.css";
-import type { DashboardLayout, LiveState } from "@wlm/shared";
+import type { DashboardLayout, LiveState } from "@sm/shared";
 import { api, ApiError } from "../api";
 import { SlidePreview } from "../components/SlidePreview";
 import { Transport } from "../components/Transport";

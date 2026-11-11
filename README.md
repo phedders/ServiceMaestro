@@ -30,7 +30,7 @@ npm install
 npm run build
 
 # pick a real password — this seeds the first admin account
-WLM_ADMIN_PASSWORD='change-me' npm start
+SM_ADMIN_PASSWORD='change-me' npm start
 ```
 
 Open <http://localhost:8080> and sign in as `admin` with the password you set (default is `admin` if the variable is omitted — change it).
@@ -39,10 +39,10 @@ Open <http://localhost:8080> and sign in as `admin` with the password you set (d
 
 ```sh
 # terminal 1: API + displays on :8080
-npm run dev -w @wlm/server
+npm run dev -w @sm/server
 
 # terminal 2: React control UI on :5173 with API proxy
-npm run dev -w @wlm/control
+npm run dev -w @sm/control
 ```
 
 Or `npm run dev` runs both (server on 8080, control on 5173).
@@ -55,7 +55,7 @@ Or `npm run dev` runs both (server on 8080, control on 5173).
 | Full screen | `/display/full?token=dev-output` | `/obs-mainfull?token=dev-output` |
 | Stage monitor (chords) | `/display/stage?token=dev-output` | `/obs-stage?token=dev-output` |
 
-The output token defaults to `dev-output`; set `WLM_OUTPUT_TOKEN` in production. Displays receive a **full snapshot on connect**, so refreshing or reconnecting OBS never blanks the screen.
+The output token defaults to `dev-output`; set `SM_OUTPUT_TOKEN` in production. Displays receive a **full snapshot on connect**, so refreshing or reconnecting OBS never blanks the screen.
 
 ### Musicians view
 
@@ -91,44 +91,44 @@ Open <http://localhost:8080/musicians> to see the read-only musician view. It de
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `WLM_PORT` | `8080` | HTTP/WebSocket port |
-| `WLM_HOST` | `0.0.0.0` | Bind address |
-| `WLM_DATA_DIR` | `packages/server/data` | SQLite + runtime data |
-| `WLM_SONGS_DIR` | `samples/` (local) | Source directory scanned for OpenLP/ChordPro/text imports |
-| `WLM_BIBLE_DIR` | `samples/bible/` (local) | SQLite/JSON Bible translations |
-| `WLM_ADMIN_PASSWORD` | `admin` | Password for the seeded admin |
-| `WLM_OUTPUT_TOKEN` | `dev-output` | Token required by display sockets |
-| `WLM_LOG_LEVEL` | `info` | Fastify log level |
-| `WLM_SECURE_COOKIES` | unset | Set to `1` when serving over HTTPS |
-| `WLM_GIT_ENABLED` | `true` | Enable local/remote Git persistence |
-| `WLM_GIT_AUTO_SAVE` | `true` | Write + commit on each song/set-list change |
-| `WLM_GIT_AUTO_PUSH` | `true` | Push after commit when a remote is configured |
-| `WLM_GIT_SONGS_PATH` | `/data/repos/songs` | Songs repo working tree |
-| `WLM_GIT_SETLISTS_PATH` | `/data/repos/setlists` | Set lists repo working tree |
-| `WLM_GIT_BIBLES_PATH` | `/data/repos/bibles` | Optional Bibles repo |
-| `WLM_CONFIG_FILE` | unset | YAML/JSON config with `git.repositories` and URIs |
-| `WLM_TEMPLATES_DIR` | `/data/templates` | Display template folder (after the set-list repo lookup) |
-| `WLM_FONTS_DIR` | `/data/fonts` | Cache for imported Google Fonts |
-| `WLM_CHURCHSUITE_CLIENT_ID` | unset | ChurchSuite OAuth client id / API user identifier |
-| `WLM_CHURCHSUITE_CLIENT_SECRET` | unset | ChurchSuite OAuth secret (prefer Docker secrets in production) |
-| `WLM_CHURCHSUITE_TOKEN_URL` | `https://login.churchsuite.com/oauth2/token` | Token endpoint |
-| `WLM_CHURCHSUITE_SCOPES` | `planning.read` | Requested scopes |
-| `WLM_CHURCHSUITE_API_URL` | `https://api.churchsuite.com/v2` | API base URL |
+| `SM_PORT` | `8080` | HTTP/WebSocket port |
+| `SM_HOST` | `0.0.0.0` | Bind address |
+| `SM_DATA_DIR` | `packages/server/data` | SQLite + runtime data |
+| `SM_SONGS_DIR` | `samples/` (local) | Source directory scanned for OpenLP/ChordPro/text imports |
+| `SM_BIBLE_DIR` | `samples/bible/` (local) | SQLite/JSON Bible translations |
+| `SM_ADMIN_PASSWORD` | `admin` | Password for the seeded admin |
+| `SM_OUTPUT_TOKEN` | `dev-output` | Token required by display sockets |
+| `SM_LOG_LEVEL` | `info` | Fastify log level |
+| `SM_SECURE_COOKIES` | unset | Set to `1` when serving over HTTPS |
+| `SM_GIT_ENABLED` | `true` | Enable local/remote Git persistence |
+| `SM_GIT_AUTO_SAVE` | `true` | Write + commit on each song/set-list change |
+| `SM_GIT_AUTO_PUSH` | `true` | Push after commit when a remote is configured |
+| `SM_GIT_SONGS_PATH` | `/data/repos/songs` | Songs repo working tree |
+| `SM_GIT_SETLISTS_PATH` | `/data/repos/setlists` | Set lists repo working tree |
+| `SM_GIT_BIBLES_PATH` | `/data/repos/bibles` | Optional Bibles repo |
+| `SM_CONFIG_FILE` | unset | YAML/JSON config with `git.repositories` and URIs |
+| `SM_TEMPLATES_DIR` | `/data/templates` | Display template folder (after the set-list repo lookup) |
+| `SM_FONTS_DIR` | `/data/fonts` | Cache for imported Google Fonts |
+| `SM_CHURCHSUITE_CLIENT_ID` | unset | ChurchSuite OAuth client id / API user identifier |
+| `SM_CHURCHSUITE_CLIENT_SECRET` | unset | ChurchSuite OAuth secret (prefer Docker secrets in production) |
+| `SM_CHURCHSUITE_TOKEN_URL` | `https://login.churchsuite.com/oauth2/token` | Token endpoint |
+| `SM_CHURCHSUITE_SCOPES` | `planning.read` | Requested scopes |
+| `SM_CHURCHSUITE_API_URL` | `https://api.churchsuite.com/v2` | API base URL |
 
 ## Docker / Podman
 
 ```sh
 docker build -t service-maestro .
 docker run --rm -p 8080:8080 \
-  -e WLM_ADMIN_PASSWORD='change-me' \
-  -e WLM_OUTPUT_TOKEN='a-long-random-output-token' \
+  -e SM_ADMIN_PASSWORD='change-me' \
+  -e SM_OUTPUT_TOKEN='a-long-random-output-token' \
   -v "$PWD/data:/data" \
   service-maestro
 ```
 
 Or `docker compose up -d` / `podman-compose up -d`. The container runs as UID/GID 10001; ensure the mounted data directory is writable by that user (`chown -R 10001:10001 ./data`, or use Incus `shift=true`).
 
-Copy `.env.example` to `.env` next to `compose.yaml` for local credentials. Docker Compose reads that file automatically; never commit it. ChurchSuite credentials belong under `WLM_CHURCHSUITE_CLIENT_ID` and `WLM_CHURCHSUITE_CLIENT_SECRET`, and the Settings page can test the connection.
+Copy `.env.example` to `.env` next to `compose.yaml` for local credentials. Docker Compose reads that file automatically; never commit it. ChurchSuite credentials belong under `SM_CHURCHSUITE_CLIENT_ID` and `SM_CHURCHSUITE_CLIENT_SECRET`, and the Settings page can test the connection.
 
 See [05-container-deployment.md](docs/05-container-deployment.md) for Incus/LXC, read-only root filesystem, backups and hardening.
 

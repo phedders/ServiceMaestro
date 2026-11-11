@@ -3,7 +3,7 @@ import type {
   ChurchSuiteImportReport,
   ChurchSuitePlanPreview,
   ChurchSuitePlanSummary,
-} from "@wlm/shared";
+} from "@sm/shared";
 import { api, ApiError } from "../api";
 import { IsoDateInput } from "../components/IsoDateInput";
 import { compactDate } from "../service-date";

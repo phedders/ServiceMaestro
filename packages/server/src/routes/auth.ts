@@ -1,5 +1,5 @@
 import type { FastifyInstance } from "fastify";
-import { loginSchema } from "@wlm/shared";
+import { loginSchema } from "@sm/shared";
 import { db } from "../db.js";
 import { verifyPassword } from "../password.js";
 import {

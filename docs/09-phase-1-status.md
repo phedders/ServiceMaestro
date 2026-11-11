@@ -7,11 +7,11 @@ Implemented and verified on 2026-11-10. This is the working foundation described
 ```sh
 npm install
 npm run build
-WLM_ADMIN_PASSWORD='change-me' npm start
+SM_ADMIN_PASSWORD='change-me' npm start
 # http://localhost:8080
 ```
 
-- Login: seeded `admin` / `WLM_ADMIN_PASSWORD`.
+- Login: seeded `admin` / `SM_ADMIN_PASSWORD`.
 - Displays: `/display/main`, `/display/full`, `/display/stage` (and `/obs-*` aliases), `?token=dev-output`.
 - Docker image builds and runs as UID 10001; health check passes.
 
@@ -70,7 +70,7 @@ Socket.IO: `live:snapshot` events to `control` and `outputs` rooms; commands ove
 ## Deliberate Phase 1 shortcuts
 
 - **Set list revisions** are represented by the **live session snapshot** rather than a full revision table. Editing a set list cannot affect a running service; publishing/applying revisions is still to come.
-- **One shared output token** (`WLM_OUTPUT_TOKEN`), no per-output tokens or presence yet.
+- **One shared output token** (`SM_OUTPUT_TOKEN`), no per-output tokens or presence yet.
 - **One seeded admin**; user management UI is not built.
 - **Song versions/arrangements** are not yet immutable; a song has one lyrics field plus a verse-order override.
 - **Dashboard** is temporarily hidden from the navigation because its widgets changed live output; its personal-layout service remains for a safer Phase 2 redesign.

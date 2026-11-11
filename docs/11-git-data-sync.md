@@ -141,11 +141,11 @@ Lookup order:
    `templates/<setlist-id>/<role>.html` / `.css`
 2. global templates in the **set lists repo**:
    `templates/<role>.html` / `.css`
-3. **templates folder** (`WLM_TEMPLATES_DIR`, default `/data/templates`)
+3. **templates folder** (`SM_TEMPLATES_DIR`, default `/data/templates`)
 4. **templates repo** (`/data/repos/templates/templates/…` or its root)
 5. built-in templates shipped with the display package
 
-The first HTML found wins; CSS is read from the same directory. `full` falls back to `two_thirds`. The default templates fade content changes in and out; custom templates should keep the `.wlm-template` class for the transition.
+The first HTML found wins; CSS is read from the same directory. `full` falls back to `two_thirds`. The default templates fade content changes in and out; custom templates should keep the `.sm-template` class for the transition.
 
 ### Bibles repository
 
@@ -172,7 +172,7 @@ git:
   workDir: /data/repos
   author:
     name: Service Maestro
-    email: wlm@example.local
+    email: sm@example.local
   pullIntervalSeconds: 60
   pushDebounceSeconds: 2
   conflictPolicy: fail        # fail | keep-local | keep-remote
@@ -220,7 +220,7 @@ repositories:
 - `autoSave` defaults to **true**: each song/setlist change writes the JSON file and commits it. `autoPush` defaults to **true**: if a remote exists, push after committing; without a remote it is a no-op.
 - If `autoSave` is false, changes stay in SQLite until an explicit “Sync to repositories” action. If `autoPush` is false, commits stay local and are pushed on the next manual sync.
 - Tokens/keys are **never** shown in the UI or logs; the remote is redacted in `/api/git/status`.
-- If a token is embedded in the URI, protect the config file (`chmod 600`, mounted secret). Prefer a Docker/Podman/Incus secret for the whole config file or for `WLM_GIT_<REPO>_REMOTE_FILE`.
+- If a token is embedded in the URI, protect the config file (`chmod 600`, mounted secret). Prefer a Docker/Podman/Incus secret for the whole config file or for `SM_GIT_<REPO>_REMOTE_FILE`.
 - Git stores the remote URL in `.git/config`; the repository directory is under the protected `/data` volume and must not be exported or committed.
 
 Runtime settings (Settings → Git repositories):
@@ -235,24 +235,24 @@ Runtime settings (Settings → Git repositories):
 Environment equivalents:
 
 ```sh
-WLM_GIT_ENABLED=true
-WLM_GIT_AUTO_SAVE=true
-WLM_GIT_AUTO_PUSH=true
-WLM_GIT_SONGS_PATH=/data/repos/songs
-WLM_GIT_SONGS_REMOTE=          # unset/empty = local-only
-WLM_GIT_SONGS_BRANCH=main
-WLM_GIT_SETLISTS_PATH=/data/repos/setlists
-WLM_GIT_SETLISTS_REMOTE=
-WLM_GIT_SETLISTS_BRANCH=main
-WLM_GIT_BIBLES_PATH=/data/repos/bibles
-WLM_GIT_BIBLES_REMOTE=          # optional; leave unset to disable
-WLM_GIT_BIBLES_OPTIONAL=true
-WLM_GIT_BIBLES_LFS=required
-WLM_GIT_TEMPLATES_PATH=/data/repos/templates
-WLM_GIT_TEMPLATES_REMOTE=       # optional
-WLM_TEMPLATES_DIR=/data/templates
-WLM_GIT_SSH_KEY_FILE=/run/secrets/git_ssh_key
-WLM_GIT_KNOWN_HOSTS_FILE=/run/secrets/git_known_hosts
+SM_GIT_ENABLED=true
+SM_GIT_AUTO_SAVE=true
+SM_GIT_AUTO_PUSH=true
+SM_GIT_SONGS_PATH=/data/repos/songs
+SM_GIT_SONGS_REMOTE=          # unset/empty = local-only
+SM_GIT_SONGS_BRANCH=main
+SM_GIT_SETLISTS_PATH=/data/repos/setlists
+SM_GIT_SETLISTS_REMOTE=
+SM_GIT_SETLISTS_BRANCH=main
+SM_GIT_BIBLES_PATH=/data/repos/bibles
+SM_GIT_BIBLES_REMOTE=          # optional; leave unset to disable
+SM_GIT_BIBLES_OPTIONAL=true
+SM_GIT_BIBLES_LFS=required
+SM_GIT_TEMPLATES_PATH=/data/repos/templates
+SM_GIT_TEMPLATES_REMOTE=       # optional
+SM_TEMPLATES_DIR=/data/templates
+SM_GIT_SSH_KEY_FILE=/run/secrets/git_ssh_key
+SM_GIT_KNOWN_HOSTS_FILE=/run/secrets/git_known_hosts
 ```
 
 Rules:
@@ -369,7 +369,7 @@ repo_state (
 ## 8. Large files, optional Bibles and Git LFS
 
 - PDFs/tabs are typically 50–200 KB; fine in normal Git. Song assets can optionally use LFS if they grow.
-- The **Bibles repository is optional**. Without it, the app uses a local `WLM_BIBLE_DIR` mount. When configured, prefer Git LFS because SQLite files are 10–25 MB each and Git history grows quickly.
+- The **Bibles repository is optional**. Without it, the app uses a local `SM_BIBLE_DIR` mount. When configured, prefer Git LFS because SQLite files are 10–25 MB each and Git history grows quickly.
 - Repository setting: `lfs: required | auto | off` (default `required` for Bibles).
   - `required`: if `git-lfs` is unavailable or `git lfs pull` fails, the Bibles repo is marked unhealthy and a clear warning is shown; the app keeps using the last cached files if present.
   - `auto`: use LFS when `.gitattributes` or the remote indicates it, otherwise plain Git.
@@ -399,8 +399,8 @@ services:
     secrets:
       - git_ssh_key
     environment:
-      WLM_GIT_SSH_KEY_FILE: /run/secrets/git_ssh_key
-      WLM_GIT_KNOWN_HOSTS_FILE: /config/known_hosts
+      SM_GIT_SSH_KEY_FILE: /run/secrets/git_ssh_key
+      SM_GIT_KNOWN_HOSTS_FILE: /config/known_hosts
 ```
 
 - For HTTPS-token remotes, pass the full URI through the config secret rather than putting it in the image or Compose file:
@@ -408,13 +408,13 @@ services:
 ```yaml
 secrets:
   git_config:
-    file: ./secrets/wlm-config.yaml
+    file: ./secrets/sm-config.yaml
 services:
   service-maestro:
     secrets:
       - git_config
     environment:
-      WLM_CONFIG_FILE: /run/secrets/wlm-config.yaml
+      SM_CONFIG_FILE: /run/secrets/sm-config.yaml
 ```
 
 - Run Git as UID 10001; the repositories live under the writable `/data` volume.
@@ -422,7 +422,7 @@ services:
 - Commit author identity is configurable; no personal secrets in commits.
 - Set list/song content may be copyrighted; repositories must remain private, with access limited to the church/team.
 - The Bibles repository can be omitted entirely; if configured with LFS, startup verifies `git-lfs` before declaring sync healthy.
-- When the Bibles repo contains translation files, it becomes the active Bible source; otherwise the app keeps using `WLM_BIBLE_DIR`.
+- When the Bibles repo contains translation files, it becomes the active Bible source; otherwise the app keeps using `SM_BIBLE_DIR`.
 
 ## 10. API and CLI
 
@@ -438,10 +438,10 @@ POST /api/git/conflicts/:id/resolve
 CLI (same container):
 
 ```sh
-wlm git status
-wlm git sync
-wlm git pull songs
-wlm git push setlists
+sm git status
+sm git sync
+sm git pull songs
+sm git push setlists
 ```
 
 ## 11. Delivery phases

@@ -24,7 +24,7 @@ import type {
   SongImportScan,
   SongImportDecision,
   SongVerseOrder,
-} from "@wlm/shared";
+} from "@sm/shared";
 
 export class ApiError extends Error {
   status: number;

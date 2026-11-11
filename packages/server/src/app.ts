@@ -5,7 +5,7 @@ import cookie from "@fastify/cookie";
 import fastifyStatic from "@fastify/static";
 import multipart from "@fastify/multipart";
 import { Server } from "socket.io";
-import { displayConfigSchema, gitSettingsSchema, liveCommandSchema, quickTextSchema, type PublicUser } from "@wlm/shared";
+import { displayConfigSchema, gitSettingsSchema, liveCommandSchema, quickTextSchema, type PublicUser } from "@sm/shared";
 import { COOKIE_NAME, CONTROL_DIST, DISPLAY_DIR, FONTS_DIR, GIT_ENABLED, OUTPUT_TOKEN } from "./config.js";
 import { parseCookies, requireAuth, requireRole, userForToken } from "./auth.js";
 import { live } from "./live.js";
@@ -48,7 +48,7 @@ function sendHtml(reply: FastifyReply, file: string): FastifyReply {
 }
 
 export async function buildApp(): Promise<{ app: FastifyInstance; io: Server }> {
-  const app = Fastify({ logger: { level: process.env.WLM_LOG_LEVEL ?? "info" } });
+  const app = Fastify({ logger: { level: process.env.SM_LOG_LEVEL ?? "info" } });
 
   await app.register(cookie);
   await app.register(multipart, { limits: { fileSize: 50 * 1024 * 1024, files: 1, fields: 10 } });

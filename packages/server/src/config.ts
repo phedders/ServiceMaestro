@@ -29,14 +29,14 @@ interface FileConfig {
 }
 
 function loadConfigFile(): FileConfig {
-  const file = process.env.WLM_CONFIG_FILE;
+  const file = process.env.SM_CONFIG_FILE;
   if (!file) return {};
   try {
     if (!fs.existsSync(file)) return {};
     return (parseYaml(fs.readFileSync(file, "utf8")) ?? {}) as FileConfig;
   } catch (error) {
     // eslint-disable-next-line no-console
-    console.warn(`[wlm] Could not read config file ${file}: ${(error as Error).message}`);
+    console.warn(`[sm] Could not read config file ${file}: ${(error as Error).message}`);
     return {};
   }
 }
@@ -63,42 +63,42 @@ export interface GitRepoConfig {
   lfs: "required" | "auto" | "off";
 }
 
-export const HOST = process.env.WLM_HOST ?? "0.0.0.0";
-export const PORT = Number(process.env.WLM_PORT ?? 8080);
-export const DATA_DIR = path.resolve(process.env.WLM_DATA_DIR ?? path.join(packageRoot, "data"));
+export const HOST = process.env.SM_HOST ?? "0.0.0.0";
+export const PORT = Number(process.env.SM_PORT ?? 8080);
+export const DATA_DIR = path.resolve(process.env.SM_DATA_DIR ?? path.join(packageRoot, "data"));
 export const CONTROL_DIST = path.resolve(packageRoot, "../control/dist");
 export const DISPLAY_DIR = path.resolve(packageRoot, "../display");
 export const SONGS_DIR = path.resolve(
-  process.env.WLM_SONGS_DIR ?? path.join(packageRoot, "../../samples"),
+  process.env.SM_SONGS_DIR ?? path.join(packageRoot, "../../samples"),
 );
 export const BIBLE_DIR = path.resolve(
-  process.env.WLM_BIBLE_DIR ?? path.join(packageRoot, "../../samples/bible"),
+  process.env.SM_BIBLE_DIR ?? path.join(packageRoot, "../../samples/bible"),
 );
 export const ASSETS_DIR = path.join(DATA_DIR, "assets");
-export const FONTS_DIR = path.resolve(process.env.WLM_FONTS_DIR ?? path.join(DATA_DIR, "fonts"));
-export const TEMPLATES_DIR = path.resolve(process.env.WLM_TEMPLATES_DIR ?? path.join(DATA_DIR, "templates"));
-export const OUTPUT_TOKEN = process.env.WLM_OUTPUT_TOKEN ?? "dev-output";
-export const ADMIN_PASSWORD = process.env.WLM_ADMIN_PASSWORD ?? "admin";
-export const SESSION_DAYS = Number(process.env.WLM_SESSION_DAYS ?? 7);
-export const COOKIE_NAME = "wlm_session";
+export const FONTS_DIR = path.resolve(process.env.SM_FONTS_DIR ?? path.join(DATA_DIR, "fonts"));
+export const TEMPLATES_DIR = path.resolve(process.env.SM_TEMPLATES_DIR ?? path.join(DATA_DIR, "templates"));
+export const OUTPUT_TOKEN = process.env.SM_OUTPUT_TOKEN ?? "dev-output";
+export const ADMIN_PASSWORD = process.env.SM_ADMIN_PASSWORD ?? "admin";
+export const SESSION_DAYS = Number(process.env.SM_SESSION_DAYS ?? 7);
+export const COOKIE_NAME = "sm_session";
 
-export const GIT_ENABLED = boolEnv("WLM_GIT_ENABLED", gitConfig.enabled ?? true);
-export const GIT_AUTO_SAVE = boolEnv("WLM_GIT_AUTO_SAVE", gitConfig.autoSave ?? true);
-export const GIT_AUTO_PUSH = boolEnv("WLM_GIT_AUTO_PUSH", gitConfig.autoPush ?? true);
+export const GIT_ENABLED = boolEnv("SM_GIT_ENABLED", gitConfig.enabled ?? true);
+export const GIT_AUTO_SAVE = boolEnv("SM_GIT_AUTO_SAVE", gitConfig.autoSave ?? true);
+export const GIT_AUTO_PUSH = boolEnv("SM_GIT_AUTO_PUSH", gitConfig.autoPush ?? true);
 export const GIT_PULL_INTERVAL = Number(
-  process.env.WLM_GIT_PULL_INTERVAL ?? gitConfig.pullIntervalSeconds ?? 60,
+  process.env.SM_GIT_PULL_INTERVAL ?? gitConfig.pullIntervalSeconds ?? 60,
 );
 export const GIT_AUTHOR_NAME = stringEnv(
-  "WLM_GIT_AUTHOR_NAME",
+  "SM_GIT_AUTHOR_NAME",
   gitConfig.author?.name ?? "Service Maestro",
 );
 export const GIT_AUTHOR_EMAIL = stringEnv(
-  "WLM_GIT_AUTHOR_EMAIL",
+  "SM_GIT_AUTHOR_EMAIL",
   gitConfig.author?.email ?? "maestro@localhost",
 );
-export const GIT_SSH_KEY_FILE = process.env.WLM_GIT_SSH_KEY_FILE ?? gitConfig.sshKeyFile;
+export const GIT_SSH_KEY_FILE = process.env.SM_GIT_SSH_KEY_FILE ?? gitConfig.sshKeyFile;
 export const GIT_KNOWN_HOSTS_FILE =
-  process.env.WLM_GIT_KNOWN_HOSTS_FILE ?? gitConfig.knownHostsFile;
+  process.env.SM_GIT_KNOWN_HOSTS_FILE ?? gitConfig.knownHostsFile;
 
 function envFile(name: string): string {
   const file = process.env[`${name}_FILE`];
@@ -124,15 +124,15 @@ function optionalEnvFile(name: string): string | undefined {
   return process.env[name];
 }
 
-export const CHURCHSUITE_CLIENT_ID = envFile("WLM_CHURCHSUITE_CLIENT_ID");
-export const CHURCHSUITE_CLIENT_SECRET = envFile("WLM_CHURCHSUITE_CLIENT_SECRET");
+export const CHURCHSUITE_CLIENT_ID = envFile("SM_CHURCHSUITE_CLIENT_ID");
+export const CHURCHSUITE_CLIENT_SECRET = envFile("SM_CHURCHSUITE_CLIENT_SECRET");
 export const CHURCHSUITE_TOKEN_URL =
-  process.env.WLM_CHURCHSUITE_TOKEN_URL ?? "https://login.churchsuite.com/oauth2/token";
+  process.env.SM_CHURCHSUITE_TOKEN_URL ?? "https://login.churchsuite.com/oauth2/token";
 export const CHURCHSUITE_API_URL =
-  process.env.WLM_CHURCHSUITE_API_URL ?? "https://api.churchsuite.com/v2";
-export const CHURCHSUITE_SCOPES = process.env.WLM_CHURCHSUITE_SCOPES ?? "planning.read";
+  process.env.SM_CHURCHSUITE_API_URL ?? "https://api.churchsuite.com/v2";
+export const CHURCHSUITE_SCOPES = process.env.SM_CHURCHSUITE_SCOPES ?? "planning.read";
 export const CHURCHSUITE_REDIRECT_URI =
-  process.env.WLM_CHURCHSUITE_REDIRECT_URI ?? "";
+  process.env.SM_CHURCHSUITE_REDIRECT_URI ?? "";
 
 function repo(
   name: "songs" | "setlists" | "bibles" | "templates",
@@ -140,7 +140,7 @@ function repo(
   optional = false,
 ): GitRepoConfig {
   const fromFile = gitConfig.repositories?.[name] ?? {};
-  const envPrefix = `WLM_GIT_${name.toUpperCase()}`;
+  const envPrefix = `SM_GIT_${name.toUpperCase()}`;
   const remote =
     optionalEnvFile(`${envPrefix}_REMOTE`) ?? fromFile.remote ?? "";
   return {
@@ -150,7 +150,7 @@ function repo(
     branch: process.env[`${envPrefix}_BRANCH`] ?? fromFile.branch ?? "main",
     optional:
       name === "bibles"
-        ? boolEnv("WLM_GIT_BIBLES_OPTIONAL", fromFile.optional ?? true)
+        ? boolEnv("SM_GIT_BIBLES_OPTIONAL", fromFile.optional ?? true)
         : (fromFile.optional ?? optional),
     lfs:
       (process.env[`${envPrefix}_LFS`] as GitRepoConfig["lfs"] | undefined) ??

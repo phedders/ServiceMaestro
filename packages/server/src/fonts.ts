@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { createHash } from "node:crypto";
-import type { FontOption } from "@wlm/shared";
+import type { FontOption } from "@sm/shared";
 import { db } from "./db.js";
 import { FONTS_DIR } from "./config.js";
 

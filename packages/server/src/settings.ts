@@ -1,4 +1,4 @@
-import type { AppSettings, GitSettings } from "@wlm/shared";
+import type { AppSettings, GitSettings } from "@sm/shared";
 import { db } from "./db.js";
 import { GIT_AUTO_PUSH, GIT_AUTO_SAVE, GIT_PULL_INTERVAL } from "./config.js";
 

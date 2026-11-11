@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { KeyboardEvent as ReactKeyboardEvent } from "react";
-import type { AppSettings, FontOption, GitSettings, GitStatus } from "@wlm/shared";
+import type { AppSettings, FontOption, GitSettings, GitStatus } from "@sm/shared";
 import { api, ApiError } from "../api";
 import { compactDateTime } from "../service-date";
 import {
@@ -392,8 +392,8 @@ export default function SettingsPage({
         )}
         {testResult && <pre className="config-result">{testResult}</pre>}
         <p className="hint">
-          Set <code>WLM_CHURCHSUITE_CLIENT_ID</code> and{" "}
-          <code>WLM_CHURCHSUITE_CLIENT_SECRET</code> in the project&apos;s <code>.env</code> file
+          Set <code>SM_CHURCHSUITE_CLIENT_ID</code> and{" "}
+          <code>SM_CHURCHSUITE_CLIENT_SECRET</code> in the project&apos;s <code>.env</code> file
           next to <code>compose.yaml</code>, then restart the container.
         </p>
       </section>
@@ -491,7 +491,7 @@ export default function SettingsPage({
               <summary>Repository configuration variables</summary>
               <p className="hint">
                 Repository paths, remotes and branches are configured through the container
-                environment or <code>WLM_CONFIG_FILE</code>. Remote secrets can be mounted and read
+                environment or <code>SM_CONFIG_FILE</code>. Remote secrets can be mounted and read
                 from <code>_FILE</code> variables; never commit tokens or SSH keys. The runtime
                 auto-commit/auto-push/pull/merge options above are stored in SQLite and override the
                 environment defaults.
@@ -499,39 +499,39 @@ export default function SettingsPage({
               <div className="git-config-grid">
                 <div>
                   <strong>Songs</strong>
-                  <code>WLM_GIT_SONGS_PATH</code>
-                  <code>WLM_GIT_SONGS_REMOTE</code>
-                  <code>WLM_GIT_SONGS_REMOTE_FILE</code>
-                  <code>WLM_GIT_SONGS_BRANCH</code>
+                  <code>SM_GIT_SONGS_PATH</code>
+                  <code>SM_GIT_SONGS_REMOTE</code>
+                  <code>SM_GIT_SONGS_REMOTE_FILE</code>
+                  <code>SM_GIT_SONGS_BRANCH</code>
                 </div>
                 <div>
                   <strong>Set lists</strong>
-                  <code>WLM_GIT_SETLISTS_PATH</code>
-                  <code>WLM_GIT_SETLISTS_REMOTE</code>
-                  <code>WLM_GIT_SETLISTS_REMOTE_FILE</code>
-                  <code>WLM_GIT_SETLISTS_BRANCH</code>
+                  <code>SM_GIT_SETLISTS_PATH</code>
+                  <code>SM_GIT_SETLISTS_REMOTE</code>
+                  <code>SM_GIT_SETLISTS_REMOTE_FILE</code>
+                  <code>SM_GIT_SETLISTS_BRANCH</code>
                 </div>
                 <div>
                   <strong>Bibles</strong>
-                  <code>WLM_GIT_BIBLES_PATH</code>
-                  <code>WLM_GIT_BIBLES_REMOTE</code>
-                  <code>WLM_GIT_BIBLES_REMOTE_FILE</code>
-                  <code>WLM_GIT_BIBLES_BRANCH</code>
-                  <code>WLM_GIT_BIBLES_OPTIONAL</code>
-                  <code>WLM_GIT_BIBLES_LFS</code>
+                  <code>SM_GIT_BIBLES_PATH</code>
+                  <code>SM_GIT_BIBLES_REMOTE</code>
+                  <code>SM_GIT_BIBLES_REMOTE_FILE</code>
+                  <code>SM_GIT_BIBLES_BRANCH</code>
+                  <code>SM_GIT_BIBLES_OPTIONAL</code>
+                  <code>SM_GIT_BIBLES_LFS</code>
                 </div>
                 <div>
                   <strong>Templates</strong>
-                  <code>WLM_GIT_TEMPLATES_PATH</code>
-                  <code>WLM_GIT_TEMPLATES_REMOTE</code>
-                  <code>WLM_GIT_TEMPLATES_REMOTE_FILE</code>
-                  <code>WLM_GIT_TEMPLATES_BRANCH</code>
+                  <code>SM_GIT_TEMPLATES_PATH</code>
+                  <code>SM_GIT_TEMPLATES_REMOTE</code>
+                  <code>SM_GIT_TEMPLATES_REMOTE_FILE</code>
+                  <code>SM_GIT_TEMPLATES_BRANCH</code>
                 </div>
               </div>
               <p className="hint">
-                Global: <code>WLM_GIT_ENABLED</code>, <code>WLM_GIT_AUTO_SAVE</code>,{" "}
-                <code>WLM_GIT_AUTO_PUSH</code>, <code>WLM_GIT_PULL_INTERVAL</code>,{" "}
-                <code>WLM_GIT_SSH_KEY_FILE</code>, <code>WLM_GIT_KNOWN_HOSTS_FILE</code>. YAML
+                Global: <code>SM_GIT_ENABLED</code>, <code>SM_GIT_AUTO_SAVE</code>,{" "}
+                <code>SM_GIT_AUTO_PUSH</code>, <code>SM_GIT_PULL_INTERVAL</code>,{" "}
+                <code>SM_GIT_SSH_KEY_FILE</code>, <code>SM_GIT_KNOWN_HOSTS_FILE</code>. YAML
                 equivalent: <code>git.repositories.&lt;name&gt;.path/remote/branch</code> and{" "}
                 <code>git.repositories.&lt;name&gt;.optional/lfs</code>.
               </p>

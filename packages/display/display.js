@@ -2,9 +2,9 @@
   const target = document.body.dataset.target || "main";
   const params = new URLSearchParams(window.location.search);
   const token = params.get("token") || "dev-output";
-  const root = document.getElementById("wlm-root");
+  const root = document.getElementById("sm-root");
   const style = document.createElement("style");
-  style.id = "wlm-template-style";
+  style.id = "sm-template-style";
   document.head.appendChild(style);
 
   const socket = window.io({
@@ -33,7 +33,7 @@
       templates[target] ||
       (target === "full" ? templates.two_thirds : null) ||
       templates.main || {
-        html: '<div class="wlm-template"><div class="wlm-content">{{content}}</div><div class="wlm-footer">{{footer}}</div></div>',
+        html: '<div class="sm-template"><div class="sm-content">{{content}}</div><div class="sm-footer">{{footer}}</div></div>',
         css: "",
       }
     );
@@ -66,16 +66,16 @@
 
     const config = state.displayConfig || {};
     if (target === "main" || target === "two_thirds" || target === "full") {
-      root.style.setProperty("--wlm-text-scale", String(config.textScale ?? 1));
-      root.style.setProperty("--wlm-text-color", config.textColor || "#ffffff");
+      root.style.setProperty("--sm-text-scale", String(config.textScale ?? 1));
+      root.style.setProperty("--sm-text-color", config.textColor || "#ffffff");
       root.style.setProperty(
-        "--wlm-font-family",
+        "--sm-font-family",
         config.fontFamily || '"Clear Sans", "Segoe UI", system-ui, -apple-system, sans-serif',
       );
     } else {
-      root.style.removeProperty("--wlm-text-scale");
-      root.style.removeProperty("--wlm-text-color");
-      root.style.removeProperty("--wlm-font-family");
+      root.style.removeProperty("--sm-text-scale");
+      root.style.removeProperty("--sm-text-color");
+      root.style.removeProperty("--sm-font-family");
     }
 
     const template = templateFor(state);
@@ -89,11 +89,11 @@
       }
       root.innerHTML = html;
       lastHtml = html;
-      requestAnimationFrame(() => document.body.classList.remove("wlm-fading"));
+      requestAnimationFrame(() => document.body.classList.remove("sm-fading"));
     };
 
     if (root.innerHTML) {
-      document.body.classList.add("wlm-fading");
+      document.body.classList.add("sm-fading");
       if (fadeTimer) clearTimeout(fadeTimer);
       fadeTimer = setTimeout(commit, 190);
     } else {

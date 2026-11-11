@@ -9,7 +9,7 @@ import type {
   SetlistSummary,
   Song,
   TextFormat,
-} from "@wlm/shared";
+} from "@sm/shared";
 import { api, ApiError } from "../api";
 import { IsoDateInput } from "../components/IsoDateInput";
 import { PageContentEditor } from "../components/PageContentEditor";
@@ -766,7 +766,7 @@ export default function SetlistsPage({
             {importing ? "Reading…" : "Import set list file"}
             <input
               type="file"
-              accept=".json,.zip,.wlm-setlist.json,.wlm-bundle.zip"
+              accept=".json,.zip,.sm-setlist.json,.sm-bundle.zip"
               hidden
               onChange={(event) => chooseImport(event.target.files?.[0] ?? null)}
             />

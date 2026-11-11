@@ -1,18 +1,18 @@
 import fs from "node:fs";
 import path from "node:path";
-import type { DisplayTemplate } from "@wlm/shared";
+import type { DisplayTemplate } from "@sm/shared";
 import { DISPLAY_DIR, GIT_REPOS, TEMPLATES_DIR } from "./config.js";
 
 const ROLES = ["main", "two_thirds", "full", "stage", "chords"] as const;
 type Role = (typeof ROLES)[number];
 
 const FALLBACK_HTML = (role: string) =>
-  `<div class="wlm-template wlm-${role}"><div class="wlm-content">{{content}}</div><div class="wlm-footer">{{footer}}</div></div>`;
+  `<div class="sm-template sm-${role}"><div class="sm-content">{{content}}</div><div class="sm-footer">{{footer}}</div></div>`;
 
 const FALLBACK_CSS = `
-.wlm-template { width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 4vh 5vw; gap: 2vh; }
-.wlm-content { width: 100%; text-align: center; }
-.wlm-footer { color: rgba(255,255,255,.65); font-size: .35em; }
+.sm-template { width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 4vh 5vw; gap: 2vh; }
+.sm-content { width: 100%; text-align: center; }
+.sm-footer { color: rgba(255,255,255,.65); font-size: .35em; }
 `;
 
 function directories(setlistId: string | null): string[] {

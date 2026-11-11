@@ -8,7 +8,7 @@ import {
   type SetlistDetail,
   type SetlistItem,
   type SetlistSummary,
-} from "@wlm/shared";
+} from "@sm/shared";
 import { db } from "../db.js";
 import { requireAuth, requireRole } from "../auth.js";
 import { live } from "../live.js";

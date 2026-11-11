@@ -1,4 +1,4 @@
-import type { DisplayConfig } from "@wlm/shared";
+import type { DisplayConfig } from "@sm/shared";
 import { db } from "./db.js";
 
 interface Row {

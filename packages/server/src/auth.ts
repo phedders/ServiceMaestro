@@ -1,6 +1,6 @@
 import { randomBytes, randomUUID } from "node:crypto";
 import type { FastifyReply, FastifyRequest } from "fastify";
-import type { PublicUser, Role } from "@wlm/shared";
+import type { PublicUser, Role } from "@sm/shared";
 import { COOKIE_NAME, SESSION_DAYS } from "./config.js";
 import { db } from "./db.js";
 
@@ -101,7 +101,7 @@ export function makeSessionCookie(token: string): {
       httpOnly: true,
       sameSite: "lax",
       maxAge: SESSION_DAYS * 24 * 60 * 60,
-      secure: process.env.WLM_SECURE_COOKIES === "1",
+      secure: process.env.SM_SECURE_COOKIES === "1",
     },
   };
 }

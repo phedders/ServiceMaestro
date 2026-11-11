@@ -7,11 +7,11 @@ import type {
   SetlistImportPreview,
   SetlistImportReport,
   SongAssetKind,
-} from "@wlm/shared";
+} from "@sm/shared";
 import { db } from "./db.js";
 import { getAsset, listAssets, saveAsset } from "./assets.js";
 
-const FORMAT = "wlm.setlist";
+const FORMAT = "sm.setlist";
 const FORMAT_VERSION = 1;
 const MAX_BUNDLE = 200 * 1024 * 1024;
 
@@ -296,7 +296,7 @@ export function buildSetlistExport(
   return {
     manifest,
     files: assetFiles,
-    filename: selfContained ? `${base}.wlm-bundle.zip` : `${base}.wlm-setlist.json`,
+    filename: selfContained ? `${base}.sm-bundle.zip` : `${base}.sm-setlist.json`,
   };
 }
 

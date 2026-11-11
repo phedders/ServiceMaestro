@@ -6,7 +6,7 @@ import type {
   BiblePassage,
   BibleTranslationInfo,
   BibleVerse,
-} from "@wlm/shared";
+} from "@sm/shared";
 import { BIBLE_DIR } from "./config.js";
 
 interface Adapter {

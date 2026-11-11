@@ -1,4 +1,4 @@
-import type { LivePage } from "@wlm/shared";
+import type { LivePage } from "@sm/shared";
 import { marked } from "marked";
 import rst2html from "rst2html";
 import sanitizeHtml from "sanitize-html";

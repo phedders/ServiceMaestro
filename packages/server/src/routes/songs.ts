@@ -6,7 +6,7 @@ import {
   songVerseOrderPatchSchema,
   type Song,
   type SongVerseOrder,
-} from "@wlm/shared";
+} from "@sm/shared";
 import { db } from "../db.js";
 import { requireAuth, requireRole } from "../auth.js";
 import { saveSongToGit, deleteSongFromGit } from "../git-store.js";

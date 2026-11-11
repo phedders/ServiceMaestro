@@ -7,7 +7,7 @@ import Database from "better-sqlite3";
 import { cleanVerseText, getBooks, getPassage, loadBibleCatalog } from "../dist/bible.js";
 
 function tempDir() {
-  return fs.mkdtempSync(path.join(os.tmpdir(), "wlm-bible-"));
+  return fs.mkdtempSync(path.join(os.tmpdir(), "sm-bible-"));
 }
 
 test("cleans Bible markup and entities", () => {

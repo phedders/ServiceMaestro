@@ -4,7 +4,7 @@ import { strToU8, zipSync } from "fflate";
 import { parseSetlistFile } from "../dist/setlist-transfer.js";
 
 const MANIFEST = {
-  format: "wlm.setlist",
+  format: "sm.setlist",
   formatVersion: 1,
   exportedAt: new Date().toISOString(),
   generator: "test",
@@ -55,7 +55,7 @@ test("parses a bundle and keeps asset bytes", () => {
     "manifest.json": strToU8(JSON.stringify(entry)),
     "assets/a1.pdf": new Uint8Array([1, 2, 3]),
   });
-  const parsed = parseSetlistFile(Buffer.from(zip), "service.wlm-bundle.zip");
+  const parsed = parseSetlistFile(Buffer.from(zip), "service.sm-bundle.zip");
   assert.equal(parsed.manifest.selfContained, true);
   assert.equal(parsed.files.get("assets/a1.pdf")?.length, 3);
 });

@@ -307,7 +307,7 @@ Rate limits apply per provider and per user; downloads are user-initiated or exp
 ## 10. Licensing, security and compliance
 
 - Use only an authorized SongSelect account/subscription and the access method CCLI permits. Do not bypass paywalls, share accounts, or bulk-scrape.
-- Credentials are encrypted at rest with a master key (`WLM_SECRET_KEY` / file), never logged, and can be revoked.
+- Credentials are encrypted at rest with a master key (`SM_SECRET_KEY` / file), never logged, and can be revoked.
 - Assets are stored locally for the church's licensed use; access is limited to authenticated roles; URLs are signed and short-lived.
 - No redistribution: no public links, no external sharing, no embedding in public pages.
 - Record CCLI song number, usage date/service, and reporting status; export for CCLI reporting. Automated reporting only if an authorized API exists.

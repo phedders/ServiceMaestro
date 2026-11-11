@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import type { SongAssetKind } from "@wlm/shared";
+import type { SongAssetKind } from "@sm/shared";
 import { requireAuth, requireRole } from "../auth.js";
 import { deleteAsset, getAsset, listAssets, saveAsset } from "../assets.js";
 

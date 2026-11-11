@@ -1,5 +1,5 @@
 {
-  "name": "@wlm/control",
+  "name": "@sm/control",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -9,7 +9,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@wlm/shared": "*",
+    "@sm/shared": "*",
     "pdfjs-dist": "^6.5.438",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",

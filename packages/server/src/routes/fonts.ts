@@ -1,5 +1,5 @@
 import type { FastifyInstance } from "fastify";
-import { fontImportSchema } from "@wlm/shared";
+import { fontImportSchema } from "@sm/shared";
 import { requireAuth, requireRole } from "../auth.js";
 import { deleteFont, importGoogleFont, listFonts } from "../fonts.js";
 

@@ -23,7 +23,7 @@ See [02-architecture.md](02-architecture.md) for the application design and [03-
 | Base (runtime) | `node:24-trixie-slim` |
 | Why Debian slim (not Alpine) | `better-sqlite3` and `sharp` ship glibc prebuilds; musl builds add risk and size. |
 | Init | `tini` as PID 1 (reaps zombies, forwards signals) |
-| User | `wlm` UID/GID **10001** (numeric, no login shell) |
+| User | `sm` UID/GID **10001** (numeric, no login shell) |
 | Locale/TZ | `TZ` env, `tzdata` installed |
 | Port | `8080` (unprivileged) |
 | Healthcheck | `GET /healthz` |
@@ -44,14 +44,14 @@ FROM node:24-trixie-slim
 RUN apt-get update \
  && apt-get install -y --no-install-recommends tini ca-certificates tzdata git git-lfs openssh-client \
  && rm -rf /var/lib/apt/lists/* \
- && groupadd -g 10001 wlm && useradd -u 10001 -g wlm -M -s /usr/sbin/nologin wlm
+ && groupadd -g 10001 sm && useradd -u 10001 -g sm -M -s /usr/sbin/nologin sm
 WORKDIR /app
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/package.json ./
 USER 10001:10001
 EXPOSE 8080
-ENV NODE_ENV=production WLM_PORT=8080 WLM_DATA_DIR=/data
+ENV NODE_ENV=production SM_PORT=8080 SM_DATA_DIR=/data
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
   CMD node -e "fetch('http://127.0.0.1:8080/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 ENTRYPOINT ["/usr/bin/tini", "--"]
@@ -85,31 +85,31 @@ Environment-first, with optional file values and `_FILE` secret support:
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `WLM_PORT` | `8080` | HTTP/WS port |
-| `WLM_HOST` | `0.0.0.0` | Bind address |
-| `WLM_PUBLIC_URL` | — | Absolute URL used in generated links |
-| `WLM_DATA_DIR` | `/data` | Writable state |
-| `WLM_SONGS_DIR` | `/library/songs` | Song sources |
-| `WLM_BIBLE_DIR` | `/library/bible` | Bible SQLite files |
-| `WLM_IMAGES_DIR` | `/library/images` | Images and uploads |
-| `WLM_CONFIG_FILE` | `/config/config.json` | Optional structured config |
-| `WLM_TZ` | `Europe/London` | Service dates/times and logs |
-| `WLM_SESSION_SECRET` / `_FILE` | generated at first start | Cookie signing |
-| `WLM_SECRET_KEY` / `_FILE` | generated at first start | Master key for encrypted provider credentials (SongSelect) |
-| `WLM_PROVIDERS_ENABLED` | `false` | Enable external song providers; each provider still needs credentials |
-| `WLM_OFFLINE` | `false` | Disable all outbound provider calls while keeping cached assets |
+| `SM_PORT` | `8080` | HTTP/WS port |
+| `SM_HOST` | `0.0.0.0` | Bind address |
+| `SM_PUBLIC_URL` | — | Absolute URL used in generated links |
+| `SM_DATA_DIR` | `/data` | Writable state |
+| `SM_SONGS_DIR` | `/library/songs` | Song sources |
+| `SM_BIBLE_DIR` | `/library/bible` | Bible SQLite files |
+| `SM_IMAGES_DIR` | `/library/images` | Images and uploads |
+| `SM_CONFIG_FILE` | `/config/config.json` | Optional structured config |
+| `SM_TZ` | `Europe/London` | Service dates/times and logs |
+| `SM_SESSION_SECRET` / `_FILE` | generated at first start | Cookie signing |
+| `SM_SECRET_KEY` / `_FILE` | generated at first start | Master key for encrypted provider credentials (SongSelect) |
+| `SM_PROVIDERS_ENABLED` | `false` | Enable external song providers; each provider still needs credentials |
+| `SM_OFFLINE` | `false` | Disable all outbound provider calls while keeping cached assets |
 | `HTTPS_PROXY`, `NO_PROXY` | unset | Egress proxy for provider access |
-| `WLM_MAX_ASSET_MB` | `100` | Per-file cap for PDFs/tabs/ChordPro |
-| `WLM_OUTPUT_LEGACY_TOKEN` / `_FILE` | unset | Optional token-free legacy `/obs-*` access (disabled by default) |
-| `WLM_MAX_IMPORT_MB` | `200` | Set list/media import cap |
-| `WLM_FONTS_DIR` | `/data/fonts` | Cached Google Fonts CSS/woff2 files |
-| `WLM_CHURCHSUITE_CLIENT_ID` / `_FILE` | unset | ChurchSuite API user client id |
-| `WLM_CHURCHSUITE_CLIENT_SECRET` / `_FILE` | unset | ChurchSuite API user secret |
-| `WLM_CHURCHSUITE_SCOPES` | `planning.read` | Requested ChurchSuite scopes |
-| `WLM_LOG_LEVEL` | `info` | `debug`/`info`/`warn`/`error` |
-| `WLM_TRUST_PROXY` | `false` | Honour `X-Forwarded-*` behind TLS proxy |
+| `SM_MAX_ASSET_MB` | `100` | Per-file cap for PDFs/tabs/ChordPro |
+| `SM_OUTPUT_LEGACY_TOKEN` / `_FILE` | unset | Optional token-free legacy `/obs-*` access (disabled by default) |
+| `SM_MAX_IMPORT_MB` | `200` | Set list/media import cap |
+| `SM_FONTS_DIR` | `/data/fonts` | Cached Google Fonts CSS/woff2 files |
+| `SM_CHURCHSUITE_CLIENT_ID` / `_FILE` | unset | ChurchSuite API user client id |
+| `SM_CHURCHSUITE_CLIENT_SECRET` / `_FILE` | unset | ChurchSuite API user secret |
+| `SM_CHURCHSUITE_SCOPES` | `planning.read` | Requested ChurchSuite scopes |
+| `SM_LOG_LEVEL` | `info` | `debug`/`info`/`warn`/`error` |
+| `SM_TRUST_PROXY` | `false` | Honour `X-Forwarded-*` behind TLS proxy |
 
-Secrets are never printed; `_FILE` variants allow Docker/Podman secrets and Incus/LXC files. Git repositories use `WLM_GIT_*` remotes (`ssh://` or `https://token@…`), SSH key/known-hosts secrets, and optional Git LFS for Bibles — see [11-git-data-sync.md](11-git-data-sync.md).
+Secrets are never printed; `_FILE` variants allow Docker/Podman secrets and Incus/LXC files. Git repositories use `SM_GIT_*` remotes (`ssh://` or `https://token@…`), SSH key/known-hosts secrets, and optional Git LFS for Bibles — see [11-git-data-sync.md](11-git-data-sync.md).
 
 ## 5. Docker / Podman
 
@@ -124,8 +124,8 @@ services:
     ports:
       - "8080:8080"
     environment:
-      WLM_TZ: Europe/London
-      WLM_PUBLIC_URL: http://10.181.1.10:8080
+      SM_TZ: Europe/London
+      SM_PUBLIC_URL: http://10.181.1.10:8080
     volumes:
       - ./data:/data
       - ./library/songs:/library/songs:ro
@@ -160,13 +160,13 @@ If the installed Incus supports OCI application containers:
 
 ```sh
 incus remote add docker https://docker.io --protocol=oci
-incus launch docker:ghcr.io/example/service-maestro:0.1 wlm
+incus launch docker:ghcr.io/example/service-maestro:0.1 sm
 
-incus config device add wlm data disk source=/srv/wlm/data path=/data shift=true
-incus config device add wlm songs disk source=/srv/wlm/songs path=/library/songs shift=true readonly=true
-incus config device add wlm bible disk source=/srv/wlm/bible path=/library/bible shift=true readonly=true
-incus config device add wlm images disk source=/srv/wlm/images path=/library/images shift=true
-incus config device add wlm proxy proxy listen=tcp:0.0.0.0:8080 connect=tcp:127.0.0.1:8080
+incus config device add sm data disk source=/srv/sm/data path=/data shift=true
+incus config device add sm songs disk source=/srv/sm/songs path=/library/songs shift=true readonly=true
+incus config device add sm bible disk source=/srv/sm/bible path=/library/bible shift=true readonly=true
+incus config device add sm images disk source=/srv/sm/images path=/library/images shift=true
+incus config device add sm proxy proxy listen=tcp:0.0.0.0:8080 connect=tcp:127.0.0.1:8080
 ```
 
 This mode runs the container image as a single application (no systemd), exactly like Docker/Podman.
@@ -176,11 +176,11 @@ This mode runs the container image as a single application (no systemd), exactly
 Run a normal Debian container and a systemd unit; the app is the same Node build.
 
 ```sh
-incus launch images:debian/12 wlm
-incus exec wlm -- bash -c 'apt-get update && apt-get install -y curl ca-certificates tini tzdata git git-lfs openssh-client'
+incus launch images:debian/12 sm
+incus exec sm -- bash -c 'apt-get update && apt-get install -y curl ca-certificates tini tzdata git git-lfs openssh-client'
 
 # Install a pinned Node 24 runtime (official binary tarball avoids distro lag)
-incus exec wlm -- bash -c '
+incus exec sm -- bash -c '
   set -e
   NODE_VERSION=24.x.y   # pin an exact release and verify its SHA256
   curl -fsSLO "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-x64.tar.xz"
@@ -189,21 +189,21 @@ incus exec wlm -- bash -c '
   ln -sf /opt/node/bin/node /usr/local/bin/node
   ln -sf /opt/node/bin/npm /usr/local/bin/npm'
 
-incus exec wlm -- useradd -r -u 10001 -U -M -s /usr/sbin/nologin wlm
-# copy /opt/wlm (dist + node_modules), /config, systemd unit
-incus file push -r ./deploy/opt/wlm wlm/opt/
-incus file push ./deploy/wlm.service wlm/etc/systemd/system/wlm.service
-incus exec wlm -- systemctl daemon-reload
-incus exec wlm -- systemctl enable --now wlm
+incus exec sm -- useradd -r -u 10001 -U -M -s /usr/sbin/nologin sm
+# copy /opt/sm (dist + node_modules), /config, systemd unit
+incus file push -r ./deploy/opt/sm sm/opt/
+incus file push ./deploy/sm.service sm/etc/systemd/system/sm.service
+incus exec sm -- systemctl daemon-reload
+incus exec sm -- systemctl enable --now sm
 
-incus config device add wlm data disk source=/srv/wlm/data path=/data shift=true
-incus config device add wlm songs disk source=/srv/wlm/songs path=/library/songs shift=true readonly=true
-incus config device add wlm bible disk source=/srv/wlm/bible path=/library/bible shift=true readonly=true
-incus config device add wlm images disk source=/srv/wlm/images path=/library/images shift=true
-incus config device add wlm proxy proxy listen=tcp:0.0.0.0:8080 connect=tcp:127.0.0.1:8080
+incus config device add sm data disk source=/srv/sm/data path=/data shift=true
+incus config device add sm songs disk source=/srv/sm/songs path=/library/songs shift=true readonly=true
+incus config device add sm bible disk source=/srv/sm/bible path=/library/bible shift=true readonly=true
+incus config device add sm images disk source=/srv/sm/images path=/library/images shift=true
+incus config device add sm proxy proxy listen=tcp:0.0.0.0:8080 connect=tcp:127.0.0.1:8080
 ```
 
-`/etc/systemd/system/wlm.service`:
+`/etc/systemd/system/sm.service`:
 
 ```ini
 [Unit]
@@ -213,10 +213,10 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-User=wlm
-Group=wlm
-EnvironmentFile=/config/wlm.env
-ExecStart=/usr/local/bin/node /opt/wlm/dist/server.js
+User=sm
+Group=sm
+EnvironmentFile=/config/sm.env
+ExecStart=/usr/local/bin/node /opt/sm/dist/server.js
 Restart=on-failure
 RestartSec=3
 NoNewPrivileges=true
@@ -243,10 +243,10 @@ LXC (without Incus) follows Option B: unprivileged container, `lxc.idmap`/subuid
 
 - Expose only `8080`. OBS Browser Sources point at `http://<host>:8080/display/main?token=…` (and legacy `/obs-main` aliases).
 - WebSockets use normal HTTP upgrade; if a reverse proxy is added, enable upgrade headers and set generous read timeouts (long-lived output sockets).
-- TLS is optional and best terminated by Caddy/nginx/Traefik in front. Set `WLM_PUBLIC_URL` and `WLM_TRUST_PROXY=true` accordingly.
+- TLS is optional and best terminated by Caddy/nginx/Traefik in front. Set `SM_PUBLIC_URL` and `SM_TRUST_PROXY=true` accordingly.
 - LAN-only deployments can skip TLS; output tokens still prevent casual access.
 - No mDNS/discovery is required; outputs are plain URLs.
-- **Outbound HTTPS is optional** and only needed for SongSelect/providers: allow egress to CCLI/SongSelect through `HTTPS_PROXY`/`NO_PROXY`, or keep `WLM_OFFLINE=true` with manual imports and cached assets. Search/download endpoints are user-initiated; no background crawling.
+- **Outbound HTTPS is optional** and only needed for SongSelect/providers: allow egress to CCLI/SongSelect through `HTTPS_PROXY`/`NO_PROXY`, or keep `SM_OFFLINE=true` with manual imports and cached assets. Search/download endpoints are user-initiated; no background crawling.
 - OBS never talks to providers directly; it only reaches the app on the LAN.
 
 ## 8. Resource sizing
@@ -267,8 +267,8 @@ LXC (without Incus) follows Option B: unprivileged container, `lxc.idmap`/subuid
 
 - **Database:** `sqlite3 /data/app.sqlite "VACUUM INTO '/backups/app-$(date +%F).sqlite'"` (online, consistent).
 - **Media/assets:** snapshot `/library/images` and `/data/assets`; deduplicated by hash where possible.
-- **Set lists:** scheduled `wlm backup --all` producing reference JSON + bundles (see content model §12).
-- **Secrets:** back up `WLM_SECRET_KEY` separately (without it, encrypted SongSelect credentials cannot be restored).
+- **Set lists:** scheduled `sm backup --all` producing reference JSON + bundles (see content model §12).
+- **Secrets:** back up `SM_SECRET_KEY` separately (without it, encrypted SongSelect credentials cannot be restored).
 - **Before migrations:** automatic DB copy to `/backups/pre-migrate-<version>.sqlite`; migrations run under a lock at startup.
 - **Restore:** stop container → restore DB/media/assets → start; `/healthz` verifies schema version and directories.
 - Volumes are the unit of restore; container image is replaceable.
@@ -314,7 +314,7 @@ Also test: tiny memory limit, SIGTERM during live session (outputs reconnect), D
 3. `deploy/incus/` — profile or provisioning script, systemd unit, env template.
 4. Config loader with env/`_FILE` support and path validation.
 5. `/healthz`/`/readyz`, graceful shutdown, migration lock.
-6. Backup command (`wlm backup --all`) and documented restore.
+6. Backup command (`sm backup --all`) and documented restore.
 7. CI: multi-arch build, image scan, smoke test in Docker and Podman; Incus test job if available.
 8. Documentation: volumes, UID/GID, TLS proxy, OBS URLs, upgrade steps.
 

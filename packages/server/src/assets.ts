@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { createHash, randomUUID } from "node:crypto";
-import type { SongAsset, SongAssetKind } from "@wlm/shared";
+import type { SongAsset, SongAssetKind } from "@sm/shared";
 import { ASSETS_DIR, DATA_DIR } from "./config.js";
 import { db } from "./db.js";
 

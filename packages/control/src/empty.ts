@@ -1,4 +1,4 @@
-import type { LiveState } from "@wlm/shared";
+import type { LiveState } from "@sm/shared";
 
 export const EMPTY_LIVE: LiveState = {
   sessionId: "",

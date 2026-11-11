@@ -515,13 +515,13 @@ export async function initializeGitStorage(): Promise<void> {
           const existing = runtimes.get(config.name);
           if (existing) existing.lastError = safeError(error, config.remote);
           // eslint-disable-next-line no-console
-          console.warn(`[wlm] Git repository ${config.name} unavailable: ${safeError(error, config.remote)}`);
+          console.warn(`[sm] Git repository ${config.name} unavailable: ${safeError(error, config.remote)}`);
         }
       }
     });
   } catch (error) {
     // eslint-disable-next-line no-console
-    console.warn(`[wlm] Git storage disabled: ${(error as Error).message}`);
+    console.warn(`[sm] Git storage disabled: ${(error as Error).message}`);
   }
 
   configureGitAutoSync();

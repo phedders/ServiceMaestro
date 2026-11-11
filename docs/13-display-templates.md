@@ -24,7 +24,7 @@ Templates are HTML + CSS pairs. The server resolves them per output role and sen
    `templates/<setlist-id>/<role>.html` + `.css`
 2. global templates in the **set lists repo**:
    `templates/<role>.html` + `.css`
-3. **templates folder**: `WLM_TEMPLATES_DIR` (default `/data/templates`)
+3. **templates folder**: `SM_TEMPLATES_DIR` (default `/data/templates`)
 4. **templates repo**: `<path>/templates/<role>.html` or `<path>/<role>.html`
 5. built-in templates in `packages/display/templates`
 
@@ -57,7 +57,7 @@ Templates are trusted configuration (admin-controlled). Content is server-render
 
 ### Default fade
 
-The display client fades the composed tree out, swaps content, and fades it back in using the `.wlm-fading` body class and a CSS transition on `.wlm-template`. Blanking uses the same opacity transition. Custom templates should keep the `.wlm-template` class to inherit the fade.
+The display client fades the composed tree out, swaps content, and fades it back in using the `.sm-fading` body class and a CSS transition on `.sm-template`. Blanking uses the same opacity transition. Custom templates should keep the `.sm-template` class to inherit the fade.
 
 ## 3. Text item formats
 

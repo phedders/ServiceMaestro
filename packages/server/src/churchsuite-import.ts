@@ -4,7 +4,7 @@ import type {
   ChurchSuiteItemPreview,
   ChurchSuitePlanPreview,
   ChurchSuitePlanSummary,
-} from "@wlm/shared";
+} from "@sm/shared";
 import { db } from "./db.js";
 import { getChurchsuitePlan, listChurchsuitePlanItems, listChurchsuiteTypes } from "./churchsuite.js";
 import { saveSetlistToGit } from "./git-store.js";
