@@ -236,8 +236,18 @@ test("renders image items", () => {
     maxLines: 4,
   });
   assert.equal(pages.length, 1);
-  assert.match(pages[0].html, /class="slide-image"/);
+  assert.match(pages[0].html, /class="slide-image fit-scale"/);
   assert.match(pages[0].html, /\/api\/images\/file\?path=backgrounds%2Ftest\.png/);
+
+  const cropped = buildPages({
+    kind: "image",
+    title: "Background",
+    content: "backgrounds/test.png",
+    imageFit: "crop",
+    transpose: 0,
+    maxLines: 4,
+  });
+  assert.match(cropped[0].html, /class="slide-image fit-crop"/);
 });
 
 test("smart wrapping keeps split words together", () => {  const pages = buildPages(

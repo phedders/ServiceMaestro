@@ -12,6 +12,7 @@ export interface RenderItem {
   content?: string | null;
   format?: TextFormat | null;
   textAlign?: "left" | "center";
+  imageFit?: "scale" | "actual" | "crop" | "stretch";
   lyricsMarkdown?: boolean;
   key?: string | null;
   keyOverride?: string | null;
@@ -548,11 +549,15 @@ export function buildPages(
       return [{ index: 0, section: null, html: "" }];
     }
     const url = `/api/images/file?path=${encodeURIComponent(relative)}&token=${encodeURIComponent(OUTPUT_TOKEN)}`;
+    const fit =
+      item.imageFit === "actual" || item.imageFit === "crop" || item.imageFit === "stretch"
+        ? item.imageFit
+        : "scale";
     return [
       {
         index: 0,
         section: null,
-        html: `<div class="slide-image"><img src="${escapeHtml(url)}" alt="${escapeHtml(item.title)}" /></div>`,
+        html: `<div class="slide-image fit-${fit}"><img src="${escapeHtml(url)}" alt="${escapeHtml(item.title)}" /></div>`,
       },
     ];
   }

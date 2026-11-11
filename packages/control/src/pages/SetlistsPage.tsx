@@ -124,6 +124,9 @@ function ItemRow({
   );
   const [format, setFormat] = useState<TextFormat>(initial.format);
   const [textAlign, setTextAlign] = useState<"left" | "center">(item.textAlign ?? "left");
+  const [imageFit, setImageFit] = useState<"scale" | "actual" | "crop" | "stretch">(
+    item.imageFit ?? "scale",
+  );
   const [keyOverride, setKeyOverride] = useState(item.keyOverride ?? "");
   const [transpose, setTranspose] = useState(item.transpose);
   const [verseOrder, setVerseOrder] = useState(item.verseOrder ?? "");
@@ -138,6 +141,7 @@ function ItemRow({
     setTitle(item.title);
     setFormat(next.format);
     setTextAlign(item.textAlign ?? "left");
+    setImageFit(item.imageFit ?? "scale");
     setContent(item.kind === "song" ? item.content ?? song?.lyrics ?? "" : next.content);
     setKeyOverride(item.keyOverride ?? "");
     setTranspose(item.transpose);
@@ -158,6 +162,7 @@ function ItemRow({
     setTitle(item.title);
     setFormat(next.format);
     setTextAlign(item.textAlign ?? "left");
+    setImageFit(item.imageFit ?? "scale");
     setContent(item.kind === "song" ? item.content ?? song?.lyrics ?? "" : next.content);
     setKeyOverride(item.keyOverride ?? "");
     setTranspose(item.transpose);
@@ -187,6 +192,7 @@ function ItemRow({
       return {
         title: title.trim() || content.split("/").pop() || "Image",
         content,
+        imageFit,
         notes: notes || null,
       };
     }
@@ -364,6 +370,20 @@ function ItemRow({
                       {image.path}
                     </option>
                   ))}
+                </select>
+              </label>
+              <label>
+                Image display
+                <select
+                  value={imageFit}
+                  onChange={(event) =>
+                    setImageFit(event.target.value as "scale" | "actual" | "crop" | "stretch")
+                  }
+                >
+                  <option value="scale">Scale to screen (default)</option>
+                  <option value="actual">1:1 actual size</option>
+                  <option value="crop">Crop to fill</option>
+                  <option value="stretch">Stretch to fill</option>
                 </select>
               </label>
               <label>
@@ -563,6 +583,7 @@ export default function SetlistsPage({
   const [songToAdd, setSongToAdd] = useState("");
   const [imageToAdd, setImageToAdd] = useState("");
   const [imageTitle, setImageTitle] = useState("");
+  const [imageFitAdd, setImageFitAdd] = useState<"scale" | "actual" | "crop" | "stretch">("scale");
   const [uploadingImage, setUploadingImage] = useState(false);
   const [songSearch, setSongSearch] = useState("");
   const [songSearchFields, setSongSearchFields] = useState({
@@ -666,10 +687,12 @@ export default function SetlistsPage({
         kind: "image",
         title: imageTitle.trim() || imageToAdd.split("/").pop() || "Image",
         content: imageToAdd,
+        imageFit: imageFitAdd,
       });
       setDetail(result.setlist);
       setImageTitle("");
       setImageToAdd("");
+      setImageFitAdd("scale");
       await loadList(detail.id);
     } catch (error) {
       notify(error instanceof ApiError ? error.message : "Could not add image", "error");
@@ -1211,6 +1234,17 @@ export default function SetlistsPage({
                 onChange={(event) => setImageTitle(event.target.value)}
                 placeholder="Title (optional)"
               />
+              <select
+                value={imageFitAdd}
+                onChange={(event) =>
+                  setImageFitAdd(event.target.value as "scale" | "actual" | "crop" | "stretch")
+                }
+              >
+                <option value="scale">Scale to screen (default)</option>
+                <option value="actual">1:1 actual size</option>
+                <option value="crop">Crop to fill</option>
+                <option value="stretch">Stretch to fill</option>
+              </select>
               <button
                 className="button"
                 onClick={addImage}

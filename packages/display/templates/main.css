@@ -18,6 +18,40 @@ body[data-target="main"] {
   text-shadow: 0 2px 18px rgba(0, 0, 0, 0.6);
 }
 
+body.mode-image .sm-main {
+  padding: 0;
+}
+
+body.mode-image .sm-main .sm-footer {
+  display: none;
+}
+
+.sm-main .slide-image {
+  height: 33vh;
+  max-height: 33vh;
+  padding: 48px;
+  box-sizing: border-box;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.sm-main .slide-image img {
+  max-height: calc(33vh - 96px);
+  max-width: 100%;
+}
+
+.sm-main .slide-image.fit-crop,
+.sm-main .slide-image.fit-stretch {
+  height: 33vh;
+  max-height: 33vh;
+}
+
+.sm-main .slide-image.fit-crop img,
+.sm-main .slide-image.fit-stretch img {
+  width: 100%;
+  height: 100%;
+}
+
 .sm-main .sm-content .slide-inner {
   display: flex;
   flex-direction: column;

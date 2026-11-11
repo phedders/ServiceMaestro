@@ -79,6 +79,7 @@
     const blank = Boolean(state.blank) || idle;
     document.body.classList.toggle("blank", blank);
     document.body.classList.toggle("idle", idle);
+    document.body.classList.toggle("mode-image", state.mode === "image");
 
     const config = state.displayConfig || {};
     if (target === "main" || target === "two_thirds" || target === "full") {

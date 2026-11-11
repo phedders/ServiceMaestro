@@ -38,6 +38,7 @@ export interface Song {
 }
 
 export type ItemKind = "song" | "text" | "image";
+export type ImageFit = "scale" | "actual" | "crop" | "stretch";
 
 export interface SetlistItem {
   id: string;
@@ -48,6 +49,7 @@ export interface SetlistItem {
   content: string | null;
   format: TextFormat | null;
   textAlign: "left" | "center";
+  imageFit: ImageFit;
   keyOverride: string | null;
   transpose: number;
   maxLines: number;
@@ -427,6 +429,7 @@ export const setlistItemInputSchema = z.object({
   content: z.string().max(200_000).optional().nullable(),
   format: z.enum(["text", "markdown", "html", "rst"]).optional().nullable(),
   textAlign: z.enum(["left", "center"]).optional(),
+  imageFit: z.enum(["scale", "actual", "crop", "stretch"]).optional(),
   keyOverride: z.string().trim().max(10).optional().nullable(),
   transpose: z.number().int().min(-24).max(24).optional(),
   maxLines: z.number().int().min(1).max(30).optional(),

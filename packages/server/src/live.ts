@@ -91,6 +91,7 @@ function resolveSetlistItems(setlistId: string): { name: string; items: Snapshot
     content: string | null;
     text_format: string | null;
     text_align: string | null;
+    image_fit: string | null;
     key_override: string | null;
     transpose: number;
     max_lines: number;
@@ -126,6 +127,10 @@ function resolveSetlistItems(setlistId: string): { name: string; items: Snapshot
         songId: null,
         title: row.title || "Image",
         content: row.content ?? "",
+        imageFit:
+          row.image_fit === "actual" || row.image_fit === "crop" || row.image_fit === "stretch"
+            ? row.image_fit
+            : "scale",
         transpose: 0,
         maxLines: row.max_lines,
         verseOrder: null,

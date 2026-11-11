@@ -35,6 +35,7 @@ interface ItemRow {
   content: string | null;
   text_format: string | null;
   text_align: string | null;
+  image_fit: string | null;
   key_override: string | null;
   transpose: number;
   max_lines: number;
@@ -60,6 +61,10 @@ function mapItem(row: ItemRow): SetlistItem {
     content: row.content,
     format: (row.text_format as SetlistItem["format"]) ?? null,
     textAlign: row.text_align === "center" ? "center" : "left",
+    imageFit:
+      row.image_fit === "actual" || row.image_fit === "crop" || row.image_fit === "stretch"
+        ? row.image_fit
+        : "scale",
     keyOverride: row.key_override,
     transpose: row.transpose,
     maxLines: row.max_lines,
@@ -219,8 +224,8 @@ export async function setlistRoutes(app: FastifyInstance): Promise<void> {
       const itemId = randomUUID();
       db.prepare(
         `INSERT INTO setlist_items
-         (id, setlist_id, position, kind, song_id, title, content, text_format, text_align, key_override, transpose, max_lines, verse_order, notes)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         (id, setlist_id, position, kind, song_id, title, content, text_format, text_align, image_fit, key_override, transpose, max_lines, verse_order, notes)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       ).run(
         itemId,
         id,
@@ -231,6 +236,7 @@ export async function setlistRoutes(app: FastifyInstance): Promise<void> {
         content,
         format,
         data.kind === "text" ? data.textAlign ?? "left" : null,
+        data.kind === "image" ? data.imageFit ?? "scale" : "scale",
         data.keyOverride ?? null,
         data.transpose ?? 0,
         data.maxLines ?? 4,
@@ -268,7 +274,7 @@ export async function setlistRoutes(app: FastifyInstance): Promise<void> {
         }
       }
       db.prepare(
-        `UPDATE setlist_items SET title = ?, content = ?, text_format = ?, text_align = ?, key_override = ?, transpose = ?, max_lines = ?, verse_order = ?, notes = ?
+        `UPDATE setlist_items SET title = ?, content = ?, text_format = ?, text_align = ?, image_fit = ?, key_override = ?, transpose = ?, max_lines = ?, verse_order = ?, notes = ?
          WHERE id = ?`,
       ).run(
         data.title ?? existing.title,
@@ -277,6 +283,7 @@ export async function setlistRoutes(app: FastifyInstance): Promise<void> {
         existing.kind === "text"
           ? data.textAlign ?? existing.text_align ?? "left"
           : null,
+        data.imageFit ?? existing.image_fit ?? "scale",
         data.keyOverride !== undefined ? data.keyOverride : existing.key_override,
         data.transpose ?? existing.transpose,
         data.maxLines ?? existing.max_lines,
