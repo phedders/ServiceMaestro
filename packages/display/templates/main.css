@@ -12,7 +12,7 @@ body[data-target="main"] {
 .sm-main .sm-content {
   width: 100%;
   font-size: calc(clamp(2.2rem, 4.4vw, 5.5rem) * var(--sm-text-scale, 1));
-  line-height: 1.18;
+  line-height: 0.8;
   color: var(--sm-text-color, #ffffff);
   font-family: var(--sm-font-family, inherit);
   text-shadow: 0 2px 18px rgba(0, 0, 0, 0.6);

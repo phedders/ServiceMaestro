@@ -19,7 +19,7 @@ body[data-target="chords"] {
 
 .sm-chords .sm-content {
   font-size: clamp(1.7rem, 3.4vw, 4.4rem);
-  line-height: 1.35;
+  line-height: 0.9;
   flex: 1;
   min-height: 0;
   width: 100%;

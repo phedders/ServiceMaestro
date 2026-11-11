@@ -18,6 +18,11 @@ body[data-target="full"] {
   font-family: var(--sm-font-family, inherit);
 }
 
+/* The full-screen output reuses the two-thirds template with tighter lines. */
+body[data-target="full"] .sm-two-thirds .sm-content {
+  line-height: 0.9;
+}
+
 .sm-two-thirds .sm-content .slide-inner {
   display: flex;
   flex-direction: column;
