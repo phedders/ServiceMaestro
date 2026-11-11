@@ -324,8 +324,10 @@ export default function HelpPage({ onOpenSettings }: { onOpenSettings: () => voi
                 <strong> Stretch</strong> fills and can distort.
               </li>
               <li>
-                On the lower-third output the image occupies the bottom 33% of the screen with 48px
-                padding and never shows a filename or title.
+                On the lower-third output images always keep their aspect ratio, sit at the bottom
+                and never show a filename or title. Their maximum height and padding are set in
+                <strong> Live control → Display config</strong>; defaults are 30% of the viewport and
+                48px.
               </li>
             </ul>
           </article>
@@ -373,7 +375,7 @@ export default function HelpPage({ onOpenSettings }: { onOpenSettings: () => voi
                 <td>
                   <code>/display/lowerthird?token=…</code>
                 </td>
-                <td>Transparent lyric overlay; images use the bottom third.</td>
+                <td>Transparent lyric overlay; images use the configurable bottom area.</td>
               </tr>
               <tr>
                 <td>Full screen</td>
@@ -489,8 +491,9 @@ export default function HelpPage({ onOpenSettings }: { onOpenSettings: () => voi
             <ul className="help-list">
               <li>Edit the image item and choose the intended image display mode.</li>
               <li>
-                On the lower-third output, images are deliberately limited to the bottom 33% with
-                48px padding. Use the full-screen output for a larger image.
+                On the lower-third output, images are limited to the configured maximum height and
+                padding under <strong>Live control → Display config</strong>. Use the full-screen
+                output for a larger image.
               </li>
             </ul>
           </details>

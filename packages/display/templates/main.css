@@ -27,29 +27,32 @@ body.mode-image .sm-main .sm-footer {
 }
 
 .sm-main .slide-image {
-  height: 33vh;
-  max-height: 33vh;
-  padding: 48px;
+  height: var(--sm-lowerthird-image-max-height, 30vh);
+  max-height: var(--sm-lowerthird-image-max-height, 30vh);
+  padding: var(--sm-lowerthird-image-padding, 48px);
   box-sizing: border-box;
   align-items: flex-end;
   justify-content: center;
 }
 
-.sm-main .slide-image img {
-  max-height: calc(33vh - 96px);
-  max-width: 100%;
-}
-
-.sm-main .slide-image.fit-crop,
-.sm-main .slide-image.fit-stretch {
-  height: 33vh;
-  max-height: 33vh;
-}
-
+/* Images keep their aspect ratio on the lower-third; the height limit and
+   padding reduce the available content box. */
+.sm-main .slide-image img,
+.sm-main .slide-image.fit-actual img,
 .sm-main .slide-image.fit-crop img,
 .sm-main .slide-image.fit-stretch img {
-  width: 100%;
-  height: 100%;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.sm-main .slide-image.fit-actual,
+.sm-main .slide-image.fit-crop,
+.sm-main .slide-image.fit-stretch {
+  height: var(--sm-lowerthird-image-max-height, 30vh);
+  max-height: var(--sm-lowerthird-image-max-height, 30vh);
 }
 
 .sm-main .sm-content .slide-inner {

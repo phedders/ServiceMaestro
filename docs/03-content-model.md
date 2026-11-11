@@ -62,7 +62,7 @@ Ordered list; each item has a kind:
 | `image` | image path under `SM_IMAGES_DIR` | title, notes (current implementation) |
 | `placeholder` | — | title/notes only (e.g. "Sermon", "Offering") |
 
-Image items reference a library-relative path; the set-list editor can select or upload an image without copying it into the set-list data. Live pages include the image via an output-token image URL. Each image item has a display mode: **scale to screen** (default, preserve aspect ratio and fit), **1:1** (native size), **crop** (fill and crop) or **stretch** (fill and distort). On the lower-third/main output the image area is anchored to the bottom, limited to 33% of the screen height and inset by 48px.
+Image items reference a library-relative path; the set-list editor can select or upload an image without copying it into the set-list data. Live pages include the image via an output-token image URL. Each image item has a display mode: **scale to screen** (default, preserve aspect ratio and fit), **1:1** (native size), **crop** (fill and crop) or **stretch** (fill and distort). On the lower-third/main output the image is anchored to the bottom and always preserves its aspect ratio; crop/stretch modes are not applied there. Its maximum height is configurable (default 30% of the viewport) and the configured padding is subtracted from that height.
 
 A **placeholder** is useful for service plans: it keeps the order meaningful without creating output. It is skipped by `next`/`prev` unless explicitly focused.
 

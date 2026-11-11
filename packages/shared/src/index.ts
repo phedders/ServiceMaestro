@@ -134,6 +134,8 @@ export interface DisplayConfig {
   maxLines: number;
   maxWords: number;
   smartPageSplits: boolean;
+  lowerThirdImageMaxHeightPercent: number;
+  lowerThirdImagePadding: number;
 }
 
 export interface FontOption {
@@ -503,6 +505,8 @@ export const displayConfigSchema = z.object({
   maxLines: z.number().int().min(1).max(30),
   maxWords: z.number().int().min(1).max(500).default(90),
   smartPageSplits: z.boolean().default(true),
+  lowerThirdImageMaxHeightPercent: z.number().min(5).max(100).default(30),
+  lowerThirdImagePadding: z.number().int().min(0).max(200).default(48),
 });
 
 export const fontImportSchema = z

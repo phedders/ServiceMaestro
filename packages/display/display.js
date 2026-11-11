@@ -90,6 +90,14 @@
         "--sm-font-family",
         config.fontFamily || '"Clear Sans", "Segoe UI", system-ui, -apple-system, sans-serif',
       );
+      root.style.setProperty(
+        "--sm-lowerthird-image-max-height",
+        `${config.lowerThirdImageMaxHeightPercent ?? 30}vh`,
+      );
+      root.style.setProperty(
+        "--sm-lowerthird-image-padding",
+        `${config.lowerThirdImagePadding ?? 48}px`,
+      );
     } else {
       root.style.removeProperty("--sm-text-scale");
       root.style.removeProperty("--sm-text-color");

@@ -112,6 +112,8 @@ db.exec(`
     max_lines INTEGER NOT NULL,
     max_words INTEGER NOT NULL DEFAULT 90,
     smart_page_splits INTEGER NOT NULL DEFAULT 1,
+    lower_third_image_max_height_percent REAL NOT NULL DEFAULT 30,
+    lower_third_image_padding INTEGER NOT NULL DEFAULT 48,
     updated_at TEXT NOT NULL
   );
 
@@ -180,11 +182,15 @@ ensureColumn("service_sessions", "revision_id", "TEXT");
 ensureColumn("service_sessions", "pending_json", "TEXT");
 ensureColumn("display_config", "max_words", "INTEGER NOT NULL DEFAULT 90");
 ensureColumn("display_config", "smart_page_splits", "INTEGER NOT NULL DEFAULT 1");
+ensureColumn("display_config", "lower_third_image_max_height_percent", "REAL NOT NULL DEFAULT 30");
+ensureColumn("display_config", "lower_third_image_padding", "INTEGER NOT NULL DEFAULT 48");
 db.exec("CREATE INDEX IF NOT EXISTS idx_songs_source_path ON songs(source_path)");
 
 db.prepare(
-  `INSERT INTO display_config (id, font_family, text_color, text_scale, max_lines, max_words, smart_page_splits, updated_at)
-   VALUES ('default', ?, ?, ?, ?, ?, ?, ?)
+  `INSERT INTO display_config
+     (id, font_family, text_color, text_scale, max_lines, max_words, smart_page_splits,
+      lower_third_image_max_height_percent, lower_third_image_padding, updated_at)
+   VALUES ('default', ?, ?, ?, ?, ?, ?, ?, ?, ?)
    ON CONFLICT(id) DO NOTHING`,
 ).run(
   '"Clear Sans", "Segoe UI", system-ui, -apple-system, sans-serif',
@@ -193,6 +199,8 @@ db.prepare(
   4,
   90,
   1,
+  30,
+  48,
   new Date().toISOString(),
 );
 

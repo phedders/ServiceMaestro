@@ -122,6 +122,8 @@ A **Display config** panel on the Live page controls:
 - **Text size** — 50–200% scale.
 - **Max lines per page** — the number of lines after which a song/text/Bible item is split into another page.
 - **Max words per page** — a second hard limit; pages split on whichever of max lines or max words is reached first.
+- **Lower-third image max height** — percentage of the viewport used as the image height limit (default 30%).
+- **Lower-third image border padding** — padding inside that image area, subtracted from the maximum height (default 48px). Images keep their aspect ratio and are never stretched on the lower-third.
 - **Smart page splits** — estimates a 1920×1080 landscape frame from the selected font size, wraps long lines at an estimated character width, and limits lines per page to the estimated vertical coverage. This prevents long Bible verses from overflowing.
 
 Scope:

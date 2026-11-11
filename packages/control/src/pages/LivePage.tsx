@@ -77,6 +77,8 @@ export default function LivePage({
       maxLines: 4,
       maxWords: 90,
       smartPageSplits: true,
+      lowerThirdImageMaxHeightPercent: 30,
+      lowerThirdImagePadding: 48,
     },
   );
   const [configSaving, setConfigSaving] = useState(false);
@@ -97,6 +99,8 @@ export default function LivePage({
     live.displayConfig?.maxLines,
     live.displayConfig?.maxWords,
     live.displayConfig?.smartPageSplits,
+    live.displayConfig?.lowerThirdImageMaxHeightPercent,
+    live.displayConfig?.lowerThirdImagePadding,
   ]);
 
   useEffect(() => {
@@ -341,6 +345,37 @@ export default function LivePage({
               }
             />
           </label>
+          <label>
+            Lower-third image max height · {displayConfig.lowerThirdImageMaxHeightPercent}%
+            <input
+              type="range"
+              min={5}
+              max={80}
+              step={1}
+              value={displayConfig.lowerThirdImageMaxHeightPercent}
+              onChange={(event) =>
+                setDisplayConfig({
+                  ...displayConfig,
+                  lowerThirdImageMaxHeightPercent: Number(event.target.value),
+                })
+              }
+            />
+          </label>
+          <label>
+            Lower-third image border padding · {displayConfig.lowerThirdImagePadding}px
+            <input
+              type="number"
+              min={0}
+              max={200}
+              value={displayConfig.lowerThirdImagePadding}
+              onChange={(event) =>
+                setDisplayConfig({
+                  ...displayConfig,
+                  lowerThirdImagePadding: Math.round(Math.max(0, Number(event.target.value) || 0)),
+                })
+              }
+            />
+          </label>
           <label className="checkbox smart-split-field">
             <input
               type="checkbox"
@@ -358,6 +393,10 @@ export default function LivePage({
             </span>
           </label>
         </div>
+        <p className="hint">
+          Lower-third images keep their original aspect ratio and are never stretched. Their maximum
+          height is a percentage of the screen, reduced by the image padding.
+        </p>
       </section>
     </div>
   );
