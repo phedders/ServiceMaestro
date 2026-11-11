@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import { randomUUID } from "node:crypto";
 import type { Server } from "socket.io";
-import { parseImageListContent } from "@sm/shared";
+import { NO_BACKGROUND_ID, parseImageListContent } from "@sm/shared";
 import type {
   DisplayConfig,
   LiveApplyMode,
@@ -16,10 +16,12 @@ import { resolveTemplates } from "./templates.js";
 import { getDisplayConfig } from "./display-config.js";
 import { getAppSettings } from "./settings.js";
 import { resolveImage } from "./images.js";
+import { getBackground } from "./backgrounds.js";
 
 interface SnapshotItem extends RenderItem {
   itemId: string | null;
   songId: string | null;
+  backgroundId?: string | null;
   notes: string | null;
 }
 
@@ -79,8 +81,10 @@ function summaries(items: SnapshotItem[]): LiveState["items"] {
 }
 
 function resolveSetlistItems(setlistId: string): { name: string; items: SnapshotItem[] } {
-  const setlist = db.prepare("SELECT id, name FROM setlists WHERE id = ?").get(setlistId) as
-    | { id: string; name: string }
+  const setlist = db
+    .prepare("SELECT id, name, background_id FROM setlists WHERE id = ?")
+    .get(setlistId) as
+    | { id: string; name: string; background_id: string | null }
     | undefined;
   if (!setlist) throw new Error("Set list not found");
 
@@ -95,6 +99,7 @@ function resolveSetlistItems(setlistId: string): { name: string; items: Snapshot
     text_format: string | null;
     text_align: string | null;
     image_fit: string | null;
+    background_id: string | null;
     key_override: string | null;
     transpose: number;
     max_lines: number;
@@ -167,6 +172,12 @@ function resolveSetlistItems(setlistId: string): { name: string; items: Snapshot
       notes: row.notes,
     };
   });
+
+  for (const [index, item] of items.entries()) {
+    const override = rows[index]?.background_id;
+    item.backgroundId =
+      override === NO_BACKGROUND_ID ? null : override ?? setlist.background_id ?? null;
+  }
 
   if (!items.length) throw new Error("Set list is empty");
   return { name: setlist.name, items };
@@ -247,15 +258,23 @@ class LiveService {
   getState(): LiveState {
     const config = getDisplayConfig();
     if (!this.active) {
-      return { ...idleState(), templates: resolveTemplates(null), displayConfig: config };
+      return {
+        ...idleState(),
+        background: null,
+        templates: resolveTemplates(null),
+        displayConfig: config,
+      };
     }
     const state = this.active.state;
     state.pendingUpdate = Boolean(this.active.pending);
     state.pendingRevision = this.active.pending?.revisionNo ?? null;
     state.displayConfig = config;
+    const item = this.active.transient ?? this.active.items[state.itemIndex];
+    const background = item?.backgroundId ? getBackground(item.backgroundId) : null;
     return {
       ...state,
       pages: state.pages,
+      background,
       templates: resolveTemplates(this.active.setlistId),
       displayConfig: config,
     };

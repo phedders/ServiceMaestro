@@ -225,4 +225,5 @@ If these defaults are accepted, implementation should start with Sections 1–2 
 - **Section 3 — presentation shell:** implemented. Presentation create/rename/delete, theme/aspect selection, page add/delete and page inventory are in place.
 - **Section 4 — dual-view canvas editor:** implemented. Normal and lower-third canvases, text/Markdown/image objects, drag and resize, layers, visibility/locking and per-view placement controls are in place. Page names, per-page theme overrides and “use previous page as starting point” are editable; transition playback remains for Section 8.
 - **Set-list item shell:** implemented. The unified **Add** selector can create Tarp items referencing a presentation, with autoplay/loop/delay fields. Tarp page rendering on live outputs remains Section 6.
-- Next: **Section 5 — styling and backgrounds**, then Tarp output rendering and set-list runtime integration.
+- **Backgrounds:** global background library implemented with uploaded images/animated images, seeded CSS/SVG animations and a global colour theme. Set lists, text/song overrides and Tarp page views can reference them. Tarp output rendering remains Section 6.
+- Next: Tarp output rendering and set-list runtime integration, then animations.

@@ -124,6 +124,7 @@ export interface SetlistItem {
   format: TextFormat | null;
   textAlign: "left" | "center";
   imageFit: ImageFit;
+  backgroundId: string | null;
   keyOverride: string | null;
   transpose: number;
   maxLines: number;
@@ -137,6 +138,7 @@ export interface SetlistSummary {
   serviceDate: string;
   serviceTime: string | null;
   notes: string | null;
+  backgroundId: string | null;
   itemCount: number;
   updatedAt: string;
 }
@@ -220,6 +222,31 @@ export interface DisplayViewLink {
   url: string;
 }
 
+export type BackgroundKind = "image" | "css" | "svg";
+
+/** Item-level override that explicitly suppresses the set-list background. */
+export const NO_BACKGROUND_ID = "__none__";
+
+export interface BackgroundColors {
+  background: string;
+  primary: string;
+  secondary: string;
+  accent: string;
+}
+
+export interface BackgroundAsset {
+  id: string;
+  name: string;
+  kind: BackgroundKind;
+  preset: string | null;
+  imagePath: string | null;
+  useGlobalColors: boolean;
+  colors: BackgroundColors;
+  render: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export type TarpAspect = "16:9" | "16:10";
 export type TarpObjectKind = "text" | "markdown" | "image";
 export type TarpAnimationType =
@@ -271,6 +298,7 @@ export interface TarpObject {
 
 export interface TarpView {
   background: TarpBackground | null;
+  backgroundId: string | null;
   fontFamily: string | null;
   textColor: string | null;
   objects: TarpObject[];
@@ -437,6 +465,7 @@ export interface LiveState {
   footer: string;
   pages: LivePage[];
   items: LiveItemSummary[];
+  background?: BackgroundAsset | null;
   templates?: Record<string, DisplayTemplate>;
   displayConfig?: DisplayConfig;
   queuedItemIndex?: number | null;
@@ -616,6 +645,7 @@ export const setlistInputSchema = z.object({
   serviceDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   serviceTime: z.string().trim().max(10).optional().nullable(),
   notes: z.string().trim().max(2000).optional().nullable(),
+  backgroundId: z.string().trim().max(100).optional().nullable(),
 });
 
 export const setlistItemInputSchema = z.object({
@@ -626,6 +656,7 @@ export const setlistItemInputSchema = z.object({
   format: z.enum(["text", "markdown", "html", "rst"]).optional().nullable(),
   textAlign: z.enum(["left", "center"]).optional(),
   imageFit: z.enum(["scale", "actual", "crop", "stretch"]).optional(),
+  backgroundId: z.string().trim().max(100).optional().nullable(),
   keyOverride: z.string().trim().max(10).optional().nullable(),
   transpose: z.number().int().min(-24).max(24).optional(),
   maxLines: z.number().int().min(1).max(30).optional(),
@@ -759,6 +790,7 @@ export const tarpObjectSchema = z.object({
 
 export const tarpViewSchema = z.object({
   background: tarpBackgroundSchema.nullable().default(null),
+  backgroundId: z.string().trim().max(100).nullable().default(null),
   fontFamily: z.string().trim().max(200).nullable().default(null),
   textColor: z.string().trim().max(40).nullable().default(null),
   objects: z.array(tarpObjectSchema).max(200).default([]),
@@ -800,6 +832,33 @@ export const tarpReorderSchema = z.object({
 export type TarpThemeInput = z.infer<typeof tarpThemeInputSchema>;
 export type TarpPresentationInput = z.infer<typeof tarpPresentationInputSchema>;
 export type TarpPageInput = z.infer<typeof tarpPageInputSchema>;
+
+export const backgroundColorsSchema = z.object({
+  background: tarpColorSchema,
+  primary: tarpColorSchema,
+  secondary: tarpColorSchema,
+  accent: tarpColorSchema,
+});
+
+export const backgroundInputSchema = z
+  .object({
+    name: z.string().trim().min(1).max(120),
+    kind: z.enum(["image", "css", "svg"]).default("image"),
+    preset: z.string().trim().max(80).nullable().optional(),
+    imagePath: z.string().trim().max(2000).nullable().optional(),
+    useGlobalColors: z.boolean().default(false),
+    colors: backgroundColorsSchema.optional(),
+  })
+  .superRefine((value, context) => {
+    if (value.kind === "image" && !value.imagePath) {
+      context.addIssue({ code: "custom", message: "imagePath is required for image backgrounds" });
+    }
+    if (value.kind !== "image" && !value.preset) {
+      context.addIssue({ code: "custom", message: "preset is required for animated backgrounds" });
+    }
+  });
+
+export type BackgroundInput = z.infer<typeof backgroundInputSchema>;
 
 export const fontImportSchema = z
   .object({

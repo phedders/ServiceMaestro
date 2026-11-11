@@ -3,6 +3,9 @@
   const params = new URLSearchParams(window.location.search);
   const token = params.get("token") || "dev-output";
   const root = document.getElementById("sm-root");
+  const backgroundLayer = document.createElement("div");
+  backgroundLayer.id = "sm-background-layer";
+  document.body.prepend(backgroundLayer);
   const style = document.createElement("style");
   style.id = "sm-template-style";
   document.head.appendChild(style);
@@ -21,6 +24,7 @@
   let lastHeartbeat = Date.now();
   let lastHtml = "";
   let lastCss = "";
+  let lastBackground = "";
   let fadeTimer = null;
 
   function checkHeartbeat() {
@@ -100,6 +104,11 @@
       "mode-image",
       state.mode === "image" || state.mode === "image_list",
     );
+    const backgroundHtml = target === "main" ? "" : state.background?.render || "";
+    if (backgroundHtml !== lastBackground) {
+      backgroundLayer.innerHTML = backgroundHtml;
+      lastBackground = backgroundHtml;
+    }
 
     const config = state.displayConfig || {};
     if (target === "main" || target === "two_thirds" || target === "full") {

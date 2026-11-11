@@ -27,6 +27,7 @@ import { churchsuiteRoutes } from "./routes/churchsuite.js";
 import { settingsRoutes } from "./routes/settings.js";
 import { imageRoutes } from "./routes/images.js";
 import { tarpRoutes } from "./routes/tarp.js";
+import { backgroundRoutes } from "./routes/backgrounds.js";
 import {
   configureGitAutoSync,
   exportAllToGit,
@@ -71,6 +72,7 @@ export async function buildApp(): Promise<{
   await app.register(settingsRoutes);
   await app.register(imageRoutes);
   await app.register(tarpRoutes);
+  await app.register(backgroundRoutes);
 
   app.get("/", async (_request, reply) => sendHtmlFile(reply, path.join(CONTROL_DIST, "index.html")));
   app.get("/login", async (_request, reply) => sendHtmlFile(reply, path.join(CONTROL_DIST, "index.html")));

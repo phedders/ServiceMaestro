@@ -1557,6 +1557,84 @@ body.resizing-live-queue {
 }
 
 /* ------------------------------------------------------------------ */
+/* Backgrounds                                                         */
+/* ------------------------------------------------------------------ */
+
+.backgrounds-page {
+  display: grid;
+  gap: 16px;
+}
+
+.background-colors-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.background-colors-grid input[type="color"] {
+  height: 38px;
+  padding: 3px;
+}
+
+.background-upload {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.background-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+}
+
+.background-card {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  background: var(--panel-2);
+}
+
+.background-preview {
+  position: relative;
+  height: 170px;
+  overflow: hidden;
+  background: #05080d;
+}
+
+.background-preview .sm-bg-fill {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.background-card-body {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+}
+
+.background-card-body > div:first-child {
+  display: grid;
+  gap: 2px;
+}
+
+.background-card-body .muted {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+@media (max-width: 900px) {
+  .background-colors-grid,
+  .background-upload {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* ------------------------------------------------------------------ */
 /* Tarp                                                                */
 /* ------------------------------------------------------------------ */
 
@@ -1808,6 +1886,19 @@ body.resizing-live-queue {
   container-type: size;
   user-select: none;
   touch-action: none;
+}
+
+.tarp-canvas-background {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.tarp-canvas-background .sm-bg-fill {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
 }
 
 .tarp-canvas-label {

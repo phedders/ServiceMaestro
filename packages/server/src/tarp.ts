@@ -74,7 +74,22 @@ function now(): string {
 }
 
 function emptyView(): TarpView {
-  return { background: null, fontFamily: null, textColor: null, objects: [] };
+  return {
+    background: null,
+    backgroundId: null,
+    fontFamily: null,
+    textColor: null,
+    objects: [],
+  };
+}
+
+function normalizeView(view: TarpView): TarpView {
+  return {
+    ...emptyView(),
+    ...view,
+    backgroundId: view.backgroundId ?? null,
+    objects: Array.isArray(view.objects) ? view.objects : [],
+  };
 }
 
 function parseJson<T>(value: string | null, fallback: T): T {
@@ -108,8 +123,8 @@ function mapPage(row: PageRow): TarpPage {
     themeId: row.theme_id,
     startFromPrevious: Boolean(row.start_from_previous),
     transition: parseJson<TarpPageTransition | null>(row.transition_json, null),
-    normal: parseJson<TarpView>(row.normal_json, emptyView()),
-    lowerthird: parseJson<TarpView>(row.lowerthird_json, emptyView()),
+    normal: normalizeView(parseJson<TarpView>(row.normal_json, emptyView())),
+    lowerthird: normalizeView(parseJson<TarpView>(row.lowerthird_json, emptyView())),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };

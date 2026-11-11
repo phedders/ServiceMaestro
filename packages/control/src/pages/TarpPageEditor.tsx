@@ -8,6 +8,7 @@ import {
 import DOMPurify from "dompurify";
 import { marked } from "marked";
 import type {
+  BackgroundAsset,
   ImageAsset,
   TarpBackground,
   TarpObject,
@@ -112,6 +113,7 @@ export default function TarpPageEditor({
   presentation,
   themes,
   images,
+  backgrounds,
   notify,
   onSaved,
   onDirtyChange,
@@ -120,6 +122,7 @@ export default function TarpPageEditor({
   presentation: TarpPresentationDetail;
   themes: TarpTheme[];
   images: ImageAsset[];
+  backgrounds: BackgroundAsset[];
   notify: (text: string, kind?: "info" | "error") => void;
   onSaved: (page: TarpPage) => void;
   onDirtyChange?: (dirty: boolean) => void;
@@ -432,6 +435,44 @@ export default function TarpPageEditor({
             ))}
           </select>
         </label>
+        <label>
+          Normal background
+          <select
+            value={draft.normal.backgroundId ?? ""}
+            onChange={(event) =>
+              updateView("normal", (current) => ({
+                ...current,
+                backgroundId: event.target.value || null,
+              }))
+            }
+          >
+            <option value="">Use theme / no background</option>
+            {backgrounds.map((background) => (
+              <option key={background.id} value={background.id}>
+                {background.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Lower-third background
+          <select
+            value={draft.lowerthird.backgroundId ?? ""}
+            onChange={(event) =>
+              updateView("lowerthird", (current) => ({
+                ...current,
+                backgroundId: event.target.value || null,
+              }))
+            }
+          >
+            <option value="">Use theme / no background</option>
+            {backgrounds.map((background) => (
+              <option key={background.id} value={background.id}>
+                {background.name}
+              </option>
+            ))}
+          </select>
+        </label>
         <label className="checkbox">
           <input
             type="checkbox"
@@ -487,6 +528,9 @@ export default function TarpPageEditor({
       <div className="tarp-canvases">
         {(["normal", "lowerthird"] as const).map((viewKey) => {
           const viewData = draft[viewKey];
+          const libraryBackground = backgrounds.find(
+            (background) => background.id === viewData.backgroundId,
+          );
           const background = viewData.background ?? theme?.background ?? {
             type: "color" as const,
             color: "#0b1220",
@@ -504,7 +548,7 @@ export default function TarpPageEditor({
               <div
                 className={`tarp-canvas tarp-canvas-${viewKey}`}
                 style={{
-                  ...backgroundStyle(background),
+                  ...(libraryBackground ? {} : backgroundStyle(background)),
                   aspectRatio: viewKey === "normal" ? presentation.aspect.replace(":", " / ") : "16 / 3",
                   color: viewData.textColor ?? theme?.textColor ?? "#ffffff",
                   fontFamily: viewData.fontFamily ?? theme?.fontFamily ?? DEFAULT_FONT,
@@ -516,6 +560,12 @@ export default function TarpPageEditor({
                   }
                 }}
               >
+                {libraryBackground && (
+                  <div
+                    className="tarp-canvas-background"
+                    dangerouslySetInnerHTML={{ __html: libraryBackground.render }}
+                  />
+                )}
                 <span className="tarp-canvas-label">
                   {viewKey === "normal" ? "NORMAL VIEW" : "LOWER THIRD"}
                 </span>

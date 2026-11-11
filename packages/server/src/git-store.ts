@@ -253,26 +253,30 @@ function importSetlist(manifest: SetlistManifest): void {
   const now = new Date().toISOString();
   if (existing) {
     db.prepare(
-      `UPDATE setlists SET name = ?, service_date = ?, service_time = ?, notes = ?, updated_at = ? WHERE id = ?`,
+      `UPDATE setlists SET name = ?, service_date = ?, service_time = ?, notes = ?,
+       background_id = ?, updated_at = ? WHERE id = ?`,
     ).run(
       manifest.setlist.name,
       manifest.setlist.serviceDate,
       manifest.setlist.serviceTime ?? null,
       manifest.setlist.notes ?? null,
+      manifest.setlist.backgroundId ?? null,
       now,
       id,
     );
     db.prepare("DELETE FROM setlist_items WHERE setlist_id = ?").run(id);
   } else {
     db.prepare(
-      `INSERT INTO setlists (id, name, service_date, service_time, notes, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO setlists
+       (id, name, service_date, service_time, notes, background_id, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     ).run(
       id,
       manifest.setlist.name,
       manifest.setlist.serviceDate,
       manifest.setlist.serviceTime ?? null,
       manifest.setlist.notes ?? null,
+      manifest.setlist.backgroundId ?? null,
       now,
       now,
     );
@@ -280,8 +284,9 @@ function importSetlist(manifest: SetlistManifest): void {
 
   const insert = db.prepare(
     `INSERT INTO setlist_items
-     (id, setlist_id, position, kind, song_id, title, content, text_format, text_align, image_fit, key_override, transpose, max_lines, verse_order, notes)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     (id, setlist_id, position, kind, song_id, title, content, text_format, text_align,
+      image_fit, background_id, key_override, transpose, max_lines, verse_order, notes)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   );
 
   for (const item of manifest.items) {
@@ -332,6 +337,7 @@ function importSetlist(manifest: SetlistManifest): void {
       item.kind === "text" ? item.format ?? null : null,
       item.kind === "text" ? item.textAlign ?? "left" : null,
       item.kind === "image" || item.kind === "image_list" ? item.imageFit ?? "scale" : "scale",
+      item.backgroundId ?? null,
       item.keyOverride ?? null,
       item.transpose ?? 0,
       item.maxLines ?? 4,

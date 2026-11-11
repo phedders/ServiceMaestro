@@ -1,5 +1,8 @@
 import type {
   AppSettings,
+  BackgroundAsset,
+  BackgroundColors,
+  BackgroundInput,
   BibleBook,
   BiblePassage,
   BibleTranslationInfo,
@@ -325,6 +328,25 @@ export const api = {
     }),
   resetLayout: () => request<{ layout: DashboardLayout }>("/api/dashboard/layout/reset", { method: "POST" }),
 
+  backgrounds: () =>
+    request<{ backgrounds: BackgroundAsset[]; colors: BackgroundColors }>("/api/backgrounds"),
+  saveBackgroundColors: (colors: BackgroundColors) =>
+    request<{ colors: BackgroundColors }>("/api/backgrounds/colors", {
+      method: "PUT",
+      body: JSON.stringify(colors),
+    }),
+  createBackground: (background: BackgroundInput) =>
+    request<{ background: BackgroundAsset }>("/api/backgrounds", {
+      method: "POST",
+      body: JSON.stringify(background),
+    }),
+  updateBackground: (id: string, background: BackgroundInput) =>
+    request<{ background: BackgroundAsset }>(`/api/backgrounds/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(background),
+    }),
+  deleteBackground: (id: string) =>
+    request<{ ok: true }>(`/api/backgrounds/${id}`, { method: "DELETE" }),
   tarpThemes: () => request<{ themes: TarpTheme[] }>("/api/tarp/themes"),
   createTarpTheme: (theme: TarpThemeInput) =>
     request<{ theme: TarpTheme }>("/api/tarp/themes", {

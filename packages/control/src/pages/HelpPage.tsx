@@ -345,6 +345,20 @@ export default function HelpPage({ onOpenSettings }: { onOpenSettings: () => voi
             </ul>
           </article>
           <article className="help-card">
+            <h3>Backgrounds</h3>
+            <ul className="help-list">
+              <li>
+                Open <strong>Menu → Backgrounds</strong> to manage image, animated image, CSS and SVG
+                backgrounds and the global background colour theme.
+              </li>
+              <li>
+                Set lists choose a default background; text and song items can override it. Tarp
+                pages can choose a background for each view.
+              </li>
+              <li>Backgrounds are applied to full-screen, two-thirds, stage and chords outputs.</li>
+            </ul>
+          </article>
+          <article className="help-card">
             <h3>Bible and ChurchSuite</h3>
             <ul className="help-list">
               <li>

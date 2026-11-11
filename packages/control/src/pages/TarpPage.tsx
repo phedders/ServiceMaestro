@@ -1,5 +1,6 @@
 import { useEffect, useState, type CSSProperties } from "react";
 import type {
+  BackgroundAsset,
   ImageAsset,
   TarpAspect,
   TarpBackground,
@@ -49,6 +50,7 @@ export default function TarpPage({
   const [selectedPageId, setSelectedPageId] = useState<string | null>(null);
   const [pageDirty, setPageDirty] = useState(false);
   const [images, setImages] = useState<ImageAsset[]>([]);
+  const [backgrounds, setBackgrounds] = useState<BackgroundAsset[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [editingThemeId, setEditingThemeId] = useState<string | null>(null);
@@ -91,8 +93,11 @@ export default function TarpPage({
   }
 
   useEffect(() => {
-    Promise.all([loadThemes(), loadPresentations(), api.images()])
-      .then(([, , imageResult]) => setImages(imageResult.images))
+    Promise.all([loadThemes(), loadPresentations(), api.images(), api.backgrounds()])
+      .then(([, , imageResult, backgroundResult]) => {
+        setImages(imageResult.images);
+        setBackgrounds(backgroundResult.backgrounds);
+      })
       .catch((error) =>
         notify(error instanceof ApiError ? error.message : "Could not load Tarp data", "error"),
       )
@@ -616,6 +621,7 @@ export default function TarpPage({
                     presentation={selected}
                     themes={themes}
                     images={images}
+                    backgrounds={backgrounds}
                     notify={notify}
                     onDirtyChange={setPageDirty}
                     onSaved={(saved: TarpPageModel) => {

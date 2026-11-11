@@ -49,6 +49,7 @@ db.exec(`
     service_date TEXT NOT NULL,
     service_time TEXT,
     notes TEXT,
+    background_id TEXT,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
   );
@@ -61,6 +62,7 @@ db.exec(`
     song_id TEXT REFERENCES songs(id) ON DELETE SET NULL,
     title TEXT NOT NULL,
     content TEXT,
+    background_id TEXT,
     key_override TEXT,
     transpose INTEGER NOT NULL DEFAULT 0,
     max_lines INTEGER NOT NULL DEFAULT 4,
@@ -131,6 +133,18 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS app_settings (
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS backgrounds (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    preset TEXT,
+    image_path TEXT,
+    use_global_colors INTEGER NOT NULL DEFAULT 0,
+    colors_json TEXT NOT NULL,
+    created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
   );
 
@@ -215,6 +229,8 @@ ensureColumn("setlist_items", "verse_order", "TEXT");
 ensureColumn("setlist_items", "text_format", "TEXT");
 ensureColumn("setlist_items", "text_align", "TEXT");
 ensureColumn("setlist_items", "image_fit", "TEXT");
+ensureColumn("setlist_items", "background_id", "TEXT");
+ensureColumn("setlists", "background_id", "TEXT");
 ensureColumn("service_sessions", "revision_id", "TEXT");
 ensureColumn("service_sessions", "pending_json", "TEXT");
 ensureColumn("display_config", "max_words", "INTEGER NOT NULL DEFAULT 90");

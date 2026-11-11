@@ -185,8 +185,41 @@ body.display-stage #stage::after {
 /* ------------------------------------------------------------------ */
 
 #sm-root {
+  position: relative;
+  z-index: 1;
   width: 100%;
   height: 100%;
+}
+
+#sm-background-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background: #000;
+  opacity: 1;
+  transition: opacity 320ms ease;
+}
+
+#sm-background-layer:empty {
+  display: none;
+}
+
+.sm-bg-fill {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+body.display-main #sm-background-layer {
+  display: none;
+}
+
+body.blank #sm-background-layer,
+body.idle #sm-background-layer {
+  opacity: 0;
 }
 
 .sm-template {

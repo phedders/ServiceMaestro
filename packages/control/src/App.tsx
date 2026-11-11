@@ -13,6 +13,7 @@ import SettingsPage from "./pages/SettingsPage";
 import HelpPage from "./pages/HelpPage";
 import ChurchsuitePage from "./pages/ChurchsuitePage";
 import ImagesPage from "./pages/ImagesPage";
+import BackgroundsPage from "./pages/BackgroundsPage";
 
 const TarpPage = lazy(() => import("./pages/TarpPage"));
 import {
@@ -33,6 +34,7 @@ type Page =
   | "bible"
   | "churchsuite"
   | "settings"
+  | "backgrounds"
   | "help";
 
 interface Toast {
@@ -310,6 +312,8 @@ export default function App() {
         return "ChurchSuite";
       case "settings":
         return "Settings";
+      case "backgrounds":
+        return "Backgrounds";
       case "help":
         return "Help";
     }
@@ -478,6 +482,21 @@ export default function App() {
                   type="button"
                   className="nav-dropdown-link"
                   role="menuitem"
+                  onClick={() => {
+                    setPage("backgrounds");
+                    setMenuOpen(false);
+                  }}
+                  title="Open the global background library"
+                >
+                  <span>Backgrounds</span>
+                  <span className="nav-dropdown-external" aria-hidden="true">
+                    ◫
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  className="nav-dropdown-link"
+                  role="menuitem"
                   onClick={openSettings}
                   title="Open keyboard, display, ChurchSuite and Git settings"
                 >
@@ -587,6 +606,7 @@ export default function App() {
           <ChurchsuitePage notify={notify} onOpenSetlists={() => setPage("setlists")} />
         )}
         {page === "settings" && <SettingsPage notify={notify} />}
+        {page === "backgrounds" && <BackgroundsPage notify={notify} />}
         {page === "help" && <HelpPage onOpenSettings={() => setPage("settings")} />}
       </main>
 

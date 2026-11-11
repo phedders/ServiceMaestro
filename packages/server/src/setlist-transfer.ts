@@ -45,6 +45,7 @@ const itemSchema = z.object({
   format: z.enum(["text", "markdown", "html", "rst"]).nullable().optional(),
   textAlign: z.enum(["left", "center"]).nullable().optional(),
   imageFit: z.enum(["scale", "actual", "crop", "stretch"]).nullable().optional(),
+  backgroundId: z.string().nullable().optional(),
   song: songSchema.nullable().optional(),
   assetIds: z.array(z.string()).optional(),
 });
@@ -73,6 +74,7 @@ const manifestSchema = z.object({
     serviceDate: z.string(),
     serviceTime: z.string().nullable().optional(),
     notes: z.string().nullable().optional(),
+    backgroundId: z.string().nullable().optional(),
   }),
   items: z.array(itemSchema).max(1000),
   assets: z.array(assetSchema).max(1000).optional(),
@@ -180,6 +182,7 @@ export function buildSetlistExport(
         service_date: string;
         service_time: string | null;
         notes: string | null;
+        background_id: string | null;
       }
     | undefined;
   if (!setlist) throw new Error("Set list not found");
@@ -194,6 +197,7 @@ export function buildSetlistExport(
     text_format: string | null;
     text_align: string | null;
     image_fit: string | null;
+    background_id: string | null;
     key_override: string | null;
     transpose: number;
     max_lines: number;
@@ -245,6 +249,7 @@ export function buildSetlistExport(
         content: row.content,
         format: null,
         textAlign: null,
+        backgroundId: row.background_id,
         song: song
           ? {
               title: song.title,
@@ -277,6 +282,7 @@ export function buildSetlistExport(
         format: null,
         textAlign: null,
         imageFit: (row.image_fit as "scale" | "actual" | "crop" | "stretch" | null) ?? "scale",
+        backgroundId: row.background_id,
       };
     }
     return {
@@ -292,6 +298,7 @@ export function buildSetlistExport(
       content: row.content ?? "",
       format: (row.text_format as SetlistManifest["items"][number]["format"]) ?? null,
       textAlign: (row.text_align === "center" ? "center" : "left") as "left" | "center",
+      backgroundId: row.background_id,
     };
   });
 
@@ -307,6 +314,7 @@ export function buildSetlistExport(
       serviceDate: setlist.service_date,
       serviceTime: setlist.service_time,
       notes: setlist.notes,
+      backgroundId: setlist.background_id,
     },
     items,
     assets: assets.length ? assets : undefined,
@@ -405,22 +413,25 @@ export function importSetlistFile(
   const now = new Date().toISOString();
 
   db.prepare(
-    `INSERT INTO setlists (id, name, service_date, service_time, notes, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO setlists
+     (id, name, service_date, service_time, notes, background_id, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
   ).run(
     setlistId,
     name,
     manifest.setlist.serviceDate,
     manifest.setlist.serviceTime ?? null,
     manifest.setlist.notes ?? null,
+    manifest.setlist.backgroundId ?? null,
     now,
     now,
   );
 
   const insertItem = db.prepare(
     `INSERT INTO setlist_items
-     (id, setlist_id, position, kind, song_id, title, content, text_format, text_align, image_fit, key_override, transpose, max_lines, verse_order, notes)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     (id, setlist_id, position, kind, song_id, title, content, text_format, text_align,
+      image_fit, background_id, key_override, transpose, max_lines, verse_order, notes)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   );
 
   let importedItems = 0;
@@ -491,6 +502,7 @@ export function importSetlistFile(
       item.kind === "text" ? item.format ?? null : null,
       item.kind === "text" ? item.textAlign ?? "left" : null,
       item.kind === "image" || item.kind === "image_list" ? item.imageFit ?? "scale" : "scale",
+      item.backgroundId ?? null,
       item.keyOverride ?? null,
       item.transpose ?? 0,
       item.maxLines ?? 4,

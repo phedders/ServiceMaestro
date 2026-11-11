@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import {
+  NO_BACKGROUND_ID,
   parseImageListContent,
   parseTarpItemContent,
   serializeImageListContent,
   serializeTarpItemContent,
+  type BackgroundAsset,
   type BibleBook,
   type BiblePassage,
   type BibleTranslationInfo,
@@ -135,6 +137,7 @@ function ItemRow({
   item,
   song,
   images,
+  backgrounds,
   tarpPresentations,
   onUploadImage,
   first,
@@ -154,6 +157,7 @@ function ItemRow({
   item: SetlistItem;
   song: Song | undefined;
   images: ImageAsset[];
+  backgrounds: BackgroundAsset[];
   tarpPresentations: TarpPresentationSummary[];
   onUploadImage: (file: File) => Promise<ImageAsset>;
   first: boolean;
@@ -181,6 +185,7 @@ function ItemRow({
   const [imageFit, setImageFit] = useState<"scale" | "actual" | "crop" | "stretch">(
     item.imageFit ?? "scale",
   );
+  const [backgroundId, setBackgroundId] = useState(item.backgroundId ?? "");
   const initialImageList = parseImageListContent(item.content);
   const [listFolder, setListFolder] = useState(initialImageList?.folder ?? "");
   const [listAutoplay, setListAutoplay] = useState(initialImageList?.autoplay ?? false);
@@ -206,6 +211,7 @@ function ItemRow({
     setFormat(next.format);
     setTextAlign(item.textAlign ?? "left");
     setImageFit(item.imageFit ?? "scale");
+    setBackgroundId(item.backgroundId ?? "");
     const nextImageList = parseImageListContent(item.content);
     setListFolder(nextImageList?.folder ?? "");
     setListAutoplay(nextImageList?.autoplay ?? false);
@@ -241,6 +247,7 @@ function ItemRow({
     setFormat(next.format);
     setTextAlign(item.textAlign ?? "left");
     setImageFit(item.imageFit ?? "scale");
+    setBackgroundId(item.backgroundId ?? "");
     const nextImageList = parseImageListContent(item.content);
     setListFolder(nextImageList?.folder ?? "");
     setListAutoplay(nextImageList?.autoplay ?? false);
@@ -332,6 +339,7 @@ function ItemRow({
       transpose: Number(transpose) || 0,
       verseOrder: verseOrder || null,
       notes: notes || null,
+      backgroundId: backgroundId || null,
       ...(item.kind === "text" ? { format, textAlign } : {}),
     };
   }
@@ -731,6 +739,21 @@ function ItemRow({
           )}
           {(item.kind === "song" || item.kind === "text") && (
             <>
+              <label>
+                Background override
+                <select
+                  value={backgroundId}
+                  onChange={(event) => setBackgroundId(event.target.value)}
+                >
+                  <option value="">Use set-list background</option>
+                  <option value={NO_BACKGROUND_ID}>No background</option>
+                  {backgrounds.map((background) => (
+                    <option key={background.id} value={background.id}>
+                      {background.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
               {item.kind === "text" && (
             <>
               <label>
@@ -871,6 +894,7 @@ export default function SetlistsPage({
   const [detail, setDetail] = useState<SetlistDetail | null>(null);
   const [songs, setSongs] = useState<Song[]>([]);
   const [images, setImages] = useState<ImageAsset[]>([]);
+  const [backgrounds, setBackgrounds] = useState<BackgroundAsset[]>([]);
   const [revisions, setRevisions] = useState<SetlistRevisionInfo[]>([]);
   const [importFile, setImportFile] = useState<File | null>(null);
   const [importPreview, setImportPreview] = useState<SetlistImportPreview | null>(null);
@@ -890,6 +914,7 @@ export default function SetlistsPage({
   const [serviceDate, setServiceDate] = useState(today());
   const [serviceTime, setServiceTime] = useState("");
   const [notes, setNotes] = useState("");
+  const [backgroundId, setBackgroundId] = useState("");
 
   const [addKind, setAddKind] = useState<
     "song" | "text" | "bible" | "image" | "image_list" | "tarp"
@@ -948,6 +973,7 @@ export default function SetlistsPage({
     setServiceDate(result.setlist.serviceDate);
     setServiceTime(result.setlist.serviceTime ?? "");
     setNotes(result.setlist.notes ?? "");
+    setBackgroundId(result.setlist.backgroundId ?? "");
     api
       .revisions(id)
       .then((revisionResult) => setRevisions(revisionResult.revisions))
@@ -961,6 +987,10 @@ export default function SetlistsPage({
     });
     api.songs().then((result) => setSongs(result.songs)).catch(() => undefined);
     api.images().then((result) => setImages(result.images)).catch(() => undefined);
+    api
+      .backgrounds()
+      .then((result) => setBackgrounds(result.backgrounds))
+      .catch(() => undefined);
     api
       .tarpPresentations()
       .then((result) => setTarpPresentations(result.presentations))
@@ -1043,6 +1073,7 @@ export default function SetlistsPage({
         serviceDate,
         serviceTime: serviceTime || null,
         notes: notes || null,
+        backgroundId: backgroundId || null,
       });
       setDetail(result.setlist);
       await loadList(detail.id);
@@ -1596,6 +1627,20 @@ export default function SetlistsPage({
               Time
               <input type="time" value={serviceTime} onChange={(event) => setServiceTime(event.target.value)} />
             </label>
+            <label>
+              Background
+              <select
+                value={backgroundId}
+                onChange={(event) => setBackgroundId(event.target.value)}
+              >
+                <option value="">No background</option>
+                {backgrounds.map((background) => (
+                  <option key={background.id} value={background.id}>
+                    {background.name}
+                  </option>
+                ))}
+              </select>
+            </label>
             <label className="grow">
               Notes
               <input value={notes} onChange={(event) => setNotes(event.target.value)} />
@@ -1616,6 +1661,7 @@ export default function SetlistsPage({
                 item={item}
                 song={songs.find((song) => song.id === item.songId)}
                 images={images}
+                backgrounds={backgrounds}
                 tarpPresentations={tarpPresentations}
                 onUploadImage={(file) => uploadImage(file)}
                 first={index === 0}
