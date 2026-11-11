@@ -28,6 +28,7 @@ import {
   type TextFormat,
 } from "@sm/shared";
 import { api, ApiError } from "../api";
+import { BibleLayoutButtons } from "../components/BibleLayoutButtons";
 import { IsoDateInput } from "../components/IsoDateInput";
 import { PageContentEditor } from "../components/PageContentEditor";
 import { compactDate, compactDateTime, defaultSetlistName } from "../service-date";
@@ -2297,16 +2298,7 @@ export default function SetlistsPage({
                     />
                     Include reference
                   </label>
-                  <label>
-                    Layout
-                    <select
-                      value={bibleLayout}
-                      onChange={(event) => setBibleLayout(event.target.value as BibleLayout)}
-                    >
-                      <option value="paragraph">Paragraph</option>
-                      <option value="verses">Line per verse</option>
-                    </select>
-                  </label>
+                  <BibleLayoutButtons value={bibleLayout} onChange={setBibleLayout} />
                   <span className="hint">
                     {bibleReference() || "Choose a translation, book, chapter and verse range."}
                   </span>

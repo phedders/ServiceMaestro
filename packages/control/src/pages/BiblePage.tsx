@@ -9,6 +9,7 @@ import type {
   SetlistSummary,
 } from "@sm/shared";
 import { api, ApiError } from "../api";
+import { BibleLayoutButtons } from "../components/BibleLayoutButtons";
 import { compactDate, pickCurrentSetlist } from "../service-date";
 
 export default function BiblePage({
@@ -241,16 +242,7 @@ export default function BiblePage({
               />
               Include reference
             </label>
-            <label>
-              Layout
-              <select
-                value={layout}
-                onChange={(event) => setLayout(event.target.value as BibleLayout)}
-              >
-                <option value="paragraph">Paragraph</option>
-                <option value="verses">Line per verse</option>
-              </select>
-            </label>
+            <BibleLayoutButtons value={layout} onChange={setLayout} />
           </div>
           <div className="bible-target">
             <label>
