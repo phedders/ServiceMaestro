@@ -46,6 +46,7 @@ export default function ChurchsuitePage({
   const [importTime, setImportTime] = useState("");
   const [importing, setImporting] = useState(false);
   const [report, setReport] = useState<ChurchSuiteImportReport | null>(null);
+  const [songSelections, setSongSelections] = useState<Record<number, string>>({});
 
   async function loadPlans() {
     setLoading(true);
@@ -76,6 +77,13 @@ export default function ChurchsuitePage({
     try {
       const result = await api.churchsuitePlanPreview(plan.id);
       setPreview(result.preview);
+      setSongSelections(
+        Object.fromEntries(
+          result.preview.items
+            .filter((item) => item.matchedSong)
+            .map((item) => [item.id, item.matchedSong!.id]),
+        ),
+      );
       setImportName(`${compactDate(result.preview.plan.date)}-${result.preview.plan.name}`.slice(0, 200));
       setImportDate(result.preview.plan.date);
       setImportTime(result.preview.plan.time?.slice(0, 5) ?? "");
@@ -95,6 +103,9 @@ export default function ChurchsuitePage({
         name: importName.trim() || undefined,
         serviceDate: importDate,
         serviceTime: importTime || null,
+        songSelections: Object.fromEntries(
+          Object.entries(songSelections).map(([itemId, songId]) => [itemId, songId]),
+        ),
       });
       setReport(result.report);
       notify(`Created set list “${result.report.setlistName}”`);
@@ -198,31 +209,108 @@ export default function ChurchsuitePage({
               </div>
 
               <div className="cs-item-list">
-                {preview.items.map((item) => (
-                  <div key={item.id} className={`cs-item ${item.action}`}>
-                    <span className="cs-order">{item.order}</span>
-                    <div className="cs-item-main">
-                      <strong>{item.name || item.typeName || "(unnamed item)"}</strong>
-                      <span className="muted">
-                        {item.typeName}
-                        {item.key ? ` · key ${item.key}` : ""}
-                        {item.author ? ` · ${item.author}` : ""}
-                      </span>
-                      {item.notes && <span className="cs-notes">{item.notes}</span>}
+                {preview.items.map((item) => {
+                  const selected =
+                    item.matchCandidates.find(
+                      (candidate) =>
+                        candidate.id === (songSelections[item.id] ?? item.matchedSong?.id),
+                    ) ?? item.matchCandidates[0];
+                  return (
+                    <div
+                      key={item.id}
+                      className={`cs-item-wrap ${
+                        item.action === "song" && item.matchCandidates.length > 1
+                          ? "has-matches"
+                          : ""
+                      }`}
+                    >
+                      <div className={`cs-item ${item.action}`}>
+                        <span className="cs-order">{item.order}</span>
+                        <div className="cs-item-main">
+                          <strong>{item.name || item.typeName || "(unnamed item)"}</strong>
+                          <span className="muted">
+                            {item.typeName}
+                            {item.key ? ` · key ${item.key}` : ""}
+                            {item.author ? ` · ${item.author}` : ""}
+                          </span>
+                          {item.notes && <span className="cs-notes">{item.notes}</span>}
+                          {item.matchCandidates.length > 1 && (
+                            <span className="cs-match-count">
+                              {item.matchCandidates.length} possible local matches
+                            </span>
+                          )}
+                        </div>
+                        <span className={`cs-action ${item.action}`}>
+                          {item.action === "song"
+                            ? `Song: ${selected?.title ?? item.matchedSong?.title ?? ""}`
+                            : item.action === "empty"
+                              ? "Empty item"
+                              : item.action === "placeholder"
+                                ? item.isSong
+                                  ? "No local match"
+                                  : "Text placeholder"
+                                : "Skipped"}
+                        </span>
+                      </div>
+                      {item.action === "song" && item.matchCandidates.length > 1 && (
+                        <div className="cs-match-wrap">
+                          <table className="cs-match-table">
+                            <thead>
+                              <tr>
+                                <th>Use</th>
+                                <th>Title</th>
+                                <th>Author</th>
+                                <th>CCLI</th>
+                                <th>Key</th>
+                                <th>Alternative titles / first lines</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {item.matchCandidates.map((candidate) => (
+                                <tr
+                                  key={candidate.id}
+                                  className={
+                                    candidate.id === (selected?.id ?? "") ? "selected" : ""
+                                  }
+                                >
+                                  <td>
+                                    <input
+                                      type="radio"
+                                      name={`cs-song-${item.id}`}
+                                      checked={candidate.id === (selected?.id ?? "")}
+                                      onChange={() =>
+                                        setSongSelections((current) => ({
+                                          ...current,
+                                          [item.id]: candidate.id,
+                                        }))
+                                      }
+                                      title={`Use “${candidate.title}” for this item`}
+                                    />
+                                  </td>
+                                  <td>
+                                    <strong>{candidate.title}</strong>
+                                    <span className="cs-match-reasons">
+                                      {candidate.reasons.join(" · ")}
+                                    </span>
+                                  </td>
+                                  <td>{candidate.author || "—"}</td>
+                                  <td>{candidate.ccli || "—"}</td>
+                                  <td>{candidate.key || "—"}</td>
+                                  <td>
+                                    <span className="cs-match-meta">
+                                      {candidate.alternateTitles || "No alternate titles"}
+                                    </span>
+                                    <span className="cs-match-lyrics">{candidate.firstLines}</span>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
                     </div>
-                    <span className={`cs-action ${item.action}`}>
-                      {item.action === "song"
-                        ? `Song: ${item.matchedSong?.title ?? ""}`
-                        : item.action === "empty"
-                          ? "Empty item"
-                          : item.action === "placeholder"
-                            ? item.isSong
-                              ? "No local match"
-                              : "Text placeholder"
-                            : "Skipped"}
-                    </span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               <div className="cs-import-form">

@@ -26,6 +26,7 @@ import type {
   SetlistRevisionInfo,
   SetlistSummary,
   Song,
+  SongAlternative,
   SongAsset,
   SongImportReport,
   SongImportScan,
@@ -79,6 +80,10 @@ export const api = {
 
   songs: (q = "") => request<{ songs: Song[] }>(`/api/songs${q ? `?q=${encodeURIComponent(q)}` : ""}`),
   song: (id: string) => request<{ song: Song }>(`/api/songs/${id}`),
+  songAlternatives: (id: string, q = "") =>
+    request<{ alternatives: SongAlternative[] }>(
+      `/api/songs/${id}/alternatives${q ? `?q=${encodeURIComponent(q)}` : ""}`,
+    ),
   createSong: (payload: Partial<Song>) =>
     request<{ song: Song }>("/api/songs", { method: "POST", body: JSON.stringify(payload) }),
   updateSong: (id: string, payload: Partial<Song>) =>
@@ -181,7 +186,12 @@ export const api = {
     ),
   importChurchsuitePlan: (
     id: number,
-    payload: { name?: string; serviceDate?: string; serviceTime?: string | null },
+    payload: {
+      name?: string;
+      serviceDate?: string;
+      serviceTime?: string | null;
+      songSelections?: Record<string, string>;
+    },
   ) =>
     request<{ report: ChurchSuiteImportReport; setlist: unknown }>(
       `/api/integrations/churchsuite/plans/${id}/import`,
@@ -238,6 +248,11 @@ export const api = {
     request<{ setlist: SetlistDetail }>(`/api/setlists/${id}/items`, {
       method: "POST",
       body: JSON.stringify(payload),
+    }),
+  replaceSetlistSong: (id: string, itemId: string, songId: string) =>
+    request<{ setlist: SetlistDetail }>(`/api/setlists/${id}/items/${itemId}/song`, {
+      method: "PATCH",
+      body: JSON.stringify({ songId }),
     }),
   patchItem: (id: string, itemId: string, payload: Record<string, unknown>) =>
     request<{ setlist: SetlistDetail }>(`/api/setlists/${id}/items/${itemId}`, {

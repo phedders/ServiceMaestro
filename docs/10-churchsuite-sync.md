@@ -10,7 +10,7 @@ Source: <https://github.com/ChurchSuite/churchsuite-api/blob/master/src/planning
 > - Plan items and Planning types were retrieved.
 > - This account primarily uses Planning **Worship** items (`type_id=4`, `ccli_tracking=true`) with song titles in `name` and `Key` / `Artist/Author` question responses, rather than `arrangement_id`/chart data.
 >
-> The ChurchSuite page now lists plans by date range, previews items, matches local songs by title/alternative title, and creates draft set lists; unmatched song and service items become editable text placeholders. Settings includes a global list of ChurchSuite plan object types that should become empty set-list items with no pages (seeded with Welcome, Misc, Countdown, Prayers and Announcement); their text is kept in the item notes.
+> The ChurchSuite page now lists plans by date range, previews items, matches local songs by title/alternative title, and creates draft set lists; when multiple local songs match, the preview shows a selectable comparison table with author, CCLI, key, alternate titles and lyric first lines. Unmatched song and service items become editable text placeholders. Set-list song items also expose an **ALT** popup with similar local versions and a line-level difference view. Settings includes a global list of ChurchSuite plan object types that should become empty set-list items with no pages (seeded with Welcome, Misc, Countdown, Prayers and Announcement); their text is kept in the item notes.
 
 ## 1. What the API provides
 

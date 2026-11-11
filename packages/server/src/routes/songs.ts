@@ -11,6 +11,7 @@ import { db } from "../db.js";
 import { requireAuth, requireRole } from "../auth.js";
 import { saveSongToGit, deleteSongFromGit } from "../git-store.js";
 import { addDefaultVerseTags } from "../lyrics.js";
+import { findSongAlternatives } from "../song-matching.js";
 
 interface SongRow {
   id: string;
@@ -91,6 +92,15 @@ export async function songRoutes(app: FastifyInstance): Promise<void> {
           .all(`%${query}%`, `%${query}%`, `%${query}%`, `%${query}%`) as SongRow[])
       : (db.prepare("SELECT * FROM songs ORDER BY title COLLATE NOCASE ASC LIMIT 500").all() as SongRow[]);
     return { songs: rows.map(mapSong) };
+  });
+
+  app.get("/api/songs/:id/alternatives", { preHandler: requireAuth }, async (request, reply) => {
+    const id = (request.params as { id: string }).id;
+    const current = db.prepare("SELECT * FROM songs WHERE id = ?").get(id) as SongRow | undefined;
+    if (!current) return reply.code(404).send({ error: "Song not found" });
+    const query = (request.query as { q?: string }).q?.trim() || null;
+    const songs = db.prepare("SELECT * FROM songs").all() as SongRow[];
+    return { alternatives: findSongAlternatives(current, songs, query) };
   });
 
   app.get("/api/songs/:id", { preHandler: requireAuth }, async (request, reply) => {

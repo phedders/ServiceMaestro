@@ -473,6 +473,24 @@ export interface ChurchSuitePlanSummary {
   status: string;
 }
 
+export interface SongMatchSummary {
+  id: string;
+  title: string;
+  alternateTitles: string | null;
+  author: string | null;
+  copyright: string | null;
+  ccli: string | null;
+  key: string | null;
+  firstLines: string;
+  score: number;
+  reasons: string[];
+}
+
+export interface SongAlternative extends SongMatchSummary {
+  lyrics: string;
+  lyricsMarkdown: boolean;
+}
+
 export interface ChurchSuiteItemPreview {
   id: number;
   order: number;
@@ -490,6 +508,7 @@ export interface ChurchSuiteItemPreview {
     title: string;
     key: string | null;
   } | null;
+  matchCandidates: SongMatchSummary[];
 }
 
 export interface ChurchSuitePlanPreview {
@@ -741,6 +760,10 @@ export const setlistItemInputSchema = z.object({
 
 export const setlistItemPatchSchema = setlistItemInputSchema.partial().omit({ kind: true, songId: true });
 
+export const setlistSongReplacementSchema = z.object({
+  songId: z.string().trim().min(1).max(100),
+});
+
 export const reorderSchema = z.object({
   ids: z.array(z.string()).min(1).max(500),
 });
@@ -985,6 +1008,7 @@ export const churchsuiteImportSchema = z.object({
   name: z.string().trim().min(1).max(200).optional(),
   serviceDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   serviceTime: z.string().trim().max(10).optional().nullable(),
+  songSelections: z.record(z.string(), z.string().min(1).max(100)).optional(),
 });
 
 export const dashboardLayoutSchema = z.object({  version: z.literal(1),

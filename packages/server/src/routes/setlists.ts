@@ -7,6 +7,7 @@ import {
   setlistInputSchema,
   setlistItemInputSchema,
   setlistItemPatchSchema,
+  setlistSongReplacementSchema,
   type SetlistDetail,
   type SetlistItem,
   type SetlistSummary,
@@ -302,6 +303,39 @@ export async function setlistRoutes(app: FastifyInstance): Promise<void> {
       db.prepare("UPDATE setlists SET updated_at = ? WHERE id = ?").run(new Date().toISOString(), id);
       await persistGit(id, request);
       return reply.code(201).send({ setlist: detail(id) });
+    },
+  );
+
+  app.patch(
+    "/api/setlists/:id/items/:itemId/song",
+    { preHandler: [requireAuth, requireRole("admin", "editor", "operator")] },
+    async (request, reply) => {
+      const { id, itemId } = request.params as { id: string; itemId: string };
+      const parsed = setlistSongReplacementSchema.safeParse(request.body);
+      if (!parsed.success) {
+        return reply.code(400).send({ error: "Invalid song", issues: parsed.error.issues });
+      }
+      const item = db
+        .prepare("SELECT * FROM setlist_items WHERE id = ? AND setlist_id = ?")
+        .get(itemId, id) as ItemRow | undefined;
+      if (!item) return reply.code(404).send({ error: "Item not found" });
+      if (item.kind !== "song") {
+        return reply.code(400).send({ error: "Only song items can be replaced" });
+      }
+      const song = db
+        .prepare("SELECT id, title FROM songs WHERE id = ?")
+        .get(parsed.data.songId) as { id: string; title: string } | undefined;
+      if (!song) return reply.code(404).send({ error: "Song not found" });
+      db.prepare(
+        `UPDATE setlist_items SET song_id = ?, title = ?, content = NULL,
+         verse_order = NULL WHERE id = ? AND setlist_id = ?`,
+      ).run(song.id, song.title, itemId, id);
+      db.prepare("UPDATE setlists SET updated_at = ? WHERE id = ?").run(
+        new Date().toISOString(),
+        id,
+      );
+      await persistGit(id, request);
+      return { setlist: detail(id) };
     },
   );
 

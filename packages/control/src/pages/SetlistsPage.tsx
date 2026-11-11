@@ -22,6 +22,7 @@ import {
   type SetlistRevisionInfo,
   type SetlistSummary,
   type Song,
+  type SongAlternative,
   type StingerAsset,
   type TarpPresentationSummary,
   type TextFormat,
@@ -30,6 +31,7 @@ import { api, ApiError } from "../api";
 import { IsoDateInput } from "../components/IsoDateInput";
 import { PageContentEditor } from "../components/PageContentEditor";
 import { compactDate, compactDateTime, defaultSetlistName } from "../service-date";
+import { diffLyrics } from "../song-diff";
 
 const ROOT_FOLDER_KEY = "__root__";
 
@@ -165,6 +167,7 @@ function ItemRow({
   onDelete,
   onSave,
   onSaveInventory,
+  onSongReplaced,
   onDragStart,
   onDragEnd,
   onDragOver,
@@ -186,6 +189,7 @@ function ItemRow({
   onDelete: () => void;
   onSave: (payload: Record<string, unknown>) => Promise<void>;
   onSaveInventory: (payload: Record<string, unknown>) => Promise<void>;
+  onSongReplaced: (songId: string) => Promise<void>;
   onDragStart: () => void;
   onDragEnd: () => void;
   onDragOver: () => void;
@@ -226,6 +230,11 @@ function ItemRow({
   );
   const [notes, setNotes] = useState(item.notes ?? "");
   const [saving, setSaving] = useState(false);
+  const [altOpen, setAltOpen] = useState(false);
+  const [altLoading, setAltLoading] = useState(false);
+  const [alternatives, setAlternatives] = useState<SongAlternative[]>([]);
+  const [altDiffId, setAltDiffId] = useState<string | null>(null);
+  const [replacingAltId, setReplacingAltId] = useState<string | null>(null);
 
   useEffect(() => {
     const next = initialTextState(item);
@@ -412,6 +421,52 @@ function ItemRow({
     }
   }
 
+  async function openAlternatives() {
+    if (!song) return;
+    setAltOpen(true);
+    setAltLoading(true);
+    setAlternatives([]);
+    setAltDiffId(null);
+    try {
+      const result = await api.songAlternatives(song.id, item.title || song.title);
+      setAlternatives(result.alternatives);
+    } catch (error) {
+      notify(
+        error instanceof ApiError ? error.message : "Could not load alternative versions",
+        "error",
+      );
+      setAltOpen(false);
+    } finally {
+      setAltLoading(false);
+    }
+  }
+
+  async function chooseAlternative(alternative: SongAlternative) {
+    if (
+      (item.content != null || (song != null && item.title !== song.title)) &&
+      !confirm(
+        `Replace this item with “${alternative.title}”? Local edits to the current song will be discarded.`,
+      )
+    ) {
+      return;
+    }
+    setReplacingAltId(alternative.id);
+    try {
+      await onSongReplaced(alternative.id);
+      setAltOpen(false);
+      notify(`Changed this item to “${alternative.title}”`);
+    } catch (error) {
+      notify(
+        error instanceof ApiError ? error.message : "Could not change the song version",
+        "error",
+      );
+    } finally {
+      setReplacingAltId(null);
+    }
+  }
+
+  const currentLyrics = item.content ?? song?.lyrics ?? "";
+
   return (
     <div
       className={`setlist-item ${dragging ? "dragging" : ""} ${dragOver ? "drag-over" : ""}`}
@@ -510,6 +565,15 @@ function ItemRow({
           >
             ↓
           </button>
+          {item.kind === "song" && song && (
+            <button
+              className="button ghost small alt-button"
+              onClick={openAlternatives}
+              title="Find alternative versions with similar titles"
+            >
+              ALT
+            </button>
+          )}
           <button
             className="button ghost small"
             onClick={toggleEditor}
@@ -1009,6 +1073,153 @@ function ItemRow({
               >
                 {saving ? "Saving…" : "Save to song library"}
               </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {altOpen && (
+        <div
+          className="alt-backdrop"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setAltOpen(false);
+          }}
+        >
+          <div className="alt-modal" role="dialog" aria-modal="true">
+            <div className="alt-modal-heading">
+              <div>
+                <h3>Alternative versions</h3>
+                <p className="muted">
+                  Comparing against “{item.title || song?.title || displayTitle}”. Choose another
+                  local song with a similar title.
+                </p>
+              </div>
+              <button
+                className="button ghost small"
+                onClick={() => setAltOpen(false)}
+                title="Close alternatives"
+              >
+                Close
+              </button>
+            </div>
+            {altLoading && <p className="muted">Looking for similar songs…</p>}
+            {!altLoading && !alternatives.length && (
+              <p className="muted">
+                No other local songs with similar titles were found for this song.
+              </p>
+            )}
+            {!altLoading && alternatives.length > 0 && (
+              <div className="alt-list">
+                {alternatives.map((alternative) => {
+                  const diff =
+                    altDiffId === alternative.id
+                      ? diffLyrics(currentLyrics, alternative.lyrics)
+                      : null;
+                  const changedLines =
+                    diff?.filter((line) => line.type !== "same").length ?? 0;
+                  const metadata: Array<[string, string, string]> = [
+                    ["Title", item.title || song?.title || "", alternative.title],
+                    ["Author", song?.author ?? "", alternative.author ?? ""],
+                    ["CCLI", song?.ccli ?? "", alternative.ccli ?? ""],
+                    ["Key", song?.key ?? "", alternative.key ?? ""],
+                    [
+                      "Alternate titles",
+                      song?.alternateTitles ?? "",
+                      alternative.alternateTitles ?? "",
+                    ],
+                  ];
+                  return (
+                    <article key={alternative.id} className="alt-card">
+                      <div className="alt-card-heading">
+                        <div>
+                          <strong>{alternative.title}</strong>
+                          <span className="muted">
+                            {alternative.author || "Unknown author"}
+                            {alternative.ccli ? ` · CCLI ${alternative.ccli}` : ""}
+                            {alternative.key ? ` · key ${alternative.key}` : ""}
+                          </span>
+                          {alternative.alternateTitles && (
+                            <span className="alt-alias">
+                              Also known as: {alternative.alternateTitles}
+                            </span>
+                          )}
+                          <span className="alt-first-lines">{alternative.firstLines}</span>
+                        </div>
+                        <div className="button-row">
+                          <button
+                            className="button ghost small"
+                            onClick={() =>
+                              setAltDiffId((current) =>
+                                current === alternative.id ? null : alternative.id,
+                              )
+                            }
+                            title="Show what is different from the current song"
+                          >
+                            {altDiffId === alternative.id ? "Hide difference" : "Difference"}
+                          </button>
+                          <button
+                            className="button primary small"
+                            onClick={() => chooseAlternative(alternative)}
+                            disabled={replacingAltId !== null}
+                            title={`Use “${alternative.title}” for this set-list item`}
+                          >
+                            {replacingAltId === alternative.id ? "Changing…" : "Use this version"}
+                          </button>
+                        </div>
+                      </div>
+                      {alternative.reasons.length > 0 && (
+                        <p className="alt-reasons">{alternative.reasons.join(" · ")}</p>
+                      )}
+                      {diff && (
+                        <div className="alt-diff">
+                          <table className="alt-diff-meta">
+                            <thead>
+                              <tr>
+                                <th></th>
+                                <th>Current</th>
+                                <th>Alternative</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {metadata.map(([label, current, next]) => (
+                                <tr key={label}>
+                                  <th>{label}</th>
+                                  <td className={current !== next ? "diff-changed" : ""}>
+                                    {current || "—"}
+                                  </td>
+                                  <td className={current !== next ? "diff-changed" : ""}>
+                                    {next || "—"}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                          {changedLines === 0 ? (
+                            <p className="muted">Lyrics are identical.</p>
+                          ) : (
+                            <div className="alt-diff-lines">
+                              <div className="alt-diff-summary">
+                                {changedLines} changed or reordered lyric lines
+                              </div>
+                              {diff.map((line, index) => (
+                                <div
+                                  key={`${index}-${line.type}`}
+                                  className={`alt-diff-line ${line.type}`}
+                                >
+                                  <span className="alt-diff-marker" aria-hidden="true">
+                                    {line.type === "removed" ? "−" : line.type === "added" ? "+" : " "}
+                                  </span>
+                                  <span>{line.text || " "}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </article>
+                  );
+                })}
+              </div>
             )}
           </div>
         </div>
@@ -1865,6 +2076,11 @@ export default function SetlistsPage({
                     .then((songResult) => setSongs(songResult.songs))
                     .catch(() => undefined);
                   notify("Song library updated");
+                }}
+                onSongReplaced={async (songId) => {
+                  const result = await api.replaceSetlistSong(detail.id, item.id, songId);
+                  setDetail(result.setlist);
+                  await loadList(detail.id);
                 }}
                 notify={notify}
               />

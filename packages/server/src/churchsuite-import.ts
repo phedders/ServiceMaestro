@@ -9,6 +9,11 @@ import { db } from "./db.js";
 import { getChurchsuitePlan, listChurchsuitePlanItems, listChurchsuiteTypes } from "./churchsuite.js";
 import { saveSetlistToGit } from "./git-store.js";
 import { getAppSettings } from "./settings.js";
+import {
+  findSongMatches,
+  matchSummary,
+  type MatchingSongRow,
+} from "./song-matching.js";
 
 interface ChurchsuitePlan {
   id: number;
@@ -38,12 +43,7 @@ interface ChurchsuitePlanItem {
   question_responses?: ChurchsuiteQuestion[] | null;
 }
 
-interface LocalSong {
-  id: string;
-  title: string;
-  alternate_titles: string | null;
-  key: string | null;
-}
+type LocalSong = MatchingSongRow;
 
 function compactDate(value: string): string {
   const match = value.match(/^(\d{4})-?(\d{2})-?(\d{2})/);
@@ -90,34 +90,8 @@ function responseValue(item: ChurchsuitePlanItem, name: string): string | null {
 
 function localSongs(): LocalSong[] {
   return db
-    .prepare("SELECT id, title, alternate_titles, key FROM songs")
+    .prepare("SELECT * FROM songs")
     .all() as LocalSong[];
-}
-
-function matchSong(title: string, songs: LocalSong[]): LocalSong | null {
-  const target = normalize(title);
-  if (!target) return null;
-  for (const song of songs) {
-    if (normalize(song.title) === target) return song;
-  }
-  if (target.length < 6) return null;
-  const candidates = songs
-    .map((song) => ({
-      song,
-      titles: [song.title, ...(song.alternate_titles ?? "").split(/[\n,]/)]
-        .map((value) => normalize(value))
-        .filter((value) => value.length >= 6),
-    }))
-    .flatMap((entry) => entry.titles.map((normalized) => ({ song: entry.song, normalized })))
-    .filter(({ normalized }) => target.includes(normalized) || normalized.includes(target))
-    .map(({ song, normalized }) => ({
-      song,
-      // Prefer a longer local title contained in the ChurchSuite title, but a
-      // shorter local title when the local title contains the plan title.
-      score: target.includes(normalized) ? normalized.length : -normalized.length,
-    }))
-    .sort((a, b) => b.score - a.score);
-  return candidates[0]?.song ?? null;
 }
 
 function itemAction(
@@ -160,7 +134,8 @@ export async function previewChurchsuitePlan(planId: number): Promise<ChurchSuit
       const key = responseValue(item, "Key");
       const author = responseValue(item, "Artist/Author");
       const notes = notesText(item.notes);
-      const matched = isSong && item.name ? matchSong(item.name, songs) : null;
+      const matches = isSong && item.name ? findSongMatches(item.name, songs, 8) : [];
+      const matched = matches[0]?.song ?? null;
       const emptyType = emptyTypes.has(normalize(typeName));
       const action = itemAction(item, isSong, matched, emptyType);
       return {
@@ -177,6 +152,7 @@ export async function previewChurchsuitePlan(planId: number): Promise<ChurchSuit
         matchedSong: matched
           ? { id: matched.id, title: matched.title, key: matched.key }
           : null,
+        matchCandidates: matches.map(matchSummary),
         action,
       };
     });
@@ -209,7 +185,12 @@ function placeholderContent(item: ChurchSuiteItemPreview): string {
 
 export async function importChurchsuitePlan(
   planId: number,
-  input: { name?: string; serviceDate?: string; serviceTime?: string | null } = {},
+  input: {
+    name?: string;
+    serviceDate?: string;
+    serviceTime?: string | null;
+    songSelections?: Record<string, string>;
+  } = {},
 ): Promise<{ report: ChurchSuiteImportReport; setlist: unknown }> {
   const preview = await previewChurchsuitePlan(planId);
   if (!preview.items.some((item) => item.action !== "skip")) {
@@ -260,13 +241,18 @@ export async function importChurchsuitePlan(
       continue;
     }
     if (item.action === "song" && item.matchedSong) {
+      const selectedId = input.songSelections?.[String(item.id)];
+      const selected = selectedId
+        ? item.matchCandidates.find((candidate) => candidate.id === selectedId)
+        : undefined;
+      const chosen = selected ?? item.matchedSong;
       insert.run(
         randomUUID(),
         id,
         position,
         "song",
-        item.matchedSong.id,
-        item.matchedSong.title,
+        chosen.id,
+        chosen.title,
         null,
         null,
         null,

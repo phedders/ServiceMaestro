@@ -258,6 +258,10 @@ export default function HelpPage({ onOpenSettings }: { onOpenSettings: () => voi
                 <strong>Save local</strong> keeps song edits inside this set list.
                 <strong> Save to song library</strong> updates the shared song for future services.
               </li>
+              <li>
+                Song items have an <strong>ALT</strong> button for locally stored versions with similar
+                titles. Compare metadata and lyric differences before switching versions.
+              </li>
             </ul>
           </article>
           <article className="help-card">
@@ -398,8 +402,10 @@ export default function HelpPage({ onOpenSettings }: { onOpenSettings: () => voi
                 session</strong> displays it now without saving.
               </li>
               <li>
-                ChurchSuite plans can be reviewed and turned into a draft set list. Matched songs link
-                to the library; unmatched named items become editable text placeholders. Plan object
+                ChurchSuite plans can be reviewed and turned into a draft set list. Matched songs
+                link to the library. When several local songs match, compare their metadata and
+                lyrics and choose the right version before importing. Unmatched named items become
+                editable text placeholders. Plan object
                 types listed under <strong>Settings → ChurchSuite empty items</strong> become empty
                 items with no pages, keeping their text in the notes.
               </li>
