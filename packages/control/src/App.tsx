@@ -248,13 +248,15 @@ export default function App() {
             </p>
           </div>
           <div className="topbar-actions">
-            <button
-              className="button ghost small layout-toggle"
-              onClick={() => setSidebarCollapsed((current) => !current)}
-              title={sidebarCollapsed ? "Show navigation" : "Collapse navigation"}
-            >
-              {sidebarCollapsed ? "☰ Show menu" : "⇤ Hide menu"}
-            </button>
+            {!topbarMode && (
+              <button
+                className="button ghost small layout-toggle"
+                onClick={() => setSidebarCollapsed((current) => !current)}
+                title={sidebarCollapsed ? "Show navigation" : "Collapse the left navigation"}
+              >
+                {sidebarCollapsed ? "☰ Show menu" : "⇤ Hide menu"}
+              </button>
+            )}
             <button
               className="button ghost small layout-toggle"
               onClick={() => setTopbarMode((current) => !current)}
