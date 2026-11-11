@@ -1233,9 +1233,30 @@ label {
 
 .add-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 12px;
   margin: 18px 0;
+}
+
+.setlist-image-thumb {
+  display: block;
+  max-width: 220px;
+  max-height: 130px;
+  object-fit: contain;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  margin-top: 6px;
+  background: #0b1119;
+}
+
+.image-edit-preview {
+  display: block;
+  max-width: 100%;
+  max-height: 260px;
+  object-fit: contain;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: #0b1119;
 }
 
 .add-card {
@@ -1498,9 +1519,127 @@ label {
 }
 
 /* ------------------------------------------------------------------ */
-/* ChurchSuite planning                                                */
+/* Images                                                              */
 /* ------------------------------------------------------------------ */
 
+.images-page {
+  display: grid;
+  gap: 16px;
+}
+
+.image-toolbar {
+  display: grid;
+  grid-template-columns: minmax(200px, 1.5fr) minmax(160px, 1fr) minmax(180px, 1fr) auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.images-layout {
+  display: grid;
+  grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.image-tree {
+  display: grid;
+  gap: 3px;
+  max-height: 72vh;
+  overflow: auto;
+}
+
+.image-folder {
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  border-radius: 7px;
+  padding: 7px 10px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.78rem;
+}
+
+.image-folder:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.image-folder.current {
+  background: var(--accent-soft);
+  color: #dff5ff;
+}
+
+.image-folder .muted {
+  margin-left: auto;
+  font-size: 0.68rem;
+}
+
+.image-folder-icon {
+  width: 14px;
+  color: var(--accent);
+}
+
+.image-results {
+  min-height: 420px;
+}
+
+.image-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.image-card {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--panel-2);
+  padding: 9px;
+  display: grid;
+  gap: 8px;
+  align-content: start;
+}
+
+.image-thumb {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 16 / 10;
+  border-radius: 7px;
+  overflow: hidden;
+  background:
+    linear-gradient(45deg, #111923 25%, transparent 25%) 0 0 / 20px 20px,
+    linear-gradient(45deg, transparent 75%, #111923 75%) 0 0 / 20px 20px,
+    linear-gradient(45deg, transparent 75%, #111923 75%) 10px -10px / 20px 20px,
+    linear-gradient(45deg, #111923 25%, #17212d 25%) 10px -10px / 20px 20px;
+}
+
+.image-thumb img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.image-card-meta {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.image-card-meta strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.8rem;
+}
+
+.image-card-meta .muted {
+  font-size: 0.66rem;
+  overflow-wrap: anywhere;
+}
+
+/* ------------------------------------------------------------------ */
+/* ChurchSuite planning                                                */
+/* ------------------------------------------------------------------ */
 .churchsuite-page {
   display: grid;
   gap: 16px;
@@ -2613,6 +2752,15 @@ label {
 
   .git-config-grid {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .images-layout,
+  .image-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .image-tree {
+    max-height: 30vh;
   }
 
   .churchsuite-grid {

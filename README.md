@@ -67,6 +67,7 @@ Open <http://localhost:8080/musicians> to see the read-only musician view. It de
 - **Songs** — create/edit lyrics with inline chords (`A[C]mazing`), section labels (`[Verse 1]`), key, author, alternative titles, CCLI and copyright; optional inline Markdown styling; multiple named verse orders. The song editor has **Add to current setlist** and **Add to live session** actions.
 - **Library import** — scan a folder for OpenLP/OpenLyrics XML, ChordPro and plain-text files; preview titles/formats/warnings, then import. Duplicate CCLI/title matches are detected during the scan and can be **skipped**, **replaced**, or imported as a **duplicate** with an edited title/alternative titles. OpenLP `verseOrder` and ChordPro `{comment: …}` sections are honoured; SongSelect legal footers and bar markers are removed.
 - **Scores and tabs for musicians** — upload PDFs, ChordPro, lyrics or images to a song; the standalone `/musicians` view lists upcoming/current services, opens a service read-only and renders lyrics plus PDFs with a bundled PDF.js viewer (page navigation, zoom, fit-to-width), text and image assets. It never changes the live session.
+- **Images** — browse `SM_IMAGES_DIR` (default `library/images`) in a folder tree with a global search, upload images from the Images page or a set list, and add image items to set lists for output.
 - **Bible** — reads the three real schema families found in the samples (MyBible `book`/`verse`, BibleDb `books`/`verses`, and JSON), sanitises ESV markup, and provides a translation/book/chapter/verse-range UI with **Add to current setlist** and **Add to live session**.
 - **Set lists** — named, dated, with songs and text items; dates display in compact `YYYYMMDD` form and new set lists default to a `YYYYMMDD-` name prefix for sortable names. Reorder with arrows or a drag handle; click an item to preview and edit its title, lyrics/text, format, alignment, key, transpose, verse order and notes. The Add song panel searches titles, first lines, alternative titles and optionally the full lyrics/body. Song edits stay local to the set list by default, with an explicit **Save to song library** option and **Send to live session** when that set list is live.
 - **Live sessions** — a set list is snapshotted when the session starts, so editing the set list afterwards cannot change the live output. Sessions start **blank** until the operator shows the first page.
@@ -96,6 +97,7 @@ Open <http://localhost:8080/musicians> to see the read-only musician view. It de
 | `SM_DATA_DIR` | `packages/server/data` | SQLite + runtime data |
 | `SM_SONGS_DIR` | `samples/` (local) | Source directory scanned for OpenLP/ChordPro/text imports |
 | `SM_BIBLE_DIR` | `samples/bible/` (local) | SQLite/JSON Bible translations |
+| `SM_IMAGES_DIR` | `library/images/` (local) / `/library/images` (container) | Image library for backgrounds and slides |
 | `SM_ADMIN_PASSWORD` | `admin` | Password for the seeded admin |
 | `SM_OUTPUT_TOKEN` | `dev-output` | Token required by display sockets |
 | `SM_LOG_LEVEL` | `info` | Fastify log level |

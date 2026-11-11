@@ -85,7 +85,7 @@ function resolveSetlistItems(setlistId: string): { name: string; items: Snapshot
     .prepare("SELECT * FROM setlist_items WHERE setlist_id = ? ORDER BY position ASC, rowid ASC")
     .all(setlistId) as Array<{
     id: string;
-    kind: "song" | "text";
+    kind: "song" | "text" | "image";
     song_id: string | null;
     title: string;
     content: string | null;
@@ -116,6 +116,19 @@ function resolveSetlistItems(setlistId: string): { name: string; items: Snapshot
         transpose: row.transpose,
         maxLines: row.max_lines,
         verseOrder: row.verse_order ?? song?.verseOrder ?? null,
+        notes: row.notes,
+      };
+    }
+    if (row.kind === "image") {
+      return {
+        kind: "image",
+        itemId: row.id,
+        songId: null,
+        title: row.title || "Image",
+        content: row.content ?? "",
+        transpose: 0,
+        maxLines: row.max_lines,
+        verseOrder: null,
         notes: row.notes,
       };
     }

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import type {
+  ImageAsset,
   LiveState,
   SetlistDetail,
   SetlistImportPreview,
@@ -81,6 +82,8 @@ function songFirstLines(song: Song): string {
 function ItemRow({
   item,
   song,
+  images,
+  onUploadImage,
   first,
   last,
   dragging,
@@ -97,6 +100,8 @@ function ItemRow({
 }: {
   item: SetlistItem;
   song: Song | undefined;
+  images: ImageAsset[];
+  onUploadImage: (file: File) => Promise<ImageAsset>;
   first: boolean;
   last: boolean;
   dragging: boolean;
@@ -178,6 +183,13 @@ function ItemRow({
   }
 
   function payload(): Record<string, unknown> {
+    if (item.kind === "image") {
+      return {
+        title: title.trim() || content.split("/").pop() || "Image",
+        content,
+        notes: notes || null,
+      };
+    }
     const nextContent = content;
     return {
       title: title.trim() || (item.kind === "song" ? song?.title ?? displayTitle : "Text"),
@@ -252,7 +264,9 @@ function ItemRow({
         >
           ⠿
         </span>
-        <span className={`item-icon ${item.kind}`}>{item.kind === "song" ? "♫" : "T"}</span>
+        <span className={`item-icon ${item.kind}`}>
+          {item.kind === "song" ? "♫" : item.kind === "image" ? "▣" : "T"}
+        </span>
         <button
           type="button"
           className="setlist-item-summary"
@@ -264,10 +278,19 @@ function ItemRow({
             {localSongEdit && <span className="local-badge">Local edit</span>}
           </span>
           <span className="muted">
-            {item.kind === "song" ? "Song" : "Text"}
+            {item.kind === "song" ? "Song" : item.kind === "image" ? "Image" : "Text"}
             {item.notes ? ` · ${item.notes}` : ""}
           </span>
-          {!editing && preview && <span className="setlist-item-preview">{preview}</span>}
+          {!editing && item.kind === "image" && content && (
+            <img
+              className="setlist-image-thumb"
+              src={`/api/images/file?path=${encodeURIComponent(content)}`}
+              alt={displayTitle}
+            />
+          )}
+          {!editing && preview && item.kind !== "image" && (
+            <span className="setlist-item-preview">{preview}</span>
+          )}
         </button>
         <div className="setlist-item-actions">
           <button className="button ghost small" disabled={first} onClick={() => onMove(-1)}>
@@ -288,7 +311,13 @@ function ItemRow({
       {editing && (
         <div className="setlist-item-edit">
           <div className="setlist-item-edit-heading">
-            <strong>{item.kind === "song" ? "Edit song for this set list" : "Edit text"}</strong>
+            <strong>
+              {item.kind === "song"
+                ? "Edit song for this set list"
+                : item.kind === "image"
+                  ? "Edit image"
+                  : "Edit text"}
+            </strong>
             {item.kind === "song" && (
               <span className="muted">
                 Changes stay in this set list unless you choose “Save to song library”.
@@ -299,7 +328,61 @@ function ItemRow({
             Title
             <input value={title} onChange={(event) => setTitle(event.target.value)} />
           </label>
-          {item.kind === "text" && (
+          {item.kind === "image" && (
+            <>
+              {content && (
+                <img
+                  className="image-edit-preview"
+                  src={`/api/images/file?path=${encodeURIComponent(content)}`}
+                  alt={displayTitle}
+                />
+              )}
+              <label>
+                Image
+                <select value={content} onChange={(event) => setContent(event.target.value)}>
+                  <option value="">Choose an image…</option>
+                  {images.map((image) => (
+                    <option key={image.path} value={image.path}>
+                      {image.path}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Upload replacement
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/gif,image/webp,image/avif,image/svg+xml"
+                  onChange={async (event) => {
+                    const file = event.target.files?.[0];
+                    if (!file) return;
+                    try {
+                      const uploaded = await onUploadImage(file);
+                      setContent(uploaded.path);
+                      if (!title.trim()) setTitle(uploaded.name);
+                      notify("Image uploaded");
+                    } catch (error) {
+                      notify(
+                        error instanceof ApiError ? error.message : "Could not upload image",
+                        "error",
+                      );
+                    }
+                  }}
+                />
+              </label>
+              <label>
+                Notes
+                <input
+                  value={notes}
+                  onChange={(event) => setNotes(event.target.value)}
+                  placeholder="Optional"
+                />
+              </label>
+            </>
+          )}
+          {item.kind !== "image" && (
+            <>
+              {item.kind === "text" && (
             <>
               <label>
                 Text format
@@ -394,6 +477,8 @@ function ItemRow({
               />
             </label>
           </div>
+            </>
+          )}
           <div className="setlist-item-edit-actions">
             <button className="button ghost" onClick={closeEditor}>
               Cancel
@@ -426,6 +511,7 @@ export default function SetlistsPage({
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detail, setDetail] = useState<SetlistDetail | null>(null);
   const [songs, setSongs] = useState<Song[]>([]);
+  const [images, setImages] = useState<ImageAsset[]>([]);
   const [revisions, setRevisions] = useState<SetlistRevisionInfo[]>([]);
   const [importFile, setImportFile] = useState<File | null>(null);
   const [importPreview, setImportPreview] = useState<SetlistImportPreview | null>(null);
@@ -447,6 +533,9 @@ export default function SetlistsPage({
   const [notes, setNotes] = useState("");
 
   const [songToAdd, setSongToAdd] = useState("");
+  const [imageToAdd, setImageToAdd] = useState("");
+  const [imageTitle, setImageTitle] = useState("");
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [songSearch, setSongSearch] = useState("");
   const [songSearchFields, setSongSearchFields] = useState({
     title: true,
@@ -488,7 +577,14 @@ export default function SetlistsPage({
       setLoading(false);
     });
     api.songs().then((result) => setSongs(result.songs)).catch(() => undefined);
+    api.images().then((result) => setImages(result.images)).catch(() => undefined);
   }, []);
+
+  async function uploadImage(file: File, folder = "setlists"): Promise<ImageAsset> {
+    const result = await api.uploadImage(file, folder);
+    setImages((current) => [...current, result.image].sort((a, b) => a.path.localeCompare(b.path)));
+    return result.image;
+  }
 
   async function createSetlist() {
     try {
@@ -535,9 +631,25 @@ export default function SetlistsPage({
     }
   }
 
+  async function addImage() {
+    if (!detail || !imageToAdd) return;
+    try {
+      const result = await api.addItem(detail.id, {
+        kind: "image",
+        title: imageTitle.trim() || imageToAdd.split("/").pop() || "Image",
+        content: imageToAdd,
+      });
+      setDetail(result.setlist);
+      setImageTitle("");
+      setImageToAdd("");
+      await loadList(detail.id);
+    } catch (error) {
+      notify(error instanceof ApiError ? error.message : "Could not add image", "error");
+    }
+  }
+
   async function addText() {
-    if (!detail || !textContent.trim()) return;
-    const extracted = extractTextHeader(textContent);
+    if (!detail || !textContent.trim()) return;    const extracted = extractTextHeader(textContent);
     try {
       const result = await api.addItem(detail.id, {
         kind: "text",
@@ -896,6 +1008,8 @@ export default function SetlistsPage({
                 key={item.id}
                 item={item}
                 song={songs.find((song) => song.id === item.songId)}
+                images={images}
+                onUploadImage={(file) => uploadImage(file)}
                 first={index === 0}
                 last={index === detail.items.length - 1}
                 dragging={dragId === item.id}
@@ -988,6 +1102,51 @@ export default function SetlistsPage({
               )}
               <button className="button" onClick={addSong} disabled={!songToAdd}>
                 Add to set list
+              </button>
+            </div>
+            <div className="add-card">
+              <h3>Add image</h3>
+              <select value={imageToAdd} onChange={(event) => setImageToAdd(event.target.value)}>
+                <option value="">Choose an image…</option>
+                {images.map((image) => (
+                  <option key={image.path} value={image.path}>
+                    {image.path}
+                  </option>
+                ))}
+              </select>
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/gif,image/webp,image/avif,image/svg+xml"
+                onChange={async (event) => {
+                  const file = event.target.files?.[0];
+                  if (!file) return;
+                  setUploadingImage(true);
+                  try {
+                    const uploaded = await uploadImage(file);
+                    setImageToAdd(uploaded.path);
+                    setImageTitle(uploaded.name);
+                    notify("Image uploaded");
+                  } catch (error) {
+                    notify(
+                      error instanceof ApiError ? error.message : "Could not upload image",
+                      "error",
+                    );
+                  } finally {
+                    setUploadingImage(false);
+                  }
+                }}
+              />
+              <input
+                value={imageTitle}
+                onChange={(event) => setImageTitle(event.target.value)}
+                placeholder="Title (optional)"
+              />
+              <button
+                className="button"
+                onClick={addImage}
+                disabled={!imageToAdd || uploadingImage}
+              >
+                {uploadingImage ? "Uploading…" : "Add to set list"}
               </button>
             </div>
             <div className="add-card">

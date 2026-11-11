@@ -11,6 +11,7 @@ import type {
   FontOption,
   GitSettings,
   GitStatus,
+  ImageAsset,
   LiveState,
   PublicUser,
   SetlistDetail,
@@ -70,6 +71,27 @@ export const api = {
   updateSong: (id: string, payload: Partial<Song>) =>
     request<{ song: Song }>(`/api/songs/${id}`, { method: "PATCH", body: JSON.stringify(payload) }),
   deleteSong: (id: string) => request<{ ok: true }>(`/api/songs/${id}`, { method: "DELETE" }),
+
+  images: (q = "") =>
+    request<{ root: string; images: ImageAsset[] }>(
+      `/api/images${q ? `?q=${encodeURIComponent(q)}` : ""}`,
+    ),
+  uploadImage: async (file: File, folder: string): Promise<{ image: ImageAsset }> => {
+    const form = new FormData();
+    form.append("file", file);
+    form.append("folder", folder);
+    const response = await fetch("/api/images", {
+      method: "POST",
+      body: form,
+      credentials: "include",
+    });
+    const text = await response.text();
+    const data = text ? JSON.parse(text) : null;
+    if (!response.ok) throw new ApiError(response.status, data?.error ?? response.statusText);
+    return data;
+  },
+  deleteImage: (path: string) =>
+    request<{ ok: true }>(`/api/images?path=${encodeURIComponent(path)}`, { method: "DELETE" }),
   createVerseOrder: (songId: string, payload: { name: string; order: string }) =>
     request<{ verseOrder: SongVerseOrder }>(`/api/songs/${songId}/verse-orders`, {
       method: "POST",

@@ -3,9 +3,10 @@ import { marked } from "marked";
 import rst2html from "rst2html";
 import sanitizeHtml from "sanitize-html";
 import { parse as parseYaml } from "yaml";
+import { OUTPUT_TOKEN } from "./config.js";
 
 export interface RenderItem {
-  kind: "song" | "text";
+  kind: "song" | "text" | "image";
   title: string;
   lyrics?: string | null;
   content?: string | null;
@@ -540,6 +541,21 @@ export function buildPages(
     smartPageSplits: options.smartPageSplits !== false,
     textScale: options.textScale ?? 1,
   };
+
+  if (item.kind === "image") {
+    const relative = (item.content ?? "").trim();
+    if (!relative) {
+      return [{ index: 0, section: null, html: "" }];
+    }
+    const url = `/api/images/file?path=${encodeURIComponent(relative)}&token=${encodeURIComponent(OUTPUT_TOKEN)}`;
+    return [
+      {
+        index: 0,
+        section: null,
+        html: `<div class="slide-image"><img src="${escapeHtml(url)}" alt="${escapeHtml(item.title)}" /></div>`,
+      },
+    ];
+  }
 
   let blocks: Block[];
   if (item.kind === "text") {

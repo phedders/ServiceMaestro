@@ -76,6 +76,9 @@ export const BIBLE_DIR = path.resolve(
 );
 export const ASSETS_DIR = path.join(DATA_DIR, "assets");
 export const FONTS_DIR = path.resolve(process.env.SM_FONTS_DIR ?? path.join(DATA_DIR, "fonts"));
+export const IMAGES_DIR = path.resolve(
+  process.env.SM_IMAGES_DIR ?? path.join(packageRoot, "../../library/images"),
+);
 export const TEMPLATES_DIR = path.resolve(process.env.SM_TEMPLATES_DIR ?? path.join(DATA_DIR, "templates"));
 export const OUTPUT_TOKEN = process.env.SM_OUTPUT_TOKEN ?? "dev-output";
 export const ADMIN_PASSWORD = process.env.SM_ADMIN_PASSWORD ?? "admin";

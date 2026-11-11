@@ -23,6 +23,7 @@ import { transferRoutes } from "./routes/transfer.js";
 import { fontRoutes } from "./routes/fonts.js";
 import { churchsuiteRoutes } from "./routes/churchsuite.js";
 import { settingsRoutes } from "./routes/settings.js";
+import { imageRoutes } from "./routes/images.js";
 import {
   configureGitAutoSync,
   exportAllToGit,
@@ -92,6 +93,7 @@ export async function buildApp(): Promise<{ app: FastifyInstance; io: Server }> 
   await app.register(fontRoutes);
   await app.register(churchsuiteRoutes);
   await app.register(settingsRoutes);
+  await app.register(imageRoutes);
 
   app.get("/", async (_request, reply) => sendHtml(reply, path.join(CONTROL_DIST, "index.html")));
   app.get("/login", async (_request, reply) => sendHtml(reply, path.join(CONTROL_DIST, "index.html")));

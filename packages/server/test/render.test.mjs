@@ -227,6 +227,19 @@ test("applies text alignment to text items", () => {
   assert.match(markdown[0].html, /text-html" style="text-align:left"/);
 });
 
+test("renders image items", () => {
+  const pages = buildPages({
+    kind: "image",
+    title: "Background",
+    content: "backgrounds/test.png",
+    transpose: 0,
+    maxLines: 4,
+  });
+  assert.equal(pages.length, 1);
+  assert.match(pages[0].html, /class="slide-image"/);
+  assert.match(pages[0].html, /\/api\/images\/file\?path=backgrounds%2Ftest\.png/);
+});
+
 test("smart wrapping keeps split words together", () => {  const pages = buildPages(
     {
       kind: "song",

@@ -59,8 +59,10 @@ Ordered list; each item has a kind:
 | `song` | song version + arrangement | key override, transpose, verse order override, notes, local title/lyrics override (set-list only by default) |
 | `text` | text item version | theme override, page breaks, notes |
 | `bible` | translation + reference | from/to verses, translation, theme |
-| `image` | image id | fit (`contain`/`cover`), background, notes |
+| `image` | image path under `SM_IMAGES_DIR` | title, notes (current implementation) |
 | `placeholder` | — | title/notes only (e.g. "Sermon", "Offering") |
+
+Image items currently reference a library-relative path; the set-list editor can select or upload an image without copying it into the set-list data. Live pages include the image via an output-token image URL.
 
 A **placeholder** is useful for service plans: it keeps the order meaningful without creating output. It is skipped by `next`/`prev` unless explicitly focused.
 

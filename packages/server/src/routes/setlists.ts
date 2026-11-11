@@ -29,7 +29,7 @@ interface SetlistRow {
 interface ItemRow {
   id: string;
   position: number;
-  kind: "song" | "text";
+  kind: "song" | "text" | "image";
   song_id: string | null;
   title: string;
   content: string | null;
@@ -200,6 +200,9 @@ export async function setlistRoutes(app: FastifyInstance): Promise<void> {
         if (!song) return reply.code(400).send({ error: "Song not found" });
         title = title || song.title;
         content = null;
+      } else if (data.kind === "image") {
+        if (!content) return reply.code(400).send({ error: "content is required for image items" });
+        title = title || content.split("/").pop() || "Image";
       } else {
         if (!content) return reply.code(400).send({ error: "content is required for text items" });
         const extracted = extractTextFormat(content);

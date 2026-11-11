@@ -226,6 +226,20 @@ body.idle .sm-template {
   white-space: pre-wrap;
 }
 
+.slide-image {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.slide-image img {
+  display: block;
+  max-width: 100%;
+  max-height: 78vh;
+  object-fit: contain;
+}
+
 .text-html {
   display: block;
   text-align: left;

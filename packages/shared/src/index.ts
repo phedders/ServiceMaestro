@@ -37,7 +37,7 @@ export interface Song {
   updatedAt: string;
 }
 
-export type ItemKind = "song" | "text";
+export type ItemKind = "song" | "text" | "image";
 
 export interface SetlistItem {
   id: string;
@@ -231,7 +231,7 @@ export interface LiveState {
   itemIndex: number;
   pageIndex: number;
   pageCount: number;
-  mode: "song" | "text" | "blank" | "idle";
+  mode: "song" | "text" | "image" | "blank" | "idle";
   title: string;
   blank: boolean;
   maxLines: number;
@@ -375,6 +375,16 @@ export interface SongAsset {
   createdBy: string | null;
 }
 
+export interface ImageAsset {
+  path: string;
+  name: string;
+  folder: string;
+  mime: string;
+  bytes: number;
+  modifiedAt: string;
+  url: string;
+}
+
 /* ------------------------------------------------------------------ */
 /* Validation schemas                                                  */
 /* ------------------------------------------------------------------ */
@@ -411,7 +421,7 @@ export const setlistInputSchema = z.object({
 });
 
 export const setlistItemInputSchema = z.object({
-  kind: z.enum(["song", "text"]),
+  kind: z.enum(["song", "text", "image"]),
   songId: z.string().optional().nullable(),
   title: z.string().trim().max(300).optional(),
   content: z.string().max(200_000).optional().nullable(),

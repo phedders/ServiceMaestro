@@ -39,7 +39,9 @@ export function ItemList({ live, onCommand }: { live: LiveState; onCommand: (pay
             onClick={() => onCommand({ type: "queueItem", itemIndex: item.index })}
             title="Queue this item's page list"
           >
-            <span className="item-icon">{item.kind === "song" ? "♫" : "T"}</span>
+            <span className="item-icon">
+              {item.kind === "song" ? "♫" : item.kind === "image" ? "▣" : "T"}
+            </span>
             <span className="item-title">{item.title}</span>
             {item.notes && <span className="item-notes">{item.notes}</span>}
           </button>
