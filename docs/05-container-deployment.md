@@ -1,6 +1,6 @@
 # Container deployment
 
-Design for running Web Lyric Master as a **lightweight, single-process container** on Docker, Podman, Incus or plain LXC. The application must not require Docker-in-Docker, host networking, privileged mode, systemd inside an OCI container, or external services (no Redis/Postgres).
+Design for running Service Maestro as a **lightweight, single-process container** on Docker, Podman, Incus or plain LXC. The application must not require Docker-in-Docker, host networking, privileged mode, systemd inside an OCI container, or external services (no Redis/Postgres).
 
 See [02-architecture.md](02-architecture.md) for the application design and [03-content-model.md](03-content-model.md) for set list export/import, which doubles as the portable backup format.
 
@@ -102,6 +102,10 @@ Environment-first, with optional file values and `_FILE` secret support:
 | `WLM_MAX_ASSET_MB` | `100` | Per-file cap for PDFs/tabs/ChordPro |
 | `WLM_OUTPUT_LEGACY_TOKEN` / `_FILE` | unset | Optional token-free legacy `/obs-*` access (disabled by default) |
 | `WLM_MAX_IMPORT_MB` | `200` | Set list/media import cap |
+| `WLM_FONTS_DIR` | `/data/fonts` | Cached Google Fonts CSS/woff2 files |
+| `WLM_CHURCHSUITE_CLIENT_ID` / `_FILE` | unset | ChurchSuite API user client id |
+| `WLM_CHURCHSUITE_CLIENT_SECRET` / `_FILE` | unset | ChurchSuite API user secret |
+| `WLM_CHURCHSUITE_SCOPES` | `planning.read` | Requested ChurchSuite scopes |
 | `WLM_LOG_LEVEL` | `info` | `debug`/`info`/`warn`/`error` |
 | `WLM_TRUST_PROXY` | `false` | Honour `X-Forwarded-*` behind TLS proxy |
 
@@ -113,9 +117,9 @@ Secrets are never printed; `_FILE` variants allow Docker/Podman secrets and Incu
 
 ```yaml
 services:
-  web-lyric-master:
-    image: ghcr.io/example/web-lyric-master:0.1
-    container_name: web-lyric-master
+  service-maestro:
+    image: ghcr.io/example/service-maestro:0.1
+    container_name: service-maestro
     restart: unless-stopped
     ports:
       - "8080:8080"
@@ -156,7 +160,7 @@ If the installed Incus supports OCI application containers:
 
 ```sh
 incus remote add docker https://docker.io --protocol=oci
-incus launch docker:ghcr.io/example/web-lyric-master:0.1 wlm
+incus launch docker:ghcr.io/example/service-maestro:0.1 wlm
 
 incus config device add wlm data disk source=/srv/wlm/data path=/data shift=true
 incus config device add wlm songs disk source=/srv/wlm/songs path=/library/songs shift=true readonly=true
@@ -203,7 +207,7 @@ incus config device add wlm proxy proxy listen=tcp:0.0.0.0:8080 connect=tcp:127.
 
 ```ini
 [Unit]
-Description=Web Lyric Master
+Description=Service Maestro
 After=network-online.target
 Wants=network-online.target
 

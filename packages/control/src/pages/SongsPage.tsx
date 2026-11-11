@@ -9,6 +9,7 @@ const EMPTY = {
   ccli: "",
   key: "",
   verseOrder: "",
+  lyricsMarkdown: false,
   lyrics: "",
 };
 
@@ -32,6 +33,8 @@ export default function SongsPage({
   const [assetTitle, setAssetTitle] = useState("");
   const [assetKey, setAssetKey] = useState("");
   const [uploadingAsset, setUploadingAsset] = useState(false);
+  const [newOrderName, setNewOrderName] = useState("");
+  const [newOrderText, setNewOrderText] = useState("");
 
   async function load() {
     const result = await api.songs();
@@ -61,8 +64,39 @@ export default function SongsPage({
     );
   }, [songs, search]);
 
+  const selectedSong = songs.find((song) => song.id === selectedId) ?? null;
+
+  async function addVerseOrder() {
+    if (!selectedId || !newOrderName.trim() || !newOrderText.trim()) return;
+    try {
+      await api.createVerseOrder(selectedId, {
+        name: newOrderName.trim(),
+        order: newOrderText.trim(),
+      });
+      setNewOrderName("");
+      setNewOrderText("");
+      await load();
+      notify("Verse order saved");
+    } catch (error) {
+      notify(error instanceof ApiError ? error.message : "Could not save verse order", "error");
+    }
+  }
+
+  async function removeVerseOrder(id: string) {
+    if (!selectedId || !confirm("Delete this saved verse order?")) return;
+    try {
+      await api.deleteVerseOrder(selectedId, id);
+      await load();
+      notify("Verse order removed");
+    } catch (error) {
+      notify(error instanceof ApiError ? error.message : "Could not remove verse order", "error");
+    }
+  }
+
   function select(song: Song) {
     setSelectedId(song.id);
+    setNewOrderName("");
+    setNewOrderText("");
     setForm({
       title: song.title,
       author: song.author ?? "",
@@ -70,12 +104,15 @@ export default function SongsPage({
       ccli: song.ccli ?? "",
       key: song.key ?? "",
       verseOrder: song.verseOrder ?? "",
+      lyricsMarkdown: song.lyricsMarkdown,
       lyrics: song.lyrics,
     });
   }
 
   function newSong() {
     setSelectedId(null);
+    setNewOrderName("");
+    setNewOrderText("");
     setForm({ ...EMPTY });
   }
 
@@ -90,6 +127,7 @@ export default function SongsPage({
         ccli: form.ccli.trim() || null,
         key: form.key.trim() || null,
         verseOrder: form.verseOrder.trim() || null,
+        lyricsMarkdown: form.lyricsMarkdown,
         lyrics: form.lyrics,
       };
       const result = selectedId
@@ -262,6 +300,75 @@ export default function SongsPage({
           </label>
         </div>
 
+        <div className="verse-orders-panel">
+          <div className="panel-heading">
+            <div>
+              <h3>Saved verse orders</h3>
+              <p className="muted">
+                Name alternative arrangements (for example “Short” or “Full”) and choose one when the
+                song is added to a set list.
+              </p>
+            </div>
+          </div>
+          {selectedId ? (
+            <>
+              <div className="verse-order-list">
+                {selectedSong?.verseOrders.map((entry) => (
+                  <div key={entry.id} className="verse-order-row">
+                    <strong>{entry.name}</strong>
+                    <code>{entry.order}</code>
+                    <button
+                      className="button ghost small danger-text"
+                      onClick={() => removeVerseOrder(entry.id)}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+                {!selectedSong?.verseOrders.length && (
+                  <p className="muted">No saved verse orders yet; the default above is used.</p>
+                )}
+              </div>
+              <div className="verse-order-add">
+                <input
+                  value={newOrderName}
+                  onChange={(event) => setNewOrderName(event.target.value)}
+                  placeholder="Name, e.g. Short"
+                />
+                <input
+                  value={newOrderText}
+                  onChange={(event) => setNewOrderText(event.target.value)}
+                  placeholder="Order, e.g. V1 C V2 C"
+                />
+                <button
+                  className="button"
+                  onClick={addVerseOrder}
+                  disabled={!newOrderName.trim() || !newOrderText.trim()}
+                >
+                  Add verse order
+                </button>
+              </div>
+            </>
+          ) : (
+            <p className="muted">Save the song first, then add named verse orders.</p>
+          )}
+        </div>
+
+        <label className="checkbox markdown-field">
+          <input
+            type="checkbox"
+            checked={form.lyricsMarkdown}
+            onChange={(event) => setForm({ ...form, lyricsMarkdown: event.target.checked })}
+          />
+          <span>
+            Enable inline Markdown styling in song lyrics
+            <small>
+              Supports <code>**bold**</code>, <code>*italic*</code>, <code>~~strike~~</code> and{" "}
+              <code>==highlight==</code> on main/two-thirds. Stage and chords ignore the styling.
+            </small>
+          </span>
+        </label>
+
         <label className="lyrics-field">
           Lyrics and chords
           <textarea
@@ -274,7 +381,8 @@ export default function SongsPage({
         </label>
         <p className="hint">
           Put chords in square brackets before the syllable: <code>a[C]mazing</code>. Blank lines separate
-          sections. A line like <code>[Verse 1]</code> becomes a section label.
+          sections. A line like <code>[Verse 1]</code> becomes a section label. If Markdown styling is
+          enabled, tags are applied on main/two-thirds but ignored on stage/chords.
         </p>
 
         <div className="assets-panel">

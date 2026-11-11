@@ -1,4 +1,4 @@
-# Web Lyric Master
+# Service Maestro
 
 A self-hosted server application for running church service visuals: manage song lyrics, set lists and dynamic text, then drive them onto **separate HTTP frontends** that OBS (or any browser) can use as sources.
 
@@ -64,20 +64,23 @@ Open <http://localhost:8080/musicians> to see the read-only musician view. It de
 ## What works now
 
 - **Authentication** — local accounts, scrypt password hashing, HTTP-only sessions. One seeded `admin`; user management is next.
-- **Songs** — create/edit lyrics with inline chords (`A[C]mazing`), section labels (`[Verse 1]`), key, author, CCLI and copyright.
+- **Songs** — create/edit lyrics with inline chords (`A[C]mazing`), section labels (`[Verse 1]`), key, author, CCLI and copyright; optional inline Markdown styling; multiple named verse orders.
 - **Library import** — scan a folder for OpenLP/OpenLyrics XML, ChordPro and plain-text files; preview titles/formats/warnings, then import. Duplicate CCLI/title entries are skipped. OpenLP `verseOrder` and ChordPro `{comment: …}` sections are honoured; SongSelect legal footers and bar markers are removed.
 - **Scores and tabs for musicians** — upload PDFs, ChordPro, lyrics or images to a song; the standalone `/musicians` view lists upcoming/current services, opens a service read-only and renders lyrics plus PDFs with a bundled PDF.js viewer (page navigation, zoom, fit-to-width), text and image assets. It never changes the live session.
 - **Bible** — reads the three real schema families found in the samples (MyBible `book`/`verse`, BibleDb `books`/`verses`, and JSON), sanitises ESV markup, and provides a translation/book/chapter/verse-range UI with **Add to current setlist** and **Add to live session**.
-- **Set lists** — named, dated, with songs and text items; reorder with arrows or a drag handle; click an item to preview and edit its title, lyrics/text, key, transpose, verse order and notes. Song edits stay local to the set list by default, with an explicit **Save to song library** option.
+- **Set lists** — named, dated, with songs and text items; reorder with arrows or a drag handle; click an item to preview and edit its title, lyrics/text, format, key, transpose, verse order and notes. Song edits stay local to the set list by default, with an explicit **Save to song library** option and **Send to live session** when that set list is live.
 - **Live sessions** — a set list is snapshotted when the session starts, so editing the set list afterwards cannot change the live output. Sessions start **blank** until the operator shows the first page.
 - **Publish & apply** — publish a revision, then **apply after the current item** (safe during a service) or **apply now**; queued updates are shown to operators and persisted across restarts.
 - **Templated outputs** — main, two-thirds, full, stage and chords; templates come from the set-list repo, a templates folder/repo, or built-in defaults, with fade-in/out changes.
-- **Display config** — Live-page panel for font, text colour, text size and max lines per page; applies to main/two-thirds, while stage and chords keep their fixed style.
-- **Rich text items** — first-line `type: markdown|html|rst|text` or YAML front matter, with page breaks and server-side sanitisation.
+- **Display config** — Live-page panel for font, text colour, text size, max lines, max words and smart page splits; applies to main/two-thirds, while stage and chords keep their fixed style. Smart splits estimate 1080p coverage from font size and avoid long Bible-line overflow.
+- **Rich text items** — choose Markdown (default), plain text, HTML or RST in the editor; legacy `format:` headers are extracted into metadata. Page breaks and server-side sanitisation are supported.
+- **Config page** — import Google Fonts by family name or CSS URL; files are cached in `/data/fonts` and served locally. ChurchSuite credential status and connection testing live here too.
 - **Export/import** — download a reference JSON or self-contained ZIP bundle (songs, text, PDF/tab assets) and import it as a new draft with a preview; matching uses CCLI/title and never affects a live service.
 - **Live control** — next/previous, page show, item queue, blank, transpose, max-lines, footer and quick text.
+- **Layout** — collapse the left sidebar or move navigation into a top bar; smaller screens automatically use the top-bar layout.
+- **Song word joins** — SongSelect/SongPro split words such as `can - not` or `sat - is - fied` display joined on main/two-thirds/stage and keep the split form in the chords view.
 - **Dashboard** — the configurable widget dashboard page is currently hidden from the navigation; its widgets changed live output and need a safer design before it returns.
-- **ChurchSuite planning sync** — designed: pull upcoming published services, match songs in a review dialog, and create a draft set list; pending working API credentials (see [10](docs/10-churchsuite-sync.md)).
+- **ChurchSuite planning sync** — credentials and connection testing are wired for the Planning API (`planning.read`); plan/item exploration endpoints are available. Mapping and draft-set-list creation are next (see [10](docs/10-churchsuite-sync.md)).
 - **Git-backed shared data** — designed: local-only repos by default with optional remote, auto-save/push on by default, separate songs/setlists/(optional LFS) Bibles repos, standard SSH or HTTP(S)+token URIs. See [11](docs/11-git-data-sync.md).
 - **Displays** — vanilla HTML/CSS/JS, no CDN, snapshot-on-connect, transparent main output, full-screen and stage-with-chords variants.
 - **Persistence** — SQLite (WAL) for users, sessions, songs, set lists, session snapshots and dashboard layouts; the live session survives a restart.
@@ -105,26 +108,34 @@ Open <http://localhost:8080/musicians> to see the read-only musician view. It de
 | `WLM_GIT_BIBLES_PATH` | `/data/repos/bibles` | Optional Bibles repo |
 | `WLM_CONFIG_FILE` | unset | YAML/JSON config with `git.repositories` and URIs |
 | `WLM_TEMPLATES_DIR` | `/data/templates` | Display template folder (after the set-list repo lookup) |
+| `WLM_FONTS_DIR` | `/data/fonts` | Cache for imported Google Fonts |
+| `WLM_CHURCHSUITE_CLIENT_ID` | unset | ChurchSuite OAuth client id / API user identifier |
+| `WLM_CHURCHSUITE_CLIENT_SECRET` | unset | ChurchSuite OAuth secret (prefer Docker secrets in production) |
+| `WLM_CHURCHSUITE_TOKEN_URL` | `https://login.churchsuite.com/oauth2/token` | Token endpoint |
+| `WLM_CHURCHSUITE_SCOPES` | `planning.read` | Requested scopes |
+| `WLM_CHURCHSUITE_API_URL` | `https://api.churchsuite.com/v2` | API base URL |
 
 ## Docker / Podman
 
 ```sh
-docker build -t web-lyric-master .
+docker build -t service-maestro .
 docker run --rm -p 8080:8080 \
   -e WLM_ADMIN_PASSWORD='change-me' \
   -e WLM_OUTPUT_TOKEN='a-long-random-output-token' \
   -v "$PWD/data:/data" \
-  web-lyric-master
+  service-maestro
 ```
 
 Or `docker compose up -d` / `podman-compose up -d`. The container runs as UID/GID 10001; ensure the mounted data directory is writable by that user (`chown -R 10001:10001 ./data`, or use Incus `shift=true`).
+
+Copy `.env.example` to `.env` next to `compose.yaml` for local credentials. Docker Compose reads that file automatically; never commit it. ChurchSuite credentials belong under `WLM_CHURCHSUITE_CLIENT_ID` and `WLM_CHURCHSUITE_CLIENT_SECRET`, and the Config page can test the connection.
 
 See [05-container-deployment.md](docs/05-container-deployment.md) for Incus/LXC, read-only root filesystem, backups and hardening.
 
 ## Project structure
 
 ```
-web-lyric-master/
+service-maestro/
 ├── packages/
 │   ├── shared/       TypeScript types + Zod schemas
 │   ├── server/       Fastify API, SQLite, Socket.IO, live state, rendering

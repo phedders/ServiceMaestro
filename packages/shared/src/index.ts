@@ -8,6 +8,17 @@ export interface PublicUser {
   role: Role;
 }
 
+export type TextFormat = "text" | "markdown" | "html" | "rst";
+
+export interface SongVerseOrder {
+  id: string;
+  songId: string;
+  name: string;
+  order: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Song {
   id: string;
   title: string;
@@ -17,6 +28,8 @@ export interface Song {
   key: string | null;
   lyrics: string;
   verseOrder: string | null;
+  lyricsMarkdown: boolean;
+  verseOrders: SongVerseOrder[];
   sourceFormat: string | null;
   sourcePath: string | null;
   createdAt: string;
@@ -32,6 +45,7 @@ export interface SetlistItem {
   songId: string | null;
   title: string;
   content: string | null;
+  format: TextFormat | null;
   keyOverride: string | null;
   transpose: number;
   maxLines: number;
@@ -114,6 +128,17 @@ export interface DisplayConfig {
   textColor: string;
   textScale: number;
   maxLines: number;
+  maxWords: number;
+  smartPageSplits: boolean;
+}
+
+export interface FontOption {
+  id: string;
+  label: string;
+  family: string;
+  source: "built-in" | "google";
+  cssUrl: string | null;
+  importedAt: string | null;
 }
 
 export interface LiveState {
@@ -265,7 +290,15 @@ export const songInputSchema = z.object({
   key: z.string().trim().max(10).optional().nullable(),
   lyrics: z.string().max(200_000),
   verseOrder: z.string().trim().max(1000).optional().nullable(),
+  lyricsMarkdown: z.boolean().optional(),
 });
+
+export const songVerseOrderInputSchema = z.object({
+  name: z.string().trim().min(1).max(80),
+  order: z.string().trim().min(1).max(1000),
+});
+
+export const songVerseOrderPatchSchema = songVerseOrderInputSchema.partial();
 
 export const setlistInputSchema = z.object({
   name: z.string().trim().min(1).max(200),
@@ -279,6 +312,7 @@ export const setlistItemInputSchema = z.object({
   songId: z.string().optional().nullable(),
   title: z.string().trim().max(300).optional(),
   content: z.string().max(200_000).optional().nullable(),
+  format: z.enum(["text", "markdown", "html", "rst"]).optional().nullable(),
   keyOverride: z.string().trim().max(10).optional().nullable(),
   transpose: z.number().int().min(-24).max(24).optional(),
   maxLines: z.number().int().min(1).max(30).optional(),
@@ -342,7 +376,18 @@ export const displayConfigSchema = z.object({
   textColor: z.string().trim().regex(/^#[0-9a-f]{6}$/i),
   textScale: z.number().min(0.5).max(2.5),
   maxLines: z.number().int().min(1).max(30),
+  maxWords: z.number().int().min(1).max(500).default(90),
+  smartPageSplits: z.boolean().default(true),
 });
+
+export const fontImportSchema = z
+  .object({
+    family: z.string().trim().min(1).max(120).optional(),
+    url: z.string().trim().url().max(2000).optional(),
+  })
+  .refine((value) => Boolean(value.family || value.url), {
+    message: "family or url is required",
+  });
 
 export const dashboardLayoutSchema = z.object({  version: z.literal(1),
   layouts: z.object({

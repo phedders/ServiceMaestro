@@ -110,8 +110,30 @@ db.exec(`
     text_color TEXT NOT NULL,
     text_scale REAL NOT NULL,
     max_lines INTEGER NOT NULL,
+    max_words INTEGER NOT NULL DEFAULT 90,
+    smart_page_splits INTEGER NOT NULL DEFAULT 1,
     updated_at TEXT NOT NULL
   );
+
+  CREATE TABLE IF NOT EXISTS fonts (
+    id TEXT PRIMARY KEY,
+    label TEXT NOT NULL,
+    family TEXT NOT NULL,
+    source_url TEXT,
+    css_path TEXT NOT NULL,
+    created_at TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS song_verse_orders (
+    id TEXT PRIMARY KEY,
+    song_id TEXT NOT NULL REFERENCES songs(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    order_text TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    UNIQUE(song_id, name)
+  );
+  CREATE INDEX IF NOT EXISTS idx_song_verse_orders_song ON song_verse_orders(song_id);
 
   CREATE TABLE IF NOT EXISTS song_assets (
     id TEXT PRIMARY KEY,
@@ -142,20 +164,26 @@ function ensureColumn(table: string, column: string, definition: string): void {
 ensureColumn("songs", "source_format", "TEXT");
 ensureColumn("songs", "source_path", "TEXT");
 ensureColumn("songs", "verse_order", "TEXT");
+ensureColumn("songs", "lyrics_markdown", "INTEGER NOT NULL DEFAULT 0");
 ensureColumn("setlist_items", "verse_order", "TEXT");
+ensureColumn("setlist_items", "text_format", "TEXT");
 ensureColumn("service_sessions", "revision_id", "TEXT");
 ensureColumn("service_sessions", "pending_json", "TEXT");
+ensureColumn("display_config", "max_words", "INTEGER NOT NULL DEFAULT 90");
+ensureColumn("display_config", "smart_page_splits", "INTEGER NOT NULL DEFAULT 1");
 db.exec("CREATE INDEX IF NOT EXISTS idx_songs_source_path ON songs(source_path)");
 
 db.prepare(
-  `INSERT INTO display_config (id, font_family, text_color, text_scale, max_lines, updated_at)
-   VALUES ('default', ?, ?, ?, ?, ?)
+  `INSERT INTO display_config (id, font_family, text_color, text_scale, max_lines, max_words, smart_page_splits, updated_at)
+   VALUES ('default', ?, ?, ?, ?, ?, ?, ?)
    ON CONFLICT(id) DO NOTHING`,
 ).run(
   '"Clear Sans", "Segoe UI", system-ui, -apple-system, sans-serif',
   "#ffffff",
   1,
   4,
+  90,
+  1,
   new Date().toISOString(),
 );
 

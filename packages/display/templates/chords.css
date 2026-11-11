@@ -53,3 +53,18 @@ body[data-target="chords"] {
   font-size: clamp(0.7rem, 1vw, 1.2rem);
   color: rgba(255, 255, 255, 0.55);
 }
+
+/* Song lyric Markdown is ignored on the chords view. */
+.wlm-chords .line strong,
+.wlm-chords .line em,
+.wlm-chords .line s,
+.wlm-chords .line mark,
+.wlm-chords .line code {
+  font-weight: inherit;
+  font-style: inherit;
+  text-decoration: none;
+  background: none;
+  color: inherit;
+  font-family: inherit;
+  padding: 0;
+}

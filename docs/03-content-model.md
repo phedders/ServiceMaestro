@@ -1,6 +1,6 @@
 # Content model: set lists, songs, dynamic text and themes
 
-Detailed design for the authoring side of Web Lyric Master, following the new requirements:
+Detailed design for the authoring side of Service Maestro, following the new requirements:
 
 > Implementation status: set-list publish/apply-to-live with queued updates, set-list JSON/bundle export/import, per-item verse order and song verse-order overrides are implemented. Full immutable song versions/arrangements and dynamic text themes remain future work.
 
@@ -66,6 +66,7 @@ A **placeholder** is useful for service plans: it keeps the order meaningful wit
 
 - Per-item **snapshot title** is stored for stable display even if the library entry is renamed later.
 - Song title/lyrics edits in the set-list editor are **local to that set list** by default. “Save to song library” explicitly pushes the edited title, lyrics, key and verse order back to the song inventory.
+- Text items store their renderer as `format` metadata (`markdown` default, `text`, `html`, `rst`). A legacy leading `format:`/`type:` header is extracted and removed when the item is first saved/edited.
 - **Same song twice** with different keys/arrangements is allowed.
 - Deleting an item in the draft never removes it from the pinned live revision.
 
@@ -207,7 +208,8 @@ Layout (desktop):
 - **Paste from anywhere**: plain text, chord-over-lyrics, OpenLP XML, ChordPro.
 - **Section detection**: blank lines → stanzas; `[Verse 1]`/`CHORUS` recognised; manual split/merge.
 - **Chord tools**: detect chord lines, align to lyrics, chord palette, "remove chords", "show as Nashville".
-- **Arrangement builder**: drag section chips into a verse order; save as named arrangement; set default.
+- **Arrangement builder**: drag section chips into a verse order; save multiple **named verse orders** on a song (for example “Short” and “Full”), then choose one when the song is added to a set list.
+- **Inline styling metadata**: songs can enable inline Markdown tags (`**bold**`, `*italic*`, `~~strike~~`, `==highlight==`) for main/two-thirds. Stage and chords ignore the styling.
 - **Page controls**: page-break markers, live thumbnail preview, warnings for overlong lines; max lines is configured on the Live page display config.
 - **Key controls**: original key detector + manual override, default key, preferred keys, transpose preview.
 - **Metadata panel**: title, alternate title, authors, copyright, CCLI, language, tags.
@@ -606,7 +608,7 @@ The reference format is the canonical schema; the bundle is a ZIP whose `manifes
   "format": "wlm.setlist",
   "formatVersion": 1,
   "exportedAt": "2026-11-10T14:30:00Z",
-  "generator": "web-lyric-master/0.1.0",
+  "generator": "service-maestro/0.1.0",
   "timezone": "Europe/London",
   "scope": {
     "revisionNo": 3,

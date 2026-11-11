@@ -1,6 +1,6 @@
 # ChurchSuite Planning API analysis and sync design
 
-Analysis of the ChurchSuite Planning API and a design for syncing upcoming services into Web Lyric Master set lists.
+Analysis of the ChurchSuite Planning API and a design for syncing upcoming services into Service Maestro set lists.
 
 Source: <https://github.com/ChurchSuite/churchsuite-api/blob/master/src/planning.yaml> (OpenAPI 3.2.0, spec version **2.112.8**, base URL `https://api.churchsuite.com/v2`).
 
@@ -34,7 +34,7 @@ Rate limit: **120 requests per 60 seconds per account**, with `429` + `Retry-Aft
 
 ChurchSuite supports two OAuth2 grants:
 
-1. **Client Credentials** — for server-side apps using an **API-enabled user** secret. This is the right fit for Web Lyric Master.
+1. **Client Credentials** — for server-side apps using an **API-enabled user** secret. This is the right fit for Service Maestro.
 2. **Authorization Code** — for OAuth Apps acting on behalf of a user, requiring a browser login, consent and a registered redirect URI.
 
 The supplied identifier/secret was tried against:
@@ -57,17 +57,31 @@ To proceed, one of these is required:
 
 ### Configuration (never in code)
 
+Create `.env` next to `compose.yaml` (it is gitignored) and restart the container:
+
 ```sh
 WLM_CHURCHSUITE_CLIENT_ID=...          # or _FILE=/run/secrets/churchsuite_client_id
 WLM_CHURCHSUITE_CLIENT_SECRET=...      # or _FILE=/run/secrets/churchsuite_client_secret
 WLM_CHURCHSUITE_TOKEN_URL=https://login.churchsuite.com/oauth2/token
 WLM_CHURCHSUITE_SCOPES=planning.read
+WLM_CHURCHSUITE_API_URL=https://api.churchsuite.com/v2
 WLM_CHURCHSUITE_REDIRECT_URI=...       # authorization-code flow only
+```
+
+`docker compose` reads `.env` automatically and passes these values into the container. The
+Config page shows whether credentials are configured and has a **Test connection** button. The
+exploration endpoints are:
+
+```text
+GET  /api/integrations/churchsuite/status
+POST /api/integrations/churchsuite/test
+GET  /api/integrations/churchsuite/plans?from=&to=&status=published
+GET  /api/integrations/churchsuite/plans/:id/items
 ```
 
 - Load from environment or Docker/Podman/Incus secrets; never bake into images, docs, logs or client-side code.
 - Store the short-lived access token in memory only (or encrypted in SQLite until expiry); never log it.
-- Rotate the exposed secret. Use separate ChurchSuite credentials per environment.
+- Rotate any secret that has been shared in chat. Use separate ChurchSuite credentials per environment.
 - Request only `planning.read` unless two-way write-back is added later.
 
 ## 3. Data model in the API

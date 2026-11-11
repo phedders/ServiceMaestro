@@ -26,8 +26,8 @@ export default function Login({ onLogin }: { onLogin: (user: PublicUser) => void
     <div className="login-page">
       <div className="login-art">
         <div className="login-art-inner">
-          <div className="brand-mark large">♪</div>
-          <h1>Web Lyric Master</h1>
+          <img className="brand-mark large" src="/icon.svg" alt="Service Maestro" />
+          <h1>Service Maestro</h1>
           <p>Lyrics, Bible passages and service visuals — driven live, with every screen in sync.</p>
           <ul>
             <li>Set lists with live isolation</li>
@@ -39,7 +39,7 @@ export default function Login({ onLogin }: { onLogin: (user: PublicUser) => void
       <div className="login-panel">
         <form className="login-card" onSubmit={submit}>
           <h2>Sign in</h2>
-          <p className="muted">Use your Web Lyric Master account.</p>
+          <p className="muted">Use your Service Maestro account.</p>
           <label>
             Username
             <input

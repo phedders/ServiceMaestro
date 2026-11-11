@@ -1,17 +1,52 @@
 import { useEffect, useState } from "react";
-import type { DisplayConfig, LiveState, SetlistSummary } from "@wlm/shared";
+import type { DisplayConfig, FontOption, LiveState, SetlistSummary } from "@wlm/shared";
 import { api, ApiError } from "../api";
 import { SlidePreview } from "../components/SlidePreview";
 import { Transport } from "../components/Transport";
 import { ItemList, PageList } from "../components/LivePanels";
 import { QuickText } from "../components/QuickText";
 
-const FONT_OPTIONS = [
-  { label: "Clear Sans / system", value: '"Clear Sans", "Segoe UI", system-ui, -apple-system, sans-serif' },
-  { label: "System sans-serif", value: 'system-ui, -apple-system, "Segoe UI", sans-serif' },
-  { label: "Serif", value: 'Georgia, "Times New Roman", serif' },
-  { label: "Humanist sans", value: '"Trebuchet MS", "Segoe UI", sans-serif' },
-  { label: "Monospace", value: '"JetBrains Mono", ui-monospace, SFMono-Regular, monospace' },
+const FALLBACK_FONTS: FontOption[] = [
+  {
+    id: "builtin-clear-sans",
+    label: "Clear Sans / system",
+    family: '"Clear Sans", "Segoe UI", system-ui, -apple-system, sans-serif',
+    source: "built-in",
+    cssUrl: null,
+    importedAt: null,
+  },
+  {
+    id: "builtin-system",
+    label: "System sans-serif",
+    family: 'system-ui, -apple-system, "Segoe UI", sans-serif',
+    source: "built-in",
+    cssUrl: null,
+    importedAt: null,
+  },
+  {
+    id: "builtin-serif",
+    label: "Serif",
+    family: 'Georgia, "Times New Roman", serif',
+    source: "built-in",
+    cssUrl: null,
+    importedAt: null,
+  },
+  {
+    id: "builtin-humanist",
+    label: "Humanist sans",
+    family: '"Trebuchet MS", "Segoe UI", sans-serif',
+    source: "built-in",
+    cssUrl: null,
+    importedAt: null,
+  },
+  {
+    id: "builtin-mono",
+    label: "Monospace",
+    family: '"JetBrains Mono", ui-monospace, SFMono-Regular, monospace',
+    source: "built-in",
+    cssUrl: null,
+    importedAt: null,
+  },
 ];
 
 export default function LivePage({
@@ -32,12 +67,15 @@ export default function LivePage({
   const [mode, setMode] = useState<"live" | "rehearsal">("live");
   const [starting, setStarting] = useState(false);
   const [footer, setFooter] = useState(live.footer);
+  const [fonts, setFonts] = useState<FontOption[]>(FALLBACK_FONTS);
   const [displayConfig, setDisplayConfig] = useState<DisplayConfig>(
     live.displayConfig ?? {
       fontFamily: '"Clear Sans", "Segoe UI", system-ui, -apple-system, sans-serif',
       textColor: "#ffffff",
       textScale: 1,
       maxLines: 4,
+      maxWords: 90,
+      smartPageSplits: true,
     },
   );
   const [configSaving, setConfigSaving] = useState(false);
@@ -56,7 +94,16 @@ export default function LivePage({
     live.displayConfig?.textColor,
     live.displayConfig?.textScale,
     live.displayConfig?.maxLines,
+    live.displayConfig?.maxWords,
+    live.displayConfig?.smartPageSplits,
   ]);
+
+  useEffect(() => {
+    api
+      .fonts()
+      .then((result) => setFonts(result.fonts))
+      .catch(() => undefined);
+  }, []);
 
   async function saveConfig() {
     setConfigSaving(true);
@@ -223,13 +270,14 @@ export default function LivePage({
               value={displayConfig.fontFamily}
               onChange={(event) => setDisplayConfig({ ...displayConfig, fontFamily: event.target.value })}
             >
-              {FONT_OPTIONS.map((font) => (
-                <option key={font.value} value={font.value}>
+              {fonts.map((font) => (
+                <option key={font.id} value={font.family}>
                   {font.label}
+                  {font.source === "google" ? " (Google)" : ""}
                 </option>
               ))}
-              {!FONT_OPTIONS.some((font) => font.value === displayConfig.fontFamily) && (
-                <option value={displayConfig.fontFamily}>Custom</option>
+              {!fonts.some((font) => font.family === displayConfig.fontFamily) && (
+                <option value={displayConfig.fontFamily}>Custom / imported</option>
               )}
             </select>
           </label>
@@ -265,6 +313,34 @@ export default function LivePage({
                 setDisplayConfig({ ...displayConfig, maxLines: Number(event.target.value) || 4 })
               }
             />
+          </label>
+          <label>
+            Max words / page
+            <input
+              type="number"
+              min={1}
+              max={500}
+              value={displayConfig.maxWords}
+              onChange={(event) =>
+                setDisplayConfig({ ...displayConfig, maxWords: Number(event.target.value) || 90 })
+              }
+            />
+          </label>
+          <label className="checkbox smart-split-field">
+            <input
+              type="checkbox"
+              checked={displayConfig.smartPageSplits}
+              onChange={(event) =>
+                setDisplayConfig({ ...displayConfig, smartPageSplits: event.target.checked })
+              }
+            />
+            <span>
+              Smart page splits
+              <small>
+                Estimate 1080p coverage from font size and words. Pages break on whichever limit is
+                reached first.
+              </small>
+            </span>
           </label>
         </div>
       </section>

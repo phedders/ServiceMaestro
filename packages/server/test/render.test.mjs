@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { transposeChord, keyDelta, buildPages, renderLine, parseTextContent } from "../dist/render.js";
+import { transposeChord, keyDelta, buildPages, renderLine, parseTextContent, extractTextFormat } from "../dist/render.js";
 
 test("transposes simple and slash chords", () => {
   assert.equal(transposeChord("C", 2), "D");
@@ -140,4 +140,86 @@ test("parses text metadata first lines", () => {
   assert.equal(parseTextContent("type: markdown\n# Hi").format, "markdown");
   assert.equal(parseTextContent("---\nformat: rst\n---\nTitle\n=====").format, "rst");
   assert.equal(parseTextContent("type: text\nplain").format, "text");
+});
+
+test("extracts a text format header into metadata", () => {
+  const extracted = extractTextFormat("format: markdown\n# Welcome\n\n**Bold**");
+  assert.equal(extracted.format, "markdown");
+  assert.equal(extracted.content, "# Welcome\n\n**Bold**");
+  assert.equal(extractTextFormat("plain words").format, null);
+});
+
+test("splits pages on max words whichever comes first", () => {
+  const words = Array.from({ length: 30 }, (_, index) => `word${index + 1}`).join(" ");
+  const pages = buildPages(
+    {
+      kind: "text",
+      title: "Long",
+      content: words,
+      transpose: 0,
+      maxLines: 50,
+    },
+    0,
+    { maxLines: 50, maxWords: 10, smartPageSplits: false },
+  );
+  assert.equal(pages.length, 3);
+  assert.match(pages[0].html, /word1/);
+  assert.match(pages[2].html, /word30/);
+});
+
+test("smart splitting wraps long lines and limits page lines by scale", () => {
+  const words = Array.from({ length: 220 }, (_, index) => `word${index + 1}`).join(" ");
+  const pages = buildPages(
+    {
+      kind: "text",
+      title: "Smart",
+      content: words,
+      transpose: 0,
+      maxLines: 8,
+    },
+    0,
+    { maxLines: 8, maxWords: 500, smartPageSplits: true, textScale: 1 },
+  );
+  assert.ok(pages.length > 1);
+  const firstLines = (pages[0].html.match(/class="line"/g) ?? []).length;
+  assert.ok(firstLines <= 8);
+  assert.match(pages[0].html, /word1/);
+});
+
+test("renders song Markdown and split-word tags", () => {
+  const pages = buildPages({
+    kind: "song",
+    title: "Styled",
+    lyrics: "[Verse 1]\n**bold** and *italic* ==highlight==\ncan - not be sat - is - fied",
+    transpose: 0,
+    maxLines: 4,
+    lyricsMarkdown: true,
+  });
+  assert.match(pages[0].html, /<strong>bold<\/strong>/);
+  assert.match(pages[0].html, /<em>italic<\/em>/);
+  assert.match(pages[0].html, /<mark>highlight<\/mark>/);
+  assert.equal((pages[0].html.match(/class="lyric-split"/g) ?? []).length, 3);
+  const plain = renderLine("can - not", 0);
+  assert.doesNotMatch(plain, /lyric-split/);
+  const split = renderLine("can - not", 0, { splitWords: true });
+  assert.match(split, /class="lyric-split"/);
+});
+
+test("smart wrapping keeps split words together", () => {
+  const pages = buildPages(
+    {
+      kind: "song",
+      title: "Split",
+      lyrics: "many words before the line sat - is - fied and many words after it",
+      transpose: 0,
+      maxLines: 8,
+    },
+    0,
+    { maxLines: 8, maxWords: 500, smartPageSplits: true, textScale: 2 },
+  );
+  const html = pages.map((page) => page.html).join("");
+  assert.match(
+    html,
+    /sat<span class="lyric-split"> - <\/span>is<span class="lyric-split"> - <\/span>fied/,
+  );
 });

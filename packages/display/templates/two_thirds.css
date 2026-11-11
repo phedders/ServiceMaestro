@@ -44,3 +44,26 @@ body[data-target="full"] {
 .wlm-two-thirds .text-html h3 {
   margin: 0 0 0.4em;
 }
+
+.wlm-two-thirds .line strong {
+  font-weight: 800;
+}
+
+.wlm-two-thirds .line em {
+  font-style: italic;
+}
+
+.wlm-two-thirds .line mark {
+  background: #ffe08a;
+  color: #111820;
+  border-radius: 0.08em;
+  padding: 0 0.08em;
+}
+
+.wlm-two-thirds .line code {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 0.82em;
+  background: rgba(255, 255, 255, 0.14);
+  border-radius: 0.15em;
+  padding: 0 0.2em;
+}

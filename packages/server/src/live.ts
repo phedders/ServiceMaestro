@@ -6,6 +6,7 @@ import type {
   LiveState,
   SetlistRevisionInfo,
   Song,
+  TextFormat,
 } from "@wlm/shared";
 import { db } from "./db.js";
 import { buildPages, type RenderItem } from "./render.js";
@@ -87,6 +88,7 @@ function resolveSetlistItems(setlistId: string): { name: string; items: Snapshot
     song_id: string | null;
     title: string;
     content: string | null;
+    text_format: string | null;
     key_override: string | null;
     transpose: number;
     max_lines: number;
@@ -97,7 +99,7 @@ function resolveSetlistItems(setlistId: string): { name: string; items: Snapshot
   const items: SnapshotItem[] = rows.map((row) => {
     if (row.kind === "song" && row.song_id) {
       const song = db.prepare("SELECT * FROM songs WHERE id = ?").get(row.song_id) as
-        | Song
+        | (Song & { lyrics_markdown: number })
         | undefined;
       return {
         kind: "song",
@@ -106,6 +108,7 @@ function resolveSetlistItems(setlistId: string): { name: string; items: Snapshot
         title: row.title || song?.title || "Untitled song",
         // A song item may carry a local lyric override for this set list only.
         lyrics: row.content ?? song?.lyrics ?? "",
+        lyricsMarkdown: Boolean(song?.lyrics_markdown),
         key: song?.key ?? null,
         keyOverride: row.key_override,
         transpose: row.transpose,
@@ -120,6 +123,7 @@ function resolveSetlistItems(setlistId: string): { name: string; items: Snapshot
       songId: null,
       title: row.title || "Text",
       content: row.content ?? "",
+      format: (row.text_format as TextFormat | null) ?? null,
       transpose: 0,
       maxLines: row.max_lines,
       verseOrder: null,
@@ -518,6 +522,7 @@ class LiveService {
       songId: null,
       title: "Quick text",
       content: text,
+      format: "text",
       transpose: 0,
       maxLines: record.state.maxLines,
       verseOrder: null,
@@ -559,7 +564,7 @@ class LiveService {
     const item = items[index];
     state.queuedItemIndex = index;
     state.queuedTitle = item.title;
-    state.queuedPages = buildPages(item, state.transpose);
+    state.queuedPages = this.pagesFor(item);
   }
 
   private setPage(index: number): void {
@@ -605,7 +610,7 @@ class LiveService {
       record.state.pageCount = 0;
       return;
     }
-    const pages = buildPages(item, record.state.transpose);
+    const pages = this.pagesFor(item);
     record.state.pages = pages;
     record.state.pageCount = pages.length;
     record.state.pageIndex = Math.max(0, Math.min(record.state.pageIndex, pages.length - 1));
@@ -614,8 +619,20 @@ class LiveService {
 
     if (record.state.queuedItemIndex != null) {
       const queued = record.items[record.state.queuedItemIndex];
-      if (queued) record.state.queuedPages = buildPages(queued, record.state.transpose);
+      if (queued) record.state.queuedPages = this.pagesFor(queued);
     }
+  }
+
+  private pagesFor(item: SnapshotItem): LiveState["pages"] {
+    if (!this.active) return [];
+    const stored = this.active.state.displayConfig;
+    const config = { ...getDisplayConfig(), ...(stored ?? {}) };
+    return buildPages(item, this.active.state.transpose, {
+      maxLines: this.active.state.maxLines || config.maxLines,
+      maxWords: config.maxWords,
+      smartPageSplits: config.smartPageSplits,
+      textScale: config.textScale,
+    });
   }
 
   private persist(): void {

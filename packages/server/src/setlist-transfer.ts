@@ -23,6 +23,10 @@ const songSchema = z.object({
   key: z.string().nullable().optional(),
   lyrics: z.string(),
   verseOrder: z.string().nullable().optional(),
+  lyricsMarkdown: z.boolean().optional(),
+  verseOrders: z
+    .array(z.object({ name: z.string(), order: z.string() }))
+    .optional(),
 });
 
 const itemSchema = z.object({
@@ -36,6 +40,7 @@ const itemSchema = z.object({
   verseOrder: z.string().nullable().optional(),
   notes: z.string().nullable().optional(),
   content: z.string().nullable().optional(),
+  format: z.enum(["text", "markdown", "html", "rst"]).nullable().optional(),
   song: songSchema.nullable().optional(),
   assetIds: z.array(z.string()).optional(),
 });
@@ -125,9 +130,12 @@ function songRow(id: string): {
   key: string | null;
   lyrics: string;
   verse_order: string | null;
+  lyrics_markdown: number;
 } | undefined {
   return db
-    .prepare("SELECT id, title, author, copyright, ccli, key, lyrics, verse_order FROM songs WHERE id = ?")
+    .prepare(
+      "SELECT id, title, author, copyright, ccli, key, lyrics, verse_order, lyrics_markdown FROM songs WHERE id = ?",
+    )
     .get(id) as
     | {
         id: string;
@@ -138,8 +146,17 @@ function songRow(id: string): {
         key: string | null;
         lyrics: string;
         verse_order: string | null;
+        lyrics_markdown: number;
       }
     | undefined;
+}
+
+function songVerseOrders(id: string): Array<{ name: string; order: string }> {
+  return (
+    db
+      .prepare("SELECT name, order_text FROM song_verse_orders WHERE song_id = ? ORDER BY name COLLATE NOCASE")
+      .all(id) as Array<{ name: string; order_text: string }>
+  ).map((row) => ({ name: row.name, order: row.order_text }));
 }
 
 function normalize(value: string): string {
@@ -168,6 +185,7 @@ export function buildSetlistExport(
     song_id: string | null;
     title: string;
     content: string | null;
+    text_format: string | null;
     key_override: string | null;
     transpose: number;
     max_lines: number;
@@ -217,6 +235,7 @@ export function buildSetlistExport(
         verseOrder: row.verse_order,
         notes: row.notes,
         content: row.content,
+        format: null,
         song: song
           ? {
               title: song.title,
@@ -226,6 +245,8 @@ export function buildSetlistExport(
               key: song.key,
               lyrics: song.lyrics,
               verseOrder: song.verse_order,
+              lyricsMarkdown: Boolean(song.lyrics_markdown),
+              verseOrders: songVerseOrders(song.id),
             }
           : null,
         assetIds,
@@ -242,6 +263,7 @@ export function buildSetlistExport(
       verseOrder: row.verse_order,
       notes: row.notes,
       content: row.content ?? "",
+      format: (row.text_format as SetlistManifest["items"][number]["format"]) ?? null,
     };
   });
 
@@ -249,7 +271,7 @@ export function buildSetlistExport(
     format: FORMAT,
     formatVersion: FORMAT_VERSION,
     exportedAt: new Date().toISOString(),
-    generator: "web-lyric-master/0.1.0",
+    generator: "service-maestro/0.1.0",
     selfContained,
     setlist: {
       id: setlist.id,
@@ -369,8 +391,8 @@ export function importSetlistFile(
 
   const insertItem = db.prepare(
     `INSERT INTO setlist_items
-     (id, setlist_id, position, kind, song_id, title, content, key_override, transpose, max_lines, verse_order, notes)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     (id, setlist_id, position, kind, song_id, title, content, text_format, key_override, transpose, max_lines, verse_order, notes)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   );
 
   let importedItems = 0;
@@ -397,8 +419,8 @@ export function importSetlistFile(
         songId = randomUUID();
         db.prepare(
           `INSERT INTO songs
-           (id, title, author, copyright, ccli, key, lyrics, verse_order, source_format, source_path, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'import', NULL, ?, ?)`,
+           (id, title, author, copyright, ccli, key, lyrics, verse_order, lyrics_markdown, source_format, source_path, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'import', NULL, ?, ?)`,
         ).run(
           songId,
           item.song.title,
@@ -408,9 +430,16 @@ export function importSetlistFile(
           item.song.key ?? null,
           item.song.lyrics,
           item.song.verseOrder ?? null,
+          item.song.lyricsMarkdown ? 1 : 0,
           now,
           now,
         );
+        for (const verseOrder of item.song.verseOrders ?? []) {
+          db.prepare(
+            `INSERT OR IGNORE INTO song_verse_orders (id, song_id, name, order_text, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?)`,
+          ).run(randomUUID(), songId, verseOrder.name, verseOrder.order, now, now);
+        }
         songsCreated += 1;
       } else {
         content = item.title;
@@ -426,6 +455,7 @@ export function importSetlistFile(
       songId,
       item.title,
       content,
+      item.kind === "text" ? item.format ?? null : null,
       item.keyOverride ?? null,
       item.transpose ?? 0,
       item.maxLines ?? 4,

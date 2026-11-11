@@ -6,7 +6,7 @@ import fastifyStatic from "@fastify/static";
 import multipart from "@fastify/multipart";
 import { Server } from "socket.io";
 import { displayConfigSchema, liveCommandSchema, quickTextSchema, type PublicUser } from "@wlm/shared";
-import { COOKIE_NAME, CONTROL_DIST, DISPLAY_DIR, GIT_AUTO_PUSH, GIT_AUTO_SAVE, GIT_ENABLED, OUTPUT_TOKEN } from "./config.js";
+import { COOKIE_NAME, CONTROL_DIST, DISPLAY_DIR, FONTS_DIR, GIT_AUTO_PUSH, GIT_AUTO_SAVE, GIT_ENABLED, OUTPUT_TOKEN } from "./config.js";
 import { parseCookies, requireAuth, requireRole, userForToken } from "./auth.js";
 import { live } from "./live.js";
 import { getDisplayConfig, saveDisplayConfig } from "./display-config.js";
@@ -19,6 +19,8 @@ import { importRoutes } from "./routes/imports.js";
 import { bibleRoutes } from "./routes/bible.js";
 import { assetRoutes } from "./routes/assets.js";
 import { transferRoutes } from "./routes/transfer.js";
+import { fontRoutes } from "./routes/fonts.js";
+import { churchsuiteRoutes } from "./routes/churchsuite.js";
 import {
   exportAllToGit,
   gitStatus,
@@ -34,7 +36,7 @@ function sendHtml(reply: FastifyReply, file: string): FastifyReply {
       .type("text/html")
       .send(
         `<!doctype html><html><body style="font-family:system-ui;background:#111;color:#eee;padding:2rem">
-        <h1>Web Lyric Master</h1>
+        <h1>Service Maestro</h1>
         <p>The UI has not been built yet. Run <code>npm run build</code> from the project root, then restart.</p>
         <p>Expected file: <code>${file}</code></p></body></html>`,
       );
@@ -67,6 +69,14 @@ export async function buildApp(): Promise<{ app: FastifyInstance; io: Server }> 
     maxAge: "5m",
   });
 
+  await app.register(fastifyStatic, {
+    root: FONTS_DIR,
+    prefix: "/fonts/",
+    decorateReply: false,
+    cacheControl: true,
+    maxAge: "1d",
+  });
+
   await app.register(authRoutes);
   await app.register(songRoutes);
   await app.register(setlistRoutes);
@@ -76,11 +86,18 @@ export async function buildApp(): Promise<{ app: FastifyInstance; io: Server }> 
   await app.register(bibleRoutes);
   await app.register(assetRoutes);
   await app.register(transferRoutes);
+  await app.register(fontRoutes);
+  await app.register(churchsuiteRoutes);
 
   app.get("/", async (_request, reply) => sendHtml(reply, path.join(CONTROL_DIST, "index.html")));
   app.get("/login", async (_request, reply) => sendHtml(reply, path.join(CONTROL_DIST, "index.html")));
   app.get("/musicians", async (_request, reply) => sendHtml(reply, path.join(CONTROL_DIST, "index.html")));
   app.get("/musicians/", async (_request, reply) => sendHtml(reply, path.join(CONTROL_DIST, "index.html")));
+  app.get("/icon.svg", async (_request, reply) => {
+    const file = path.join(CONTROL_DIST, "icon.svg");
+    if (!fs.existsSync(file)) return reply.code(204).send();
+    return reply.type("image/svg+xml").send(fs.readFileSync(file));
+  });
   app.get("/favicon.ico", async (_request, reply) => reply.code(204).send());
 
   const displayPages: Record<string, string> = {
@@ -105,7 +122,7 @@ export async function buildApp(): Promise<{ app: FastifyInstance; io: Server }> 
   app.get("/obs-stage", async (_request, reply) => sendHtml(reply, path.join(DISPLAY_DIR, "stage.html")));
   app.get("/obs-chords", async (_request, reply) => sendHtml(reply, path.join(DISPLAY_DIR, "chords.html")));
 
-  app.get("/api/health", async () => ({ ok: true, name: "web-lyric-master" }));
+  app.get("/api/health", async () => ({ ok: true, name: "service-maestro" }));
 
   app.get("/api/display/config", { preHandler: requireAuth }, async () => ({
     config: getDisplayConfig(),

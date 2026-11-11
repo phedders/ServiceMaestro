@@ -1,6 +1,12 @@
 import type { FastifyInstance } from "fastify";
 import { randomUUID } from "node:crypto";
-import { songInputSchema, type Song } from "@wlm/shared";
+import {
+  songInputSchema,
+  songVerseOrderInputSchema,
+  songVerseOrderPatchSchema,
+  type Song,
+  type SongVerseOrder,
+} from "@wlm/shared";
 import { db } from "../db.js";
 import { requireAuth, requireRole } from "../auth.js";
 import { saveSongToGit, deleteSongFromGit } from "../git-store.js";
@@ -14,10 +20,40 @@ interface SongRow {
   key: string | null;
   lyrics: string;
   verse_order: string | null;
+  lyrics_markdown: number;
   source_format: string | null;
   source_path: string | null;
   created_at: string;
   updated_at: string;
+}
+
+interface VerseOrderRow {
+  id: string;
+  song_id: string;
+  name: string;
+  order_text: string;
+  created_at: string;
+  updated_at: string;
+}
+
+function mapVerseOrder(row: VerseOrderRow): SongVerseOrder {
+  return {
+    id: row.id,
+    songId: row.song_id,
+    name: row.name,
+    order: row.order_text,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+function verseOrders(songId: string): SongVerseOrder[] {
+  const rows = db
+    .prepare(
+      "SELECT * FROM song_verse_orders WHERE song_id = ? ORDER BY name COLLATE NOCASE ASC",
+    )
+    .all(songId) as VerseOrderRow[];
+  return rows.map(mapVerseOrder);
 }
 
 function mapSong(row: SongRow): Song {
@@ -30,6 +66,8 @@ function mapSong(row: SongRow): Song {
     key: row.key,
     lyrics: row.lyrics,
     verseOrder: row.verse_order,
+    lyricsMarkdown: Boolean(row.lyrics_markdown),
+    verseOrders: verseOrders(row.id),
     sourceFormat: row.source_format,
     sourcePath: row.source_path,
     createdAt: row.created_at,
@@ -69,8 +107,8 @@ export async function songRoutes(app: FastifyInstance): Promise<void> {
       const id = randomUUID();
       const now = new Date().toISOString();
       db.prepare(
-        `INSERT INTO songs (id, title, author, copyright, ccli, key, lyrics, verse_order, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO songs (id, title, author, copyright, ccli, key, lyrics, verse_order, lyrics_markdown, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       ).run(
         id,
         parsed.data.title,
@@ -80,6 +118,7 @@ export async function songRoutes(app: FastifyInstance): Promise<void> {
         parsed.data.key ?? null,
         parsed.data.lyrics,
         parsed.data.verseOrder ?? null,
+        parsed.data.lyricsMarkdown ? 1 : 0,
         now,
         now,
       );
@@ -100,8 +139,8 @@ export async function songRoutes(app: FastifyInstance): Promise<void> {
       if (!existing) return reply.code(404).send({ error: "Song not found" });
       const data = parsed.data;
       db.prepare(
-        `UPDATE songs SET title = ?, author = ?, copyright = ?, ccli = ?, key = ?, lyrics = ?, verse_order = ?, updated_at = ?
-         WHERE id = ?`,
+        `UPDATE songs SET title = ?, author = ?, copyright = ?, ccli = ?, key = ?, lyrics = ?, verse_order = ?,
+           lyrics_markdown = ?, updated_at = ? WHERE id = ?`,
       ).run(
         data.title ?? existing.title,
         data.author !== undefined ? data.author : existing.author,
@@ -110,12 +149,100 @@ export async function songRoutes(app: FastifyInstance): Promise<void> {
         data.key !== undefined ? data.key : existing.key,
         data.lyrics ?? existing.lyrics,
         data.verseOrder !== undefined ? data.verseOrder : existing.verse_order,
+        data.lyricsMarkdown !== undefined ? (data.lyricsMarkdown ? 1 : 0) : existing.lyrics_markdown,
         new Date().toISOString(),
         id,
       );
       const row = db.prepare("SELECT * FROM songs WHERE id = ?").get(id) as SongRow;
       await saveSongToGit(id).catch((error) => request.log.warn({ err: error }, "git save failed"));
       return { song: mapSong(row) };
+    },
+  );
+
+  app.post(
+    "/api/songs/:id/verse-orders",
+    { preHandler: [requireAuth, requireRole("admin", "editor")] },
+    async (request, reply) => {
+      const songId = (request.params as { id: string }).id;
+      if (!db.prepare("SELECT id FROM songs WHERE id = ?").get(songId)) {
+        return reply.code(404).send({ error: "Song not found" });
+      }
+      const parsed = songVerseOrderInputSchema.safeParse(request.body);
+      if (!parsed.success) {
+        return reply.code(400).send({ error: "Invalid verse order", issues: parsed.error.issues });
+      }
+      const id = randomUUID();
+      const now = new Date().toISOString();
+      try {
+        db.prepare(
+          `INSERT INTO song_verse_orders (id, song_id, name, order_text, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?)`,
+        ).run(id, songId, parsed.data.name, parsed.data.order, now, now);
+      } catch {
+        return reply.code(409).send({ error: "A verse order with that name already exists" });
+      }
+      await saveSongToGit(songId).catch((error) =>
+        request.log.warn({ err: error }, "git save failed"),
+      );
+      const row = db.prepare("SELECT * FROM song_verse_orders WHERE id = ?").get(id) as VerseOrderRow;
+      return reply.code(201).send({ verseOrder: mapVerseOrder(row) });
+    },
+  );
+
+  app.patch(
+    "/api/songs/:id/verse-orders/:verseOrderId",
+    { preHandler: [requireAuth, requireRole("admin", "editor")] },
+    async (request, reply) => {
+      const { id: songId, verseOrderId } = request.params as {
+        id: string;
+        verseOrderId: string;
+      };
+      const parsed = songVerseOrderPatchSchema.safeParse(request.body);
+      if (!parsed.success) {
+        return reply.code(400).send({ error: "Invalid verse order", issues: parsed.error.issues });
+      }
+      const existing = db
+        .prepare("SELECT * FROM song_verse_orders WHERE id = ? AND song_id = ?")
+        .get(verseOrderId, songId) as VerseOrderRow | undefined;
+      if (!existing) return reply.code(404).send({ error: "Verse order not found" });
+      try {
+        db.prepare(
+          "UPDATE song_verse_orders SET name = ?, order_text = ?, updated_at = ? WHERE id = ?",
+        ).run(
+          parsed.data.name ?? existing.name,
+          parsed.data.order ?? existing.order_text,
+          new Date().toISOString(),
+          verseOrderId,
+        );
+      } catch {
+        return reply.code(409).send({ error: "A verse order with that name already exists" });
+      }
+      await saveSongToGit(songId).catch((error) =>
+        request.log.warn({ err: error }, "git save failed"),
+      );
+      const row = db
+        .prepare("SELECT * FROM song_verse_orders WHERE id = ?")
+        .get(verseOrderId) as VerseOrderRow;
+      return { verseOrder: mapVerseOrder(row) };
+    },
+  );
+
+  app.delete(
+    "/api/songs/:id/verse-orders/:verseOrderId",
+    { preHandler: [requireAuth, requireRole("admin", "editor")] },
+    async (request, reply) => {
+      const { id: songId, verseOrderId } = request.params as {
+        id: string;
+        verseOrderId: string;
+      };
+      const result = db
+        .prepare("DELETE FROM song_verse_orders WHERE id = ? AND song_id = ?")
+        .run(verseOrderId, songId);
+      if (!result.changes) return reply.code(404).send({ error: "Verse order not found" });
+      await saveSongToGit(songId).catch((error) =>
+        request.log.warn({ err: error }, "git save failed"),
+      );
+      return { ok: true };
     },
   );
 

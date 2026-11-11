@@ -6,7 +6,7 @@ const { app, io } = await buildApp();
 
 try {
   await app.listen({ host: HOST, port: PORT });
-  app.log.info(`Web Lyric Master listening on http://${HOST}:${PORT}`);
+  app.log.info(`Service Maestro listening on http://${HOST}:${PORT}`);
 } catch (error) {
   app.log.error(error);
   process.exit(1);

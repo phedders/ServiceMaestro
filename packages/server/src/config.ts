@@ -75,6 +75,7 @@ export const BIBLE_DIR = path.resolve(
   process.env.WLM_BIBLE_DIR ?? path.join(packageRoot, "../../samples/bible"),
 );
 export const ASSETS_DIR = path.join(DATA_DIR, "assets");
+export const FONTS_DIR = path.resolve(process.env.WLM_FONTS_DIR ?? path.join(DATA_DIR, "fonts"));
 export const TEMPLATES_DIR = path.resolve(process.env.WLM_TEMPLATES_DIR ?? path.join(DATA_DIR, "templates"));
 export const OUTPUT_TOKEN = process.env.WLM_OUTPUT_TOKEN ?? "dev-output";
 export const ADMIN_PASSWORD = process.env.WLM_ADMIN_PASSWORD ?? "admin";
@@ -89,15 +90,37 @@ export const GIT_PULL_INTERVAL = Number(
 );
 export const GIT_AUTHOR_NAME = stringEnv(
   "WLM_GIT_AUTHOR_NAME",
-  gitConfig.author?.name ?? "Web Lyric Master",
+  gitConfig.author?.name ?? "Service Maestro",
 );
 export const GIT_AUTHOR_EMAIL = stringEnv(
   "WLM_GIT_AUTHOR_EMAIL",
-  gitConfig.author?.email ?? "wlm@localhost",
+  gitConfig.author?.email ?? "maestro@localhost",
 );
 export const GIT_SSH_KEY_FILE = process.env.WLM_GIT_SSH_KEY_FILE ?? gitConfig.sshKeyFile;
 export const GIT_KNOWN_HOSTS_FILE =
   process.env.WLM_GIT_KNOWN_HOSTS_FILE ?? gitConfig.knownHostsFile;
+
+function envFile(name: string): string {
+  const file = process.env[`${name}_FILE`];
+  if (file) {
+    try {
+      return fs.readFileSync(file, "utf8").trim();
+    } catch {
+      // Fall back to an empty value; the integration will report itself unconfigured.
+    }
+  }
+  return process.env[name] ?? "";
+}
+
+export const CHURCHSUITE_CLIENT_ID = envFile("WLM_CHURCHSUITE_CLIENT_ID");
+export const CHURCHSUITE_CLIENT_SECRET = envFile("WLM_CHURCHSUITE_CLIENT_SECRET");
+export const CHURCHSUITE_TOKEN_URL =
+  process.env.WLM_CHURCHSUITE_TOKEN_URL ?? "https://login.churchsuite.com/oauth2/token";
+export const CHURCHSUITE_API_URL =
+  process.env.WLM_CHURCHSUITE_API_URL ?? "https://api.churchsuite.com/v2";
+export const CHURCHSUITE_SCOPES = process.env.WLM_CHURCHSUITE_SCOPES ?? "planning.read";
+export const CHURCHSUITE_REDIRECT_URI =
+  process.env.WLM_CHURCHSUITE_REDIRECT_URI ?? "";
 
 function repo(
   name: "songs" | "setlists" | "bibles" | "templates",

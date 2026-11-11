@@ -1,8 +1,8 @@
 services:
-  web-lyric-master:
+  service-maestro:
     build: .
-    image: web-lyric-master:dev
-    container_name: web-lyric-master
+    image: service-maestro:dev
+    container_name: service-maestro
     restart: unless-stopped
     ports:
       - "6111:8080"
@@ -12,6 +12,11 @@ services:
       WLM_OUTPUT_TOKEN: ${WLM_OUTPUT_TOKEN:-dev-output}
       WLM_SONGS_DIR: /library/songs
       WLM_BIBLE_DIR: /library/bible
+      WLM_CHURCHSUITE_CLIENT_ID: ${WLM_CHURCHSUITE_CLIENT_ID:-}
+      WLM_CHURCHSUITE_CLIENT_SECRET: ${WLM_CHURCHSUITE_CLIENT_SECRET:-}
+      WLM_CHURCHSUITE_TOKEN_URL: ${WLM_CHURCHSUITE_TOKEN_URL:-https://login.churchsuite.com/oauth2/token}
+      WLM_CHURCHSUITE_SCOPES: ${WLM_CHURCHSUITE_SCOPES:-planning.read}
+      WLM_CHURCHSUITE_API_URL: ${WLM_CHURCHSUITE_API_URL:-https://api.churchsuite.com/v2}
     volumes:
       - ./data:/data
       - ./library/songs:/library/songs:ro

@@ -8,6 +8,7 @@ import type {
   SetlistRevisionInfo,
   SetlistSummary,
   Song,
+  TextFormat,
 } from "@wlm/shared";
 import { api, ApiError } from "../api";
 
@@ -33,6 +34,35 @@ function previewLines(item: SetlistItem, song: Song | undefined): string {
     .slice(0, 6);
   const text = lines.join("\n");
   return text.length > 360 ? `${text.slice(0, 360)}…` : text;
+}
+
+function extractTextHeader(content: string): { format: TextFormat | null; content: string } {
+  const firstLine = content.match(
+    /^\s*(?:type|format|mode)\s*:\s*(html|htm|markdown|md|rst|restructuredtext|restructured|text|plain)\s*(?:\n|$)/i,
+  );
+  if (firstLine) {
+    const raw = firstLine[1].toLowerCase();
+    const format: TextFormat =
+      raw === "html" || raw === "htm"
+        ? "html"
+        : raw === "markdown" || raw === "md"
+          ? "markdown"
+          : raw === "rst" || raw.startsWith("restructured")
+            ? "rst"
+            : "text";
+    return { format, content: content.slice(firstLine[0].length) };
+  }
+  return { format: null, content };
+}
+
+function initialTextState(item: SetlistItem): { format: TextFormat; content: string } {
+  if (item.kind !== "text") return { format: "text", content: item.content ?? "" };
+  if (item.format) return { format: item.format, content: item.content ?? "" };
+  const extracted = extractTextHeader(item.content ?? "");
+  return {
+    format: extracted.format ?? "markdown",
+    content: extracted.format ? extracted.content : (item.content ?? ""),
+  };
 }
 
 function ItemRow({
@@ -70,19 +100,31 @@ function ItemRow({
 }) {
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState(item.title);
-  const [content, setContent] = useState(item.content ?? (item.kind === "song" ? song?.lyrics ?? "" : ""));
+  const initial = initialTextState(item);
+  const [content, setContent] = useState(
+    item.kind === "song" ? item.content ?? song?.lyrics ?? "" : initial.content,
+  );
+  const [format, setFormat] = useState<TextFormat>(initial.format);
   const [keyOverride, setKeyOverride] = useState(item.keyOverride ?? "");
   const [transpose, setTranspose] = useState(item.transpose);
   const [verseOrder, setVerseOrder] = useState(item.verseOrder ?? "");
+  const [verseOrderId, setVerseOrderId] = useState(
+    song?.verseOrders.find((entry) => entry.order === item.verseOrder)?.id ?? "",
+  );
   const [notes, setNotes] = useState(item.notes ?? "");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
+    const next = initialTextState(item);
     setTitle(item.title);
-    setContent(item.content ?? (item.kind === "song" ? song?.lyrics ?? "" : ""));
+    setFormat(next.format);
+    setContent(item.kind === "song" ? item.content ?? song?.lyrics ?? "" : next.content);
     setKeyOverride(item.keyOverride ?? "");
     setTranspose(item.transpose);
     setVerseOrder(item.verseOrder ?? "");
+    setVerseOrderId(
+      song?.verseOrders.find((entry) => entry.order === item.verseOrder)?.id ?? "",
+    );
     setNotes(item.notes ?? "");
   }, [item, song]);
 
@@ -92,11 +134,16 @@ function ItemRow({
   const preview = previewLines(item, song);
 
   function resetDraft() {
+    const next = initialTextState(item);
     setTitle(item.title);
-    setContent(item.content ?? (item.kind === "song" ? song?.lyrics ?? "" : ""));
+    setFormat(next.format);
+    setContent(item.kind === "song" ? item.content ?? song?.lyrics ?? "" : next.content);
     setKeyOverride(item.keyOverride ?? "");
     setTranspose(item.transpose);
     setVerseOrder(item.verseOrder ?? "");
+    setVerseOrderId(
+      song?.verseOrders.find((entry) => entry.order === item.verseOrder)?.id ?? "",
+    );
     setNotes(item.notes ?? "");
   }
 
@@ -131,6 +178,7 @@ function ItemRow({
       transpose: Number(transpose) || 0,
       verseOrder: verseOrder || null,
       notes: notes || null,
+      ...(item.kind === "text" ? { format } : {}),
     };
   }
 
@@ -235,6 +283,20 @@ function ItemRow({
             Title
             <input value={title} onChange={(event) => setTitle(event.target.value)} />
           </label>
+          {item.kind === "text" && (
+            <label>
+              Text format
+              <select
+                value={format}
+                onChange={(event) => setFormat(event.target.value as TextFormat)}
+              >
+                <option value="markdown">Markdown (default)</option>
+                <option value="text">Plain text</option>
+                <option value="html">HTML</option>
+                <option value="rst">reStructuredText</option>
+              </select>
+            </label>
+          )}
           <label>
             {item.kind === "song" ? "Lyrics" : "Text"}
             <textarea
@@ -264,11 +326,34 @@ function ItemRow({
                 onChange={(event) => setTranspose(Number(event.target.value))}
               />
             </label>
+            {item.kind === "song" && (song?.verseOrders.length ?? 0) > 0 && (
+              <label>
+                Saved verse order
+                <select
+                  value={verseOrderId}
+                  onChange={(event) => {
+                    setVerseOrderId(event.target.value);
+                    const chosen = song?.verseOrders.find((entry) => entry.id === event.target.value);
+                    setVerseOrder(chosen ? chosen.order : "");
+                  }}
+                >
+                  <option value="">Song default</option>
+                  {song?.verseOrders.map((entry) => (
+                    <option key={entry.id} value={entry.id}>
+                      {entry.name} — {entry.order}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
             <label>
               Verse order
               <input
                 value={verseOrder}
-                onChange={(event) => setVerseOrder(event.target.value)}
+                onChange={(event) => {
+                  setVerseOrder(event.target.value);
+                  setVerseOrderId("");
+                }}
                 placeholder="auto"
               />
             </label>
@@ -335,6 +420,7 @@ export default function SetlistsPage({
   const [songToAdd, setSongToAdd] = useState("");
   const [textTitle, setTextTitle] = useState("");
   const [textContent, setTextContent] = useState("");
+  const [textFormat, setTextFormat] = useState<TextFormat>("markdown");
 
   async function loadList(select?: string) {
     const result = await api.setlists();
@@ -413,15 +499,18 @@ export default function SetlistsPage({
 
   async function addText() {
     if (!detail || !textContent.trim()) return;
+    const extracted = extractTextHeader(textContent);
     try {
       const result = await api.addItem(detail.id, {
         kind: "text",
         title: textTitle.trim() || "Text",
-        content: textContent,
+        content: extracted.content,
+        format: extracted.format ?? textFormat,
       });
       setDetail(result.setlist);
       setTextTitle("");
       setTextContent("");
+      setTextFormat("markdown");
       await loadList(detail.id);
     } catch (error) {
       notify(error instanceof ApiError ? error.message : "Could not add text", "error");
@@ -679,11 +768,11 @@ export default function SetlistsPage({
               </button>
               {live.status !== "idle" && live.setlistId === detail.id ? (
                 <>
-                  <button className="button ghost" onClick={() => apply("now")} disabled={busy}>
-                    Apply now
+                  <button className="button primary" onClick={() => apply("now")} disabled={busy}>
+                    Send to live session
                   </button>
-                  <button className="button primary" onClick={() => apply("after-current")} disabled={busy}>
-                    Apply draft
+                  <button className="button ghost" onClick={() => apply("after-current")} disabled={busy}>
+                    Queue after current
                   </button>
                 </>
               ) : (
@@ -809,15 +898,24 @@ export default function SetlistsPage({
                 onChange={(event) => setTextTitle(event.target.value)}
                 placeholder="Title (optional)"
               />
+              <select
+                value={textFormat}
+                onChange={(event) => setTextFormat(event.target.value as TextFormat)}
+              >
+                <option value="markdown">Markdown (default)</option>
+                <option value="text">Plain text</option>
+                <option value="html">HTML</option>
+                <option value="rst">reStructuredText</option>
+              </select>
               <textarea
                 value={textContent}
                 onChange={(event) => setTextContent(event.target.value)}
                 rows={4}
-                placeholder={"type: markdown\n# Welcome\n\n**Please stand** as we begin."}
+                placeholder={"# Welcome\n\n**Please stand** as we begin."}
               />
               <span className="hint">
-                First line can be <code>type: markdown</code>, <code>type: html</code> or{" "}
-                <code>type: rst</code>. Use <code>&lt;!-- page --&gt;</code> for a page break.
+                A leading <code>format: markdown</code> header is moved into the format setting
+                automatically. Use <code>&lt;!-- page --&gt;</code> for a page break.
               </span>
               <button className="button" onClick={addText} disabled={!textContent.trim()}>
                 Add to set list

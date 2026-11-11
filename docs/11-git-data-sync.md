@@ -34,7 +34,7 @@ manifest.json?                 # optional repository metadata/version
 
 ```jsonc
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "a8e0…",
   "title": "Amazing Grace",
   "author": "John Newton",
@@ -42,6 +42,11 @@ manifest.json?                 # optional repository metadata/version
   "ccli": "22025",
   "key": "G",
   "verseOrder": "V1 C V2 C",
+  "lyricsMarkdown": true,
+  "verseOrders": [
+    { "name": "Short", "order": "V1 C" },
+    { "name": "Full", "order": "V1 C V2 C" }
+  ],
   "lyrics": "[Verse 1]\nA[C]mazing grace…",
   "source": { "format": "chordpro", "path": "chordpro/amazing-grace-G.txt" },
   "assets": [
@@ -165,7 +170,7 @@ git:
   autoPush: true             # push after commit when a remote exists
   workDir: /data/repos
   author:
-    name: Web Lyric Master
+    name: Service Maestro
     email: wlm@example.local
   pullIntervalSeconds: 60
   pushDebounceSeconds: 2
@@ -380,7 +385,7 @@ secrets:
   git_ssh_key:
     file: ./secrets/git_ssh_key
 services:
-  web-lyric-master:
+  service-maestro:
     secrets:
       - git_ssh_key
     environment:
@@ -395,7 +400,7 @@ secrets:
   git_config:
     file: ./secrets/wlm-config.yaml
 services:
-  web-lyric-master:
+  service-maestro:
     secrets:
       - git_config
     environment:

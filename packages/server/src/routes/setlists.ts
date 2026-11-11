@@ -13,6 +13,7 @@ import { db } from "../db.js";
 import { requireAuth, requireRole } from "../auth.js";
 import { live } from "../live.js";
 import { saveSetlistToGit, deleteSetlistFromGit, saveSongToGit } from "../git-store.js";
+import { extractTextFormat } from "../render.js";
 
 interface SetlistRow {
   id: string;
@@ -32,6 +33,7 @@ interface ItemRow {
   song_id: string | null;
   title: string;
   content: string | null;
+  text_format: string | null;
   key_override: string | null;
   transpose: number;
   max_lines: number;
@@ -55,6 +57,7 @@ function mapItem(row: ItemRow): SetlistItem {
     songId: row.song_id,
     title: row.title,
     content: row.content,
+    format: (row.text_format as SetlistItem["format"]) ?? null,
     keyOverride: row.key_override,
     transpose: row.transpose,
     maxLines: row.max_lines,
@@ -186,6 +189,7 @@ export async function setlistRoutes(app: FastifyInstance): Promise<void> {
 
       let title = data.title?.trim() ?? "";
       let content = data.content ?? null;
+      let format = data.kind === "text" ? data.format ?? null : null;
       if (data.kind === "song") {
         if (!data.songId) return reply.code(400).send({ error: "songId is required for song items" });
         const song = db.prepare("SELECT title FROM songs WHERE id = ?").get(data.songId) as
@@ -196,6 +200,11 @@ export async function setlistRoutes(app: FastifyInstance): Promise<void> {
         content = null;
       } else {
         if (!content) return reply.code(400).send({ error: "content is required for text items" });
+        const extracted = extractTextFormat(content);
+        if (extracted.format) {
+          content = extracted.content;
+          if (!format) format = extracted.format;
+        }
         title = title || content.split("\n").find((line) => line.trim())?.trim() || "Text";
       }
 
@@ -205,8 +214,8 @@ export async function setlistRoutes(app: FastifyInstance): Promise<void> {
       const itemId = randomUUID();
       db.prepare(
         `INSERT INTO setlist_items
-         (id, setlist_id, position, kind, song_id, title, content, key_override, transpose, max_lines, verse_order, notes)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         (id, setlist_id, position, kind, song_id, title, content, text_format, key_override, transpose, max_lines, verse_order, notes)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       ).run(
         itemId,
         id,
@@ -215,6 +224,7 @@ export async function setlistRoutes(app: FastifyInstance): Promise<void> {
         data.songId ?? null,
         title,
         content,
+        format,
         data.keyOverride ?? null,
         data.transpose ?? 0,
         data.maxLines ?? 4,
@@ -239,12 +249,25 @@ export async function setlistRoutes(app: FastifyInstance): Promise<void> {
         .get(itemId, id) as ItemRow | undefined;
       if (!existing) return reply.code(404).send({ error: "Item not found" });
       const data = parsed.data;
+      let nextContent = data.content !== undefined ? data.content : existing.content;
+      let nextFormat =
+        data.format !== undefined
+          ? data.format
+          : (existing.text_format as SetlistItem["format"] | null);
+      if (existing.kind === "text" && data.content !== undefined) {
+        const extracted = extractTextFormat(nextContent ?? "");
+        if (extracted.format) {
+          nextContent = extracted.content;
+          if (data.format === undefined) nextFormat = extracted.format;
+        }
+      }
       db.prepare(
-        `UPDATE setlist_items SET title = ?, content = ?, key_override = ?, transpose = ?, max_lines = ?, verse_order = ?, notes = ?
+        `UPDATE setlist_items SET title = ?, content = ?, text_format = ?, key_override = ?, transpose = ?, max_lines = ?, verse_order = ?, notes = ?
          WHERE id = ?`,
       ).run(
         data.title ?? existing.title,
-        data.content !== undefined ? data.content : existing.content,
+        nextContent,
+        nextFormat,
         data.keyOverride !== undefined ? data.keyOverride : existing.key_override,
         data.transpose ?? existing.transpose,
         data.maxLines ?? existing.max_lines,

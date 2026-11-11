@@ -39,6 +39,8 @@ const songFileSchema = z.object({
   key: z.string().nullable().optional(),
   lyrics: z.string(),
   verseOrder: z.string().nullable().optional(),
+  lyricsMarkdown: z.boolean().optional(),
+  verseOrders: z.array(z.object({ name: z.string(), order: z.string() })).optional(),
   createdAt: z.string().optional(),
   updatedAt: z.string().optional(),
 });
@@ -167,14 +169,20 @@ function songJson(id: string): string | null {
         key: string | null;
         lyrics: string;
         verse_order: string | null;
+        lyrics_markdown: number;
         created_at: string;
         updated_at: string;
       }
     | undefined;
   if (!row) return null;
+  const verseOrders = (
+    db
+      .prepare("SELECT name, order_text FROM song_verse_orders WHERE song_id = ? ORDER BY name COLLATE NOCASE")
+      .all(id) as Array<{ name: string; order_text: string }>
+  ).map((entry) => ({ name: entry.name, order: entry.order_text }));
   return JSON.stringify(
     {
-      schemaVersion: 1,
+      schemaVersion: 2,
       id: row.id,
       title: row.title,
       author: row.author,
@@ -183,6 +191,8 @@ function songJson(id: string): string | null {
       key: row.key,
       lyrics: row.lyrics,
       verseOrder: row.verse_order,
+      lyricsMarkdown: Boolean(row.lyrics_markdown),
+      verseOrders,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     },
@@ -268,8 +278,8 @@ function importSetlist(manifest: SetlistManifest): void {
 
   const insert = db.prepare(
     `INSERT INTO setlist_items
-     (id, setlist_id, position, kind, song_id, title, content, key_override, transpose, max_lines, verse_order, notes)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     (id, setlist_id, position, kind, song_id, title, content, text_format, key_override, transpose, max_lines, verse_order, notes)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   );
 
   for (const item of manifest.items) {
@@ -313,6 +323,7 @@ function importSetlist(manifest: SetlistManifest): void {
       songId,
       item.title,
       content,
+      item.kind === "text" ? item.format ?? null : null,
       item.keyOverride ?? null,
       item.transpose ?? 0,
       item.maxLines ?? 4,
@@ -336,7 +347,7 @@ function importSongsFromRepo(runtime: RepoRuntime): number {
       if (existing) {
         db.prepare(
           `UPDATE songs SET title = ?, author = ?, copyright = ?, ccli = ?, key = ?, lyrics = ?,
-             verse_order = ?, updated_at = ? WHERE id = ?`,
+             verse_order = ?, lyrics_markdown = ?, updated_at = ? WHERE id = ?`,
         ).run(
           song.title,
           song.author ?? null,
@@ -345,14 +356,15 @@ function importSongsFromRepo(runtime: RepoRuntime): number {
           song.key ?? null,
           song.lyrics,
           song.verseOrder ?? null,
+          song.lyricsMarkdown ? 1 : 0,
           song.updatedAt ?? new Date().toISOString(),
           song.id,
         );
       } else {
         db.prepare(
           `INSERT INTO songs
-           (id, title, author, copyright, ccli, key, lyrics, verse_order, source_format, source_path, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'git', NULL, ?, ?)`,
+           (id, title, author, copyright, ccli, key, lyrics, verse_order, lyrics_markdown, source_format, source_path, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'git', NULL, ?, ?)`,
         ).run(
           song.id,
           song.title,
@@ -362,6 +374,21 @@ function importSongsFromRepo(runtime: RepoRuntime): number {
           song.key ?? null,
           song.lyrics,
           song.verseOrder ?? null,
+          song.lyricsMarkdown ? 1 : 0,
+          song.createdAt ?? new Date().toISOString(),
+          song.updatedAt ?? new Date().toISOString(),
+        );
+      }
+      for (const verseOrder of song.verseOrders ?? []) {
+        db.prepare(
+          `INSERT INTO song_verse_orders (id, song_id, name, order_text, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?)
+           ON CONFLICT(song_id, name) DO UPDATE SET order_text = excluded.order_text, updated_at = excluded.updated_at`,
+        ).run(
+          `git-vo-${song.id}-${verseOrder.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
+          song.id,
+          verseOrder.name,
+          verseOrder.order,
           song.createdAt ?? new Date().toISOString(),
           song.updatedAt ?? new Date().toISOString(),
         );

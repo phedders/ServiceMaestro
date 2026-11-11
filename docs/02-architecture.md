@@ -1,4 +1,4 @@
-# Architecture: Web Lyric Master
+# Architecture: Service Maestro
 
 Status: **design agreed; Phase 1 walking skeleton implemented, plus sample-backed importers, Bible adapters, song assets, standalone musician view, set-list publish/apply-to-live, verse order, export/import and local Git persistence** (see [09-phase-1-status.md](09-phase-1-status.md)) — Node.js + TypeScript, Fastify/Socket.IO, SQLite, React control UI (grid dashboard temporarily hidden), and vanilla display outputs. Old OBS URLs are aliased. OpenLP, ChordPro, plain-text, Bible and first score/text samples have arrived; additional PDF-score and guitar-tab samples are still pending. Content authoring is detailed in [03-content-model.md](03-content-model.md); SongSelect/scores in [06-songselect-and-scores.md](06-songselect-and-scores.md); Bible schemas in [07-bible-sources.md](07-bible-sources.md); ChurchSuite sync in [10-churchsuite-sync.md](10-churchsuite-sync.md); Git-backed shared data in [11-git-data-sync.md](11-git-data-sync.md); the dashboard layout editor in [08-dashboard-layout-editor.md](08-dashboard-layout-editor.md); container packaging in [05-container-deployment.md](05-container-deployment.md). Based on [01-node-red-analysis.md](01-node-red-analysis.md).
 
@@ -54,7 +54,7 @@ Alternative if the team prefers Python: FastAPI + SQLAlchemy/SQLite + React. The
 Repository layout (monorepo, npm workspaces):
 
 ```
-web-lyric-master/
+service-maestro/
 ├── package.json                 # workspaces
 ├── packages/
 │   ├── shared/                  # TS types + Zod schemas (protocol, models)
@@ -222,7 +222,9 @@ Rules:
 | `/api/musicians/services`, `/api/musicians/services/:id` | Musician service view and score readiness | musician |
 | `/api/usage/report` | CCLI usage export | admin |
 | `/api/widgets`, `/api/dashboards/*` | Dashboard layout registry, personal/shared layouts, publish | per dashboard role |
-| `/api/display/config` | Font, colour, size and max-lines display settings | operator |
+| `/api/display/config` | Font, colour, size, max-lines/max-words and smart page-split display settings | operator |
+| `/api/fonts`, `/api/fonts/import` | Imported Google Fonts cached under `/data/fonts` | editor/admin |
+| `/api/integrations/churchsuite/*` | ChurchSuite status, connection test, plan exploration | editor/admin |
 | `/collab/dashboards/:id` (WS) | Yjs collaborative layout editing + presence | edit permission |
 | `/api/text-items`, `/api/text-items/:id/versions`, `/preview` | Dynamic text authoring | editor |
 | `/api/themes`, `/api/themes/:id/versions`, `/preview` | Modular themes | editor/admin |

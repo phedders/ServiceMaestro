@@ -9,8 +9,9 @@ import SetlistsPage from "./pages/SetlistsPage";
 import SongsPage from "./pages/SongsPage";
 import BiblePage from "./pages/BiblePage";
 import MusiciansPage from "./pages/MusiciansPage";
+import ConfigPage from "./pages/ConfigPage";
 
-type Page = "live" | "setlists" | "songs" | "bible";
+type Page = "live" | "setlists" | "songs" | "bible" | "config";
 
 interface Toast {
   id: number;
@@ -27,6 +28,29 @@ export default function App() {
   const [live, setLive] = useState<LiveState>(EMPTY_LIVE);
   const [connected, setConnected] = useState(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    try {
+      return window.localStorage.getItem("sm-sidebar-collapsed") === "1";
+    } catch {
+      return false;
+    }
+  });
+  const [topbarMode, setTopbarMode] = useState(() => {
+    try {
+      return window.localStorage.getItem("sm-topbar-mode") === "1";
+    } catch {
+      return false;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem("sm-sidebar-collapsed", sidebarCollapsed ? "1" : "0");
+      window.localStorage.setItem("sm-topbar-mode", topbarMode ? "1" : "0");
+    } catch {
+      // Storage can be unavailable in private browsing; layout still works for this session.
+    }
+  }, [sidebarCollapsed, topbarMode]);
 
   const notify = (text: string, kind: "info" | "error" = "info") => {
     const id = Date.now() + Math.random();
@@ -107,11 +131,13 @@ export default function App() {
         return "Songs";
       case "bible":
         return "Bible";
+      case "config":
+        return "Config";
     }
   }, [page]);
 
   if (loading) {
-    return <div className="boot">Loading Web Lyric Master…</div>;
+    return <div className="boot">Loading Service Maestro…</div>;
   }
 
   if (!user) {
@@ -130,9 +156,9 @@ export default function App() {
       <div className="standalone-shell">
         <header className="standalone-header">
           <div className="brand">
-            <div className="brand-mark">♪</div>
+            <img className="brand-mark" src="/icon.svg" alt="Service Maestro" />
             <div>
-              <strong>Web Lyric Master</strong>
+              <strong>Service Maestro</strong>
               <span>Musicians · read-only service view</span>
             </div>
           </div>
@@ -163,12 +189,14 @@ export default function App() {
   }
 
   return (
-    <div className="app">
+    <div
+      className={`app ${sidebarCollapsed ? "sidebar-collapsed" : ""} ${topbarMode ? "topbar-mode" : ""}`}
+    >
       <aside className="sidebar">
         <div className="brand">
-          <div className="brand-mark">♪</div>
+          <img className="brand-mark" src="/icon.svg" alt="Service Maestro" />
           <div>
-            <strong>Web Lyric Master</strong>
+            <strong>Service Maestro</strong>
             <span>Service control</span>
           </div>
         </div>
@@ -189,6 +217,9 @@ export default function App() {
           <a className="nav-link" href="/musicians" target="_blank" rel="noreferrer">
             <span className="nav-icon">♪</span> Musicians
           </a>
+          <button className={page === "config" ? "active" : ""} onClick={() => setPage("config")}>
+            <span className="nav-icon">⚙</span> Config
+          </button>
         </nav>
 
         <div className="sidebar-footer">
@@ -217,6 +248,20 @@ export default function App() {
             </p>
           </div>
           <div className="topbar-actions">
+            <button
+              className="button ghost small layout-toggle"
+              onClick={() => setSidebarCollapsed((current) => !current)}
+              title={sidebarCollapsed ? "Show navigation" : "Collapse navigation"}
+            >
+              {sidebarCollapsed ? "☰ Show menu" : "⇤ Hide menu"}
+            </button>
+            <button
+              className="button ghost small layout-toggle"
+              onClick={() => setTopbarMode((current) => !current)}
+              title={topbarMode ? "Use left sidebar" : "Move navigation to a top bar"}
+            >
+              {topbarMode ? "Side menu" : "Top menu"}
+            </button>
             {live.status !== "idle" && (
               <button className="button danger" onClick={stopLive}>
                 End session
@@ -250,6 +295,7 @@ export default function App() {
         )}
         {page === "songs" && <SongsPage notify={notify} />}
         {page === "bible" && <BiblePage live={live} onQuickText={quickText} notify={notify} />}
+        {page === "config" && <ConfigPage notify={notify} />}
       </main>
 
       <div className="toasts">

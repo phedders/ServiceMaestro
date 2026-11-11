@@ -4,6 +4,7 @@ import type {
   BibleTranslationInfo,
   DashboardLayout,
   DisplayConfig,
+  FontOption,
   LiveState,
   PublicUser,
   SetlistDetail,
@@ -15,6 +16,7 @@ import type {
   SongAsset,
   SongImportReport,
   SongImportScan,
+  SongVerseOrder,
 } from "@wlm/shared";
 
 export class ApiError extends Error {
@@ -61,6 +63,49 @@ export const api = {
   updateSong: (id: string, payload: Partial<Song>) =>
     request<{ song: Song }>(`/api/songs/${id}`, { method: "PATCH", body: JSON.stringify(payload) }),
   deleteSong: (id: string) => request<{ ok: true }>(`/api/songs/${id}`, { method: "DELETE" }),
+  createVerseOrder: (songId: string, payload: { name: string; order: string }) =>
+    request<{ verseOrder: SongVerseOrder }>(`/api/songs/${songId}/verse-orders`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  updateVerseOrder: (songId: string, id: string, payload: { name?: string; order?: string }) =>
+    request<{ verseOrder: SongVerseOrder }>(`/api/songs/${songId}/verse-orders/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }),
+  deleteVerseOrder: (songId: string, id: string) =>
+    request<{ ok: true }>(`/api/songs/${songId}/verse-orders/${id}`, { method: "DELETE" }),
+
+  fonts: () => request<{ fonts: FontOption[] }>("/api/fonts"),
+  importFont: (payload: { family?: string; url?: string }) =>
+    request<{ font: FontOption }>("/api/fonts/import", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  deleteFont: (id: string) => request<{ ok: true }>(`/api/fonts/${id}`, { method: "DELETE" }),
+
+  churchsuiteStatus: () =>
+    request<{
+      status: {
+        configured: boolean;
+        tokenUrl: string;
+        apiUrl: string;
+        scopes: string;
+        redirectUri: string;
+        hasCachedToken: boolean;
+      };
+    }>("/api/integrations/churchsuite/status"),
+  testChurchsuite: () =>
+    request<{ ok: true; plans: unknown }>("/api/integrations/churchsuite/test", {
+      method: "POST",
+    }),
+  churchsuitePlans: (query: { from?: string; to?: string; status?: string }) => {
+    const params = new URLSearchParams();
+    if (query.from) params.set("from", query.from);
+    if (query.to) params.set("to", query.to);
+    if (query.status) params.set("status", query.status);
+    return request<{ plans: unknown }>(`/api/integrations/churchsuite/plans?${params.toString()}`);
+  },
 
   songAssets: (id: string) => request<{ assets: SongAsset[] }>(`/api/songs/${id}/assets`),
   uploadAsset: async (

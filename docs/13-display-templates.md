@@ -61,14 +61,7 @@ The display client fades the composed tree out, swaps content, and fades it back
 
 ## 3. Text item formats
 
-A text item's first line can select the renderer:
-
-```text
-type: markdown
-# Welcome
-
-**Please stand** as we begin.
-```
+The set-list editor has a **Text format** dropdown: **Markdown (default)**, **Plain text**, **HTML** or **reStructuredText**. A legacy `format:`/`type:`/`mode:` header (or YAML front matter) is extracted into the item’s `format` metadata the first time the item is edited/saved, and removed from the body.
 
 Supported forms:
 
@@ -87,7 +80,7 @@ type: html
 <p>Please stand.</p>
 ```
 
-Page breaks: `<!-- page -->` or `<hr class="page-break">`. Text mode keeps the blank-line/max-lines pagination.
+Page breaks: `<!-- page -->` / `<!--- page --->` or `<hr class="page-break">`. Plain text and songs also split at the display config’s max lines/words. Rich Markdown/HTML/RST items use explicit page markers as page boundaries.
 
 Rendering:
 
@@ -118,18 +111,32 @@ Rich text uses a block container (`.text-html`), not the flex line container use
 
 A **Display config** panel on the Live page controls:
 
-- **Font** — a curated list of local/system font stacks.
+- **Font** — built-in stacks plus Google Fonts imported from the Config page.
 - **Text colour** — default text colour.
 - **Text size** — 50–200% scale.
 - **Max lines per page** — the number of lines after which a song/text/Bible item is split into another page.
+- **Max words per page** — a second hard limit; pages split on whichever of max lines or max words is reached first.
+- **Smart page splits** — estimates a 1920×1080 landscape frame from the selected font size, wraps long lines at an estimated character width, and limits lines per page to the estimated vertical coverage. This prevents long Bible verses from overflowing.
 
 Scope:
 
 - Font, colour and size apply **only to main and two-thirds** (and `full`, which shares the two-thirds style).
 - **Stage and chords always keep their fixed styling**, regardless of the main/two-thirds config.
-- Max lines controls **page splitting** for line-based songs and text; `<!-- page -->` / `<!--- page --->` / `<hr class="page-break">` markers force additional breaks. Rich Markdown/HTML/RST items use the explicit markers as their page boundaries.
-- Settings persist in the database and are broadcast to outputs immediately. The per-item “Lines/page” control has been removed from the set-list editor; the screen-level setting is authoritative.
+- Page splitting (max lines, max words, smart estimates) is shared by all outputs; `<!-- page -->` / `<!--- page --->` / `<hr class="page-break">` markers force additional breaks.
+- Settings persist in the database and are broadcast to outputs immediately.
 - The **Show** button reveals a blank screen. **Selecting a page** shows and fades it in; **selecting a set-list item** only queues its page list and leaves the current output unchanged.
+
+## 4.1 Song text styling and split words
+
+Songs can opt into **inline Markdown styling** metadata. Supported tags include `**bold**`, `*italic*`, `~~strike~~`, `` `code` `` and `==highlight==`.
+
+- Main/two-thirds (and full) render the styling.
+- Stage and chords **ignore** the styling, showing plain text.
+- SongSelect/SongPro split words like `can - not` or `sat - is - fied` are wrapped in `.lyric-split` spans. CSS hides those separators on main/two-thirds/full/stage (so the words join to `cannot` / `satisfied`) and keeps them visible in the chords view.
+
+## 4.2 Imported Google Fonts
+
+The Config page imports a family name or a `https://fonts.googleapis.com/css2?...` URL. The server downloads the CSS and woff2 files into `/data/fonts`, rewrites the URLs to `/fonts/<id>/…`, and serves a concatenated `/fonts/all.css`. Displays and the control preview therefore work offline after import.
 
 ## 5. Blank on session start
 

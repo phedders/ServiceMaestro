@@ -9,6 +9,8 @@ export interface RenderItem {
   title: string;
   lyrics?: string | null;
   content?: string | null;
+  format?: TextFormat | null;
+  lyricsMarkdown?: boolean;
   key?: string | null;
   keyOverride?: string | null;
   transpose: number;
@@ -172,6 +174,46 @@ export function parseTextContent(content: string): ParsedTextContent {
   return { format, body, metadata };
 }
 
+/**
+ * Remove a leading `format:`/`type:` header or YAML front matter from text.
+ * Returns `null` when no explicit format metadata was present.
+ */
+export function extractTextFormat(content: string): { format: TextFormat | null; content: string } {
+  let body = content.replace(/\r\n?/g, "\n");
+  const frontMatter = body.match(/^---\s*\n([\s\S]*?)\n---\s*(?:\n|$)/);
+  if (frontMatter) {
+    try {
+      const parsed = parseYaml(frontMatter[1]);
+      const value =
+        parsed && typeof parsed === "object" && !Array.isArray(parsed)
+          ? (parsed as Record<string, unknown>).type ??
+            (parsed as Record<string, unknown>).format ??
+            (parsed as Record<string, unknown>).mode
+          : undefined;
+      if (value !== undefined) {
+        return {
+          format: normalizeTextFormat(value),
+          content: body.slice(frontMatter[0].length),
+        };
+      }
+    } catch {
+      // Not valid metadata; leave the text alone.
+    }
+  }
+
+  const firstLine = body.split("\n", 1)[0] ?? "";
+  const match = firstLine.match(
+    /^\s*(?:type|format|mode)\s*:\s*(html|htm|markdown|md|rst|restructuredtext|restructured|text|plain)\s*$/i,
+  );
+  if (match) {
+    return {
+      format: normalizeTextFormat(match[1]),
+      content: body.slice(firstLine.length).replace(/^\n/, ""),
+    };
+  }
+  return { format: null, content: body };
+}
+
 const PAGE_BREAK_RE = /<!--\s*-?\s*page\s*-?\s*-->|<hr\b[^>]*class=["'][^"']*page-break[^"']*["'][^>]*>/gi;
 
 function sanitizeRichHtml(html: string): string {
@@ -238,13 +280,43 @@ function chordToken(value: string): string | null {
   return null;
 }
 
-export function renderLine(text: string, semitones: number): string {
+export interface LineRenderOptions {
+  markdown?: boolean;
+  splitWords?: boolean;
+}
+
+function applyInlineMarkdown(html: string): string {
+  return html
+    .replace(/`([^`]+)`/g, "<code>$1</code>")
+    .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+    .replace(/__([^_]+)__/g, "<strong>$1</strong>")
+    .replace(/~~([^~]+)~~/g, "<s>$1</s>")
+    .replace(/==([^=]+)==/g, "<mark>$1</mark>")
+    .replace(/(^|[^*])\*([^*\s][^*]*?)\*/g, "$1<em>$2</em>");
+}
+
+function renderPlainTextSegment(value: string, options: LineRenderOptions): string {
+  let html = escapeHtml(value);
+  if (options.splitWords) {
+    // SongSelect-style split words: keep " - " for the chords view, hide it
+    // with CSS on main/two-thirds/stage so the words join up.
+    html = html.replace(/(?<=\S)(\s+-\s+)(?=\S)/g, '<span class="lyric-split">$1</span>');
+  }
+  if (options.markdown) html = applyInlineMarkdown(html);
+  return html;
+}
+
+export function renderLine(
+  text: string,
+  semitones: number,
+  options: LineRenderOptions = {},
+): string {
   let out = "";
   let last = 0;
   const re = /\[([^\]]+)\]/g;
   let match: RegExpExecArray | null;
   while ((match = re.exec(text))) {
-    out += escapeHtml(text.slice(last, match.index));
+    out += renderPlainTextSegment(text.slice(last, match.index), options);
     const token = match[1].trim();
     const chord = chordToken(token);
     if (chord) {
@@ -255,7 +327,7 @@ export function renderLine(text: string, semitones: number): string {
     }
     last = match.index + match[0].length;
   }
-  out += escapeHtml(text.slice(last));
+  out += renderPlainTextSegment(text.slice(last), options);
   return out;
 }
 
@@ -326,28 +398,153 @@ function orderBlocks(blocks: Block[], verseOrder: string | null | undefined): Bl
   return ordered.length ? ordered : blocks;
 }
 
-function chunkBlock(block: Block, maxLines: number): Block[] {
-  const chunks: Line[][] = [];
-  for (let i = 0; i < block.lines.length; i += maxLines) {
-    chunks.push(block.lines.slice(i, i + maxLines));
-  }
-  if (!chunks.length) return [];
-  return chunks.map((lines, index) => ({
-    section: index === 0 ? block.section : null,
-    lines,
-    hardBreakAfter: index === chunks.length - 1 ? block.hardBreakAfter : false,
-  }));
+function clamp(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, value));
 }
 
-export function buildPages(item: RenderItem, liveTranspose = 0): LivePage[] {
+export interface RenderOptions {
+  maxLines?: number;
+  maxWords?: number;
+  smartPageSplits?: boolean;
+  textScale?: number;
+}
+
+interface PaginationMetrics {
+  maxLines: number;
+  charsPerLine: number;
+  autoLines: number;
+}
+
+function paginationMetrics(textScale: number, maxLines: number, smart: boolean): PaginationMetrics {
+  // Estimate a 1920×1080 landscape frame with a ~4.2vw main/two-thirds font.
+  const fontPx = 82 * clamp(textScale, 0.5, 2.5);
+  const charsPerLine = clamp(Math.floor(1610 / (fontPx * 0.52)), 18, 110);
+  const autoLines = clamp(Math.floor(780 / (fontPx * 1.2)), 1, 30);
+  return {
+    maxLines: smart ? Math.min(maxLines, autoLines) : maxLines,
+    charsPerLine,
+    autoLines,
+  };
+}
+
+function countWords(text: string): number {
+  return text.trim() ? text.trim().split(/\s+/).length : 0;
+}
+
+function wrapWords(text: string, maxChars: number): string[] {
+  const words = text.trim().split(/\s+/).filter(Boolean);
+  if (!words.length) return [""];
+
+  // Keep SongSelect-style "sat - is - fied" sequences together so a line wrap
+  // never separates the " - " marker from the following syllable.
+  const units: string[] = [];
+  for (let index = 0; index < words.length; ) {
+    if (index + 2 < words.length && words[index + 1] === "-") {
+      let unit = words[index];
+      index += 1;
+      while (index + 1 < words.length && words[index] === "-") {
+        unit += ` - ${words[index + 1]}`;
+        index += 2;
+      }
+      units.push(unit);
+    } else {
+      units.push(words[index]);
+      index += 1;
+    }
+  }
+
+  const lines: string[] = [];
+  let current = "";
+  for (const unit of units) {
+    if (!current) {
+      current = unit;
+    } else if (`${current} ${unit}`.length <= maxChars) {
+      current += ` ${unit}`;
+    } else {
+      lines.push(current);
+      current = unit;
+    }
+  }
+  if (current) lines.push(current);
+  return lines;
+}
+
+function splitWords(text: string, limit: number): string[] {
+  const words = text.trim().split(/\s+/).filter(Boolean);
+  if (!words.length) return [""];
+  const chunks: string[] = [];
+  for (let index = 0; index < words.length; index += limit) {
+    chunks.push(words.slice(index, index + limit).join(" "));
+  }
+  return chunks;
+}
+
+function paginateBlock(block: Block, options: RenderOptions): Block[] {
+  const maxLines = Math.max(1, options.maxLines ?? 4);
+  const maxWords = Math.max(1, options.maxWords ?? 90);
+  const smart = options.smartPageSplits !== false;
+  const metrics = paginationMetrics(options.textScale ?? 1, maxLines, smart);
+
+  const pages: Block[] = [];
+  let pageLines: string[] = [];
+  let pageWords = 0;
+  let section = block.section;
+
+  const flush = () => {
+    if (!pageLines.length) return;
+    pages.push({
+      section,
+      lines: pageLines.map((text) => ({ text })),
+      hardBreakAfter: false,
+    });
+    section = null;
+    pageLines = [];
+    pageWords = 0;
+  };
+
+  const addSegment = (segment: string) => {
+    const words = countWords(segment);
+    if (words > maxWords) {
+      for (const piece of splitWords(segment, maxWords)) addSegment(piece);
+      return;
+    }
+    if (pageWords > 0 && pageWords + words > maxWords) flush();
+    if (pageLines.length >= metrics.maxLines) flush();
+    pageLines.push(segment);
+    pageWords += words;
+    if (pageWords >= maxWords) flush();
+  };
+
+  for (const line of block.lines) {
+    const segments = smart ? wrapWords(line.text, metrics.charsPerLine) : [line.text];
+    for (const segment of segments) addSegment(segment);
+  }
+  flush();
+  return pages;
+}
+
+export function buildPages(
+  item: RenderItem,
+  liveTranspose = 0,
+  options: RenderOptions = {},
+): LivePage[] {
   const base = item.transpose || 0;
   const keyShift = keyDelta(item.key ?? null, item.keyOverride ?? null);
   const semitones = base + liveTranspose + keyShift;
-  const maxLines = Math.max(1, item.maxLines || 4);
+  const maxLines = Math.max(1, options.maxLines ?? item.maxLines ?? 4);
+  const renderOptions: RenderOptions = {
+    ...options,
+    maxLines,
+    maxWords: Math.max(1, options.maxWords ?? 90),
+    smartPageSplits: options.smartPageSplits !== false,
+    textScale: options.textScale ?? 1,
+  };
+
   let blocks: Block[];
   if (item.kind === "text") {
     const parsed = parseTextContent(item.content ?? "");
-    if (parsed.format !== "text") {
+    const format = item.format ?? parsed.format;
+    if (format !== "text") {
       const chunks = parsed.body
         .split(PAGE_BREAK_RE)
         .map((chunk) => chunk.trim())
@@ -355,7 +552,7 @@ export function buildPages(item: RenderItem, liveTranspose = 0): LivePage[] {
       return chunks.map((chunk, index) => ({
         index,
         section: null,
-        html: `<div class="text-html">${renderRichText(chunk, parsed.format)}</div>`,
+        html: `<div class="text-html">${renderRichText(chunk, format)}</div>`,
       }));
     }
     blocks = parsed.body
@@ -366,20 +563,18 @@ export function buildPages(item: RenderItem, liveTranspose = 0): LivePage[] {
       .split(PAGE_BREAK_RE)
       .flatMap((segment) => orderBlocks(parseSong(segment), item.verseOrder));
   }
-  const orderedBlocks = blocks;
 
-  const pages: Block[] = [];
-  for (const block of orderedBlocks) {
-    const chunks = chunkBlock(block, maxLines);
-    pages.push(...chunks);
-    if (block.hardBreakAfter && pages.length) {
-      // hard breaks are represented by the block split itself
-    }
-  }
+  const pages = blocks.flatMap((block) => paginateBlock(block, renderOptions));
 
   return pages.map((block, index) => {
     const lines = block.lines
-      .map((line) => `<div class="line">${renderLine(line.text, semitones)}</div>`)
+      .map(
+        (line) =>
+          `<div class="line">${renderLine(line.text, semitones, {
+            markdown: item.kind === "song" && Boolean(item.lyricsMarkdown),
+            splitWords: item.kind === "song",
+          })}</div>`,
+      )
       .join("");
     const label = block.section
       ? `<div class="section-label">${escapeHtml(block.section)}</div>`

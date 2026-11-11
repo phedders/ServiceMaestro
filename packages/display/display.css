@@ -117,6 +117,19 @@ body.display-full .chord {
   display: none;
 }
 
+/* SongSelect-style split words are joined on presentation views and kept
+   visible in the chords view. */
+body.display-main .lyric-split,
+body.display-two-thirds .lyric-split,
+body.display-full .lyric-split,
+body.display-stage .lyric-split {
+  display: none;
+}
+
+body.display-chords .lyric-split {
+  display: inline;
+}
+
 body.display-main .section-label,
 body.display-full .section-label {
   display: none;
