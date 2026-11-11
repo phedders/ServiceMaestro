@@ -2,12 +2,14 @@ import { useEffect, useState } from "react";
 import {
   NO_BACKGROUND_ID,
   NO_STINGER_ID,
+  formatBibleVerses,
   parseImageListContent,
   parseTarpItemContent,
   serializeImageListContent,
   serializeTarpItemContent,
   type BackgroundAsset,
   type BibleBook,
+  type BibleLayout,
   type BiblePassage,
   type BibleTranslationInfo,
   type ImageAsset,
@@ -1077,6 +1079,7 @@ export default function SetlistsPage({
   const [bibleFrom, setBibleFrom] = useState(1);
   const [bibleTo, setBibleTo] = useState(1);
   const [bibleIncludeReference, setBibleIncludeReference] = useState(true);
+  const [bibleLayout, setBibleLayout] = useState<BibleLayout>("verses");
   const [uploadingImage, setUploadingImage] = useState(false);
   const [songSearch, setSongSearch] = useState("");
   const [songSearchFields, setSongSearchFields] = useState({
@@ -1326,7 +1329,7 @@ export default function SetlistsPage({
     );
     if (!verses.length) return;
     const reference = bibleReference();
-    const body = verses.map((verse) => verse.text).join("\n");
+    const body = formatBibleVerses(verses, bibleLayout);
     try {
       const result = await api.addItem(detail.id, {
         kind: "text",
@@ -2067,6 +2070,16 @@ export default function SetlistsPage({
                       onChange={(event) => setBibleIncludeReference(event.target.checked)}
                     />
                     Include reference
+                  </label>
+                  <label>
+                    Layout
+                    <select
+                      value={bibleLayout}
+                      onChange={(event) => setBibleLayout(event.target.value as BibleLayout)}
+                    >
+                      <option value="paragraph">Paragraph</option>
+                      <option value="verses">Line per verse</option>
+                    </select>
                   </label>
                   <span className="hint">
                     {bibleReference() || "Choose a translation, book, chapter and verse range."}

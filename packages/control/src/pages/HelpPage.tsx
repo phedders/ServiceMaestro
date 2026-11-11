@@ -382,6 +382,10 @@ export default function HelpPage({ onOpenSettings }: { onOpenSettings: () => voi
                 adds the citation to the text.
               </li>
               <li>
+                <strong>Layout</strong> chooses <strong>Paragraph</strong> or{" "}
+                <strong>Line per verse</strong> for the passage text and the set-list item.
+              </li>
+              <li>
                 <strong>Add to current setlist</strong> saves the passage; <strong>Add to live
                 session</strong> displays it now without saving.
               </li>

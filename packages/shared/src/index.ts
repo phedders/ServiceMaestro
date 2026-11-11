@@ -605,6 +605,13 @@ export interface BiblePassage {
   verses: BibleVerse[];
 }
 
+export type BibleLayout = "paragraph" | "verses";
+
+export function formatBibleVerses(verses: BibleVerse[], layout: BibleLayout): string {
+  const texts = verses.map((verse) => verse.text.trim()).filter(Boolean);
+  return layout === "paragraph" ? texts.join(" ") : texts.join("\n");
+}
+
 export type SongAssetKind = "score_pdf" | "guitar_tab" | "chordpro" | "lyrics" | "image";
 
 export interface SongAsset {

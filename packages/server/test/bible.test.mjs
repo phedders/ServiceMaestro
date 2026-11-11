@@ -4,11 +4,21 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import Database from "better-sqlite3";
+import { formatBibleVerses } from "@sm/shared";
 import { cleanVerseText, getBooks, getPassage, loadBibleCatalog } from "../dist/bible.js";
 
 function tempDir() {
   return fs.mkdtempSync(path.join(os.tmpdir(), "sm-bible-"));
 }
+
+test("formats Bible verses as a paragraph or one line per verse", () => {
+  const verses = [
+    { number: 1, text: "In the beginning" },
+    { number: 2, text: "The earth was formless" },
+  ];
+  assert.equal(formatBibleVerses(verses, "paragraph"), "In the beginning The earth was formless");
+  assert.equal(formatBibleVerses(verses, "verses"), "In the beginning\nThe earth was formless");
+});
 
 test("cleans Bible markup and entities", () => {
   assert.equal(

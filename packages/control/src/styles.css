@@ -3384,6 +3384,17 @@ body.resizing-live-queue {
   border-top: 1px solid var(--border);
 }
 
+.bible-action-options {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.bible-action-options label:not(.checkbox) {
+  min-width: 150px;
+}
+
 .bible-target {
   display: flex;
   align-items: flex-end;

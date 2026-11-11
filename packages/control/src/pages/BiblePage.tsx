@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
+import { formatBibleVerses } from "@sm/shared";
 import type {
   BibleBook,
+  BibleLayout,
   BiblePassage,
   BibleTranslationInfo,
   LiveState,
@@ -28,6 +30,7 @@ export default function BiblePage({
   const [to, setTo] = useState(1);
   const [loading, setLoading] = useState(true);
   const [includeReference, setIncludeReference] = useState(true);
+  const [layout, setLayout] = useState<BibleLayout>("verses");
   const [setlists, setSetlists] = useState<SetlistSummary[]>([]);
   const [targetSetlist, setTargetSetlist] = useState("");
   const [adding, setAdding] = useState(false);
@@ -106,7 +109,7 @@ export default function BiblePage({
 
   function passageBody() {
     if (!verses.length) return "";
-    const text = verses.map((verse) => verse.text).join("\n");
+    const text = formatBibleVerses(verses, layout);
     return includeReference ? `${reference()}\n${text}` : text;
   }
 
@@ -221,14 +224,26 @@ export default function BiblePage({
         </div>
 
         <div className="bible-actions">
-          <label className="checkbox">
-            <input
-              type="checkbox"
-              checked={includeReference}
-              onChange={(event) => setIncludeReference(event.target.checked)}
-            />
-            Include reference
-          </label>
+          <div className="bible-action-options">
+            <label className="checkbox">
+              <input
+                type="checkbox"
+                checked={includeReference}
+                onChange={(event) => setIncludeReference(event.target.checked)}
+              />
+              Include reference
+            </label>
+            <label>
+              Layout
+              <select
+                value={layout}
+                onChange={(event) => setLayout(event.target.value as BibleLayout)}
+              >
+                <option value="paragraph">Paragraph</option>
+                <option value="verses">Line per verse</option>
+              </select>
+            </label>
+          </div>
           <div className="bible-target">
             <label>
               Current set list
@@ -246,7 +261,7 @@ export default function BiblePage({
               <button
                 className="button ghost"
                 onClick={() => {
-                  navigator.clipboard?.writeText(verses.map((verse) => verse.text).join("\n"));
+                  navigator.clipboard?.writeText(formatBibleVerses(verses, layout));
                   notify("Passage copied");
                 }}
                 disabled={!verses.length}
@@ -281,13 +296,24 @@ export default function BiblePage({
           <span className="muted">{verses.length} verses</span>
         </div>
         {passage ? (
-          <div className="bible-passage">
-            {verses.map((verse) => (
-              <p key={verse.number}>
-                <sup>{verse.number}</sup>
-                {verse.text}
+          <div className={`bible-passage ${layout === "paragraph" ? "paragraph" : "verses"}`}>
+            {layout === "paragraph" ? (
+              <p>
+                {verses.map((verse) => (
+                  <span key={verse.number}>
+                    <sup>{verse.number}</sup>
+                    {verse.text}{" "}
+                  </span>
+                ))}
               </p>
-            ))}
+            ) : (
+              verses.map((verse) => (
+                <p key={verse.number}>
+                  <sup>{verse.number}</sup>
+                  {verse.text}
+                </p>
+              ))
+            )}
           </div>
         ) : (
           <p className="muted">Choose a chapter to load a passage.</p>
