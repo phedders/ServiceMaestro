@@ -38,7 +38,7 @@ body[data-target="chords"] {
 }
 
 .sm-chords .line {
-  white-space: pre;
+  white-space: pre-wrap;
 }
 
 .sm-chords .chord {

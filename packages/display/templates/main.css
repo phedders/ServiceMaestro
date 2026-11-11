@@ -74,7 +74,7 @@ body.mode-image .sm-main .sm-footer {
 }
 
 .sm-main .line {
-  white-space: pre;
+  white-space: pre-wrap;
 }
 
 .sm-main .chord {

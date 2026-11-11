@@ -126,7 +126,7 @@ A **Display config** panel on the Live page controls:
 - **Max words per page** — a second hard limit; pages split on whichever of max lines or max words is reached first.
 - **Lower-third image max height** — percentage of the viewport used as the image height limit (default 30%).
 - **Lower-third border padding** — the gap between the viewport bottom and the lower-third text/image area (default 48px). For images it is also subtracted from the maximum height. Images keep their aspect ratio and are never stretched. Text is shown in a dark 60%-opaque rounded panel with a lighter border.
-- **Smart page splits** — estimates a 1920×1080 landscape frame from the selected font size and limits lines per page to the estimated vertical coverage. Lyric lines are never automatically word-wrapped; oversize lines are left intact.
+- **Smart page splits** — estimates a 1920×1080 landscape frame from the selected font size and limits lines per page to the estimated vertical coverage. The server never inserts word wraps; long lines wrap naturally in the browser to fit the output width.
 
 Scope:
 
