@@ -58,7 +58,7 @@ Or `npm run dev` runs both (server on 8080, control on 5173).
 
 The output token defaults to `dev-output`; set `SM_OUTPUT_TOKEN` in production. Displays receive a **full snapshot on connect**, so refreshing or reconnecting OBS never blanks the screen. The `/obs-*` aliases remain on the control port for compatibility; use the `/display/*` paths through a read-only proxy.
 
-Displays are also served by a separate **read-only listener** on `SM_DISPLAY_PORT` (default `8081`). It serves only the `/display/*` tree — views, `/display/assets`, `/display/fonts`, `/display/images/file` and the read-only `/display/socket.ro.io` — with no login, control UI or API. A forward proxy can expose only `/display/*` from this port without exposing the control server. These replace the old `/display-assets`, `/fonts` and `/api/images/file` paths.
+The **Menu** button in the navigation opens an **External links** list for every view plus Settings. Displays are also served by a separate **read-only listener** on `SM_DISPLAY_PORT` (default `8081`). It serves only the `/display/*` tree — views, `/display/assets`, `/display/fonts`, `/display/images/file` and the read-only `/display/socket.ro.io` — with no login, control UI or API. A forward proxy can expose only `/display/*` from this port without exposing the control server. These replace the old `/display-assets`, `/fonts` and `/api/images/file` paths.
 
 ### Musicians view
 
@@ -80,7 +80,7 @@ Open <http://localhost:8080/musicians> to see the read-only musician view. It de
 - **Rich text items** — choose Markdown (default), plain text, HTML or RST in the editor; legacy `format:` headers are extracted into metadata. Text items also have a per-item **left/centre** alignment option. Pages can be authored with inline `<!-- page -->` markers or with separate page boxes in the editor; both serialize to the same page-break format. Page breaks and server-side sanitisation are supported.
 - **Settings page** — import Google Fonts by family name or CSS URL; files are cached in `/data/fonts` and served locally. ChurchSuite credential status and connection testing live here too. Configurable keyboard shortcuts cover hide/show, page navigation and set-list item navigation, and a global setting chooses whether page navigation stops at item boundaries or continues into the previous/next item.
 - **Export/import** — download a reference JSON or self-contained ZIP bundle (songs, text, PDF/tab assets) and import it as a new draft with a preview; matching uses CCLI/title and never affects a live service.
-- **Live control** — next/previous, page show, item queue, append an item’s pages to the current live queue with its **+** button, blank, transpose, max-lines, footer and quick text.
+- **Live control** — switchable live preview for fullscreen, lower-third, two-thirds, stage or chords; next/previous, page show, item queue, append an item’s pages to the current live queue with its **+** button, blank, transpose, max-lines, footer and quick text.
 - **Help page** — built-in operator guide with service-day quick start, publish/apply guidance, item and image tips, display/OBS URLs, current keyboard shortcuts and troubleshooting.
 - **Layout** — collapse the left sidebar or move navigation into a top bar; smaller screens automatically use the top-bar layout.
 - **Song word joins** — SongSelect/SongPro split words such as `can - not` or `sat - is - fied` display joined on lower-third/centered two-thirds/stage and keep the split form in the chords view.

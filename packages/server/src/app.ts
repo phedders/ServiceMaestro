@@ -6,7 +6,7 @@ import fastifyStatic from "@fastify/static";
 import multipart from "@fastify/multipart";
 import { Server } from "socket.io";
 import { displayConfigSchema, gitSettingsSchema, liveCommandSchema, quickTextSchema, type PublicUser } from "@sm/shared";
-import { COOKIE_NAME, CONTROL_DIST, DISPLAY_DIR, GIT_ENABLED } from "./config.js";
+import { COOKIE_NAME, CONTROL_DIST, DISPLAY_DIR, GIT_ENABLED, OUTPUT_TOKEN } from "./config.js";
 import { parseCookies, requireAuth, requireRole, userForToken } from "./auth.js";
 import { createOutputSocket, registerDisplayRoutes } from "./display-app.js";
 import { sendHtmlFile } from "./send-html.js";
@@ -94,6 +94,20 @@ export async function buildApp(): Promise<{
   app.get("/obs-chords", async (_request, reply) => sendHtmlFile(reply, path.join(DISPLAY_DIR, "chords.html")));
 
   app.get("/api/health", async () => ({ ok: true, name: "service-maestro" }));
+
+  app.get("/api/display/views", { preHandler: requireAuth }, async () => {
+    const token = encodeURIComponent(OUTPUT_TOKEN);
+    return {
+      views: [
+        { id: "lowerthird", label: "Lower third", url: `/display/lowerthird?token=${token}` },
+        { id: "full", label: "Full screen", url: `/display/full?token=${token}` },
+        { id: "two-thirds", label: "Centered two-thirds", url: `/display/two-thirds?token=${token}` },
+        { id: "stage", label: "Stage", url: `/display/stage?token=${token}` },
+        { id: "chords", label: "Chords", url: `/display/chords?token=${token}` },
+        { id: "musicians", label: "Musicians view", url: "/musicians" },
+      ],
+    };
+  });
 
   app.get("/api/display/config", { preHandler: requireAuth }, async () => ({
     config: getDisplayConfig(),

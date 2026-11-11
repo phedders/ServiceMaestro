@@ -138,6 +138,12 @@ export interface DisplayConfig {
   lowerThirdImagePadding: number;
 }
 
+export interface DisplayViewLink {
+  id: string;
+  label: string;
+  url: string;
+}
+
 export interface FontOption {
   id: string;
   label: string;

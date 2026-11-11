@@ -365,6 +365,7 @@ export default function HelpPage({ onOpenSettings }: { onOpenSettings: () => voi
             <h2>Display outputs and OBS</h2>
             <p className="muted">
               Add each output as a browser source at 1920×1080. Every URL needs the output token.
+              Use <strong>Menu → External links</strong> to open any display view in a new tab.
             </p>
           </div>
         </div>

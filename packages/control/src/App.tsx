@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { io, type Socket } from "socket.io-client";
-import type { LiveState, PublicUser } from "@sm/shared";
+import type { DisplayViewLink, LiveState, PublicUser } from "@sm/shared";
 import { api, ApiError } from "./api";
 import { EMPTY_LIVE } from "./empty";
 import Login from "./components/Login";
@@ -38,6 +38,10 @@ export default function App() {
   const [live, setLive] = useState<LiveState>(EMPTY_LIVE);
   const [connected, setConnected] = useState(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const [displayViews, setDisplayViews] = useState<DisplayViewLink[]>([]);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
+  const menuRef = useRef<HTMLDivElement | null>(null);
   const [shortcuts, setShortcuts] = useState<KeyboardShortcuts>(loadKeyboardShortcuts);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     try {
@@ -94,6 +98,35 @@ export default function App() {
       .then((result) => setLive(result.state))
       .catch(() => undefined);
   }, [user, standaloneMusicians]);
+
+  useEffect(() => {
+    if (!user || standaloneMusicians) return;
+    api
+      .displayViews()
+      .then((result) => setDisplayViews(result.views))
+      .catch(() => undefined);
+  }, [user, standaloneMusicians]);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onPointerDown = (event: PointerEvent) => {
+      if (!menuRef.current?.contains(event.target as Node)) setMenuOpen(false);
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMenuOpen(false);
+    };
+    const close = () => setMenuOpen(false);
+    window.addEventListener("pointerdown", onPointerDown);
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("resize", close);
+    window.addEventListener("scroll", close, true);
+    return () => {
+      window.removeEventListener("pointerdown", onPointerDown);
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("resize", close);
+      window.removeEventListener("scroll", close, true);
+    };
+  }, [menuOpen]);
 
   useEffect(() => {
     if (!user || standaloneMusicians) return;
@@ -223,6 +256,29 @@ export default function App() {
     setLive(EMPTY_LIVE);
   };
 
+  function toggleMenu() {
+    if (menuOpen) {
+      setMenuOpen(false);
+      return;
+    }
+    const rect = menuRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const width = 276;
+    const estimatedHeight = 430;
+    const left = Math.max(12, Math.min(rect.left, window.innerWidth - width - 12));
+    const top =
+      rect.bottom + 8 + estimatedHeight > window.innerHeight
+        ? Math.max(12, rect.top - 8 - estimatedHeight)
+        : rect.bottom + 8;
+    setMenuPosition({ top, left });
+    setMenuOpen(true);
+  }
+
+  function openSettings() {
+    setPage("settings");
+    setMenuOpen(false);
+  }
+
   const pageTitle = useMemo(() => {
     switch (page) {
       case "live":
@@ -322,7 +378,7 @@ export default function App() {
             onClick={() => setPage("setlists")}
             title="Open set lists to plan and publish services"
           >
-            <span className="nav-icon">☰</span> Set lists
+            <span className="nav-icon">▤</span> Set lists
           </button>
           <button
             className={page === "songs" ? "active" : ""}
@@ -345,15 +401,6 @@ export default function App() {
           >
             <span className="nav-icon">✝</span> Bible
           </button>
-          <a
-            className="nav-link"
-            href="/musicians"
-            target="_blank"
-            rel="noreferrer"
-            title="Open the read-only musicians view in a new tab"
-          >
-            <span className="nav-icon">♪</span> Musicians
-          </a>
           <button
             className={page === "churchsuite" ? "active" : ""}
             onClick={() => setPage("churchsuite")}
@@ -362,19 +409,64 @@ export default function App() {
             <span className="nav-icon">⛪</span> ChurchSuite
           </button>
           <button
-            className={page === "settings" ? "active" : ""}
-            onClick={() => setPage("settings")}
-            title="Open keyboard, font, ChurchSuite and Git settings"
-          >
-            <span className="nav-icon">⚙</span> Settings
-          </button>
-          <button
             className={page === "help" ? "active" : ""}
             onClick={() => setPage("help")}
             title="Open the service-day guide and troubleshooting reference"
           >
             <span className="nav-icon">?</span> Help
           </button>
+          <div className="nav-more" ref={menuRef}>
+            <button
+              type="button"
+              className={`nav-more-toggle ${menuOpen || page === "settings" ? "active" : ""}`}
+              onClick={toggleMenu}
+              aria-haspopup="menu"
+              aria-expanded={menuOpen}
+              title="Open external display links and settings"
+            >
+              <span className="nav-icon">☰</span> Menu
+            </button>
+            {menuOpen && menuPosition && (
+              <div
+                className="nav-dropdown"
+                role="menu"
+                style={{ top: menuPosition.top, left: menuPosition.left }}
+              >
+                <div className="nav-dropdown-label">External links</div>
+                {displayViews.map((view) => (
+                  <a
+                    key={view.id}
+                    className="nav-dropdown-link"
+                    href={view.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    role="menuitem"
+                    onClick={() => setMenuOpen(false)}
+                    title={`Open ${view.label} in a new tab`}
+                  >
+                    <span>{view.label}</span>
+                    <span className="nav-dropdown-external" aria-hidden="true">
+                      ↗
+                    </span>
+                  </a>
+                ))}
+                {!displayViews.length && <span className="nav-dropdown-empty">No views available</span>}
+                <div className="nav-dropdown-separator" />
+                <button
+                  type="button"
+                  className="nav-dropdown-link"
+                  role="menuitem"
+                  onClick={openSettings}
+                  title="Open keyboard, display, ChurchSuite and Git settings"
+                >
+                  <span>Settings</span>
+                  <span className="nav-dropdown-external" aria-hidden="true">
+                    ⚙
+                  </span>
+                </button>
+              </div>
+            )}
+          </div>
         </nav>
 
         <div className="sidebar-footer">
@@ -438,6 +530,7 @@ export default function App() {
         {page === "live" && (
           <LivePage
             live={live}
+            displayViews={displayViews}
             onCommand={command}
             onQuickText={quickText}
             onStarted={(state) => {

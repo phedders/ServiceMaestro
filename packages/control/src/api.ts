@@ -8,6 +8,7 @@ import type {
   ChurchSuitePlanSummary,
   DashboardLayout,
   DisplayConfig,
+  DisplayViewLink,
   FontOption,
   GitSettings,
   GitStatus,
@@ -317,6 +318,7 @@ export const api = {
     }),
   resetLayout: () => request<{ layout: DashboardLayout }>("/api/dashboard/layout/reset", { method: "POST" }),
 
+  displayViews: () => request<{ views: DisplayViewLink[] }>("/api/display/views"),
   displayConfig: () => request<{ config: DisplayConfig }>("/api/display/config"),
   saveDisplayConfig: (config: DisplayConfig) =>
     request<{ config: DisplayConfig; state: LiveState }>("/api/display/config", {

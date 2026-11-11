@@ -5,7 +5,13 @@ import {
   type CSSProperties,
   type PointerEvent as ReactPointerEvent,
 } from "react";
-import type { DisplayConfig, FontOption, LiveState, SetlistSummary } from "@sm/shared";
+import type {
+  DisplayConfig,
+  DisplayViewLink,
+  FontOption,
+  LiveState,
+  SetlistSummary,
+} from "@sm/shared";
 import { api, ApiError } from "../api";
 import { SlidePreview } from "../components/SlidePreview";
 import { Transport } from "../components/Transport";
@@ -60,6 +66,13 @@ const DEFAULT_QUEUE_HEIGHT = 420;
 const MIN_QUEUE_HEIGHT = 220;
 const MAX_QUEUE_HEIGHT = 1000;
 const QUEUE_HEIGHT_STORAGE_KEY = "sm-live-queue-height";
+const PREVIEW_VIEWS = [
+  { id: "full", label: "Fullscreen" },
+  { id: "lowerthird", label: "Lowerthird" },
+  { id: "two-thirds", label: "Two-thirds" },
+  { id: "stage", label: "Stage" },
+  { id: "chords", label: "Chords" },
+] as const;
 
 function clampQueueHeight(value: number): number {
   return Math.max(MIN_QUEUE_HEIGHT, Math.min(MAX_QUEUE_HEIGHT, Math.round(value)));
@@ -76,12 +89,14 @@ function initialQueueHeight(): number {
 
 export default function LivePage({
   live,
+  displayViews,
   onCommand,
   onQuickText,
   onStarted,
   notify,
 }: {
   live: LiveState;
+  displayViews: DisplayViewLink[];
   onCommand: (payload: Record<string, unknown>) => void;
   onQuickText: (text: string) => void;
   onStarted: (state: LiveState) => void;
@@ -106,6 +121,7 @@ export default function LivePage({
     },
   );
   const [configSaving, setConfigSaving] = useState(false);
+  const [previewView, setPreviewView] = useState("full");
   const [queueHeight, setQueueHeight] = useState(initialQueueHeight);
   const queueResizeRef = useRef<{ startY: number; startHeight: number } | null>(null);
 
@@ -211,6 +227,10 @@ export default function LivePage({
     }
   }
 
+  const previewLink = displayViews.find((view) => view.id === previewView);
+  const previewLabel =
+    PREVIEW_VIEWS.find((view) => view.id === previewView)?.label ?? PREVIEW_VIEWS[0].label;
+
   if (live.status === "idle") {
     return (
       <section className="panel start-panel">
@@ -264,11 +284,42 @@ export default function LivePage({
         </div>
       )}
       <section className="panel preview-panel">
-        <div className="panel-heading">
-          <h2>Preview</h2>
-          <span className={`badge ${live.status}`}>{live.status}</span>
+        <div className="panel-heading preview-heading">
+          <div className="preview-heading-title">
+            <h2>Preview</h2>
+            <span className={`badge ${live.status}`}>{live.status}</span>
+          </div>
+          <div className="preview-view-switcher" role="group" aria-label="Preview view">
+            {PREVIEW_VIEWS.map((view) => {
+              if (!displayViews.some((link) => link.id === view.id)) return null;
+              return (
+                <button
+                  key={view.id}
+                  type="button"
+                  className={`preview-view-button ${previewView === view.id ? "active" : ""}`}
+                  aria-pressed={previewView === view.id}
+                  onClick={() => setPreviewView(view.id)}
+                  title={`Preview the ${view.label} live view`}
+                >
+                  {view.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
-        <SlidePreview live={live} />
+        {previewLink ? (
+          <div className="preview-frame">
+            <iframe
+              key={previewLink.id}
+              src={previewLink.url}
+              title={`${previewLabel} live preview`}
+              loading="eager"
+            />
+            {live.blank && <div className="slide-blanked">BLANK</div>}
+          </div>
+        ) : (
+          <SlidePreview live={live} />
+        )}
       </section>
 
       <section className="panel">
