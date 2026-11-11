@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { compactDate } from "../service-date";
 
 function parseCompact(value: string): string | null {
@@ -26,30 +26,69 @@ export function IsoDateInput({
   onChange: (value: string) => void;
 }) {
   const [text, setText] = useState(() => compactDate(value));
+  const nativeRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     setText(compactDate(value));
   }, [value]);
 
+  function openPicker() {
+    const input = nativeRef.current;
+    if (!input) return;
+    if (typeof input.showPicker === "function") {
+      try {
+        input.showPicker();
+        return;
+      } catch {
+        // Fall back to a normal click in browsers that block showPicker here.
+      }
+    }
+    input.click();
+  }
+
   return (
-    <input
-      className="iso-date-input"
-      value={text}
-      inputMode="numeric"
-      autoComplete="off"
-      spellCheck={false}
-      placeholder="YYYYMMDD"
-      title="Date in YYYYMMDD format"
-      onChange={(event) => {
-        const digits = event.target.value.replace(/\D/g, "").slice(0, 8);
-        setText(digits);
-        const next = parseCompact(digits);
-        if (next) onChange(next);
-      }}
-      onBlur={() => {
-        if (!parseCompact(text)) setText(compactDate(value));
-      }}
-      onFocus={(event) => event.currentTarget.select()}
-    />
+    <span className="iso-date-field">
+      <input
+        className="iso-date-input"
+        value={text}
+        inputMode="numeric"
+        autoComplete="off"
+        spellCheck={false}
+        placeholder="YYYYMMDD"
+        title="Date in YYYYMMDD format"
+        onChange={(event) => {
+          const digits = event.target.value.replace(/\D/g, "").slice(0, 8);
+          setText(digits);
+          const next = parseCompact(digits);
+          if (next) onChange(next);
+        }}
+        onBlur={() => {
+          if (!parseCompact(text)) setText(compactDate(value));
+        }}
+        onFocus={(event) => event.currentTarget.select()}
+      />
+      <button
+        type="button"
+        className="date-picker-button"
+        onClick={openPicker}
+        title="Choose a date"
+        aria-label="Choose a date"
+      >
+        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+          <rect x="3.5" y="5" width="17" height="15" rx="2.5" fill="none" stroke="currentColor" strokeWidth="1.7" />
+          <path d="M3.5 9.5h17M8 3.5v3M16 3.5v3" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+          <path d="M7.5 13h2M11 13h2M14.5 13h2M7.5 16.5h2M11 16.5h2" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+        </svg>
+      </button>
+      <input
+        ref={nativeRef}
+        className="native-date-picker"
+        type="date"
+        tabIndex={-1}
+        aria-hidden="true"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+      />
+    </span>
   );
 }

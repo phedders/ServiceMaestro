@@ -1275,6 +1275,45 @@ label {
   letter-spacing: 0.06em;
 }
 
+.iso-date-field {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+  position: relative;
+}
+
+.iso-date-field .iso-date-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.date-picker-button {
+  flex: 0 0 38px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--panel-2);
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.date-picker-button:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.native-date-picker {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
 .shortcut-grid {
   display: grid;
   gap: 8px;
