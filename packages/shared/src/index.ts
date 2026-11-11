@@ -188,7 +188,7 @@ export interface DisplayViewLink {
 }
 
 export type TarpAspect = "16:9" | "16:10";
-export type TarpObjectKind = "text" | "image";
+export type TarpObjectKind = "text" | "markdown" | "image";
 export type TarpAnimationType =
   | "fade-in"
   | "fade-out"
@@ -716,7 +716,7 @@ export const tarpPlacementSchema = z.object({
 
 export const tarpObjectSchema = z.object({
   id: z.string().min(1).max(100),
-  kind: z.enum(["text", "image"]),
+  kind: z.enum(["text", "markdown", "image"]),
   content: z.string().max(200_000).default(""),
   locked: z.boolean().default(false),
   visible: z.boolean().default(true),

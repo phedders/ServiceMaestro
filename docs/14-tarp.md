@@ -222,5 +222,6 @@ If these defaults are accepted, implementation should start with Sections 1–2 
 
 - **Section 1 — model, storage and APIs:** implemented. Themes, presentations and pages have SQLite tables and authenticated CRUD routes. Pages store independent normal/lower-third views and object animation/placement data.
 - **Section 2 — global themes:** implemented. The Tarp page includes theme CRUD, colour/font controls, colour/gradient/image backgrounds and a live theme preview. Three starter themes are seeded.
-- **Section 3 — presentation shell:** partially implemented. Presentation create/rename/delete, theme/aspect selection, page add/delete and page inventory are in place.
-- Next: **Section 4 — dual-view canvas editor**.
+- **Section 3 — presentation shell:** implemented. Presentation create/rename/delete, theme/aspect selection, page add/delete and page inventory are in place.
+- **Section 4 — dual-view canvas editor:** implemented. Normal and lower-third canvases, text/Markdown/image objects, drag and resize, layers, visibility/locking and per-view placement controls are in place. Page names, per-page theme overrides and “use previous page as starting point” are editable; transition playback remains for Section 8.
+- Next: **Section 5 — styling and backgrounds**, then output rendering and set-list integration.

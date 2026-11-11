@@ -1,13 +1,16 @@
 import { useEffect, useState, type CSSProperties } from "react";
 import type {
+  ImageAsset,
   TarpAspect,
   TarpBackground,
+  TarpPage as TarpPageModel,
   TarpPresentationDetail,
   TarpPresentationSummary,
   TarpTheme,
   TarpThemeInput,
 } from "@sm/shared";
 import { api, ApiError } from "../api";
+import TarpPageEditor from "./TarpPageEditor";
 
 const DEFAULT_FONT = '"Clear Sans", "Segoe UI", system-ui, -apple-system, sans-serif';
 
@@ -43,6 +46,9 @@ export default function TarpPage({
   const [themes, setThemes] = useState<TarpTheme[]>([]);
   const [presentations, setPresentations] = useState<TarpPresentationSummary[]>([]);
   const [selected, setSelected] = useState<TarpPresentationDetail | null>(null);
+  const [selectedPageId, setSelectedPageId] = useState<string | null>(null);
+  const [pageDirty, setPageDirty] = useState(false);
+  const [images, setImages] = useState<ImageAsset[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [editingThemeId, setEditingThemeId] = useState<string | null>(null);
@@ -85,7 +91,8 @@ export default function TarpPage({
   }
 
   useEffect(() => {
-    Promise.all([loadThemes(), loadPresentations()])
+    Promise.all([loadThemes(), loadPresentations(), api.images()])
+      .then(([, , imageResult]) => setImages(imageResult.images))
       .catch((error) =>
         notify(error instanceof ApiError ? error.message : "Could not load Tarp data", "error"),
       )
@@ -99,9 +106,27 @@ export default function TarpPage({
       setPresentationName(result.presentation.name);
       setPresentationAspect(result.presentation.aspect);
       setPresentationTheme(result.presentation.themeId ?? "");
+      setSelectedPageId((current) =>
+        result.presentation.pages.some((page) => page.id === current)
+          ? current
+          : result.presentation.pages[0]?.id ?? null,
+      );
     } catch (error) {
       notify(error instanceof ApiError ? error.message : "Could not load presentation", "error");
     }
+  }
+
+  function selectPage(id: string) {
+    if (id === selectedPageId) return;
+    if (pageDirty && !confirm("Discard unsaved changes to this Tarp page?")) return;
+    setPageDirty(false);
+    setSelectedPageId(id);
+  }
+
+  function openPresentation(id: string) {
+    if (pageDirty && !confirm("Discard unsaved changes to this Tarp page?")) return;
+    setPageDirty(false);
+    void selectPresentation(id);
   }
 
   function resetThemeEditor() {
@@ -224,6 +249,7 @@ export default function TarpPage({
     try {
       await api.deleteTarpPresentation(selected.id);
       setSelected(null);
+      setSelectedPageId(null);
       await loadPresentations();
       notify("Tarp presentation deleted");
     } catch (error) {
@@ -233,9 +259,12 @@ export default function TarpPage({
 
   async function addPage() {
     if (!selected) return;
+    if (pageDirty && !confirm("Discard unsaved changes to this Tarp page?")) return;
+    setPageDirty(false);
     try {
       const result = await api.addTarpPage(selected.id);
       setSelected(result.presentation);
+      setSelectedPageId(result.presentation.pages.at(-1)?.id ?? null);
       await loadPresentations(result.presentation.id);
       notify("Tarp page added");
     } catch (error) {
@@ -245,10 +274,12 @@ export default function TarpPage({
 
   async function removePage(pageId: string) {
     if (!selected || !confirm("Delete this Tarp page?")) return;
+    if (pageId === selectedPageId) setPageDirty(false);
     try {
       await api.deleteTarpPage(pageId);
       const result = await api.tarpPresentation(selected.id);
       setSelected(result.presentation);
+      if (selectedPageId === pageId) setSelectedPageId(result.presentation.pages[0]?.id ?? null);
       await loadPresentations(result.presentation.id);
       notify("Tarp page deleted");
     } catch (error) {
@@ -263,6 +294,8 @@ export default function TarpPage({
     Boolean(themeName.trim()) &&
     Boolean(themeFont.trim()) &&
     (backgroundType !== "image" || Boolean(backgroundImage.trim()));
+  const selectedPage =
+    selected?.pages.find((page) => page.id === selectedPageId) ?? selected?.pages[0] ?? null;
 
   return (
     <div className="tarp-page">
@@ -433,7 +466,7 @@ export default function TarpPage({
               <button
                 key={presentation.id}
                 className={`tarp-list-item ${selected?.id === presentation.id ? "current" : ""}`}
-                onClick={() => selectPresentation(presentation.id)}
+                onClick={() => openPresentation(presentation.id)}
                 title={`Open Tarp presentation “${presentation.name}”`}
               >
                 <span className="tarp-presentation-icon">▧</span>
@@ -547,15 +580,25 @@ export default function TarpPage({
                 </div>
                 <div className="tarp-page-list">
                   {selected.pages.map((page) => (
-                    <div key={page.id} className="tarp-page-row">
-                      <span className="tarp-page-number">{page.position + 1}</span>
-                      <span>
-                        <strong>{page.name}</strong>
-                        <span className="muted">
-                          {page.normal.objects.length} normal · {page.lowerthird.objects.length}{" "}
-                          lower-third objects
+                    <div
+                      key={page.id}
+                      className={`tarp-page-row ${selectedPage?.id === page.id ? "current" : ""}`}
+                    >
+                      <button
+                        type="button"
+                        className="tarp-page-select"
+                        onClick={() => selectPage(page.id)}
+                        title={`Edit page “${page.name}”`}
+                      >
+                        <span className="tarp-page-number">{page.position + 1}</span>
+                        <span>
+                          <strong>{page.name}</strong>
+                          <span className="muted">
+                            {page.normal.objects.length} normal · {page.lowerthird.objects.length}{" "}
+                            lower-third objects
+                          </span>
                         </span>
-                      </span>
+                      </button>
                       <button
                         className="button ghost small danger-text"
                         onClick={() => removePage(page.id)}
@@ -566,6 +609,31 @@ export default function TarpPage({
                     </div>
                   ))}
                 </div>
+                {selectedPage && (
+                  <TarpPageEditor
+                    key={selectedPage.id}
+                    page={selectedPage}
+                    presentation={selected}
+                    themes={themes}
+                    images={images}
+                    notify={notify}
+                    onDirtyChange={setPageDirty}
+                    onSaved={(saved: TarpPageModel) => {
+                      setPageDirty(false);
+                      setSelected((current) =>
+                        current
+                          ? {
+                              ...current,
+                              pages: current.pages.map((page) =>
+                                page.id === saved.id ? saved : page,
+                              ),
+                            }
+                          : current,
+                      );
+                      void loadPresentations(selected.id);
+                    }}
+                  />
+                )}
               </>
             )}
           </div>

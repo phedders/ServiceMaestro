@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { io, type Socket } from "socket.io-client";
 import type { DisplayViewLink, LiveState, PublicUser } from "@sm/shared";
 import { api, ApiError } from "./api";
@@ -13,7 +13,8 @@ import SettingsPage from "./pages/SettingsPage";
 import HelpPage from "./pages/HelpPage";
 import ChurchsuitePage from "./pages/ChurchsuitePage";
 import ImagesPage from "./pages/ImagesPage";
-import TarpPage from "./pages/TarpPage";
+
+const TarpPage = lazy(() => import("./pages/TarpPage"));
 import {
   SHORTCUT_CHANGE_EVENT,
   handleListNavigation,
@@ -576,7 +577,11 @@ export default function App() {
         {page === "images" && (
           <ImagesPage live={live} notify={notify} onQuickImage={quickImage} />
         )}
-        {page === "tarp" && <TarpPage notify={notify} />}
+        {page === "tarp" && (
+          <Suspense fallback={<div className="panel">Loading Tarp…</div>}>
+            <TarpPage notify={notify} />
+          </Suspense>
+        )}
         {page === "bible" && <BiblePage live={live} onQuickText={quickText} notify={notify} />}
         {page === "churchsuite" && (
           <ChurchsuitePage notify={notify} onOpenSetlists={() => setPage("setlists")} />
