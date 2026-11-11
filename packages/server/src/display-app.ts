@@ -3,7 +3,7 @@ import path from "node:path";
 import Fastify, { type FastifyInstance } from "fastify";
 import fastifyStatic from "@fastify/static";
 import { Server } from "socket.io";
-import { COOKIE_NAME, DISPLAY_DIR, FONTS_DIR, OUTPUT_TOKEN } from "./config.js";
+import { CONTROL_DIST, COOKIE_NAME, DISPLAY_DIR, FONTS_DIR, OUTPUT_TOKEN } from "./config.js";
 import { parseCookies, userForToken } from "./auth.js";
 import { imageMime, resolveImage } from "./images.js";
 import { live } from "./live.js";
@@ -43,6 +43,19 @@ export async function registerDisplayRoutes(
     cacheControl: true,
     maxAge: "1d",
   });
+
+  app.get("/display/icon.svg", async (_request, reply) => {
+    const file = path.join(CONTROL_DIST, "icon.svg");
+    if (!fs.existsSync(file)) return reply.code(204).send();
+    return reply
+      .type("image/svg+xml")
+      .header("cache-control", "public, max-age=86400")
+      .send(fs.readFileSync(file));
+  });
+
+  app.get("/display/favicon.ico", async (_request, reply) =>
+    reply.redirect("/display/icon.svg"),
+  );
 
   app.get("/display/images/file", async (request, reply) => {
     const query = request.query as { path?: string; token?: string };
