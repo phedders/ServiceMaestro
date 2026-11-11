@@ -6,7 +6,7 @@ Stingers are transparent overlay animations played while the live output changes
 
 **Menu → Stingers** manages the global library.
 
-- Built-in SVG presets: Iris Bloom, Shutter Split, Diagonal Sweep, Liquid Morph, Glitch Mosaic, Prism Fold, Neon Vortex, Bubble Rise, Pixel Cascade, Curtain Call, Supernova, Bible Zoom, Bible Page Turn and Bible Light.
+- Built-in SVG presets: Iris Bloom, Shutter Split, Diagonal Sweep, Liquid Morph, Glitch Mosaic, Prism Fold, Neon Vortex, Bubble Rise, Pixel Cascade, Curtain Call, Supernova, Bible Zoom, Bible Page Turn, Bible Light, Cross Reveal, Cross Convergence, Cross Halo and Cross Sunrise.
 - Image stingers can be uploaded as PNG, GIF, WebP, AVIF or SVG. Transparent and animated files keep their transparency.
 - Each stinger has a duration in milliseconds. The display removes the overlay when the duration completes.
 - Previews use a checkerboard so transparent regions are visible.

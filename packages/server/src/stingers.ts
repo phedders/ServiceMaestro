@@ -35,6 +35,10 @@ export const BUILTIN_STINGERS: Array<{
   { id: "stinger-bible-zoom", name: "Bible Zoom", kind: "svg", preset: "bible-zoom", durationMs: 1300 },
   { id: "stinger-bible-page-turn", name: "Bible Page Turn", kind: "svg", preset: "bible-page-turn", durationMs: 1250 },
   { id: "stinger-bible-light", name: "Bible Light", kind: "svg", preset: "bible-light", durationMs: 1200 },
+  { id: "stinger-cross-reveal", name: "Cross Reveal", kind: "svg", preset: "cross-reveal", durationMs: 1150 },
+  { id: "stinger-cross-convergence", name: "Cross Convergence", kind: "svg", preset: "cross-convergence", durationMs: 1100 },
+  { id: "stinger-cross-halo", name: "Cross Halo", kind: "svg", preset: "cross-halo", durationMs: 1200 },
+  { id: "stinger-cross-sunrise", name: "Cross Sunrise", kind: "svg", preset: "cross-sunrise", durationMs: 1300 },
 ];
 
 const KNOWN_PRESETS = new Map(BUILTIN_STINGERS.map((preset) => [preset.preset, preset]));
@@ -552,6 +556,165 @@ function bibleLight(durationMs: number): string {
   </svg>`;
 }
 
+function crossGraphic(prefix: string, dark = false): string {
+  const id = `smStCross${prefix.replace(/[^a-z0-9]/gi, "")}`;
+  const shape = `<g id="${id}Shape">
+    <rect x="756" y="244" width="88" height="446" rx="12"/>
+    <rect x="642" y="350" width="316" height="88" rx="12"/>
+    <rect x="770" y="260" width="20" height="412" rx="6" fill="#ffffff" opacity="0.22" stroke="none"/>
+    <rect x="660" y="364" width="280" height="18" rx="6" fill="#ffffff" opacity="0.14" stroke="none"/>
+  </g>`;
+  if (dark) {
+    return `<g fill="#0b1220">${shape}</g>`;
+  }
+  return `<defs>
+    <linearGradient id="${id}Gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fff7cc"/>
+      <stop offset="0.36" stop-color="#fde68a"/>
+      <stop offset="0.72" stop-color="#fbbf24"/>
+      <stop offset="1" stop-color="#b45309"/>
+    </linearGradient>
+    <filter id="${id}Glow" x="-60%" y="-40%" width="220%" height="180%">
+      <feGaussianBlur stdDeviation="10"/>
+    </filter>
+  </defs>
+  <use href="#${id}Shape" fill="#fbbf24" opacity="0.55" filter="url(#${id}Glow)"/>
+  <use href="#${id}Shape" fill="url(#${id}Gold)"/>`;
+}
+
+function crossReveal(durationMs: number): string {
+  const dur = durationStyle(durationMs);
+  return `<svg class="sm-stinger-fill" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+    <defs>
+      <radialGradient id="smStCrossRevealWash" cx="0.5" cy="0.42" r="0.72">
+        <stop offset="0" stop-color="#1e293b"/>
+        <stop offset="0.5" stop-color="#0f172a"/>
+        <stop offset="1" stop-color="#020617"/>
+      </radialGradient>
+    </defs>
+    <rect width="1600" height="900" fill="url(#smStCrossRevealWash)" opacity="0">
+      <animate attributeName="opacity" values="0;0;0.96;0.96;0" keyTimes="0;0.36;0.44;0.60;0.68" dur="${dur}" repeatCount="indefinite"/>
+    </rect>
+    <g opacity="0">
+      <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.14;0.70;1" dur="${dur}" repeatCount="indefinite"/>
+      <animateTransform attributeName="transform" type="matrix"
+        values="${scaleMatrix(0.68)};${scaleMatrix(1.38)};${scaleMatrix(1.38)};${scaleMatrix(0.68)}"
+        keyTimes="0;0.43;0.60;1" dur="${dur}" repeatCount="indefinite"/>
+      ${crossGraphic("Reveal")}
+    </g>
+  </svg>`;
+}
+
+function crossConvergence(durationMs: number): string {
+  const dur = durationStyle(durationMs);
+  const panels = [
+    { x: 0, y: 0, fill: "#0f172a", from: "-820 -470" },
+    { x: 800, y: 0, fill: "#111827", from: "820 -470" },
+    { x: 0, y: 450, fill: "#0b1220", from: "-820 470" },
+    { x: 800, y: 450, fill: "#1e1b4b", from: "820 470" },
+  ]
+    .map(
+      (panel) => `<g>
+        <animateTransform attributeName="transform" type="translate"
+          values="${panel.from};0 0;0 0;${panel.from}" keyTimes="0;0.43;0.60;1" dur="${dur}" repeatCount="indefinite"/>
+        <rect x="${panel.x}" y="${panel.y}" width="800" height="450" fill="${panel.fill}"/>
+      </g>`,
+    )
+    .join("");
+  return `<svg class="sm-stinger-fill" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+    ${panels}
+    <g opacity="0">
+      <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.30;0.65;1" dur="${dur}" repeatCount="indefinite"/>
+      <animateTransform attributeName="transform" type="matrix"
+        values="${scaleMatrix(0.82)};${scaleMatrix(1.18)};${scaleMatrix(1.18)};${scaleMatrix(0.82)}"
+        keyTimes="0;0.44;0.60;1" dur="${dur}" repeatCount="indefinite"/>
+      ${crossGraphic("Converge")}
+    </g>
+  </svg>`;
+}
+
+function crossHalo(durationMs: number): string {
+  const dur = durationStyle(durationMs);
+  return `<svg class="sm-stinger-fill" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+    <defs>
+      <radialGradient id="smStCrossHaloLight" cx="0.5" cy="0.5" r="0.5">
+        <stop offset="0" stop-color="#fffdf0"/>
+        <stop offset="0.32" stop-color="#fef3c7"/>
+        <stop offset="0.68" stop-color="#fbbf24"/>
+        <stop offset="1" stop-color="#b45309"/>
+      </radialGradient>
+    </defs>
+    <circle cx="800" cy="450" r="0" fill="url(#smStCrossHaloLight)">
+      <animate attributeName="r" values="0;1100;1100;0" keyTimes="0;0.43;0.60;1" dur="${dur}" repeatCount="indefinite"/>
+    </circle>
+    <g fill="none" stroke="#fff7d6" stroke-width="3" opacity="0">
+      <animate attributeName="opacity" values="0;0.8;0.8;0" keyTimes="0;0.43;0.60;1" dur="${dur}" repeatCount="indefinite"/>
+      <circle cx="800" cy="450" r="0">
+        <animate attributeName="r" values="0;430;430;0" keyTimes="0;0.43;0.60;1" dur="${dur}" repeatCount="indefinite"/>
+      </circle>
+      <circle cx="800" cy="450" r="0" stroke-dasharray="8 20">
+        <animate attributeName="r" values="0;690;690;0" keyTimes="0;0.43;0.60;1" dur="${dur}" repeatCount="indefinite"/>
+      </circle>
+      <circle cx="800" cy="450" r="0" stroke-width="2">
+        <animate attributeName="r" values="0;930;930;0" keyTimes="0;0.43;0.60;1" dur="${dur}" repeatCount="indefinite"/>
+      </circle>
+    </g>
+    <g opacity="0">
+      <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.12;0.72;1" dur="${dur}" repeatCount="indefinite"/>
+      <animateTransform attributeName="transform" type="matrix"
+        values="${scaleMatrix(0.9)};${scaleMatrix(1.7)};${scaleMatrix(1.7)};${scaleMatrix(0.9)}"
+        keyTimes="0;0.43;0.60;1" dur="${dur}" repeatCount="indefinite"/>
+      ${crossGraphic("Halo", true)}
+    </g>
+  </svg>`;
+}
+
+function crossSunrise(durationMs: number): string {
+  const dur = durationStyle(durationMs);
+  const rays = Array.from({ length: 22 }, (_, index) => {
+    const angle = Math.PI + (index / 21) * Math.PI;
+    const half = Math.PI / 58;
+    const radius = 1000;
+    const x1 = 800 + Math.cos(angle - half) * radius;
+    const y1 = 650 + Math.sin(angle - half) * radius;
+    const x2 = 800 + Math.cos(angle + half) * radius;
+    const y2 = 650 + Math.sin(angle + half) * radius;
+    return `<polygon points="800,650 ${x1.toFixed(1)},${y1.toFixed(1)} ${x2.toFixed(1)},${y2.toFixed(1)}" fill="${index % 2 ? "#fff7d6" : "#fde68a"}" opacity="0.35"/>`;
+  }).join("");
+  return `<svg class="sm-stinger-fill" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+    <defs>
+      <linearGradient id="smStCrossSunriseSky" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#fff7d6"/>
+        <stop offset="0.52" stop-color="#fcd34d"/>
+        <stop offset="1" stop-color="#c2410c"/>
+      </linearGradient>
+      <radialGradient id="smStCrossSunriseSun" cx="0.5" cy="0.5" r="0.5">
+        <stop offset="0" stop-color="#fffef7"/>
+        <stop offset="0.62" stop-color="#fef3c7"/>
+        <stop offset="1" stop-color="#fbbf24"/>
+      </radialGradient>
+    </defs>
+    <rect width="1600" height="900" fill="url(#smStCrossSunriseSky)" opacity="0">
+      <animate attributeName="opacity" values="0;0;0.96;0.96;0" keyTimes="0;0.36;0.44;0.60;0.68" dur="${dur}" repeatCount="indefinite"/>
+    </rect>
+    <g opacity="0">
+      <animate attributeName="opacity" values="0;0.95;0.95;0" keyTimes="0;0.40;0.60;1" dur="${dur}" repeatCount="indefinite"/>
+      <animateTransform attributeName="transform" type="rotate" values="-6 800 650;6 800 650" dur="${dur}" repeatCount="indefinite"/>
+      ${rays}
+    </g>
+    <circle cx="800" cy="650" r="0" fill="url(#smStCrossSunriseSun)">
+      <animate attributeName="r" values="0;330;330;0" keyTimes="0;0.43;0.60;1" dur="${dur}" repeatCount="indefinite"/>
+    </circle>
+    <g opacity="0">
+      <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.10;0.74;1" dur="${dur}" repeatCount="indefinite"/>
+      <g transform="translate(0 62)">
+        ${crossGraphic("Sunrise", true)}
+      </g>
+      <path d="M-40 770 Q300 650 620 760 Q980 610 1640 790 L1640 930 L-40 930 Z" fill="#0b1220"/>
+    </g>
+  </svg>`;
+}
+
 function renderPreset(preset: string, durationMs: number): string {
   if (preset === "iris-bloom") return irisBloom(durationMs);
   if (preset === "shutter-split") return shutterSplit(durationMs);
@@ -567,6 +730,10 @@ function renderPreset(preset: string, durationMs: number): string {
   if (preset === "bible-zoom") return bibleZoom(durationMs);
   if (preset === "bible-page-turn") return biblePageTurn(durationMs);
   if (preset === "bible-light") return bibleLight(durationMs);
+  if (preset === "cross-reveal") return crossReveal(durationMs);
+  if (preset === "cross-convergence") return crossConvergence(durationMs);
+  if (preset === "cross-halo") return crossHalo(durationMs);
+  if (preset === "cross-sunrise") return crossSunrise(durationMs);
   return `<svg class="sm-stinger-fill" viewBox="0 0 1600 900" aria-hidden="true"></svg>`;
 }
 
