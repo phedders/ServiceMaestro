@@ -8,7 +8,7 @@ import type {
   SongImportScan,
 } from "@wlm/shared";
 import { api, ApiError } from "../api";
-import { pickCurrentSetlist } from "../service-date";
+import { compactDate, pickCurrentSetlist } from "../service-date";
 
 const EMPTY = {
   title: "",
@@ -397,7 +397,7 @@ export default function SongsPage({
                 {!setlists.length && <option value="">No set lists yet</option>}
                 {setlists.map((setlist) => (
                   <option key={setlist.id} value={setlist.id}>
-                    {setlist.name} — {setlist.serviceDate}
+                    {setlist.name} — {compactDate(setlist.serviceDate)}
                     {setlist.serviceTime ? ` ${setlist.serviceTime}` : ""}
                   </option>
                 ))}

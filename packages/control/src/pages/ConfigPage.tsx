@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 import type { AppSettings, FontOption } from "@wlm/shared";
 import { api, ApiError } from "../api";
+import { compactDateTime } from "../service-date";
 import {
   DEFAULT_SHORTCUTS,
   SHORTCUT_LABELS,
@@ -277,7 +278,7 @@ export default function ConfigPage({
                 <strong>{font.label}</strong>
                 <span className="muted">
                   {font.source === "google" ? "Google Fonts · cached" : "Built in"}
-                  {font.importedAt ? ` · ${new Date(font.importedAt).toLocaleString()}` : ""}
+                  {font.importedAt ? ` · ${compactDateTime(font.importedAt)}` : ""}
                 </span>
               </div>
               <code>{font.family}</code>

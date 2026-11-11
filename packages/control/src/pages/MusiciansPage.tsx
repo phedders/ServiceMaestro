@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { SetlistDetail, SetlistItem, SetlistSummary, Song, SongAsset } from "@wlm/shared";
 import { api, ApiError } from "../api";
 import { PdfViewer } from "../components/PdfViewer";
-import { pickCurrentSetlist } from "../service-date";
+import { compactDate, pickCurrentSetlist } from "../service-date";
 
 function TextAsset({ assetId }: { assetId: string }) {
   const [text, setText] = useState("Loading…");
@@ -26,7 +26,7 @@ function AssetViewer({ asset }: { asset: SongAsset }) {
 }
 
 function serviceLabel(setlist: SetlistSummary): string {
-  return `${setlist.serviceDate}${setlist.serviceTime ? ` · ${setlist.serviceTime}` : ""}`;
+  return `${compactDate(setlist.serviceDate)}${setlist.serviceTime ? ` · ${setlist.serviceTime}` : ""}`;
 }
 
 export default function MusiciansPage({

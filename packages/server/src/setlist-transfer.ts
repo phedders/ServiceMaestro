@@ -292,7 +292,7 @@ export function buildSetlistExport(
     assets: assets.length ? assets : undefined,
   };
 
-  const base = `${safeName(setlist.name)}-${setlist.service_date}`;
+  const base = `${safeName(setlist.name)}-${setlist.service_date.replace(/-/g, "")}`;
   return {
     manifest,
     files: assetFiles,

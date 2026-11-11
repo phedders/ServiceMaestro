@@ -1,6 +1,34 @@
 import type { SetlistSummary } from "@wlm/shared";
 
 /**
+ * Compact ISO-style calendar date (`YYYYMMDD`) used for display and sortable
+ * set-list names. Accepts `YYYY-MM-DD`, `YYYYMMDD` or an ISO timestamp/Date.
+ */
+export function compactDate(value: string | Date): string {
+  if (value instanceof Date) {
+    const year = value.getFullYear();
+    const month = String(value.getMonth() + 1).padStart(2, "0");
+    const day = String(value.getDate()).padStart(2, "0");
+    return `${year}${month}${day}`;
+  }
+  const match = value.match(/^(\d{4})-?(\d{2})-?(\d{2})/);
+  if (match) return `${match[1]}${match[2]}${match[3]}`;
+  return compactDate(new Date(value));
+}
+
+export function defaultSetlistName(date: string | Date = new Date()): string {
+  return `${compactDate(date)}-`;
+}
+
+export function compactDateTime(value: string | Date): string {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  return `${compactDate(date)} ${hours}:${minutes}`;
+}
+
+/**
  * Combine a set list's service date and optional time into a local Date.
  * Date-only services are treated as 10:00 so a sensible "today" window exists.
  */

@@ -5,6 +5,7 @@ import { SlidePreview } from "../components/SlidePreview";
 import { Transport } from "../components/Transport";
 import { ItemList, PageList } from "../components/LivePanels";
 import { QuickText } from "../components/QuickText";
+import { compactDate } from "../service-date";
 
 const FALLBACK_FONTS: FontOption[] = [
   {
@@ -161,7 +162,7 @@ export default function LivePage({
               <option value="">Choose a set list…</option>
               {setlists.map((setlist) => (
                 <option key={setlist.id} value={setlist.id}>
-                  {setlist.name} — {setlist.serviceDate} ({setlist.itemCount} items)
+                  {setlist.name} — {compactDate(setlist.serviceDate)} ({setlist.itemCount} items)
                 </option>
               ))}
             </select>

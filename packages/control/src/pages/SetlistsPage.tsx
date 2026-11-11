@@ -11,6 +11,7 @@ import type {
   TextFormat,
 } from "@wlm/shared";
 import { api, ApiError } from "../api";
+import { compactDate, compactDateTime, defaultSetlistName } from "../service-date";
 
 function today(): string {
   return new Date().toISOString().slice(0, 10);
@@ -433,7 +434,8 @@ export default function SetlistsPage({
   const [dragId, setDragId] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
 
-  const [newName, setNewName] = useState("");
+  const [newName, setNewName] = useState(() => defaultSetlistName(today()));
+  const [newNameEdited, setNewNameEdited] = useState(false);
   const [newDate, setNewDate] = useState(today());
   const [newTime, setNewTime] = useState("");
 
@@ -489,11 +491,12 @@ export default function SetlistsPage({
   async function createSetlist() {
     try {
       const result = await api.createSetlist({
-        name: newName.trim() || "New service",
+        name: newName.trim() || defaultSetlistName(newDate),
         serviceDate: newDate,
         serviceTime: newTime || undefined,
       });
-      setNewName("");
+      setNewName(defaultSetlistName(newDate));
+      setNewNameEdited(false);
       await loadList(result.setlist.id);
       notify("Set list created");
     } catch (error) {
@@ -704,7 +707,7 @@ export default function SetlistsPage({
             >
               <strong>{setlist.name}</strong>
               <span>
-                {setlist.serviceDate}
+                {compactDate(setlist.serviceDate)}
                 {setlist.serviceTime ? ` · ${setlist.serviceTime}` : ""} · {setlist.itemCount} items
               </span>
             </button>
@@ -715,12 +718,27 @@ export default function SetlistsPage({
           <h3>New set list</h3>
           <label>
             Name
-            <input value={newName} onChange={(event) => setNewName(event.target.value)} placeholder="Sunday AM" />
+            <input
+              value={newName}
+              onChange={(event) => {
+                setNewName(event.target.value);
+                setNewNameEdited(true);
+              }}
+              placeholder={defaultSetlistName(newDate)}
+            />
           </label>
           <div className="inline-fields">
             <label>
               Date
-              <input type="date" value={newDate} onChange={(event) => setNewDate(event.target.value)} />
+              <input
+                type="date"
+                value={newDate}
+                onChange={(event) => {
+                  const nextDate = event.target.value;
+                  setNewDate(nextDate);
+                  if (!newNameEdited) setNewName(defaultSetlistName(nextDate));
+                }}
+              />
             </label>
             <label>
               Time
@@ -758,7 +776,7 @@ export default function SetlistsPage({
             <div className="import-preview-card">
               <strong>{importPreview.name}</strong>
               <span className="muted">
-                {importPreview.serviceDate}
+                {compactDate(importPreview.serviceDate)}
                 {importPreview.serviceTime ? ` · ${importPreview.serviceTime}` : ""} · {importPreview.itemCount}{" "}
                 items
               </span>
@@ -843,7 +861,7 @@ export default function SetlistsPage({
                 {revisions.map((revision) => (
                   <li key={revision.id}>
                     Revision {revision.revisionNo} · {revision.itemCount} items ·{" "}
-                    {new Date(revision.createdAt).toLocaleString()}
+                    {compactDateTime(revision.createdAt)}
                   </li>
                 ))}
               </ul>
