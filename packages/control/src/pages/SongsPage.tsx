@@ -122,6 +122,22 @@ export default function SongsPage({
     }));
   }
 
+  function skipAllDuplicates() {
+    setImportDecisions(
+      Object.fromEntries(
+        duplicateFiles.map((file) => [
+          file.path,
+          {
+            action: "skip" as const,
+            title: file.title,
+            alternateTitles: file.alternateTitles ?? "",
+          },
+        ]),
+      ),
+    );
+    notify("All duplicate files set to skip");
+  }
+
   async function addToSetlist() {
     if (!selectedId || !targetSetlist) return;
     setAddingToSetlist(true);
@@ -683,7 +699,12 @@ export default function SongsPage({
                   before importing.
                 </p>
               </div>
-              <span className="muted">{duplicateFiles.length}</span>
+              <div className="button-row">
+                <span className="muted">{duplicateFiles.length}</span>
+                <button className="button ghost small" onClick={skipAllDuplicates}>
+                  Skip all
+                </button>
+              </div>
             </div>
             {duplicateFiles.map((file) => {
               const decision = importDecisions[file.path] ?? {
