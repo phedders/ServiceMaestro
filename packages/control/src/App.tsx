@@ -108,6 +108,7 @@ export default function App() {
     try {
       const result = await api.command(payload);
       setLive(result.state);
+      if (payload.type === "appendItem") notify("Pages appended to the live queue");
     } catch (error) {
       notify(error instanceof ApiError ? error.message : "Command failed", "error");
     }

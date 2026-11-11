@@ -644,6 +644,11 @@ class LiveService {
     if (!this.active) return;
     const { state, items } = this.active;
     if (!Number.isFinite(index) || index < 0 || index >= items.length) return;
+    // Appending affects the live page queue; return the Pages panel to the
+    // live queue instead of leaving a previously queued item preview visible.
+    state.queuedItemIndex = null;
+    state.queuedTitle = null;
+    state.queuedPages = [];
     state.appendedItems = [...(state.appendedItems ?? []), index];
     this.renderCurrent();
   }
