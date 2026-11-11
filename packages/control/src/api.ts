@@ -3,6 +3,9 @@ import type {
   BibleBook,
   BiblePassage,
   BibleTranslationInfo,
+  ChurchSuiteImportReport,
+  ChurchSuitePlanPreview,
+  ChurchSuitePlanSummary,
   DashboardLayout,
   DisplayConfig,
   FontOption,
@@ -130,8 +133,28 @@ export const api = {
     if (query.from) params.set("from", query.from);
     if (query.to) params.set("to", query.to);
     if (query.status) params.set("status", query.status);
-    return request<{ plans: unknown }>(`/api/integrations/churchsuite/plans?${params.toString()}`);
+    return request<{
+      plans: {
+        data: ChurchSuitePlanSummary[];
+        pagination?: Record<string, unknown>;
+      };
+    }>(`/api/integrations/churchsuite/plans?${params.toString()}`);
   },
+  churchsuitePlanPreview: (id: number) =>
+    request<{ preview: ChurchSuitePlanPreview }>(
+      `/api/integrations/churchsuite/plans/${id}/preview`,
+    ),
+  importChurchsuitePlan: (
+    id: number,
+    payload: { name?: string; serviceDate?: string; serviceTime?: string | null },
+  ) =>
+    request<{ report: ChurchSuiteImportReport; setlist: unknown }>(
+      `/api/integrations/churchsuite/plans/${id}/import`,
+      {
+        method: "POST",
+        body: JSON.stringify(payload),
+      },
+    ),
 
   songAssets: (id: string) => request<{ assets: SongAsset[] }>(`/api/songs/${id}/assets`),
   uploadAsset: async (

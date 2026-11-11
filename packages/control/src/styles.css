@@ -1451,6 +1451,149 @@ label {
   overflow-wrap: anywhere;
 }
 
+/* ------------------------------------------------------------------ */
+/* ChurchSuite planning                                                */
+/* ------------------------------------------------------------------ */
+
+.churchsuite-page {
+  display: grid;
+  gap: 16px;
+}
+
+.churchsuite-filters {
+  display: grid;
+  grid-template-columns: minmax(160px, 1fr) minmax(160px, 1fr) 160px auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.churchsuite-grid {
+  display: grid;
+  grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.churchsuite-plans {
+  display: grid;
+  gap: 6px;
+  max-height: 72vh;
+  overflow: auto;
+}
+
+.churchsuite-plan {
+  text-align: left;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: var(--panel-2);
+  color: var(--text);
+  padding: 9px 11px;
+  display: grid;
+  gap: 3px;
+}
+
+.churchsuite-plan span {
+  color: var(--muted);
+  font-size: 0.7rem;
+}
+
+.churchsuite-plan:hover {
+  border-color: #3a4a60;
+}
+
+.churchsuite-plan.current {
+  border-color: rgba(76, 194, 255, 0.55);
+  background: var(--accent-soft);
+}
+
+.churchsuite-preview {
+  min-height: 420px;
+}
+
+.cs-item-list {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.cs-item {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: start;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--panel-2);
+  padding: 9px 11px;
+}
+
+.cs-item.skip {
+  opacity: 0.55;
+}
+
+.cs-order {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  padding-top: 2px;
+}
+
+.cs-item-main {
+  display: grid;
+  gap: 2px;
+}
+
+.cs-item-main .muted {
+  font-size: 0.7rem;
+}
+
+.cs-notes {
+  color: #dbe6f4;
+  font-size: 0.73rem;
+  white-space: pre-wrap;
+}
+
+.cs-action {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-align: right;
+  max-width: 190px;
+  color: var(--muted);
+}
+
+.cs-action.song {
+  color: var(--success);
+}
+
+.cs-action.placeholder {
+  color: var(--warning);
+}
+
+.cs-import-form {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.5fr) minmax(150px, 1fr) minmax(110px, 0.6fr) auto;
+  gap: 10px;
+  align-items: end;
+  border-top: 1px solid var(--border);
+  padding-top: 14px;
+}
+
+.cs-report {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  border: 1px solid rgba(74, 222, 128, 0.3);
+  background: rgba(74, 222, 128, 0.08);
+  border-radius: 9px;
+  padding: 10px 12px;
+  margin-top: 14px;
+  font-size: 0.78rem;
+}
+
+.cs-report span {
+  color: var(--muted);
+}
+
 .config-kv > div {
   display: grid;
   gap: 3px;
@@ -2420,6 +2563,22 @@ label {
   .git-settings-grid,
   .git-repo-row {
     grid-template-columns: 1fr;
+  }
+
+  .churchsuite-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .churchsuite-plans {
+    max-height: 40vh;
+  }
+
+  .churchsuite-filters {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .cs-import-form {
+    grid-template-columns: 1fr 1fr;
   }
 
   .shortcut-row {

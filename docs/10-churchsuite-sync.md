@@ -4,7 +4,13 @@ Analysis of the ChurchSuite Planning API and a design for syncing upcoming servi
 
 Source: <https://github.com/ChurchSuite/churchsuite-api/blob/master/src/planning.yaml> (OpenAPI 3.2.0, spec version **2.112.8**, base URL `https://api.churchsuite.com/v2`).
 
-> **Credential test status (2026-11-10):** the supplied identifier/secret was tested against the OAuth token endpoint. `grant_type=client_credentials` returned **`400 unauthorized_client`** — “The authenticated client is not authorized to use this authorization grant type.” No plan data was fetched. The credentials were **not written to the repository or committed**; see §2 for what is needed. Because the secret was shared in chat, rotate it after testing.
+> **Credential test status (2026-11-11):** working. The current `.env` client credentials successfully obtain a `planning.read` token. The Planning API was explored against the real account:
+>
+> - Plans: 608 total plan records; published plans for 2026–2027 were retrieved.
+> - Plan items and Planning types were retrieved.
+> - This account primarily uses Planning **Worship** items (`type_id=4`, `ccli_tracking=true`) with song titles in `name` and `Key` / `Artist/Author` question responses, rather than `arrangement_id`/chart data.
+>
+> The ChurchSuite page now lists plans by date range, previews items, matches local songs by title/alternative title, and creates draft set lists; unmatched song and service items become editable text placeholders.
 
 ## 1. What the API provides
 

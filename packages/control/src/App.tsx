@@ -10,6 +10,7 @@ import SongsPage from "./pages/SongsPage";
 import BiblePage from "./pages/BiblePage";
 import MusiciansPage from "./pages/MusiciansPage";
 import SettingsPage from "./pages/SettingsPage";
+import ChurchsuitePage from "./pages/ChurchsuitePage";
 import {
   SHORTCUT_CHANGE_EVENT,
   isTypingTarget,
@@ -18,7 +19,7 @@ import {
   type KeyboardShortcuts,
 } from "./keyboard";
 
-type Page = "live" | "setlists" | "songs" | "bible" | "settings";
+type Page = "live" | "setlists" | "songs" | "bible" | "churchsuite" | "settings";
 
 interface Toast {
   id: number;
@@ -201,6 +202,8 @@ export default function App() {
         return "Songs";
       case "bible":
         return "Bible";
+      case "churchsuite":
+        return "ChurchSuite";
       case "settings":
         return "Settings";
     }
@@ -287,6 +290,12 @@ export default function App() {
           <a className="nav-link" href="/musicians" target="_blank" rel="noreferrer">
             <span className="nav-icon">♪</span> Musicians
           </a>
+          <button
+            className={page === "churchsuite" ? "active" : ""}
+            onClick={() => setPage("churchsuite")}
+          >
+            <span className="nav-icon">⛪</span> ChurchSuite
+          </button>
           <button className={page === "settings" ? "active" : ""} onClick={() => setPage("settings")}>
             <span className="nav-icon">⚙</span> Settings
           </button>
@@ -367,6 +376,9 @@ export default function App() {
         )}
         {page === "songs" && <SongsPage live={live} onQuickSong={quickSong} notify={notify} />}
         {page === "bible" && <BiblePage live={live} onQuickText={quickText} notify={notify} />}
+        {page === "churchsuite" && (
+          <ChurchsuitePage notify={notify} onOpenSetlists={() => setPage("setlists")} />
+        )}
         {page === "settings" && <SettingsPage notify={notify} />}
       </main>
 

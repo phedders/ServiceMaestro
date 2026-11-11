@@ -178,6 +178,51 @@ export interface GitStatus {
   repositories: GitRepositoryStatus[];
 }
 
+export interface ChurchSuitePlanSummary {
+  id: number;
+  identifier: string | null;
+  name: string;
+  date: string;
+  time: string | null;
+  status: string;
+}
+
+export interface ChurchSuiteItemPreview {
+  id: number;
+  order: number;
+  typeId: number | null;
+  typeName: string;
+  name: string;
+  isSong: boolean;
+  key: string | null;
+  author: string | null;
+  notes: string | null;
+  duration: number | null;
+  action: "song" | "placeholder" | "skip";
+  matchedSong: {
+    id: string;
+    title: string;
+    key: string | null;
+  } | null;
+}
+
+export interface ChurchSuitePlanPreview {
+  plan: ChurchSuitePlanSummary;
+  items: ChurchSuiteItemPreview[];
+  songCount: number;
+  matchedCount: number;
+  placeholderCount: number;
+}
+
+export interface ChurchSuiteImportReport {
+  setlistId: string;
+  setlistName: string;
+  itemCount: number;
+  songsMatched: number;
+  placeholders: number;
+  skipped: number;
+}
+
 export interface LiveState {
   sessionId: string;
   setlistId: string | null;
@@ -465,6 +510,12 @@ export const gitSettingsSchema = z.object({
   autoPush: z.boolean(),
   pullIntervalSeconds: z.number().int().min(0).max(86_400),
   mergeMode: z.enum(["ff-only", "merge"]),
+});
+
+export const churchsuiteImportSchema = z.object({
+  name: z.string().trim().min(1).max(200).optional(),
+  serviceDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  serviceTime: z.string().trim().max(10).optional().nullable(),
 });
 
 export const dashboardLayoutSchema = z.object({  version: z.literal(1),

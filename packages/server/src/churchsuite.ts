@@ -118,6 +118,30 @@ export async function testChurchsuite(): Promise<{ ok: true; plans: unknown }> {
   return { ok: true, plans };
 }
 
+export async function getChurchsuitePlan(planId: number): Promise<unknown> {
+  const result = await api<{ data: unknown }>(`/planning/plans/${planId}`);
+  return result.data;
+}
+
+interface ChurchsuiteType {
+  id: number;
+  name: string;
+  ccli_tracking?: boolean;
+}
+
+let cachedTypes: { at: number; values: ChurchsuiteType[] } | null = null;
+
+export async function listChurchsuiteTypes(): Promise<ChurchsuiteType[]> {
+  if (cachedTypes && Date.now() - cachedTypes.at < 5 * 60 * 1000) {
+    return cachedTypes.values;
+  }
+  const result = await api<{ data: ChurchsuiteType[] }>("/planning/types", {
+    per_page: 250,
+  });
+  cachedTypes = { at: Date.now(), values: result.data ?? [] };
+  return cachedTypes.values;
+}
+
 export async function listChurchsuitePlans(query: {
   from?: string;
   to?: string;

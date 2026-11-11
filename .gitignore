@@ -28,3 +28,6 @@ samples/*
 
 # Production bind-mount data (never commit)
 library/
+
+# Accidental URL-like Git path working trees
+packages/server/http:/

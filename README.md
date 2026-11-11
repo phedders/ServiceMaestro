@@ -80,7 +80,7 @@ Open <http://localhost:8080/musicians> to see the read-only musician view. It de
 - **Layout** — collapse the left sidebar or move navigation into a top bar; smaller screens automatically use the top-bar layout.
 - **Song word joins** — SongSelect/SongPro split words such as `can - not` or `sat - is - fied` display joined on main/two-thirds/stage and keep the split form in the chords view.
 - **Dashboard** — the configurable widget dashboard page is currently hidden from the navigation; its widgets changed live output and need a safer design before it returns.
-- **ChurchSuite planning sync** — credentials and connection testing are wired for the Planning API (`planning.read`); plan/item exploration endpoints are available. Mapping and draft-set-list creation are next (see [10](docs/10-churchsuite-sync.md)).
+- **ChurchSuite planning** — browse published plans for a date range, review the plan’s service items, see local song matches and create a draft set list. Matched songs link to the library; unmatched songs and named service items become editable text placeholders. See [10](docs/10-churchsuite-sync.md).
 - **Git-backed shared data** — designed: local-only repos by default with optional remote, auto-save/push on by default, separate songs/setlists/(optional LFS) Bibles repos, standard SSH or HTTP(S)+token URIs. See [11](docs/11-git-data-sync.md).
 - **Displays** — vanilla HTML/CSS/JS, no CDN, snapshot-on-connect, transparent main output, full-screen and stage-with-chords variants.
 - **Persistence** — SQLite (WAL) for users, sessions, songs, set lists, session snapshots and dashboard layouts; the live session survives a restart.

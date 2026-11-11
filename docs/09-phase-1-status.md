@@ -27,6 +27,7 @@ WLM_ADMIN_PASSWORD='change-me' npm start
 | Set lists | Named/dated services with compact `YYYYMMDD` dates and `YYYYMMDD-` default names; songs and text items; arrow/drag-handle reorder; inline preview then edit title, lyrics/text, format, alignment, key, transpose, verse order and notes; song edits local by default with **Save to song library**; **Send to live session** when the set list is live; published revisions |
 | Display config | Live-page font/colour/size/max-lines/max-words/smart-page-split panel; styles apply to main/two-thirds, stage/chords fixed; 1080p coverage estimate avoids overflow |
 | Fonts/settings | Settings page imports Google Fonts by family/URL; CSS and woff2 cached in `/data/fonts`; ChurchSuite credential status and connection test; Git repository status plus runtime auto-commit/auto-push/pull-interval/merge settings; configurable live keyboard shortcuts; global page-boundary navigation setting |
+| ChurchSuite | Planning API credentials and connection test; dedicated ChurchSuite page lists published/draft plans by date, previews service items, matches local songs by title/alternative title and creates draft set lists with text placeholders for unmatched service items |
 | Export/import | Reference JSON and self-contained ZIP bundles (songs/text/assets); preview then import as a new draft, with song matching by CCLI/title |
 | Git local persistence | Songs/setlists written to local Git repos and committed; `autoSave`/`autoPush` configurable (default true); optional remotes, startup import/export, pull interval; Bibles repo optional (LFS in container) |
 | Live sessions | Snapshot-on-start; starts blank; page selection shows/fades; item selection only queues pages; **+** appends an item’s pages to the current live queue without changing the set list; publish/apply after-current or now; queued updates survive restarts; next/prev, page/item navigation, blank, transpose, max lines, footer, quick text |
@@ -93,4 +94,4 @@ Manual smoke test used: login → create song → add named verse orders and inl
 3. Dynamic text themes.
 4. Dashboard palette/publish, then Yjs co-editing.
 5. SongSelect provider and CCLI reporting.
-6. ChurchSuite planning sync (pending working API credentials) — see [10-churchsuite-sync.md](10-churchsuite-sync.md).
+6. ChurchSuite planning sync refinement (review/override mappings, re-sync diffs) — see [10-churchsuite-sync.md](10-churchsuite-sync.md).
