@@ -82,6 +82,8 @@ type: html
 
 Page breaks: `<!-- page -->` / `<!--- page --->` or `<hr class="page-break">`. Plain text and songs also split at the display config’s max lines/words. Rich Markdown/HTML/RST items use explicit page markers as page boundaries.
 
+The song and text editors provide two equivalent page authoring methods: **Insert page marker** writes `<!-- page -->` at the cursor, while **+ Add page box** creates a separate text box per page. Page boxes are joined with the same marker on save, so both methods work together.
+
 Text items also carry a per-item **Alignment** setting: **Left** or **Centre**. The alignment is applied in the rendered page HTML so it works on every output and in the control preview.
 
 Rendering:

@@ -12,6 +12,7 @@ import type {
 } from "@wlm/shared";
 import { api, ApiError } from "../api";
 import { IsoDateInput } from "../components/IsoDateInput";
+import { PageContentEditor } from "../components/PageContentEditor";
 import { compactDate, compactDateTime, defaultSetlistName } from "../service-date";
 
 function today(): string {
@@ -324,16 +325,16 @@ function ItemRow({
               </label>
             </>
           )}
-          <label>
-            {item.kind === "song" ? "Lyrics" : "Text"}
-            <textarea
-              className="setlist-item-content"
+          <div className="page-field">
+            <span className="field-label">{item.kind === "song" ? "Lyrics" : "Text"}</span>
+            <PageContentEditor
               value={content}
-              onChange={(event) => setContent(event.target.value)}
+              onChange={setContent}
               rows={item.kind === "song" ? 12 : 8}
+              textareaClassName="setlist-item-content"
               placeholder={item.kind === "song" ? "Song lyrics and chords…" : "Text or rich text…"}
             />
-          </label>
+          </div>
           <div className="setlist-item-settings">
             <label>
               Key
@@ -1012,12 +1013,15 @@ export default function SetlistsPage({
                 <option value="left">Align left</option>
                 <option value="center">Centre</option>
               </select>
-              <textarea
-                value={textContent}
-                onChange={(event) => setTextContent(event.target.value)}
-                rows={4}
-                placeholder={"# Welcome\n\n**Please stand** as we begin."}
-              />
+              <div className="page-field">
+                <span className="field-label">Text pages</span>
+                <PageContentEditor
+                  value={textContent}
+                  onChange={setTextContent}
+                  rows={4}
+                  placeholder={"# Welcome\n\n**Please stand** as we begin."}
+                />
+              </div>
               <span className="hint">
                 A leading <code>format: markdown</code> header is moved into the format setting
                 automatically. Use <code>&lt;!-- page --&gt;</code> for a page break.

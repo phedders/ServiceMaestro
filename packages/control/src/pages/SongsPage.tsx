@@ -9,6 +9,7 @@ import type {
   SongImportScan,
 } from "@wlm/shared";
 import { api, ApiError } from "../api";
+import { PageContentEditor } from "../components/PageContentEditor";
 import { compactDate, pickCurrentSetlist } from "../service-date";
 
 const EMPTY = {
@@ -580,16 +581,15 @@ export default function SongsPage({
           </span>
         </label>
 
-        <label className="lyrics-field">
-          Lyrics and chords
-          <textarea
+        <div className="lyrics-field">
+          <span className="field-label">Lyrics and chords</span>
+          <PageContentEditor
             value={form.lyrics}
-            onChange={(event) => setForm({ ...form, lyrics: event.target.value })}
-            rows={20}
-            spellCheck={false}
+            onChange={(lyrics) => setForm({ ...form, lyrics })}
+            rows={12}
             placeholder={`[Verse 1]\nA[C]mazing grace, how [G]sweet the sound\nThat saved a [D]wretch like [A]me\n\n[Chorus]\n…`}
           />
-        </label>
+        </div>
         <p className="hint">
           Put chords in square brackets before the syllable: <code>a[C]mazing</code>. Blank lines separate
           sections. A line like <code>[Verse 1]</code> becomes a section label. If Markdown styling is
