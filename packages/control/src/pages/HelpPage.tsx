@@ -329,6 +329,10 @@ export default function HelpPage({ onOpenSettings }: { onOpenSettings: () => voi
                 <strong> Live control → Display config</strong>; defaults are 30% of the viewport and
                 48px.
               </li>
+              <li>
+                The <strong>LIVE</strong> button on an image card shows it immediately on every
+                output without adding it to the set list or changing the live queue.
+              </li>
             </ul>
           </article>
           <article className="help-card">

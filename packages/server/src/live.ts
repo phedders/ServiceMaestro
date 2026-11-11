@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import { randomUUID } from "node:crypto";
 import type { Server } from "socket.io";
 import type {
@@ -13,6 +14,7 @@ import { buildPages, type RenderItem } from "./render.js";
 import { resolveTemplates } from "./templates.js";
 import { getDisplayConfig } from "./display-config.js";
 import { getAppSettings } from "./settings.js";
+import { resolveImage } from "./images.js";
 
 interface SnapshotItem extends RenderItem {
   itemId: string | null;
@@ -636,6 +638,38 @@ class LiveService {
     return this.getState();
   }
 
+  quickImage(imagePath: string, title?: string): LiveState {
+    if (!this.active) throw new Error("Start a live session first");
+    const content = imagePath.replace(/\\/g, "/").replace(/^\/+/, "");
+    const absolute = resolveImage(content);
+    if (!absolute || !fs.existsSync(absolute)) throw new Error("Image not found");
+    const record = this.active;
+    const item: SnapshotItem = {
+      kind: "image",
+      itemId: null,
+      songId: null,
+      title: title?.trim() || content.split("/").pop() || "Image",
+      content,
+      imageFit: "scale",
+      transpose: 0,
+      maxLines: record.state.maxLines,
+      verseOrder: null,
+      notes: null,
+    };
+    record.transient = item;
+    record.state.mode = "image";
+    record.state.title = item.title;
+    record.state.itemIndex = -1;
+    record.state.pageIndex = 0;
+    record.state.blank = false;
+    this.renderCurrent();
+    record.state.version += 1;
+    record.state.updatedAt = now();
+    this.persist();
+    this.broadcast();
+    return this.getState();
+  }
+
   private setItem(index: number): void {
     if (!this.active) return;
     const { state, items } = this.active;
@@ -719,10 +753,12 @@ class LiveService {
       return;
     }
     const pages = this.pagesFor(item);
-    const appendedPages = (record.state.appendedItems ?? []).flatMap((index) => {
-      const appended = record.items[index];
-      return appended ? this.pagesFor(appended) : [];
-    });
+    const appendedPages = record.transient
+      ? []
+      : (record.state.appendedItems ?? []).flatMap((index) => {
+          const appended = record.items[index];
+          return appended ? this.pagesFor(appended) : [];
+        });
     record.state.pages = [...pages, ...appendedPages].map((page, index) => ({
       ...page,
       index,

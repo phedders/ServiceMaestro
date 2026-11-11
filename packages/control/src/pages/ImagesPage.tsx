@@ -76,14 +76,17 @@ function FolderBranch({
 export default function ImagesPage({
   live,
   notify,
+  onQuickImage,
 }: {
   live: LiveState;
   notify: (text: string, kind?: "info" | "error") => void;
+  onQuickImage: (path: string, title?: string) => Promise<void>;
 }) {
   const [images, setImages] = useState<ImageAsset[]>([]);
   const [setlists, setSetlists] = useState<SetlistSummary[]>([]);
   const [targetSetlist, setTargetSetlist] = useState("");
   const [addingPath, setAddingPath] = useState("");
+  const [livePath, setLivePath] = useState("");
   const [search, setSearch] = useState("");
   const [folder, setFolder] = useState("");
   const [uploadFolder, setUploadFolder] = useState("uploads");
@@ -148,6 +151,16 @@ export default function ImagesPage({
       notify("Image deleted");
     } catch (error) {
       notify(error instanceof ApiError ? error.message : "Could not delete image", "error");
+    }
+  }
+
+  async function showLive(image: ImageAsset) {
+    if (live.status === "idle") return;
+    setLivePath(image.path);
+    try {
+      await onQuickImage(image.path, image.name);
+    } finally {
+      setLivePath("");
     }
   }
 
@@ -278,6 +291,18 @@ export default function ImagesPage({
                     </span>
                   </div>
                   <div className="button-row">
+                    <button
+                      className="button danger small"
+                      onClick={() => showLive(image)}
+                      disabled={live.status === "idle" || livePath === image.path}
+                      title={
+                        live.status === "idle"
+                          ? "Start a live session first"
+                          : `Show “${image.name}” immediately on all live outputs without changing the set list or live queue`
+                      }
+                    >
+                      {livePath === image.path ? "Sending…" : "LIVE"}
+                    </button>
                     <button
                       className="button primary small"
                       onClick={() => addToSetlist(image)}

@@ -297,6 +297,11 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ songId }),
     }),
+  quickImage: (path: string, title?: string) =>
+    request<{ state: LiveState }>("/api/live/quick-image", {
+      method: "POST",
+      body: JSON.stringify({ path, title }),
+    }),
   stopLive: () => request<{ state: LiveState }>("/api/live/stop", { method: "POST" }),
   applyLive: (payload: { setlistId?: string; revisionId?: string; mode: "after-current" | "now" }) =>
     request<{ state: LiveState }>("/api/live/apply", {

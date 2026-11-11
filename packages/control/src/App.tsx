@@ -197,6 +197,16 @@ export default function App() {
     }
   };
 
+  const quickImage = async (path: string, title?: string) => {
+    try {
+      const result = await api.quickImage(path, title);
+      setLive(result.state);
+      notify("Image sent live");
+    } catch (error) {
+      notify(error instanceof ApiError ? error.message : "Could not display image", "error");
+    }
+  };
+
   const stopLive = async () => {
     try {
       const result = await api.stopLive();
@@ -449,7 +459,9 @@ export default function App() {
           />
         )}
         {page === "songs" && <SongsPage live={live} onQuickSong={quickSong} notify={notify} />}
-        {page === "images" && <ImagesPage live={live} notify={notify} />}
+        {page === "images" && (
+          <ImagesPage live={live} notify={notify} onQuickImage={quickImage} />
+        )}
         {page === "bible" && <BiblePage live={live} onQuickText={quickText} notify={notify} />}
         {page === "churchsuite" && (
           <ChurchsuitePage notify={notify} onOpenSetlists={() => setPage("setlists")} />

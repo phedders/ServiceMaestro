@@ -470,6 +470,11 @@ export const quickSongSchema = z.object({
   verseOrder: z.string().trim().max(1000).optional().nullable(),
 });
 
+export const quickImageSchema = z.object({
+  path: z.string().trim().min(1).max(2000),
+  title: z.string().trim().max(300).optional(),
+});
+
 export const startSessionSchema = z.object({
   setlistId: z.string().min(1),
   status: z.enum(["live", "rehearsal"]).default("live"),
