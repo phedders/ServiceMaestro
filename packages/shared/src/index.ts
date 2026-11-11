@@ -177,6 +177,8 @@ export interface DisplayConfig {
   smartPageSplits: boolean;
   lowerThirdImageMaxHeightPercent: number;
   lowerThirdImagePadding: number;
+  lowerThirdFontFamily: string;
+  lowerThirdTextScale: number;
 }
 
 export interface DisplayViewLink {
@@ -194,8 +196,17 @@ export interface FontOption {
   importedAt: string | null;
 }
 
+export const DEFAULT_CHURCHSUITE_EMPTY_TYPES = [
+  "Welcome",
+  "Misc",
+  "Countdown",
+  "Prayers",
+  "Announcement",
+];
+
 export interface AppSettings {
   pageNavigation: "stop" | "next-item";
+  churchsuiteEmptyTypes: string[];
 }
 
 export interface GitSettings {
@@ -249,7 +260,7 @@ export interface ChurchSuiteItemPreview {
   author: string | null;
   notes: string | null;
   duration: number | null;
-  action: "song" | "placeholder" | "skip";
+  action: "song" | "placeholder" | "empty" | "skip";
   matchedSong: {
     id: string;
     title: string;
@@ -263,6 +274,7 @@ export interface ChurchSuitePlanPreview {
   songCount: number;
   matchedCount: number;
   placeholderCount: number;
+  emptyCount: number;
 }
 
 export interface ChurchSuiteImportReport {
@@ -271,6 +283,7 @@ export interface ChurchSuiteImportReport {
   itemCount: number;
   songsMatched: number;
   placeholders: number;
+  emptyItems: number;
   skipped: number;
 }
 
@@ -559,6 +572,8 @@ export const displayConfigSchema = z.object({
   smartPageSplits: z.boolean().default(true),
   lowerThirdImageMaxHeightPercent: z.number().min(5).max(100).default(30),
   lowerThirdImagePadding: z.number().int().min(0).max(200).default(48),
+  lowerThirdFontFamily: z.string().trim().min(1).max(200),
+  lowerThirdTextScale: z.number().min(0.5).max(2.5),
 });
 
 export const fontImportSchema = z
@@ -572,6 +587,10 @@ export const fontImportSchema = z
 
 export const appSettingsSchema = z.object({
   pageNavigation: z.enum(["stop", "next-item"]).default("stop"),
+  churchsuiteEmptyTypes: z
+    .array(z.string().trim().min(1).max(120))
+    .max(100)
+    .default(DEFAULT_CHURCHSUITE_EMPTY_TYPES),
 });
 
 export const gitSettingsSchema = z.object({

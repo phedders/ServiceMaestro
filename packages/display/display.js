@@ -103,11 +103,22 @@
 
     const config = state.displayConfig || {};
     if (target === "main" || target === "two_thirds" || target === "full") {
-      root.style.setProperty("--sm-text-scale", String(config.textScale ?? 1));
+      const lowerThird = target === "main";
+      root.style.setProperty(
+        "--sm-text-scale",
+        String(
+          lowerThird
+            ? config.lowerThirdTextScale ?? config.textScale ?? 1
+            : config.textScale ?? 1,
+        ),
+      );
       root.style.setProperty("--sm-text-color", config.textColor || "#ffffff");
       root.style.setProperty(
         "--sm-font-family",
-        config.fontFamily || '"Clear Sans", "Segoe UI", system-ui, -apple-system, sans-serif',
+        (lowerThird
+          ? config.lowerThirdFontFamily || config.fontFamily
+          : config.fontFamily) ||
+          '"Clear Sans", "Segoe UI", system-ui, -apple-system, sans-serif',
       );
       root.style.setProperty(
         "--sm-lowerthird-image-max-height",

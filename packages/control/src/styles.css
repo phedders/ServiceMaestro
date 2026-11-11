@@ -1802,6 +1802,49 @@ body.resizing-live-queue {
   pointer-events: none;
 }
 
+.churchsuite-empty-add {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.churchsuite-empty-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.churchsuite-empty-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 6px 5px 10px;
+  border: 1px solid rgba(76, 194, 255, 0.35);
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: #dff5ff;
+  font-size: 0.78rem;
+}
+
+.churchsuite-empty-chip button {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.18);
+  color: inherit;
+  font-size: 0.8rem;
+  line-height: 1;
+}
+
+.churchsuite-empty-chip button:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+
 .shortcut-grid {
   display: grid;
   gap: 8px;
@@ -2244,6 +2287,10 @@ body.resizing-live-queue {
 
 .cs-action.placeholder {
   color: var(--warning);
+}
+
+.cs-action.empty {
+  color: #c4b5fd;
 }
 
 .cs-import-form {

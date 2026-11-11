@@ -117,9 +117,11 @@ Rich text uses a block container (`.text-html`), not the flex line container use
 
 A **Display config** panel on the Live page controls:
 
-- **Font** — built-in stacks plus Google Fonts imported from the Settings page.
-- **Text colour** — default text colour.
-- **Text size** — 50–200% scale.
+- **Global font** — built-in stacks plus Google Fonts imported from the Settings page; used by centered two-thirds and full-screen.
+- **Text colour** — default text colour on all text-based presentation views.
+- **Global text size** — 50–200% scale for centered two-thirds and full-screen.
+- **Lower-third font** — independent font for the lower-third output.
+- **Lower-third text size** — independent 50–200% scale for the lower-third output.
 - **Max lines per page** — the number of lines after which a song/text/Bible item is split into another page.
 - **Max words per page** — a second hard limit; pages split on whichever of max lines or max words is reached first.
 - **Lower-third image max height** — percentage of the viewport used as the image height limit (default 30%).
@@ -128,7 +130,7 @@ A **Display config** panel on the Live page controls:
 
 Scope:
 
-- Font, colour and size apply **only to the lower-third and centered two-thirds** (and `full`, which shares the two-thirds style).
+- The global font and size apply to **centered two-thirds and full-screen**. The lower-third uses its own font and size; text colour remains global.
 - **Stage and chords always keep their fixed styling**, regardless of the lower-third/centered two-thirds config.
 - **Stage and chords show the current page at the top and all following pages of the current queue below it**, so musicians can see what is coming next. The content area scrolls if needed; lower-third/centered two-thirds/full show only the current page.
 - Page splitting (max lines, max words, smart estimates) is shared by all outputs; `<!-- page -->` / `<!--- page --->` / `<hr class="page-break">` markers force additional breaks.

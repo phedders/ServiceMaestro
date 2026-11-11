@@ -357,7 +357,9 @@ export default function HelpPage({ onOpenSettings }: { onOpenSettings: () => voi
               </li>
               <li>
                 ChurchSuite plans can be reviewed and turned into a draft set list. Matched songs link
-                to the library; unmatched named items become editable text placeholders.
+                to the library; unmatched named items become editable text placeholders. Plan object
+                types listed under <strong>Settings → ChurchSuite empty items</strong> become empty
+                items with no pages, keeping their text in the notes.
               </li>
             </ul>
           </article>

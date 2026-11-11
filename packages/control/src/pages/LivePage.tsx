@@ -118,6 +118,8 @@ export default function LivePage({
       smartPageSplits: true,
       lowerThirdImageMaxHeightPercent: 30,
       lowerThirdImagePadding: 48,
+      lowerThirdFontFamily: '"Clear Sans", "Segoe UI", system-ui, -apple-system, sans-serif',
+      lowerThirdTextScale: 1,
     },
   );
   const [configSaving, setConfigSaving] = useState(false);
@@ -179,6 +181,8 @@ export default function LivePage({
     live.displayConfig?.smartPageSplits,
     live.displayConfig?.lowerThirdImageMaxHeightPercent,
     live.displayConfig?.lowerThirdImagePadding,
+    live.displayConfig?.lowerThirdFontFamily,
+    live.displayConfig?.lowerThirdTextScale,
   ]);
 
   useEffect(() => {
@@ -405,7 +409,11 @@ export default function LivePage({
         <div className="panel-heading">
           <div>
             <h2>Display config</h2>
-            <p className="muted">Applies to the lower-third and centered two-thirds views. Stage and chords keep their fixed style.</p>
+            <p className="muted">
+              Global styling applies to the lower-third, centered two-thirds and full-screen views.
+              The lower-third has separate font and size controls. Stage and chords keep their fixed
+              style.
+            </p>
           </div>
           <button
             className="button primary"
@@ -418,7 +426,7 @@ export default function LivePage({
         </div>
         <div className="display-config-grid">
           <label>
-            Font
+            Global font
             <select
               value={displayConfig.fontFamily}
               onChange={(event) => setDisplayConfig({ ...displayConfig, fontFamily: event.target.value })}
@@ -443,7 +451,7 @@ export default function LivePage({
             />
           </label>
           <label>
-            Text size · {Math.round(displayConfig.textScale * 100)}%
+            Global text size · {Math.round(displayConfig.textScale * 100)}%
             <input
               type="range"
               min={50}
@@ -452,6 +460,44 @@ export default function LivePage({
               value={displayConfig.textScale * 100}
               onChange={(event) =>
                 setDisplayConfig({ ...displayConfig, textScale: Number(event.target.value) / 100 })
+              }
+            />
+          </label>
+          <label>
+            Lower-third font
+            <select
+              value={displayConfig.lowerThirdFontFamily}
+              onChange={(event) =>
+                setDisplayConfig({
+                  ...displayConfig,
+                  lowerThirdFontFamily: event.target.value,
+                })
+              }
+            >
+              {fonts.map((font) => (
+                <option key={font.id} value={font.family}>
+                  {font.label}
+                  {font.source === "google" ? " (Google)" : ""}
+                </option>
+              ))}
+              {!fonts.some((font) => font.family === displayConfig.lowerThirdFontFamily) && (
+                <option value={displayConfig.lowerThirdFontFamily}>Custom / imported</option>
+              )}
+            </select>
+          </label>
+          <label>
+            Lower-third text size · {Math.round(displayConfig.lowerThirdTextScale * 100)}%
+            <input
+              type="range"
+              min={50}
+              max={200}
+              step={5}
+              value={displayConfig.lowerThirdTextScale * 100}
+              onChange={(event) =>
+                setDisplayConfig({
+                  ...displayConfig,
+                  lowerThirdTextScale: Number(event.target.value) / 100,
+                })
               }
             />
           </label>
@@ -528,9 +574,10 @@ export default function LivePage({
           </label>
         </div>
         <p className="hint">
-          Lower-third text and images are anchored to the bottom with the configured border padding.
-          Images keep their original aspect ratio and are never stretched; their maximum height is a
-          percentage of the screen, reduced by that padding.
+          Lower-third font and text size are independent of the global settings. Text and images are
+          anchored to the bottom with the configured border padding. Images keep their original
+          aspect ratio and are never stretched; their maximum height is a percentage of the screen,
+          reduced by that padding.
         </p>
       </section>
     </div>

@@ -8,6 +8,7 @@ import type {
 import { db } from "./db.js";
 import { getChurchsuitePlan, listChurchsuitePlanItems, listChurchsuiteTypes } from "./churchsuite.js";
 import { saveSetlistToGit } from "./git-store.js";
+import { getAppSettings } from "./settings.js";
 
 interface ChurchsuitePlan {
   id: number;
@@ -123,8 +124,10 @@ function itemAction(
   item: ChurchsuitePlanItem,
   isSong: boolean,
   matched: LocalSong | null,
+  emptyType: boolean,
 ): ChurchSuiteItemPreview["action"] {
   if (!item.name?.trim()) return "skip";
+  if (emptyType) return "empty";
   if (matched) return "song";
   if (isSong) return "placeholder";
   return "placeholder";
@@ -140,6 +143,9 @@ export async function previewChurchsuitePlan(planId: number): Promise<ChurchSuit
   const items = (rawItems as { data?: ChurchsuitePlanItem[] }).data ?? [];
   const typeNames = new Map(types.map((type) => [type.id, type]));
   const songs = localSongs();
+  const emptyTypes = new Set(
+    getAppSettings().churchsuiteEmptyTypes.map((name) => normalize(name)),
+  );
 
   const previewItems: ChurchSuiteItemPreview[] = items
     .slice()
@@ -155,7 +161,8 @@ export async function previewChurchsuitePlan(planId: number): Promise<ChurchSuit
       const author = responseValue(item, "Artist/Author");
       const notes = notesText(item.notes);
       const matched = isSong && item.name ? matchSong(item.name, songs) : null;
-      const action = itemAction(item, isSong, matched);
+      const emptyType = emptyTypes.has(normalize(typeName));
+      const action = itemAction(item, isSong, matched, emptyType);
       return {
         id: item.id,
         order: item.order ?? index + 1,
@@ -187,6 +194,7 @@ export async function previewChurchsuitePlan(planId: number): Promise<ChurchSuit
     songCount: previewItems.filter((item) => item.isSong).length,
     matchedCount: previewItems.filter((item) => item.matchedSong).length,
     placeholderCount: previewItems.filter((item) => item.action === "placeholder").length,
+    emptyCount: previewItems.filter((item) => item.action === "empty").length,
   };
 }
 
@@ -244,6 +252,7 @@ export async function importChurchsuitePlan(
   let position = 0;
   let songsMatched = 0;
   let placeholders = 0;
+  let emptyItems = 0;
   let skipped = 0;
   for (const item of preview.items) {
     if (item.action === "skip") {
@@ -268,6 +277,24 @@ export async function importChurchsuitePlan(
         item.notes,
       );
       songsMatched += 1;
+    } else if (item.action === "empty") {
+      insert.run(
+        randomUUID(),
+        id,
+        position,
+        "text",
+        null,
+        item.name || item.typeName || "ChurchSuite item",
+        "",
+        "text",
+        "left",
+        null,
+        0,
+        4,
+        null,
+        item.notes || placeholderContent(item),
+      );
+      emptyItems += 1;
     } else {
       insert.run(
         randomUUID(),
@@ -300,6 +327,7 @@ export async function importChurchsuitePlan(
       itemCount: position,
       songsMatched,
       placeholders,
+      emptyItems,
       skipped,
     },
     setlist,

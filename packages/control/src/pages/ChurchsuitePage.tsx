@@ -191,7 +191,7 @@ export default function ChurchsuitePage({
                   <p className="muted">
                     {compactDate(preview.plan.date)} · {preview.plan.time?.slice(0, 5) ?? "no time"} ·{" "}
                     {preview.songCount} songs · {preview.matchedCount} matched ·{" "}
-                    {preview.placeholderCount} text placeholders
+                    {preview.placeholderCount} text placeholders · {preview.emptyCount} empty
                   </p>
                 </div>
               </div>
@@ -212,11 +212,13 @@ export default function ChurchsuitePage({
                     <span className={`cs-action ${item.action}`}>
                       {item.action === "song"
                         ? `Song: ${item.matchedSong?.title ?? ""}`
-                        : item.action === "placeholder"
-                          ? item.isSong
-                            ? "No local match"
-                            : "Text placeholder"
-                          : "Skipped"}
+                        : item.action === "empty"
+                          ? "Empty item"
+                          : item.action === "placeholder"
+                            ? item.isSong
+                              ? "No local match"
+                              : "Text placeholder"
+                            : "Skipped"}
                     </span>
                   </div>
                 ))}
@@ -258,7 +260,8 @@ export default function ChurchsuitePage({
                   <strong>Created “{report.setlistName}”</strong>
                   <span>
                     {report.itemCount} items · {report.songsMatched} songs matched ·{" "}
-                    {report.placeholders} placeholders · {report.skipped} skipped
+                    {report.placeholders} placeholders · {report.emptyItems} empty ·{" "}
+                    {report.skipped} skipped
                   </span>
                   <button
                     className="button ghost small"

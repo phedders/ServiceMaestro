@@ -114,6 +114,8 @@ db.exec(`
     smart_page_splits INTEGER NOT NULL DEFAULT 1,
     lower_third_image_max_height_percent REAL NOT NULL DEFAULT 30,
     lower_third_image_padding INTEGER NOT NULL DEFAULT 48,
+    lower_third_font_family TEXT,
+    lower_third_text_scale REAL,
     updated_at TEXT NOT NULL
   );
 
@@ -184,6 +186,8 @@ ensureColumn("display_config", "max_words", "INTEGER NOT NULL DEFAULT 90");
 ensureColumn("display_config", "smart_page_splits", "INTEGER NOT NULL DEFAULT 1");
 ensureColumn("display_config", "lower_third_image_max_height_percent", "REAL NOT NULL DEFAULT 30");
 ensureColumn("display_config", "lower_third_image_padding", "INTEGER NOT NULL DEFAULT 48");
+ensureColumn("display_config", "lower_third_font_family", "TEXT");
+ensureColumn("display_config", "lower_third_text_scale", "REAL");
 db.exec("CREATE INDEX IF NOT EXISTS idx_songs_source_path ON songs(source_path)");
 
 db.prepare(

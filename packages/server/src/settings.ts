@@ -1,9 +1,10 @@
-import type { AppSettings, GitSettings } from "@sm/shared";
+import { DEFAULT_CHURCHSUITE_EMPTY_TYPES, type AppSettings, type GitSettings } from "@sm/shared";
 import { db } from "./db.js";
 import { GIT_AUTO_PUSH, GIT_AUTO_SAVE, GIT_PULL_INTERVAL } from "./config.js";
 
 const DEFAULTS: AppSettings = {
   pageNavigation: "stop",
+  churchsuiteEmptyTypes: [...DEFAULT_CHURCHSUITE_EMPTY_TYPES],
 };
 
 const GIT_DEFAULTS: GitSettings = {
@@ -22,9 +23,26 @@ export function getAppSettings(): AppSettings {
   const rows = db.prepare("SELECT key, value FROM app_settings").all() as Row[];
   const values = new Map(rows.map((row) => [row.key, row.value]));
   const pageNavigation = values.get("page_navigation");
+  let churchsuiteEmptyTypes = DEFAULTS.churchsuiteEmptyTypes;
+  const rawEmptyTypes = values.get("churchsuite_empty_types");
+  if (rawEmptyTypes) {
+    try {
+      const parsed = JSON.parse(rawEmptyTypes) as unknown;
+      if (Array.isArray(parsed)) {
+        churchsuiteEmptyTypes = parsed
+          .filter((entry): entry is string => typeof entry === "string")
+          .map((entry) => entry.trim())
+          .filter(Boolean)
+          .slice(0, 100);
+      }
+    } catch {
+      // Fall back to the seeded list when the stored value is corrupt.
+    }
+  }
   return {
     pageNavigation:
       pageNavigation === "next-item" ? "next-item" : DEFAULTS.pageNavigation,
+    churchsuiteEmptyTypes,
   };
 }
 
@@ -35,6 +53,7 @@ export function saveAppSettings(settings: AppSettings): AppSettings {
      ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`,
   );
   write.run("page_navigation", settings.pageNavigation, now);
+  write.run("churchsuite_empty_types", JSON.stringify(settings.churchsuiteEmptyTypes), now);
   return getAppSettings();
 }
 

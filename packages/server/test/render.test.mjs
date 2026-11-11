@@ -52,6 +52,17 @@ test("treats bare verse headings as section labels", () => {
   assert.doesNotMatch(pages[1].html, /class="line">Verse 2:</);
 });
 
+test("empty text items have no pages", () => {
+  const pages = buildPages({
+    kind: "text",
+    title: "Welcome",
+    content: "",
+    transpose: 0,
+    maxLines: 4,
+  });
+  assert.equal(pages.length, 0);
+});
+
 test("text blank lines create page breaks", () => {
   const pages = buildPages({
     kind: "text",

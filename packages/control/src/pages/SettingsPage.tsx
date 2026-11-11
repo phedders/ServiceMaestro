@@ -1,6 +1,12 @@
 import { useEffect, useState } from "react";
 import type { KeyboardEvent as ReactKeyboardEvent } from "react";
-import type { AppSettings, FontOption, GitSettings, GitStatus } from "@sm/shared";
+import {
+  DEFAULT_CHURCHSUITE_EMPTY_TYPES,
+  type AppSettings,
+  type FontOption,
+  type GitSettings,
+  type GitStatus,
+} from "@sm/shared";
 import { api, ApiError } from "../api";
 import { compactDateTime } from "../service-date";
 import {
@@ -32,7 +38,11 @@ export default function SettingsPage({
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<string | null>(null);
   const [shortcuts, setShortcuts] = useState<KeyboardShortcuts>(loadKeyboardShortcuts);
-  const [settings, setSettings] = useState<AppSettings>({ pageNavigation: "stop" });
+  const [settings, setSettings] = useState<AppSettings>({
+    pageNavigation: "stop",
+    churchsuiteEmptyTypes: [...DEFAULT_CHURCHSUITE_EMPTY_TYPES],
+  });
+  const [emptyType, setEmptyType] = useState("");
   const [savingSettings, setSavingSettings] = useState(false);
   const [git, setGit] = useState<GitStatus | null>(null);
   const [gitForm, setGitForm] = useState<GitSettings | null>(null);
@@ -169,6 +179,44 @@ export default function SettingsPage({
     }
   }
 
+  async function updateEmptyTypes(nextTypes: string[]) {
+    const next = { ...settings, churchsuiteEmptyTypes: nextTypes };
+    setSettings(next);
+    setSavingSettings(true);
+    try {
+      const result = await api.saveSettings(next);
+      setSettings(result.settings);
+      notify("ChurchSuite empty item types saved");
+    } catch (error) {
+      notify(
+        error instanceof ApiError ? error.message : "Could not save ChurchSuite item types",
+        "error",
+      );
+    } finally {
+      setSavingSettings(false);
+    }
+  }
+
+  function addEmptyType() {
+    const value = emptyType.trim();
+    if (!value) return;
+    const exists = settings.churchsuiteEmptyTypes.some(
+      (entry) => entry.toLowerCase() === value.toLowerCase(),
+    );
+    if (exists) {
+      notify("That ChurchSuite item type is already in the list", "error");
+      return;
+    }
+    setEmptyType("");
+    void updateEmptyTypes([...settings.churchsuiteEmptyTypes, value]);
+  }
+
+  function removeEmptyType(value: string) {
+    void updateEmptyTypes(
+      settings.churchsuiteEmptyTypes.filter((entry) => entry !== value),
+    );
+  }
+
   async function saveGit() {
     if (!gitForm) return;
     setGitSaving(true);
@@ -296,6 +344,62 @@ export default function SettingsPage({
           “Continue” applies to the previous/next page keyboard shortcuts. Next at the final page
           opens the next item’s first page; previous at the first page opens the previous item’s
           last page. The setting is global for all operators.
+        </p>
+      </section>
+
+      <section className="panel">
+        <div className="panel-heading">
+          <div>
+            <h2>ChurchSuite empty items</h2>
+            <p className="muted">
+              Plan object types in this list become empty set-list items during import. They have no
+              pages, so their text never reaches a display; any ChurchSuite text is kept in the
+              item&apos;s notes.
+            </p>
+          </div>
+          {savingSettings && <span className="muted">Saving…</span>}
+        </div>
+        <div className="churchsuite-empty-add">
+          <input
+            value={emptyType}
+            onChange={(event) => setEmptyType(event.target.value)}
+            placeholder="ChurchSuite object type, e.g. Welcome"
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                addEmptyType();
+              }
+            }}
+          />
+          <button
+            className="button primary"
+            onClick={addEmptyType}
+            disabled={!emptyType.trim() || savingSettings}
+            title="Add this ChurchSuite plan object type to the empty-item list"
+          >
+            Add type
+          </button>
+        </div>
+        <div className="churchsuite-empty-list">
+          {settings.churchsuiteEmptyTypes.map((type) => (
+            <span key={type} className="churchsuite-empty-chip">
+              {type}
+              <button
+                type="button"
+                onClick={() => removeEmptyType(type)}
+                title={`Remove “${type}” from the empty-item list`}
+                aria-label={`Remove ${type} from the empty-item list`}
+              >
+                ×
+              </button>
+            </span>
+          ))}
+          {!settings.churchsuiteEmptyTypes.length && (
+            <span className="muted">No empty-item types configured.</span>
+          )}
+        </div>
+        <p className="hint">
+          Defaults: {DEFAULT_CHURCHSUITE_EMPTY_TYPES.join(", ")}.
         </p>
       </section>
 
