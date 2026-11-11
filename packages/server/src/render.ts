@@ -4,6 +4,7 @@ import rst2html from "rst2html";
 import sanitizeHtml from "sanitize-html";
 import { parse as parseYaml } from "yaml";
 import { OUTPUT_TOKEN } from "./config.js";
+import { bareSectionLabel } from "./section-labels.js";
 
 export interface RenderItem {
   kind: "song" | "text" | "image";
@@ -93,6 +94,12 @@ function parseSong(lyrics: string): Block[] {
     if (sectionMatch) {
       flush();
       pendingSection = sectionMatch[0].replace(/^\[|\]$/g, "");
+      continue;
+    }
+    const bareSection = bareSectionLabel(line);
+    if (bareSection) {
+      flush();
+      pendingSection = bareSection;
       continue;
     }
     if (!line.trim()) {

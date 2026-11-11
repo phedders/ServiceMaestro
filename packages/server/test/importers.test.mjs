@@ -94,6 +94,27 @@ test("imports plain text with a title line", () => {
   assert.match(song.lyrics, /\n\n/);
 });
 
+test("recognises bare verse headings in plain text imports", () => {
+  const song = parseSongFile(
+    "bare.txt",
+    `Bare Sections\n\nVerse 1\nFirst verse line\nSecond verse line\n\nVerse 2:\nSecond verse line`,
+  );
+  assert.equal(song.format, "text");
+  assert.match(song.lyrics, /\[Verse 1\]\nFirst verse line/);
+  assert.match(song.lyrics, /\[Verse 2\]\nSecond verse line/);
+  assert.doesNotMatch(song.lyrics, /^Verse 2:?$/m);
+});
+
+test("recognises bare section lines in ChordPro lyrics", () => {
+  const song = parseSongFile(
+    "bare.cho",
+    `{title: Bare ChordPro}\n\nVerse 1\n[C]First line\n\nVerse 2\n[G]Second line`,
+  );
+  assert.equal(song.format, "chordpro");
+  assert.match(song.lyrics, /\[Verse 1\]\n\[C\]First line/);
+  assert.match(song.lyrics, /\[Verse 2\]\n\[G\]Second line/);
+});
+
 test("converts HTML text and warns", () => {
   const song = parseSongFile("notes.txt", "<p>First line<br>Second line</p>");
   assert.equal(song.format, "text");

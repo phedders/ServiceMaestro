@@ -37,6 +37,21 @@ test("splits sections into pages by max lines", () => {
   assert.match(pages[0].html, /line one/);
 });
 
+test("treats bare verse headings as section labels", () => {
+  const pages = buildPages({
+    kind: "song",
+    title: "Bare sections",
+    lyrics: "Verse 1\nfirst line\n\nVerse 2:\nsecond line",
+    transpose: 0,
+    maxLines: 8,
+  });
+  assert.equal(pages.length, 2);
+  assert.match(pages[0].html, /section-label">Verse 1</);
+  assert.match(pages[1].html, /section-label">Verse 2</);
+  assert.doesNotMatch(pages[0].html, /class="line">Verse 1</);
+  assert.doesNotMatch(pages[1].html, /class="line">Verse 2:</);
+});
+
 test("text blank lines create page breaks", () => {
   const pages = buildPages({
     kind: "text",

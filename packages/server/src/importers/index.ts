@@ -1,3 +1,5 @@
+import { bareSectionLabel } from "../section-labels.js";
+
 export type ImportFormat = "openlp" | "chordpro" | "text";
 
 export interface ImportedSong {
@@ -116,7 +118,7 @@ function labelAliases(value: string): string[] {
 }
 
 function isSectionLabel(value: string, orderTokens: string[]): boolean {
-  if (SECTION_LABEL.test(value.trim())) return true;
+  if (bareSectionLabel(value) || SECTION_LABEL.test(value.trim())) return true;
   const key = normaliseLabel(value);
   return orderTokens.some((token) => normaliseLabel(token) === key);
 }
@@ -300,6 +302,11 @@ export function parseChordPro(filename: string, content: string): ImportedSong {
     if (isLegalLine(line)) continue;
     const cleaned = removeBarMarkers(line);
     if (!cleaned.trim()) continue;
+    const inlineSection = bareSectionLabel(cleaned);
+    if (inlineSection) {
+      startSection(inlineSection);
+      continue;
+    }
     current.lines.push(cleaned);
   }
   flush();
@@ -426,7 +433,13 @@ export function parsePlainText(filename: string, content: string): ImportedSong 
     break;
   }
 
-  const lyrics = lines.join("\n").replace(/^\n+|\n+$/g, "");
+  const lyrics = lines
+    .map((line) => {
+      const label = bareSectionLabel(line);
+      return label ? `[${label}]` : line;
+    })
+    .join("\n")
+    .replace(/^\n+|\n+$/g, "");
   if (!lyrics.trim()) warnings.push("No lyric content found");
 
   return {
