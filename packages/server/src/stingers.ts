@@ -32,6 +32,9 @@ export const BUILTIN_STINGERS: Array<{
   { id: "stinger-pixel-cascade", name: "Pixel Cascade", kind: "svg", preset: "pixel-cascade", durationMs: 900 },
   { id: "stinger-curtain-call", name: "Curtain Call", kind: "svg", preset: "curtain-call", durationMs: 1150 },
   { id: "stinger-supernova", name: "Supernova", kind: "svg", preset: "supernova", durationMs: 950 },
+  { id: "stinger-bible-zoom", name: "Bible Zoom", kind: "svg", preset: "bible-zoom", durationMs: 1300 },
+  { id: "stinger-bible-page-turn", name: "Bible Page Turn", kind: "svg", preset: "bible-page-turn", durationMs: 1250 },
+  { id: "stinger-bible-light", name: "Bible Light", kind: "svg", preset: "bible-light", durationMs: 1200 },
 ];
 
 const KNOWN_PRESETS = new Map(BUILTIN_STINGERS.map((preset) => [preset.preset, preset]));
@@ -397,6 +400,158 @@ function supernova(durationMs: number): string {
   </svg>`;
 }
 
+function scaleMatrix(scale: number, centreX = 800, centreY = 450): string {
+  return `${scale} 0 0 ${scale} ${centreX * (1 - scale)} ${centreY * (1 - scale)}`;
+}
+
+function openBible(prefix: string): string {
+  const id = `smStBible${prefix.replace(/[^a-z0-9]/gi, "")}`;
+  const leftLines: string[] = [];
+  const rightLines: string[] = [];
+  for (let index = 0; index < 14; index += 1) {
+    const y = 382 + index * 10;
+    const leftEnd = 750 - (index % 4) * 15;
+    leftLines.push(
+      `<line x1="${536 + (index % 3) * 6}" y1="${y}" x2="${leftEnd}" y2="${y + 2}"/>`,
+    );
+    const rightStart = 850 + (index % 3) * 6;
+    const rightEnd = 1064 - (index % 5) * 14;
+    rightLines.push(
+      `<line x1="${rightStart}" y1="${y + 3}" x2="${rightEnd}" y2="${y + 5}"/>`,
+    );
+  }
+  return `<defs>
+    <linearGradient id="${id}PageL" x1="0" y1="0" x2="0.9" y2="1">
+      <stop offset="0" stop-color="#fffdf6"/>
+      <stop offset="0.65" stop-color="#f7efdc"/>
+      <stop offset="1" stop-color="#e5d7bb"/>
+    </linearGradient>
+    <linearGradient id="${id}PageR" x1="0.1" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#e5d7bb"/>
+      <stop offset="0.35" stop-color="#f7efdc"/>
+      <stop offset="1" stop-color="#fffdf6"/>
+    </linearGradient>
+    <linearGradient id="${id}Ribbon" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1d4ed8"/>
+      <stop offset="1" stop-color="#0f2f8f"/>
+    </linearGradient>
+    <radialGradient id="${id}Glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#fde68a" stop-opacity="0.55"/>
+      <stop offset="0.55" stop-color="#f59e0b" stop-opacity="0.16"/>
+      <stop offset="1" stop-color="#f59e0b" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="${id}Shadow" x="-30%" y="-50%" width="160%" height="200%">
+      <feGaussianBlur stdDeviation="15"/>
+    </filter>
+  </defs>
+  <ellipse cx="800" cy="588" rx="342" ry="34" fill="#020617" opacity="0.5" filter="url(#${id}Shadow)"/>
+  <circle cx="800" cy="445" r="360" fill="url(#${id}Glow)"/>
+  <path d="M468 354 L790 394 L790 570 L468 528 Z" fill="#111827"/>
+  <path d="M1132 354 L810 394 L810 570 L1132 528 Z" fill="#0b1220"/>
+  <path d="M492 342 L790 388 L790 568 L492 522 Z" fill="#e9ddc2" opacity="0.9"/>
+  <path d="M1108 342 L810 388 L810 568 L1108 522 Z" fill="#e9ddc2" opacity="0.9"/>
+  <path d="M500 350 L790 398 L790 565 L500 517 Z" fill="url(#${id}PageL)"/>
+  <path d="M1100 350 L810 398 L810 565 L1100 517 Z" fill="url(#${id}PageR)"/>
+  <path d="M500 350 L790 398 L790 565 L500 517 Z" fill="none" stroke="#cdbd9c" stroke-width="2"/>
+  <path d="M1100 350 L810 398 L810 565 L1100 517 Z" fill="none" stroke="#cdbd9c" stroke-width="2"/>
+  <g stroke="#79684f" stroke-width="2.2" stroke-linecap="round" opacity="0.48">
+    ${leftLines.join("")}
+    ${rightLines.join("")}
+  </g>
+  <path d="M790 398 L810 398 L810 565 L790 565 Z" fill="#b9a987" opacity="0.65"/>
+  <path d="M786 566 L814 566 L807 694 L800 716 L793 694 Z" fill="url(#${id}Ribbon)"/>
+  <path d="M468 354 L790 394" stroke="#475569" stroke-width="3"/>
+  <path d="M1132 354 L810 394" stroke="#334155" stroke-width="3"/>`;
+}
+
+function bibleZoom(durationMs: number): string {
+  const dur = durationStyle(durationMs);
+  return `<svg class="sm-stinger-fill" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+    <rect width="1600" height="900" fill="#fff8e7" opacity="0">
+      <animate attributeName="opacity" values="0;0;0.45;0.45;0" keyTimes="0;0.38;0.44;0.60;0.70" dur="${dur}" repeatCount="indefinite"/>
+    </rect>
+    <g opacity="0">
+      <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.10;0.72;1" dur="${dur}" repeatCount="indefinite"/>
+      <animateTransform attributeName="transform" type="matrix"
+        values="${scaleMatrix(0.68)};${scaleMatrix(4.9)};${scaleMatrix(4.9)};${scaleMatrix(0.68)}"
+        keyTimes="0;0.44;0.60;1" dur="${dur}" repeatCount="indefinite"/>
+      ${openBible("Zoom")}
+    </g>
+  </svg>`;
+}
+
+function biblePageTurn(durationMs: number): string {
+  const dur = durationStyle(durationMs);
+  const sheetLines = Array.from({ length: 18 }, (_, index) => {
+    const y = 110 + index * 43;
+    return `<line x1="${170 + (index % 4) * 18}" y1="${y}" x2="${1260 - (index % 5) * 42}" y2="${y + 4}"/>`;
+  }).join("");
+  return `<svg class="sm-stinger-fill" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+    <defs>
+      <linearGradient id="smStBibleTurnSheet" x1="0" y1="0" x2="1" y2="0.5">
+        <stop offset="0" stop-color="#fffdf6"/>
+        <stop offset="0.62" stop-color="#f4ead2"/>
+        <stop offset="1" stop-color="#d9c8a6"/>
+      </linearGradient>
+    </defs>
+    <g opacity="0">
+      <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.08;0.74;1" dur="${dur}" repeatCount="indefinite"/>
+      <animateTransform attributeName="transform" type="matrix"
+        values="${scaleMatrix(0.86)};${scaleMatrix(1.9)};${scaleMatrix(1.9)};${scaleMatrix(0.86)}"
+        keyTimes="0;0.44;0.60;1" dur="${dur}" repeatCount="indefinite"/>
+      ${openBible("Turn")}
+    </g>
+    <g>
+      <animateTransform attributeName="transform" type="translate"
+        values="1900 0;0 0;0 0;-1900 0" keyTimes="0;0.43;0.60;1" dur="${dur}" repeatCount="indefinite"/>
+      <path d="M-40 -90 H1820 Q1670 230 1740 450 Q1670 670 1820 990 H-40 Z" fill="url(#smStBibleTurnSheet)"/>
+      <g stroke="#9b8a6b" stroke-width="3" stroke-linecap="round" opacity="0.35">${sheetLines}</g>
+      <path d="M1560 -60 C1680 220 1640 620 1560 960" fill="none" stroke="#b9a783" stroke-width="22" opacity="0.45"/>
+      <path d="M40 -90 H1820 Q1670 230 1740 450 Q1670 670 1820 990 H-40 Z" fill="none" stroke="#b9a783" stroke-width="4"/>
+    </g>
+  </svg>`;
+}
+
+function bibleLight(durationMs: number): string {
+  const dur = durationStyle(durationMs);
+  const rays = Array.from({ length: 28 }, (_, index) => {
+    const angle = (index / 28) * Math.PI * 2;
+    const half = Math.PI / 56;
+    const radius = 1200;
+    const x1 = 800 + Math.cos(angle - half) * radius;
+    const y1 = 450 + Math.sin(angle - half) * radius;
+    const x2 = 800 + Math.cos(angle + half) * radius;
+    const y2 = 450 + Math.sin(angle + half) * radius;
+    return `<polygon points="800,450 ${x1.toFixed(1)},${y1.toFixed(1)} ${x2.toFixed(1)},${y2.toFixed(1)}" fill="${index % 2 ? "#fde68a" : "#fff7d6"}" opacity="0.42"/>`;
+  }).join("");
+  return `<svg class="sm-stinger-fill" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+    <defs>
+      <radialGradient id="smStBibleLightCore" cx="0.5" cy="0.5" r="0.5">
+        <stop offset="0" stop-color="#fffdf0"/>
+        <stop offset="0.28" stop-color="#fef3c7"/>
+        <stop offset="0.58" stop-color="#fbbf24"/>
+        <stop offset="0.82" stop-color="#f59e0b"/>
+        <stop offset="1" stop-color="#b45309"/>
+      </radialGradient>
+    </defs>
+    <circle cx="800" cy="450" r="0" fill="url(#smStBibleLightCore)">
+      <animate attributeName="r" values="0;1100;1100;0" keyTimes="0;0.43;0.60;1" dur="${dur}" repeatCount="indefinite"/>
+    </circle>
+    <g opacity="0">
+      <animate attributeName="opacity" values="0;0.92;0.92;0" keyTimes="0;0.43;0.60;1" dur="${dur}" repeatCount="indefinite"/>
+      <animateTransform attributeName="transform" type="rotate" values="-18 800 450;22 800 450" dur="${dur}" repeatCount="indefinite"/>
+      ${rays}
+    </g>
+    <g opacity="0">
+      <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.10;0.74;1" dur="${dur}" repeatCount="indefinite"/>
+      <animateTransform attributeName="transform" type="matrix"
+        values="${scaleMatrix(0.92)};${scaleMatrix(1.75)};${scaleMatrix(1.75)};${scaleMatrix(0.92)}"
+        keyTimes="0;0.43;0.60;1" dur="${dur}" repeatCount="indefinite"/>
+      ${openBible("Light")}
+    </g>
+  </svg>`;
+}
+
 function renderPreset(preset: string, durationMs: number): string {
   if (preset === "iris-bloom") return irisBloom(durationMs);
   if (preset === "shutter-split") return shutterSplit(durationMs);
@@ -409,6 +564,9 @@ function renderPreset(preset: string, durationMs: number): string {
   if (preset === "pixel-cascade") return pixelCascade(durationMs);
   if (preset === "curtain-call") return curtainCall(durationMs);
   if (preset === "supernova") return supernova(durationMs);
+  if (preset === "bible-zoom") return bibleZoom(durationMs);
+  if (preset === "bible-page-turn") return biblePageTurn(durationMs);
+  if (preset === "bible-light") return bibleLight(durationMs);
   return `<svg class="sm-stinger-fill" viewBox="0 0 1600 900" aria-hidden="true"></svg>`;
 }
 
