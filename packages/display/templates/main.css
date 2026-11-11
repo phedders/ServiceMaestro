@@ -6,7 +6,19 @@ body[data-target="main"] {
   justify-content: flex-end;
   align-items: stretch;
   text-align: center;
-  padding: 6vh 6vw 7vh;
+  padding: 0 6vw var(--sm-lowerthird-padding, 48px);
+}
+
+.sm-lowerthird-panel {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+body:not(.mode-image) .sm-lowerthird-panel {
+  padding: clamp(14px, 2.2vw, 28px) clamp(18px, 2.6vw, 34px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: clamp(14px, 1.4vw, 22px);
+  background: rgba(6, 10, 16, 0.6);
 }
 
 .sm-main .sm-content {
@@ -29,7 +41,7 @@ body.mode-image .sm-main .sm-footer {
 .sm-main .slide-image {
   height: var(--sm-lowerthird-image-max-height, 30vh);
   max-height: var(--sm-lowerthird-image-max-height, 30vh);
-  padding: var(--sm-lowerthird-image-padding, 48px);
+  padding: var(--sm-lowerthird-padding, 48px);
   box-sizing: border-box;
   align-items: flex-end;
   justify-content: center;

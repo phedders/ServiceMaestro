@@ -95,10 +95,9 @@
         "--sm-lowerthird-image-max-height",
         `${config.lowerThirdImageMaxHeightPercent ?? 30}vh`,
       );
-      root.style.setProperty(
-        "--sm-lowerthird-image-padding",
-        `${config.lowerThirdImagePadding ?? 48}px`,
-      );
+      const lowerThirdPadding = `${config.lowerThirdImagePadding ?? 48}px`;
+      root.style.setProperty("--sm-lowerthird-padding", lowerThirdPadding);
+      root.style.setProperty("--sm-lowerthird-image-padding", lowerThirdPadding);
     } else {
       root.style.removeProperty("--sm-text-scale");
       root.style.removeProperty("--sm-text-color");

@@ -445,7 +445,7 @@ export default function LivePage({
             />
           </label>
           <label>
-            Lower-third image border padding · {displayConfig.lowerThirdImagePadding}px
+            Lower-third border padding · {displayConfig.lowerThirdImagePadding}px
             <input
               type="number"
               min={0}
@@ -477,8 +477,9 @@ export default function LivePage({
           </label>
         </div>
         <p className="hint">
-          Lower-third images keep their original aspect ratio and are never stretched. Their maximum
-          height is a percentage of the screen, reduced by the image padding.
+          Lower-third text and images are anchored to the bottom with the configured border padding.
+          Images keep their original aspect ratio and are never stretched; their maximum height is a
+          percentage of the screen, reduced by that padding.
         </p>
       </section>
     </div>

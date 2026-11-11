@@ -170,6 +170,10 @@ export default function HelpPage({ onOpenSettings }: { onOpenSettings: () => voi
                 centered two-thirds and full-screen outputs.
               </li>
               <li>
+                Lower-third text is shown in a dark translucent rounded panel, anchored to the bottom
+                with the configured border padding. Images use the same bottom padding.
+              </li>
+              <li>
                 Stage and chord outputs keep their fixed readable style.
               </li>
               <li>
