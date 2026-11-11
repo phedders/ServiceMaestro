@@ -1039,7 +1039,7 @@ export default function SetlistsPage({
                     disabled={busy}
                     title="Queue this draft to apply automatically after the current live item"
                   >
-                    Queue after current
+                    Add to live
                   </button>
                 </>
               ) : (

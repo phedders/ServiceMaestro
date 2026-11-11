@@ -218,7 +218,7 @@ export default function HelpPage({ onOpenSettings }: { onOpenSettings: () => voi
               </tr>
               <tr>
                 <td>
-                  <strong>Queue after current</strong>
+                  <strong>Add to live</strong>
                 </td>
                 <td>
                   Publishes the draft and applies it automatically after the current live item
@@ -481,7 +481,7 @@ export default function HelpPage({ onOpenSettings }: { onOpenSettings: () => voi
             <ul className="help-list">
               <li>
                 A live session uses a snapshot. Publish the set list, then choose <strong>Send to
-                live session</strong> or <strong>Queue after current</strong>.
+                live session</strong> or <strong>Add to live</strong>.
               </li>
               <li>Check that the live session is using the same set list shown in the editor.</li>
             </ul>
