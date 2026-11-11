@@ -16,9 +16,24 @@
   });
 
   const FADE_MS = 240;
+  const HEARTBEAT_TIMEOUT_MS = 45_000;
+  const HEARTBEAT_CHECK_MS = 5_000;
+  let lastHeartbeat = Date.now();
   let lastHtml = "";
   let lastCss = "";
   let fadeTimer = null;
+
+  function checkHeartbeat() {
+    if (document.visibilityState === "hidden") return;
+    if (Date.now() - lastHeartbeat > HEARTBEAT_TIMEOUT_MS) {
+      window.location.reload();
+    }
+  }
+
+  setInterval(checkHeartbeat, HEARTBEAT_CHECK_MS);
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) checkHeartbeat();
+  });
 
   function escapeHtml(value) {
     return String(value)
@@ -135,7 +150,13 @@
   }
 
   socket.on("live:snapshot", apply);
-  socket.on("connect", () => document.body.classList.remove("offline"));
+  socket.on("heartbeat", () => {
+    lastHeartbeat = Date.now();
+  });
+  socket.on("connect", () => {
+    lastHeartbeat = Date.now();
+    document.body.classList.remove("offline");
+  });
   socket.on("disconnect", () => document.body.classList.add("offline"));
   socket.on("connect_error", () => document.body.classList.add("offline"));
 

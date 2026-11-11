@@ -56,7 +56,7 @@ Or `npm run dev` runs both (server on 8080, control on 5173).
 | Centered two-thirds | `/display/two-thirds?token=dev-output` | `/display/two_thirds`, `/obs-two-thirds` |
 | Stage monitor (lyrics) | `/display/stage?token=dev-output` | `/obs-stage` |
 
-The output token defaults to `dev-output`; set `SM_OUTPUT_TOKEN` in production. Displays receive a **full snapshot on connect**, so refreshing or reconnecting OBS never blanks the screen. The `/obs-*` aliases remain on the control port for compatibility; use the `/display/*` paths through a read-only proxy.
+The output token defaults to `dev-output`; set `SM_OUTPUT_TOKEN` in production. Displays receive a **full snapshot on connect**, so refreshing or reconnecting OBS never blanks the screen. The server sends a heartbeat every 15 seconds; a display that receives no heartbeat for 45 seconds reloads itself to recover the connection. The `/obs-*` aliases remain on the control port for compatibility; use the `/display/*` paths through a read-only proxy.
 
 The **Menu** button in the navigation opens an **External links** list for every view plus Settings. Displays are also served by a separate **read-only listener** on `SM_DISPLAY_PORT` (default `8081`). It serves only the `/display/*` tree — views, `/display/assets`, `/display/fonts`, `/display/images/file`, `/display/icon.svg` and the read-only `/display/socket.ro.io` — with no login, control UI or API. A forward proxy can expose only `/display/*` from this port without exposing the control server. These replace the old `/display-assets`, `/fonts` and `/api/images/file` paths.
 

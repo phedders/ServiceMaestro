@@ -1,6 +1,7 @@
 import { buildApp } from "./app.js";
 import { DISPLAY_PORT, HOST, PORT } from "./config.js";
 import { buildDisplayApp } from "./display-app.js";
+import { startHeartbeat } from "./heartbeat.js";
 import { shutdownGit } from "./git-store.js";
 
 if (PORT === DISPLAY_PORT) {
@@ -10,6 +11,11 @@ if (PORT === DISPLAY_PORT) {
 
 const { app, io, outputIo } = await buildApp();
 const display = await buildDisplayApp();
+const stopHeartbeats = [
+  startHeartbeat(io),
+  startHeartbeat(outputIo),
+  startHeartbeat(display.io),
+];
 
 try {
   await app.listen({ host: HOST, port: PORT });
@@ -27,6 +33,7 @@ async function shutdown(signal: string): Promise<void> {
   closing = true;
   app.log.info(`${signal} received, shutting down`);
   shutdownGit();
+  stopHeartbeats.forEach((stop) => stop());
   io.close();
   outputIo.close();
   display.io.close();
