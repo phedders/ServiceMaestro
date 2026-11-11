@@ -15,6 +15,7 @@ import ChurchsuitePage from "./pages/ChurchsuitePage";
 import ImagesPage from "./pages/ImagesPage";
 import {
   SHORTCUT_CHANGE_EVENT,
+  handleListNavigation,
   isTypingTarget,
   loadKeyboardShortcuts,
   shortcutMatches,
@@ -173,6 +174,7 @@ export default function App() {
     if (!user || standaloneMusicians) return;
 
     const handler = (event: KeyboardEvent) => {
+      if (handleListNavigation(event)) return;
       if (event.repeat || isTypingTarget(event.target)) return;
       if (live.status === "idle") return;
 

@@ -147,7 +147,7 @@ export default function MusiciansPage({
       </section>
 
       <div className="musicians-grid">
-        <aside className="panel musicians-songs musicians-setlists">
+        <aside className="panel musicians-songs musicians-setlists" data-key-list>
           <div className="panel-heading">
             <h3>Set lists</h3>
             <span className="muted">{setlists.length}</span>
@@ -155,6 +155,7 @@ export default function MusiciansPage({
           {setlists.map((setlist) => (
             <button
               key={setlist.id}
+              data-key-list-item
               className={`musician-song ${setlist.id === selectedSetlist ? "current" : ""}`}
               onClick={() => setSelectedSetlist(setlist.id)}
               title={`Open set list “${setlist.name}”`}

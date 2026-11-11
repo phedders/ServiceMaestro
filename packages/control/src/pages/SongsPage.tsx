@@ -381,10 +381,11 @@ export default function SongsPage({
           onChange={(event) => setSearch(event.target.value)}
           placeholder="Search title, alternative titles, author or lyrics…"
         />
-        <div className="song-list">
+        <div className="song-list" data-key-list>
           {filtered.map((song) => (
             <button
               key={song.id}
+              data-key-list-item
               className={`song-row ${song.id === selectedId ? "current" : ""}`}
               onClick={() => select(song)}
               title={`Edit “${song.title}”`}

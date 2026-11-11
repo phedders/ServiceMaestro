@@ -91,6 +91,49 @@ export function saveKeyboardShortcuts(shortcuts: KeyboardShortcuts): void {
   }
 }
 
+const LIST_KEYS = new Set(["ArrowUp", "ArrowDown", "PageUp", "PageDown"]);
+
+/**
+ * Moves focus and selection through a marked list using arrow/page keys.
+ * Returns true when the key was handled so global live shortcuts stay out of
+ * the way while the operator is browsing a list.
+ */
+export function handleListNavigation(event: KeyboardEvent): boolean {
+  const target = event.target as Element | null;
+  const item = target?.closest<HTMLElement>("[data-key-list-item]");
+  const list = item?.closest<HTMLElement>("[data-key-list]");
+  if (!item || !list) return false;
+
+  const items = Array.from(list.querySelectorAll<HTMLElement>("[data-key-list-item]"));
+  const index = items.indexOf(item);
+  if (index < 0) return false;
+
+  if (!LIST_KEYS.has(event.key)) {
+    // Keep other control shortcuts from firing while focus is in a list.
+    return true;
+  }
+
+  const itemHeight = Math.max(1, item.getBoundingClientRect().height);
+  const pageSize = Math.max(1, Math.floor((list.clientHeight || 400) / itemHeight));
+  const delta =
+    event.key === "ArrowUp"
+      ? -1
+      : event.key === "ArrowDown"
+        ? 1
+        : event.key === "PageUp"
+          ? -pageSize
+          : pageSize;
+  const nextIndex = Math.max(0, Math.min(items.length - 1, index + delta));
+  event.preventDefault();
+  if (nextIndex === index) return true;
+
+  const next = items[nextIndex];
+  next.focus({ preventScroll: true });
+  next.click();
+  next.scrollIntoView({ block: "nearest" });
+  return true;
+}
+
 export function isTypingTarget(target: EventTarget | null): boolean {
   const element = target as HTMLElement | null;
   if (!element) return false;

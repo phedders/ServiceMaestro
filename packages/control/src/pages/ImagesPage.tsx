@@ -51,6 +51,7 @@ function FolderBranch({
   return (
     <>
       <button
+        data-key-list-item
         className={`image-folder ${node.path === selected ? "current" : ""}`}
         style={{ paddingLeft: `${12 + depth * 16}px` }}
         onClick={() => onSelect(node.path)}
@@ -256,7 +257,7 @@ export default function ImagesPage({
       </section>
 
       <div className="images-layout">
-        <aside className="panel image-tree">
+        <aside className="panel image-tree" data-key-list>
           <div className="panel-heading">
             <h3>Folders</h3>
           </div>

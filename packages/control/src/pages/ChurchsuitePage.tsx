@@ -153,7 +153,7 @@ export default function ChurchsuitePage({
       </section>
 
       <div className="churchsuite-grid">
-        <aside className="panel churchsuite-plans">
+        <aside className="panel churchsuite-plans" data-key-list>
           <div className="panel-heading">
             <h3>Plans</h3>
             <span className="muted">{plans.length}</span>
@@ -161,6 +161,7 @@ export default function ChurchsuitePage({
           {plans.map((plan) => (
             <button
               key={plan.id}
+              data-key-list-item
               className={`churchsuite-plan ${plan.id === selectedPlan ? "current" : ""}`}
               onClick={() => openPlan(plan)}
               title={`Review ChurchSuite plan “${plan.name}”`}

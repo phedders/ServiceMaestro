@@ -1082,10 +1082,11 @@ export default function SetlistsPage({
           <h2>Set lists</h2>
           <span className="muted">{setlists.length}</span>
         </div>
-        <div className="setlist-list">
+        <div className="setlist-list" data-key-list>
           {setlists.map((setlist) => (
             <button
               key={setlist.id}
+              data-key-list-item
               className={`setlist-list-item ${setlist.id === selectedId ? "current" : ""}`}
               onClick={() => {
                 setSelectedId(setlist.id);
