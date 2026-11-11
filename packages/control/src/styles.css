@@ -1230,6 +1230,39 @@ label {
   gap: 16px;
 }
 
+.shortcut-grid {
+  display: grid;
+  gap: 8px;
+}
+
+.shortcut-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(180px, 280px);
+  gap: 14px;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--panel-2);
+  padding: 9px 12px;
+}
+
+.shortcut-row > div {
+  display: grid;
+  gap: 2px;
+}
+
+.shortcut-row .muted {
+  font-size: 0.7rem;
+}
+
+.shortcut-input {
+  text-align: center;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-weight: 700;
+  color: #a5e8ff;
+  cursor: pointer;
+}
+
 .font-import {
   display: grid;
   grid-template-columns: 1fr 1.4fr auto;
@@ -2096,6 +2129,10 @@ label {
   .font-import,
   .font-row,
   .verse-order-add {
+    grid-template-columns: 1fr;
+  }
+
+  .shortcut-row {
     grid-template-columns: 1fr;
   }
 

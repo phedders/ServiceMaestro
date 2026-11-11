@@ -10,6 +10,13 @@ import SongsPage from "./pages/SongsPage";
 import BiblePage from "./pages/BiblePage";
 import MusiciansPage from "./pages/MusiciansPage";
 import ConfigPage from "./pages/ConfigPage";
+import {
+  SHORTCUT_CHANGE_EVENT,
+  isTypingTarget,
+  loadKeyboardShortcuts,
+  shortcutMatches,
+  type KeyboardShortcuts,
+} from "./keyboard";
 
 type Page = "live" | "setlists" | "songs" | "bible" | "config";
 
@@ -28,6 +35,7 @@ export default function App() {
   const [live, setLive] = useState<LiveState>(EMPTY_LIVE);
   const [connected, setConnected] = useState(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const [shortcuts, setShortcuts] = useState<KeyboardShortcuts>(loadKeyboardShortcuts);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     try {
       return window.localStorage.getItem("sm-sidebar-collapsed") === "1";
@@ -51,6 +59,16 @@ export default function App() {
       // Storage can be unavailable in private browsing; layout still works for this session.
     }
   }, [sidebarCollapsed, topbarMode]);
+
+  useEffect(() => {
+    const refresh = () => setShortcuts(loadKeyboardShortcuts());
+    window.addEventListener(SHORTCUT_CHANGE_EVENT, refresh);
+    window.addEventListener("storage", refresh);
+    return () => {
+      window.removeEventListener(SHORTCUT_CHANGE_EVENT, refresh);
+      window.removeEventListener("storage", refresh);
+    };
+  }, []);
 
   const notify = (text: string, kind: "info" | "error" = "info") => {
     const id = Date.now() + Math.random();
@@ -94,6 +112,47 @@ export default function App() {
       notify(error instanceof ApiError ? error.message : "Command failed", "error");
     }
   };
+
+  useEffect(() => {
+    if (!user || standaloneMusicians) return;
+
+    const handler = (event: KeyboardEvent) => {
+      if (event.repeat || isTypingTarget(event.target)) return;
+      if (live.status === "idle") return;
+
+      if (shortcutMatches(event, shortcuts.toggleBlank)) {
+        event.preventDefault();
+        command({ type: "blank", value: !live.blank });
+        return;
+      }
+      if (shortcutMatches(event, shortcuts.nextPage)) {
+        event.preventDefault();
+        command({ type: "page", delta: 1 });
+        return;
+      }
+      if (shortcutMatches(event, shortcuts.previousPage)) {
+        event.preventDefault();
+        command({ type: "page", delta: -1 });
+        return;
+      }
+      if (!live.items.length) return;
+      const currentItem = Math.max(0, live.itemIndex);
+      if (shortcutMatches(event, shortcuts.nextItem)) {
+        const target = Math.min(live.items.length - 1, currentItem + 1);
+        event.preventDefault();
+        command({ type: "goto", itemIndex: target });
+        return;
+      }
+      if (shortcutMatches(event, shortcuts.previousItem)) {
+        const target = Math.max(0, currentItem - 1);
+        event.preventDefault();
+        command({ type: "goto", itemIndex: target });
+      }
+    };
+
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [user, standaloneMusicians, shortcuts, live, command]);
 
   const quickText = async (text: string) => {
     try {

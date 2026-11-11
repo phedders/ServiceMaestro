@@ -26,7 +26,7 @@ WLM_ADMIN_PASSWORD='change-me' npm start
 | Scores/tabs | Per-song asset upload (PDF, ChordPro, lyrics, image); authenticated file route; standalone `/musicians` service list with lyrics, notes and PDF.js viewer (page nav, zoom, fit-to-width) |
 | Set lists | Named/dated services; songs and text items; arrow/drag-handle reorder; inline preview then edit title, lyrics/text, format, key, transpose, verse order and notes; song edits local by default with **Save to song library**; **Send to live session** when the set list is live; published revisions |
 | Display config | Live-page font/colour/size/max-lines/max-words/smart-page-split panel; styles apply to main/two-thirds, stage/chords fixed; 1080p coverage estimate avoids overflow |
-| Fonts/config | Config page imports Google Fonts by family/URL; CSS and woff2 cached in `/data/fonts`; ChurchSuite credential status and connection test |
+| Fonts/config | Config page imports Google Fonts by family/URL; CSS and woff2 cached in `/data/fonts`; ChurchSuite credential status and connection test; configurable live keyboard shortcuts |
 | Export/import | Reference JSON and self-contained ZIP bundles (songs/text/assets); preview then import as a new draft, with song matching by CCLI/title |
 | Git local persistence | Songs/setlists written to local Git repos and committed; `autoSave`/`autoPush` configurable (default true); optional remotes, startup import/export, pull interval; Bibles repo optional (LFS in container) |
 | Live sessions | Snapshot-on-start; starts blank; page selection shows/fades; item selection only queues pages; publish/apply after-current or now; queued updates survive restarts; next/prev, page/item navigation, blank, transpose, max lines, footer, quick text |

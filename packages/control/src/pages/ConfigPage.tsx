@@ -1,6 +1,15 @@
 import { useEffect, useState } from "react";
+import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 import type { FontOption } from "@wlm/shared";
 import { api, ApiError } from "../api";
+import {
+  DEFAULT_SHORTCUTS,
+  SHORTCUT_LABELS,
+  loadKeyboardShortcuts,
+  saveKeyboardShortcuts,
+  shortcutFromEvent,
+  type KeyboardShortcuts,
+} from "../keyboard";
 
 export default function ConfigPage({
   notify,
@@ -21,6 +30,7 @@ export default function ConfigPage({
   } | null>(null);
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<string | null>(null);
+  const [shortcuts, setShortcuts] = useState<KeyboardShortcuts>(loadKeyboardShortcuts);
 
   async function loadFonts() {
     setLoadingFonts(true);
@@ -88,8 +98,84 @@ export default function ConfigPage({
     }
   }
 
+  function captureShortcut(action: keyof KeyboardShortcuts, event: ReactKeyboardEvent<HTMLInputElement>) {
+    if (event.key === "Tab") return;
+    event.preventDefault();
+    if (event.key === "Escape") {
+      event.currentTarget.blur();
+      return;
+    }
+    if (event.key === "Backspace" || event.key === "Delete") {
+      setShortcuts((current) => ({ ...current, [action]: "" }));
+      return;
+    }
+    const value = shortcutFromEvent(event.nativeEvent);
+    if (value) setShortcuts((current) => ({ ...current, [action]: value }));
+  }
+
+  function saveShortcuts() {
+    const values = Object.values(shortcuts).filter(Boolean);
+    if (new Set(values).size !== values.length) {
+      notify("Each keyboard shortcut must be unique", "error");
+      return;
+    }
+    saveKeyboardShortcuts(shortcuts);
+    notify("Keyboard shortcuts saved");
+  }
+
+  function resetShortcuts() {
+    const defaults = { ...DEFAULT_SHORTCUTS };
+    setShortcuts(defaults);
+    saveKeyboardShortcuts(defaults);
+    notify("Keyboard shortcuts reset to defaults");
+  }
+
   return (
     <div className="config-page">
+      <section className="panel">
+        <div className="panel-heading">
+          <div>
+            <h2>Keyboard shortcuts</h2>
+            <p className="muted">
+              Control live output without leaving the control window. Shortcuts are ignored while
+              typing in an input, textarea or select.
+            </p>
+          </div>
+          <div className="button-row">
+            <button className="button ghost" onClick={resetShortcuts}>
+              Reset defaults
+            </button>
+            <button className="button primary" onClick={saveShortcuts}>
+              Save shortcuts
+            </button>
+          </div>
+        </div>
+        <div className="shortcut-grid">
+          {SHORTCUT_LABELS.map(({ action, label, hint }) => (
+            <div key={action} className="shortcut-row">
+              <div>
+                <strong>{label}</strong>
+                <span className="muted">{hint}</span>
+              </div>
+              <input
+                className="shortcut-input"
+                readOnly
+                value={shortcuts[action]}
+                placeholder="Press a shortcut…"
+                onKeyDown={(event) => captureShortcut(action, event)}
+                onFocus={(event) => event.currentTarget.select()}
+                title="Focus and press the key combination; Backspace/Delete clears it"
+              />
+            </div>
+          ))}
+        </div>
+        <p className="hint">
+          Defaults: <code>B</code> hide/show, <code>←</code>/<code>→</code> pages,{" "}
+          <code>↑</code>/<code>↓</code> set-list items. Press a field and then the desired key
+          combination; Backspace or Delete clears it.
+        </p>
+      </section>
+
       <section className="panel">
         <div className="panel-heading">
           <div>
