@@ -20,6 +20,7 @@ A self-hosted server application for running church service visuals: manage song
 > - [Git-backed shared data](docs/11-git-data-sync.md) — songs/setlists/bibles repositories shared between instances.
 > - [Waiting list](docs/12-waiting-list.md) — blocked items and what they need.
 > - [Display templates and text formats](docs/13-display-templates.md) — templated outputs, Markdown/HTML/RST text items, blank start and preview sizing.
+> - [Tarp presentation module](docs/14-tarp.md) — two-view presentation editor, themes, animations and set-list integration plan.
 
 ## Quick start
 
