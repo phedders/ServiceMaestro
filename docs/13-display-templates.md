@@ -82,6 +82,8 @@ type: html
 
 Page breaks: `<!-- page -->` / `<!--- page --->` or `<hr class="page-break">`. Plain text and songs also split at the display config’s max lines/words. Rich Markdown/HTML/RST items use explicit page markers as page boundaries.
 
+Text items also carry a per-item **Alignment** setting: **Left** or **Centre**. The alignment is applied in the rendered page HTML so it works on every output and in the control preview.
+
 Rendering:
 
 - **Markdown** via `marked`

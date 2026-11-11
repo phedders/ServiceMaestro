@@ -174,6 +174,7 @@ ensureColumn("songs", "alternate_titles", "TEXT");
 ensureColumn("songs", "lyrics_markdown", "INTEGER NOT NULL DEFAULT 0");
 ensureColumn("setlist_items", "verse_order", "TEXT");
 ensureColumn("setlist_items", "text_format", "TEXT");
+ensureColumn("setlist_items", "text_align", "TEXT");
 ensureColumn("service_sessions", "revision_id", "TEXT");
 ensureColumn("service_sessions", "pending_json", "TEXT");
 ensureColumn("display_config", "max_words", "INTEGER NOT NULL DEFAULT 90");

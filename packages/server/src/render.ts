@@ -10,6 +10,7 @@ export interface RenderItem {
   lyrics?: string | null;
   content?: string | null;
   format?: TextFormat | null;
+  textAlign?: "left" | "center";
   lyricsMarkdown?: boolean;
   key?: string | null;
   keyOverride?: string | null;
@@ -544,6 +545,7 @@ export function buildPages(
   if (item.kind === "text") {
     const parsed = parseTextContent(item.content ?? "");
     const format = item.format ?? parsed.format;
+    const align = item.textAlign === "center" ? "center" : "left";
     if (format !== "text") {
       const chunks = parsed.body
         .split(PAGE_BREAK_RE)
@@ -552,7 +554,7 @@ export function buildPages(
       return chunks.map((chunk, index) => ({
         index,
         section: null,
-        html: `<div class="text-html">${renderRichText(chunk, format)}</div>`,
+        html: `<div class="text-html" style="text-align:${align}">${renderRichText(chunk, format)}</div>`,
       }));
     }
     blocks = parsed.body
@@ -579,10 +581,14 @@ export function buildPages(
     const label = block.section
       ? `<div class="section-label">${escapeHtml(block.section)}</div>`
       : "";
+    const alignStyle =
+      item.kind === "text"
+        ? ` style="text-align:${item.textAlign === "center" ? "center" : "left"}"`
+        : "";
     return {
       index,
       section: block.section,
-      html: `<div class="slide-inner">${label}${lines}</div>`,
+      html: `<div class="slide-inner"${alignStyle}>${label}${lines}</div>`,
     };
   });
 }

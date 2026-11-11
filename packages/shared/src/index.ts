@@ -47,6 +47,7 @@ export interface SetlistItem {
   title: string;
   content: string | null;
   format: TextFormat | null;
+  textAlign: "left" | "center";
   keyOverride: string | null;
   transpose: number;
   maxLines: number;
@@ -319,6 +320,7 @@ export const setlistItemInputSchema = z.object({
   title: z.string().trim().max(300).optional(),
   content: z.string().max(200_000).optional().nullable(),
   format: z.enum(["text", "markdown", "html", "rst"]).optional().nullable(),
+  textAlign: z.enum(["left", "center"]).optional(),
   keyOverride: z.string().trim().max(10).optional().nullable(),
   transpose: z.number().int().min(-24).max(24).optional(),
   maxLines: z.number().int().min(1).max(30).optional(),

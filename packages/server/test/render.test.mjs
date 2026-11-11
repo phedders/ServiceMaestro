@@ -132,7 +132,7 @@ test("rich text does not use the flex line container", () => {  const pages = bu
     transpose: 0,
     maxLines: 4,
   });
-  assert.match(pages[0].html, /^<div class="text-html">/);
+  assert.match(pages[0].html, /^<div class="text-html"/);
   assert.doesNotMatch(pages[0].html, /slide-inner/);
 });
 
@@ -205,8 +205,29 @@ test("renders song Markdown and split-word tags", () => {
   assert.match(split, /class="lyric-split"/);
 });
 
-test("smart wrapping keeps split words together", () => {
-  const pages = buildPages(
+test("applies text alignment to text items", () => {
+  const plain = buildPages({
+    kind: "text",
+    title: "Aligned",
+    content: "Line one\nLine two",
+    transpose: 0,
+    maxLines: 4,
+    textAlign: "center",
+  });
+  assert.match(plain[0].html, /style="text-align:center"/);
+  const markdown = buildPages({
+    kind: "text",
+    title: "Aligned",
+    content: "# Heading",
+    format: "markdown",
+    textAlign: "left",
+    transpose: 0,
+    maxLines: 4,
+  });
+  assert.match(markdown[0].html, /text-html" style="text-align:left"/);
+});
+
+test("smart wrapping keeps split words together", () => {  const pages = buildPages(
     {
       kind: "song",
       title: "Split",

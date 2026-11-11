@@ -115,6 +115,7 @@ function ItemRow({
     item.kind === "song" ? item.content ?? song?.lyrics ?? "" : initial.content,
   );
   const [format, setFormat] = useState<TextFormat>(initial.format);
+  const [textAlign, setTextAlign] = useState<"left" | "center">(item.textAlign ?? "left");
   const [keyOverride, setKeyOverride] = useState(item.keyOverride ?? "");
   const [transpose, setTranspose] = useState(item.transpose);
   const [verseOrder, setVerseOrder] = useState(item.verseOrder ?? "");
@@ -128,6 +129,7 @@ function ItemRow({
     const next = initialTextState(item);
     setTitle(item.title);
     setFormat(next.format);
+    setTextAlign(item.textAlign ?? "left");
     setContent(item.kind === "song" ? item.content ?? song?.lyrics ?? "" : next.content);
     setKeyOverride(item.keyOverride ?? "");
     setTranspose(item.transpose);
@@ -147,6 +149,7 @@ function ItemRow({
     const next = initialTextState(item);
     setTitle(item.title);
     setFormat(next.format);
+    setTextAlign(item.textAlign ?? "left");
     setContent(item.kind === "song" ? item.content ?? song?.lyrics ?? "" : next.content);
     setKeyOverride(item.keyOverride ?? "");
     setTranspose(item.transpose);
@@ -188,7 +191,7 @@ function ItemRow({
       transpose: Number(transpose) || 0,
       verseOrder: verseOrder || null,
       notes: notes || null,
-      ...(item.kind === "text" ? { format } : {}),
+      ...(item.kind === "text" ? { format, textAlign } : {}),
     };
   }
 
@@ -294,18 +297,30 @@ function ItemRow({
             <input value={title} onChange={(event) => setTitle(event.target.value)} />
           </label>
           {item.kind === "text" && (
-            <label>
-              Text format
-              <select
-                value={format}
-                onChange={(event) => setFormat(event.target.value as TextFormat)}
-              >
-                <option value="markdown">Markdown (default)</option>
-                <option value="text">Plain text</option>
-                <option value="html">HTML</option>
-                <option value="rst">reStructuredText</option>
-              </select>
-            </label>
+            <>
+              <label>
+                Text format
+                <select
+                  value={format}
+                  onChange={(event) => setFormat(event.target.value as TextFormat)}
+                >
+                  <option value="markdown">Markdown (default)</option>
+                  <option value="text">Plain text</option>
+                  <option value="html">HTML</option>
+                  <option value="rst">reStructuredText</option>
+                </select>
+              </label>
+              <label>
+                Alignment
+                <select
+                  value={textAlign}
+                  onChange={(event) => setTextAlign(event.target.value as "left" | "center")}
+                >
+                  <option value="left">Left</option>
+                  <option value="center">Centre</option>
+                </select>
+              </label>
+            </>
           )}
           <label>
             {item.kind === "song" ? "Lyrics" : "Text"}
@@ -438,6 +453,7 @@ export default function SetlistsPage({
   const [textTitle, setTextTitle] = useState("");
   const [textContent, setTextContent] = useState("");
   const [textFormat, setTextFormat] = useState<TextFormat>("markdown");
+  const [textAlign, setTextAlign] = useState<"left" | "center">("left");
 
   async function loadList(select?: string) {
     const result = await api.setlists();
@@ -523,11 +539,13 @@ export default function SetlistsPage({
         title: textTitle.trim() || "Text",
         content: extracted.content,
         format: extracted.format ?? textFormat,
+        textAlign,
       });
       setDetail(result.setlist);
       setTextTitle("");
       setTextContent("");
       setTextFormat("markdown");
+      setTextAlign("left");
       await loadList(detail.id);
     } catch (error) {
       notify(error instanceof ApiError ? error.message : "Could not add text", "error");
@@ -969,6 +987,13 @@ export default function SetlistsPage({
                 <option value="text">Plain text</option>
                 <option value="html">HTML</option>
                 <option value="rst">reStructuredText</option>
+              </select>
+              <select
+                value={textAlign}
+                onChange={(event) => setTextAlign(event.target.value as "left" | "center")}
+              >
+                <option value="left">Align left</option>
+                <option value="center">Centre</option>
               </select>
               <textarea
                 value={textContent}

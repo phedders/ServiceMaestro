@@ -34,6 +34,7 @@ interface ItemRow {
   title: string;
   content: string | null;
   text_format: string | null;
+  text_align: string | null;
   key_override: string | null;
   transpose: number;
   max_lines: number;
@@ -58,6 +59,7 @@ function mapItem(row: ItemRow): SetlistItem {
     title: row.title,
     content: row.content,
     format: (row.text_format as SetlistItem["format"]) ?? null,
+    textAlign: row.text_align === "center" ? "center" : "left",
     keyOverride: row.key_override,
     transpose: row.transpose,
     maxLines: row.max_lines,
@@ -214,8 +216,8 @@ export async function setlistRoutes(app: FastifyInstance): Promise<void> {
       const itemId = randomUUID();
       db.prepare(
         `INSERT INTO setlist_items
-         (id, setlist_id, position, kind, song_id, title, content, text_format, key_override, transpose, max_lines, verse_order, notes)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         (id, setlist_id, position, kind, song_id, title, content, text_format, text_align, key_override, transpose, max_lines, verse_order, notes)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       ).run(
         itemId,
         id,
@@ -225,6 +227,7 @@ export async function setlistRoutes(app: FastifyInstance): Promise<void> {
         title,
         content,
         format,
+        data.kind === "text" ? data.textAlign ?? "left" : null,
         data.keyOverride ?? null,
         data.transpose ?? 0,
         data.maxLines ?? 4,
@@ -262,12 +265,15 @@ export async function setlistRoutes(app: FastifyInstance): Promise<void> {
         }
       }
       db.prepare(
-        `UPDATE setlist_items SET title = ?, content = ?, text_format = ?, key_override = ?, transpose = ?, max_lines = ?, verse_order = ?, notes = ?
+        `UPDATE setlist_items SET title = ?, content = ?, text_format = ?, text_align = ?, key_override = ?, transpose = ?, max_lines = ?, verse_order = ?, notes = ?
          WHERE id = ?`,
       ).run(
         data.title ?? existing.title,
         nextContent,
         nextFormat,
+        existing.kind === "text"
+          ? data.textAlign ?? existing.text_align ?? "left"
+          : null,
         data.keyOverride !== undefined ? data.keyOverride : existing.key_override,
         data.transpose ?? existing.transpose,
         data.maxLines ?? existing.max_lines,

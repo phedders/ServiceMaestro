@@ -90,6 +90,7 @@ function resolveSetlistItems(setlistId: string): { name: string; items: Snapshot
     title: string;
     content: string | null;
     text_format: string | null;
+    text_align: string | null;
     key_override: string | null;
     transpose: number;
     max_lines: number;
@@ -125,6 +126,7 @@ function resolveSetlistItems(setlistId: string): { name: string; items: Snapshot
       title: row.title || "Text",
       content: row.content ?? "",
       format: (row.text_format as TextFormat | null) ?? null,
+      textAlign: row.text_align === "center" ? "center" : "left",
       transpose: 0,
       maxLines: row.max_lines,
       verseOrder: null,
@@ -545,6 +547,7 @@ class LiveService {
       title: "Quick text",
       content: text,
       format: "text",
+      textAlign: "left",
       transpose: 0,
       maxLines: record.state.maxLines,
       verseOrder: null,

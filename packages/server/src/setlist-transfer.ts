@@ -42,6 +42,7 @@ const itemSchema = z.object({
   notes: z.string().nullable().optional(),
   content: z.string().nullable().optional(),
   format: z.enum(["text", "markdown", "html", "rst"]).nullable().optional(),
+  textAlign: z.enum(["left", "center"]).nullable().optional(),
   song: songSchema.nullable().optional(),
   assetIds: z.array(z.string()).optional(),
 });
@@ -189,6 +190,7 @@ export function buildSetlistExport(
     title: string;
     content: string | null;
     text_format: string | null;
+    text_align: string | null;
     key_override: string | null;
     transpose: number;
     max_lines: number;
@@ -239,6 +241,7 @@ export function buildSetlistExport(
         notes: row.notes,
         content: row.content,
         format: null,
+        textAlign: null,
         song: song
           ? {
               title: song.title,
@@ -268,6 +271,7 @@ export function buildSetlistExport(
       notes: row.notes,
       content: row.content ?? "",
       format: (row.text_format as SetlistManifest["items"][number]["format"]) ?? null,
+      textAlign: (row.text_align === "center" ? "center" : "left") as "left" | "center",
     };
   });
 
@@ -395,8 +399,8 @@ export function importSetlistFile(
 
   const insertItem = db.prepare(
     `INSERT INTO setlist_items
-     (id, setlist_id, position, kind, song_id, title, content, text_format, key_override, transpose, max_lines, verse_order, notes)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     (id, setlist_id, position, kind, song_id, title, content, text_format, text_align, key_override, transpose, max_lines, verse_order, notes)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   );
 
   let importedItems = 0;
@@ -461,6 +465,7 @@ export function importSetlistFile(
       item.title,
       content,
       item.kind === "text" ? item.format ?? null : null,
+      item.kind === "text" ? item.textAlign ?? "left" : null,
       item.keyOverride ?? null,
       item.transpose ?? 0,
       item.maxLines ?? 4,

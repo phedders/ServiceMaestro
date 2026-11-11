@@ -281,8 +281,8 @@ function importSetlist(manifest: SetlistManifest): void {
 
   const insert = db.prepare(
     `INSERT INTO setlist_items
-     (id, setlist_id, position, kind, song_id, title, content, text_format, key_override, transpose, max_lines, verse_order, notes)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     (id, setlist_id, position, kind, song_id, title, content, text_format, text_align, key_override, transpose, max_lines, verse_order, notes)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   );
 
   for (const item of manifest.items) {
@@ -327,6 +327,7 @@ function importSetlist(manifest: SetlistManifest): void {
       item.title,
       content,
       item.kind === "text" ? item.format ?? null : null,
+      item.kind === "text" ? item.textAlign ?? "left" : null,
       item.keyOverride ?? null,
       item.transpose ?? 0,
       item.maxLines ?? 4,
