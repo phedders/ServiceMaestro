@@ -1465,6 +1465,26 @@ body.resizing-live-queue {
   gap: 10px;
 }
 
+.image-list-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  align-items: flex-end;
+}
+
+.image-list-options .checkbox {
+  flex: 0 0 auto;
+  min-height: 38px;
+}
+
+.image-list-options .checkbox.disabled {
+  opacity: 0.45;
+}
+
+.image-list-options > label:not(.checkbox) {
+  flex: 1 1 120px;
+}
+
 .song-search-fields {
   display: flex;
   flex-wrap: wrap;

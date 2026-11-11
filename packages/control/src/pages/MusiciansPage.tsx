@@ -1,5 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-import type { SetlistDetail, SetlistItem, SetlistSummary, Song, SongAsset } from "@sm/shared";
+import {
+  parseImageListContent,
+  type SetlistDetail,
+  type SetlistItem,
+  type SetlistSummary,
+  type Song,
+  type SongAsset,
+} from "@sm/shared";
 import { api, ApiError } from "../api";
 import { PdfViewer } from "../components/PdfViewer";
 import { compactDate, pickCurrentSetlist } from "../service-date";
@@ -187,11 +194,17 @@ export default function MusiciansPage({
                         onClick={() => selectItem(item)}
                         title={`Show lyrics, scores and tabs for “${item.title}”`}
                       >
-                        <span className={`item-icon ${item.kind}`}>{item.kind === "song" ? "♫" : "T"}</span>
+                        <span className={`item-icon ${item.kind}`}>
+                          {item.kind === "song" ? "♫" : item.kind === "image_list" ? "▦" : "T"}
+                        </span>
                         <span>
                           <strong>{item.title}</strong>
                           <span className="muted">
-                            {item.kind === "song" ? "Song" : "Text"}
+                            {item.kind === "song"
+                              ? "Song"
+                              : item.kind === "image_list"
+                                ? "Image list"
+                                : "Text"}
                             {key ? ` · key ${key}` : ""}
                             {item.transpose ? ` · transpose ${item.transpose > 0 ? "+" : ""}${item.transpose}` : ""}
                             {songAssets.length ? ` · ${songAssets.length} file${songAssets.length === 1 ? "" : "s"}` : ""}
@@ -239,6 +252,11 @@ export default function MusiciansPage({
                                 <p className="muted">No score, ChordPro file or tab attached to this song.</p>
                               )}
                             </>
+                          ) : item.kind === "image_list" ? (
+                            <p className="muted">
+                              {parseImageListContent(item.content)?.images.length ?? 0} images in this
+                              image list. View it on a display.
+                            </p>
                           ) : (
                             <pre className="lyrics-view">{item.content}</pre>
                           )}

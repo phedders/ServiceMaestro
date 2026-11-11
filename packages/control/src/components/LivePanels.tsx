@@ -41,7 +41,13 @@ export function ItemList({ live, onCommand }: { live: LiveState; onCommand: (pay
             title="Queue this item's page list"
           >
             <span className="item-icon">
-              {item.kind === "song" ? "♫" : item.kind === "image" ? "▣" : "T"}
+              {item.kind === "song"
+                ? "♫"
+                : item.kind === "image"
+                  ? "▣"
+                  : item.kind === "image_list"
+                    ? "▦"
+                    : "T"}
             </span>
             <span className="item-title">{item.title}</span>
             {item.notes && <span className="item-notes">{item.notes}</span>}

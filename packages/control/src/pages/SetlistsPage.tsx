@@ -1,23 +1,67 @@
 import { useEffect, useState } from "react";
-import type {
-  ImageAsset,
-  LiveState,
-  SetlistDetail,
-  SetlistImportPreview,
-  SetlistImportReport,
-  SetlistItem,
-  SetlistRevisionInfo,
-  SetlistSummary,
-  Song,
-  TextFormat,
+import {
+  parseImageListContent,
+  serializeImageListContent,
+  type ImageAsset,
+  type LiveState,
+  type SetlistDetail,
+  type SetlistImportPreview,
+  type SetlistImportReport,
+  type SetlistItem,
+  type SetlistRevisionInfo,
+  type SetlistSummary,
+  type Song,
+  type TextFormat,
 } from "@sm/shared";
 import { api, ApiError } from "../api";
 import { IsoDateInput } from "../components/IsoDateInput";
 import { PageContentEditor } from "../components/PageContentEditor";
 import { compactDate, compactDateTime, defaultSetlistName } from "../service-date";
 
+const ROOT_FOLDER_KEY = "__root__";
+
 function today(): string {
   return new Date().toISOString().slice(0, 10);
+}
+
+function folderKey(folder: string): string {
+  return folder ? folder : ROOT_FOLDER_KEY;
+}
+
+function folderFromKey(key: string): string {
+  return key === ROOT_FOLDER_KEY ? "" : key;
+}
+
+function folderLabel(folder: string): string {
+  return folder || "Root images";
+}
+
+function imagesForFolder(images: ImageAsset[], folder: string): ImageAsset[] {
+  if (!folder) return images.filter((image) => image.folder === "");
+  return images.filter(
+    (image) => image.folder === folder || image.folder.startsWith(`${folder}/`),
+  );
+}
+
+function imageFolderOptions(images: ImageAsset[]): string[] {
+  const folders = [...new Set(images.map((image) => image.folder))].sort((a, b) =>
+    folderLabel(a).localeCompare(folderLabel(b), undefined, { sensitivity: "base" }),
+  );
+  return folders.sort((a, b) => Number(Boolean(a)) - Number(Boolean(b)));
+}
+
+function itemKindLabel(kind: SetlistItem["kind"]): string {
+  if (kind === "song") return "Song";
+  if (kind === "image") return "Image";
+  if (kind === "image_list") return "Image list";
+  return "Text";
+}
+
+function itemIcon(kind: SetlistItem["kind"]): string {
+  if (kind === "song") return "♫";
+  if (kind === "image") return "▣";
+  if (kind === "image_list") return "▦";
+  return "T";
 }
 
 function previewLines(item: SetlistItem, song: Song | undefined): string {
@@ -127,6 +171,11 @@ function ItemRow({
   const [imageFit, setImageFit] = useState<"scale" | "actual" | "crop" | "stretch">(
     item.imageFit ?? "scale",
   );
+  const initialImageList = parseImageListContent(item.content);
+  const [listFolder, setListFolder] = useState(initialImageList?.folder ?? "");
+  const [listAutoplay, setListAutoplay] = useState(initialImageList?.autoplay ?? false);
+  const [listLoop, setListLoop] = useState(initialImageList?.loop ?? true);
+  const [listDelay, setListDelay] = useState(initialImageList?.delaySeconds ?? 6);
   const [keyOverride, setKeyOverride] = useState(item.keyOverride ?? "");
   const [transpose, setTranspose] = useState(item.transpose);
   const [verseOrder, setVerseOrder] = useState(item.verseOrder ?? "");
@@ -142,6 +191,11 @@ function ItemRow({
     setFormat(next.format);
     setTextAlign(item.textAlign ?? "left");
     setImageFit(item.imageFit ?? "scale");
+    const nextImageList = parseImageListContent(item.content);
+    setListFolder(nextImageList?.folder ?? "");
+    setListAutoplay(nextImageList?.autoplay ?? false);
+    setListLoop(nextImageList?.loop ?? true);
+    setListDelay(nextImageList?.delaySeconds ?? 6);
     setContent(item.kind === "song" ? item.content ?? song?.lyrics ?? "" : next.content);
     setKeyOverride(item.keyOverride ?? "");
     setTranspose(item.transpose);
@@ -155,7 +209,9 @@ function ItemRow({
   const displayTitle = item.title || song?.title || "Untitled";
   const localSongEdit =
     item.kind === "song" && (item.content != null || (song != null && item.title !== song.title));
-  const preview = previewLines(item, song);
+  const preview = item.kind === "image_list" ? "" : previewLines(item, song);
+  const imageListPreview = initialImageList;
+  const listImages = imagesForFolder(images, listFolder);
 
   function resetDraft() {
     const next = initialTextState(item);
@@ -163,6 +219,11 @@ function ItemRow({
     setFormat(next.format);
     setTextAlign(item.textAlign ?? "left");
     setImageFit(item.imageFit ?? "scale");
+    const nextImageList = parseImageListContent(item.content);
+    setListFolder(nextImageList?.folder ?? "");
+    setListAutoplay(nextImageList?.autoplay ?? false);
+    setListLoop(nextImageList?.loop ?? true);
+    setListDelay(nextImageList?.delaySeconds ?? 6);
     setContent(item.kind === "song" ? item.content ?? song?.lyrics ?? "" : next.content);
     setKeyOverride(item.keyOverride ?? "");
     setTranspose(item.transpose);
@@ -192,6 +253,22 @@ function ItemRow({
       return {
         title: title.trim() || content.split("/").pop() || "Image",
         content,
+        imageFit,
+        notes: notes || null,
+      };
+    }
+    if (item.kind === "image_list") {
+      const listImages = imagesForFolder(images, listFolder);
+      if (!listImages.length) throw new Error("Choose a folder with images");
+      return {
+        title: title.trim() || folderLabel(listFolder),
+        content: serializeImageListContent({
+          folder: listFolder,
+          images: listImages.map((image) => image.path),
+          autoplay: listAutoplay,
+          loop: listAutoplay ? listLoop : true,
+          delaySeconds: listDelay,
+        }),
         imageFit,
         notes: notes || null,
       };
@@ -270,9 +347,7 @@ function ItemRow({
         >
           ⠿
         </span>
-        <span className={`item-icon ${item.kind}`}>
-          {item.kind === "song" ? "♫" : item.kind === "image" ? "▣" : "T"}
-        </span>
+        <span className={`item-icon ${item.kind}`}>{itemIcon(item.kind)}</span>
         <button
           type="button"
           className="setlist-item-summary"
@@ -284,7 +359,10 @@ function ItemRow({
             {localSongEdit && <span className="local-badge">Local edit</span>}
           </span>
           <span className="muted">
-            {item.kind === "song" ? "Song" : item.kind === "image" ? "Image" : "Text"}
+            {itemKindLabel(item.kind)}
+            {item.kind === "image_list" && imageListPreview
+              ? ` · ${imageListPreview.images.length} images`
+              : ""}
             {item.notes ? ` · ${item.notes}` : ""}
           </span>
           {!editing && item.kind === "image" && content && (
@@ -294,7 +372,21 @@ function ItemRow({
               alt={displayTitle}
             />
           )}
-          {!editing && preview && item.kind !== "image" && (
+          {!editing && item.kind === "image_list" && imageListPreview?.images[0] && (
+            <img
+              className="setlist-image-thumb"
+              src={`/display/images/file?path=${encodeURIComponent(imageListPreview.images[0])}`}
+              alt={displayTitle}
+            />
+          )}
+          {!editing && item.kind === "image_list" && imageListPreview && (
+            <span className="setlist-item-preview">
+              {imageListPreview.autoplay
+                ? `Autoplay every ${imageListPreview.delaySeconds}s${imageListPreview.loop ? " · looping" : ""}`
+                : "Autoplay off · advance manually"}
+            </span>
+          )}
+          {!editing && preview && item.kind !== "image" && item.kind !== "image_list" && (
             <span className="setlist-item-preview">{preview}</span>
           )}
         </button>
@@ -340,7 +432,9 @@ function ItemRow({
                 ? "Edit song for this set list"
                 : item.kind === "image"
                   ? "Edit image"
-                  : "Edit text"}
+                  : item.kind === "image_list"
+                    ? "Edit image list"
+                    : "Edit text"}
             </strong>
             {item.kind === "song" && (
               <span className="muted">
@@ -418,7 +512,96 @@ function ItemRow({
               </label>
             </>
           )}
-          {item.kind !== "image" && (
+          {item.kind === "image_list" && (
+            <>
+              {listImages[0] && (
+                <img
+                  className="image-edit-preview"
+                  src={`/display/images/file?path=${encodeURIComponent(listImages[0].path)}`}
+                  alt={displayTitle}
+                />
+              )}
+              <label>
+                Folder
+                <select
+                  value={folderKey(listFolder)}
+                  onChange={(event) => {
+                    const folder = folderFromKey(event.target.value);
+                    setListFolder(folder);
+                    if (!title.trim()) setTitle(folderLabel(folder));
+                  }}
+                >
+                  <option value="">Choose a folder…</option>
+                  {imageFolderOptions(images).map((folder) => (
+                    <option key={folderKey(folder)} value={folderKey(folder)}>
+                      {folderLabel(folder)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Image display
+                <select
+                  value={imageFit}
+                  onChange={(event) =>
+                    setImageFit(event.target.value as "scale" | "actual" | "crop" | "stretch")
+                  }
+                >
+                  <option value="scale">Scale to screen (default)</option>
+                  <option value="actual">1:1 actual size</option>
+                  <option value="crop">Crop to fill</option>
+                  <option value="stretch">Stretch to fill</option>
+                </select>
+              </label>
+              <div className="image-list-options">
+                <label className="checkbox">
+                  <input
+                    type="checkbox"
+                    checked={listAutoplay}
+                    onChange={(event) => {
+                      setListAutoplay(event.target.checked);
+                      if (!event.target.checked) setListLoop(true);
+                    }}
+                  />
+                  Autoplay
+                </label>
+                <label className={`checkbox ${listAutoplay ? "" : "disabled"}`}>
+                  <input
+                    type="checkbox"
+                    checked={!listAutoplay || listLoop}
+                    disabled={!listAutoplay}
+                    onChange={(event) => setListLoop(event.target.checked)}
+                  />
+                  Loop
+                </label>
+                <label>
+                  Delay (seconds)
+                  <input
+                    type="number"
+                    min={1}
+                    max={300}
+                    value={listDelay}
+                    onChange={(event) =>
+                      setListDelay(Math.max(1, Math.min(300, Number(event.target.value) || 6)))
+                    }
+                  />
+                </label>
+              </div>
+              <p className="hint">
+                {listImages.length} image{listImages.length === 1 ? "" : "s"} selected
+                {listImages.length === 0 ? " — choose a folder with images" : ""}.
+              </p>
+              <label>
+                Notes
+                <input
+                  value={notes}
+                  onChange={(event) => setNotes(event.target.value)}
+                  placeholder="Optional"
+                />
+              </label>
+            </>
+          )}
+          {(item.kind === "song" || item.kind === "text") && (
             <>
               {item.kind === "text" && (
             <>
@@ -584,6 +767,11 @@ export default function SetlistsPage({
   const [imageToAdd, setImageToAdd] = useState("");
   const [imageTitle, setImageTitle] = useState("");
   const [imageFitAdd, setImageFitAdd] = useState<"scale" | "actual" | "crop" | "stretch">("scale");
+  const [imageListFolder, setImageListFolder] = useState<string | null>(null);
+  const [imageListTitle, setImageListTitle] = useState("");
+  const [imageListAutoplay, setImageListAutoplay] = useState(false);
+  const [imageListLoop, setImageListLoop] = useState(true);
+  const [imageListDelay, setImageListDelay] = useState(6);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [songSearch, setSongSearch] = useState("");
   const [songSearchFields, setSongSearchFields] = useState({
@@ -696,6 +884,38 @@ export default function SetlistsPage({
       await loadList(detail.id);
     } catch (error) {
       notify(error instanceof ApiError ? error.message : "Could not add image", "error");
+    }
+  }
+
+  async function addImageList() {
+    if (!detail || imageListFolder === null) return;
+    const listImages = imagesForFolder(images, imageListFolder);
+    if (!listImages.length) {
+      notify("Choose a folder with images", "error");
+      return;
+    }
+    try {
+      const result = await api.addItem(detail.id, {
+        kind: "image_list",
+        title: imageListTitle.trim() || folderLabel(imageListFolder),
+        content: serializeImageListContent({
+          folder: imageListFolder,
+          images: listImages.map((image) => image.path),
+          autoplay: imageListAutoplay,
+          loop: imageListAutoplay ? imageListLoop : true,
+          delaySeconds: imageListDelay,
+        }),
+        imageFit: "scale",
+      });
+      setDetail(result.setlist);
+      setImageListFolder(null);
+      setImageListTitle("");
+      setImageListAutoplay(false);
+      setImageListLoop(true);
+      setImageListDelay(6);
+      await loadList(detail.id);
+    } catch (error) {
+      notify(error instanceof ApiError ? error.message : "Could not add image list", "error");
     }
   }
 
@@ -850,6 +1070,8 @@ export default function SetlistsPage({
     if (songSearchFields.body) fields.push(song.lyrics);
     return fields.some((value) => value.toLowerCase().includes(songQuery));
   });
+  const imageListFolderImages =
+    imageListFolder === null ? [] : imagesForFolder(images, imageListFolder);
 
   if (loading) return <div className="panel">Loading set lists…</div>;
 
@@ -1263,6 +1485,82 @@ export default function SetlistsPage({
                 title="Add the selected image as a slide in this set list"
               >
                 {uploadingImage ? "Uploading…" : "Add to set list"}
+              </button>
+            </div>
+            <div className="add-card">
+              <h3>Add image list</h3>
+              <select
+                value={imageListFolder === null ? "" : folderKey(imageListFolder)}
+                onChange={(event) => {
+                  if (!event.target.value) {
+                    setImageListFolder(null);
+                    return;
+                  }
+                  const folder = folderFromKey(event.target.value);
+                  setImageListFolder(folder);
+                  if (!imageListTitle.trim()) setImageListTitle(folderLabel(folder));
+                }}
+              >
+                <option value="">Choose a folder…</option>
+                {imageFolderOptions(images).map((folder) => (
+                  <option key={folderKey(folder)} value={folderKey(folder)}>
+                    {folderLabel(folder)}
+                  </option>
+                ))}
+              </select>
+              <input
+                value={imageListTitle}
+                onChange={(event) => setImageListTitle(event.target.value)}
+                placeholder="Title (optional)"
+              />
+              <div className="image-list-options">
+                <label className="checkbox">
+                  <input
+                    type="checkbox"
+                    checked={imageListAutoplay}
+                    onChange={(event) => {
+                      setImageListAutoplay(event.target.checked);
+                      if (!event.target.checked) setImageListLoop(true);
+                    }}
+                  />
+                  Autoplay
+                </label>
+                <label className={`checkbox ${imageListAutoplay ? "" : "disabled"}`}>
+                  <input
+                    type="checkbox"
+                    checked={!imageListAutoplay || imageListLoop}
+                    disabled={!imageListAutoplay}
+                    onChange={(event) => setImageListLoop(event.target.checked)}
+                  />
+                  Loop
+                </label>
+                <label>
+                  Delay (seconds)
+                  <input
+                    type="number"
+                    min={1}
+                    max={300}
+                    value={imageListDelay}
+                    onChange={(event) =>
+                      setImageListDelay(Math.max(1, Math.min(300, Number(event.target.value) || 6)))
+                    }
+                  />
+                </label>
+              </div>
+              <span className="hint">
+                {imageListFolder === null
+                  ? "Choose a folder to create an image list."
+                  : `${imageListFolderImages.length} image${
+                      imageListFolderImages.length === 1 ? "" : "s"
+                    } in ${folderLabel(imageListFolder)}.`}
+              </span>
+              <button
+                className="button"
+                onClick={addImageList}
+                disabled={!imageListFolderImages.length}
+                title="Convert the selected folder into a multiple-image set-list item"
+              >
+                Add image list
               </button>
             </div>
             <div className="add-card">

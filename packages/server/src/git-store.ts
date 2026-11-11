@@ -320,13 +320,17 @@ function importSetlist(manifest: SetlistManifest): void {
       `git-item-${manifest.setlist.id}-${item.position}`,
       id,
       item.position,
-      item.kind === "image" ? "image" : songId ? "song" : "text",
+      item.kind === "image" || item.kind === "image_list"
+        ? item.kind
+        : songId
+          ? "song"
+          : "text",
       songId,
       item.title,
       content,
       item.kind === "text" ? item.format ?? null : null,
       item.kind === "text" ? item.textAlign ?? "left" : null,
-      item.kind === "image" ? item.imageFit ?? "scale" : "scale",
+      item.kind === "image" || item.kind === "image_list" ? item.imageFit ?? "scale" : "scale",
       item.keyOverride ?? null,
       item.transpose ?? 0,
       item.maxLines ?? 4,

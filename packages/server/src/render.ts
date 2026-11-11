@@ -1,4 +1,4 @@
-import type { LivePage } from "@sm/shared";
+import { parseImageListContent, type LivePage } from "@sm/shared";
 import { marked } from "marked";
 import rst2html from "rst2html";
 import sanitizeHtml from "sanitize-html";
@@ -7,7 +7,7 @@ import { OUTPUT_TOKEN } from "./config.js";
 import { bareSectionLabel } from "./section-labels.js";
 
 export interface RenderItem {
-  kind: "song" | "text" | "image";
+  kind: "song" | "text" | "image" | "image_list";
   title: string;
   lyrics?: string | null;
   content?: string | null;
@@ -550,23 +550,28 @@ export function buildPages(
     textScale: options.textScale ?? 1,
   };
 
-  if (item.kind === "image") {
-    const relative = (item.content ?? "").trim();
-    if (!relative) {
-      return [{ index: 0, section: null, html: "" }];
-    }
-    const url = `/display/images/file?path=${encodeURIComponent(relative)}&token=${encodeURIComponent(OUTPUT_TOKEN)}`;
+  if (item.kind === "image" || item.kind === "image_list") {
     const fit =
       item.imageFit === "actual" || item.imageFit === "crop" || item.imageFit === "stretch"
         ? item.imageFit
         : "scale";
-    return [
-      {
-        index: 0,
+    const imagePage = (relative: string, index: number, title: string): LivePage => {
+      const url = `/display/images/file?path=${encodeURIComponent(relative)}&token=${encodeURIComponent(OUTPUT_TOKEN)}`;
+      return {
+        index,
         section: null,
-        html: `<div class="slide-image fit-${fit}"><img src="${escapeHtml(url)}" alt="${escapeHtml(item.title)}" /></div>`,
-      },
-    ];
+        html: `<div class="slide-image fit-${fit}"><img src="${escapeHtml(url)}" alt="${escapeHtml(title)}" /></div>`,
+      };
+    };
+    if (item.kind === "image") {
+      const relative = (item.content ?? "").trim();
+      return relative ? [imagePage(relative, 0, item.title)] : [{ index: 0, section: null, html: "" }];
+    }
+    const list = parseImageListContent(item.content);
+    if (!list) return [{ index: 0, section: null, html: "" }];
+    return list.images.map((relative, index) =>
+      imagePage(relative, index, relative.split("/").pop() || item.title),
+    );
   }
 
   let blocks: Block[];

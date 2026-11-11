@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import { randomUUID } from "node:crypto";
 import type { Server } from "socket.io";
+import { parseImageListContent } from "@sm/shared";
 import type {
   DisplayConfig,
   LiveApplyMode,
@@ -87,7 +88,7 @@ function resolveSetlistItems(setlistId: string): { name: string; items: Snapshot
     .prepare("SELECT * FROM setlist_items WHERE setlist_id = ? ORDER BY position ASC, rowid ASC")
     .all(setlistId) as Array<{
     id: string;
-    kind: "song" | "text" | "image";
+    kind: "song" | "text" | "image" | "image_list";
     song_id: string | null;
     title: string;
     content: string | null;
@@ -122,12 +123,12 @@ function resolveSetlistItems(setlistId: string): { name: string; items: Snapshot
         notes: row.notes,
       };
     }
-    if (row.kind === "image") {
+    if (row.kind === "image" || row.kind === "image_list") {
       return {
-        kind: "image",
+        kind: row.kind,
         itemId: row.id,
         songId: null,
-        title: row.title || "Image",
+        title: row.title || (row.kind === "image_list" ? "Image list" : "Image"),
         content: row.content ?? "",
         imageFit:
           row.image_fit === "actual" || row.image_fit === "crop" || row.image_fit === "stretch"
@@ -216,6 +217,7 @@ function mapRevision(row: {
 class LiveService {
   private ios = new Set<Server>();
   private active: SessionRecord | null = null;
+  private autoplayTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
     this.restore();
@@ -297,6 +299,7 @@ class LiveService {
         this.active.state.pageIndex = 0;
         this.renderCurrent();
       }
+      if (!this.active.state.blank) this.scheduleAutoplay();
     } catch {
       // Ignore corrupt restore; a new session can be started.
     }
@@ -363,6 +366,10 @@ class LiveService {
   }
 
   stop(): LiveState {
+    if (this.autoplayTimer) {
+      clearTimeout(this.autoplayTimer);
+      this.autoplayTimer = null;
+    }
     if (!this.active) return idleState();
     db.prepare("UPDATE service_sessions SET status = 'ended', ended_at = ? WHERE id = ?").run(
       now(),
@@ -789,6 +796,49 @@ class LiveService {
     });
   }
 
+  private scheduleAutoplay(): void {
+    if (this.autoplayTimer) {
+      clearTimeout(this.autoplayTimer);
+      this.autoplayTimer = null;
+    }
+    const record = this.active;
+    if (!record || record.state.blank) return;
+    const item = record.transient ?? record.items[record.state.itemIndex];
+    if (!item || item.kind !== "image_list") return;
+    const list = parseImageListContent(item.content);
+    if (!list?.autoplay) return;
+    const count = this.pagesFor(item).length;
+    if (count < 2 || record.state.pageIndex >= count) return;
+    if (!list.loop && record.state.pageIndex >= count - 1) return;
+    this.autoplayTimer = setTimeout(
+      () => this.advanceAutoplay(),
+      Math.max(1, list.delaySeconds) * 1000,
+    );
+  }
+
+  private advanceAutoplay(): void {
+    this.autoplayTimer = null;
+    const record = this.active;
+    if (!record || record.state.blank) return;
+    const item = record.transient ?? record.items[record.state.itemIndex];
+    if (!item || item.kind !== "image_list") return;
+    const list = parseImageListContent(item.content);
+    if (!list?.autoplay) return;
+    const count = this.pagesFor(item).length;
+    if (count < 2) return;
+    if (record.state.pageIndex + 1 < count) {
+      record.state.pageIndex += 1;
+    } else if (list.loop) {
+      record.state.pageIndex = 0;
+    } else {
+      return;
+    }
+    record.state.version += 1;
+    record.state.updatedAt = now();
+    this.persist();
+    this.broadcast();
+  }
+
   private persist(): void {
     if (!this.active) return;
     db.prepare(
@@ -810,6 +860,7 @@ class LiveService {
     const state = this.getState();
     this.emit("control", state);
     this.emit("outputs", state);
+    this.scheduleAutoplay();
   }
 }
 

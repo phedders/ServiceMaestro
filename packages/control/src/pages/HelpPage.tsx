@@ -337,6 +337,11 @@ export default function HelpPage({ onOpenSettings }: { onOpenSettings: () => voi
                 The <strong>LIVE</strong> button on an image card shows it immediately on every
                 output without adding it to the set list or changing the live queue.
               </li>
+              <li>
+                A folder can be converted into a <strong>multiple images</strong> item. Autoplay is
+                off by default; when enabled it advances every configured delay (default 6 seconds),
+                with optional looping. Without autoplay, advance the images manually.
+              </li>
             </ul>
           </article>
           <article className="help-card">

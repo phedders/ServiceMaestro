@@ -1,6 +1,7 @@
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { randomUUID } from "node:crypto";
 import {
+  parseImageListContent,
   reorderSchema,
   setlistInputSchema,
   setlistItemInputSchema,
@@ -29,7 +30,7 @@ interface SetlistRow {
 interface ItemRow {
   id: string;
   position: number;
-  kind: "song" | "text" | "image";
+  kind: "song" | "text" | "image" | "image_list";
   song_id: string | null;
   title: string;
   content: string | null;
@@ -205,9 +206,19 @@ export async function setlistRoutes(app: FastifyInstance): Promise<void> {
         if (!song) return reply.code(400).send({ error: "Song not found" });
         title = title || song.title;
         content = null;
-      } else if (data.kind === "image") {
-        if (!content) return reply.code(400).send({ error: "content is required for image items" });
-        title = title || content.split("/").pop() || "Image";
+      } else if (data.kind === "image" || data.kind === "image_list") {
+        if (!content) {
+          return reply
+            .code(400)
+            .send({ error: `content is required for ${data.kind === "image" ? "image" : "image list"} items` });
+        }
+        if (data.kind === "image_list") {
+          const list = parseImageListContent(content);
+          if (!list) return reply.code(400).send({ error: "Image list has no images" });
+          title = title || list.folder.split("/").pop() || "Image list";
+        } else {
+          title = title || content.split("/").pop() || "Image";
+        }
       } else {
         if (!content) return reply.code(400).send({ error: "content is required for text items" });
         const extracted = extractTextFormat(content);
@@ -236,7 +247,7 @@ export async function setlistRoutes(app: FastifyInstance): Promise<void> {
         content,
         format,
         data.kind === "text" ? data.textAlign ?? "left" : null,
-        data.kind === "image" ? data.imageFit ?? "scale" : "scale",
+        data.kind === "image" || data.kind === "image_list" ? data.imageFit ?? "scale" : "scale",
         data.keyOverride ?? null,
         data.transpose ?? 0,
         data.maxLines ?? 4,

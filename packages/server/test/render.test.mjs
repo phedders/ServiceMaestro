@@ -265,6 +265,26 @@ test("renders image items", () => {
   assert.match(cropped[0].html, /class="slide-image fit-crop"/);
 });
 
+test("renders one page per image in an image list", () => {
+  const pages = buildPages({
+    kind: "image_list",
+    title: "Backgrounds",
+    content: JSON.stringify({
+      folder: "backgrounds",
+      images: ["backgrounds/one.png", "backgrounds/two.png"],
+      autoplay: false,
+      loop: true,
+      delaySeconds: 6,
+    }),
+    imageFit: "scale",
+    transpose: 0,
+    maxLines: 4,
+  });
+  assert.equal(pages.length, 2);
+  assert.match(pages[0].html, /backgrounds%2Fone\.png/);
+  assert.match(pages[1].html, /backgrounds%2Ftwo\.png/);
+});
+
 test("smart wrapping keeps split words together", () => {  const pages = buildPages(
     {
       kind: "song",

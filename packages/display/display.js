@@ -59,7 +59,7 @@
         : page
           ? page.html
           : "";
-    const isImage = state.mode === "image";
+    const isImage = state.mode === "image" || state.mode === "image_list";
     const replacements = {
       content: livePages,
       footer: escapeHtml(state.footer || ""),
@@ -81,7 +81,10 @@
     const blank = Boolean(state.blank) || idle;
     document.body.classList.toggle("blank", blank);
     document.body.classList.toggle("idle", idle);
-    document.body.classList.toggle("mode-image", state.mode === "image");
+    document.body.classList.toggle(
+      "mode-image",
+      state.mode === "image" || state.mode === "image_list",
+    );
 
     const config = state.displayConfig || {};
     if (target === "main" || target === "two_thirds" || target === "full") {

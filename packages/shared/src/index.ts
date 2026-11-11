@@ -37,8 +37,49 @@ export interface Song {
   updatedAt: string;
 }
 
-export type ItemKind = "song" | "text" | "image";
+export type ItemKind = "song" | "text" | "image" | "image_list";
 export type ImageFit = "scale" | "actual" | "crop" | "stretch";
+
+export interface ImageListContent {
+  folder: string;
+  images: string[];
+  autoplay: boolean;
+  loop: boolean;
+  delaySeconds: number;
+}
+
+export function parseImageListContent(
+  value: string | null | undefined,
+): ImageListContent | null {
+  if (!value) return null;
+  try {
+    const parsed = JSON.parse(value) as Partial<ImageListContent>;
+    const images = Array.isArray(parsed.images)
+      ? parsed.images.filter((entry): entry is string => typeof entry === "string" && Boolean(entry.trim()))
+      : [];
+    if (!images.length) return null;
+    const delay = Number(parsed.delaySeconds);
+    return {
+      folder: typeof parsed.folder === "string" ? parsed.folder : "",
+      images,
+      autoplay: parsed.autoplay === true,
+      loop: parsed.loop !== false,
+      delaySeconds: Number.isFinite(delay) ? Math.max(1, Math.min(300, delay)) : 6,
+    };
+  } catch {
+    return null;
+  }
+}
+
+export function serializeImageListContent(value: ImageListContent): string {
+  return JSON.stringify({
+    folder: value.folder,
+    images: value.images,
+    autoplay: value.autoplay,
+    loop: value.loop,
+    delaySeconds: Math.max(1, Math.min(300, value.delaySeconds || 6)),
+  });
+}
 
 export interface SetlistItem {
   id: string;
@@ -241,7 +282,7 @@ export interface LiveState {
   itemIndex: number;
   pageIndex: number;
   pageCount: number;
-  mode: "song" | "text" | "image" | "blank" | "idle";
+  mode: "song" | "text" | "image" | "image_list" | "blank" | "idle";
   title: string;
   blank: boolean;
   maxLines: number;
@@ -431,7 +472,7 @@ export const setlistInputSchema = z.object({
 });
 
 export const setlistItemInputSchema = z.object({
-  kind: z.enum(["song", "text", "image"]),
+  kind: z.enum(["song", "text", "image", "image_list"]),
   songId: z.string().optional().nullable(),
   title: z.string().trim().max(300).optional(),
   content: z.string().max(200_000).optional().nullable(),
