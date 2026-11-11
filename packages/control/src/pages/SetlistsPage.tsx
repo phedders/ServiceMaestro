@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   NO_BACKGROUND_ID,
+  NO_STINGER_ID,
   parseImageListContent,
   parseTarpItemContent,
   serializeImageListContent,
@@ -18,6 +19,7 @@ import {
   type SetlistRevisionInfo,
   type SetlistSummary,
   type Song,
+  type StingerAsset,
   type TarpPresentationSummary,
   type TextFormat,
 } from "@sm/shared";
@@ -133,11 +135,19 @@ function songFirstLines(song: Song): string {
     .join("\n");
 }
 
+function stingerPageRows(overrides: Record<string, string>) {
+  return Object.entries(overrides)
+    .map(([page, stingerId]) => ({ page: Number(page), stingerId }))
+    .filter((entry) => Number.isInteger(entry.page) && entry.page > 0)
+    .sort((a, b) => a.page - b.page);
+}
+
 function ItemRow({
   item,
   song,
   images,
   backgrounds,
+  stingers,
   tarpPresentations,
   onUploadImage,
   first,
@@ -158,6 +168,7 @@ function ItemRow({
   song: Song | undefined;
   images: ImageAsset[];
   backgrounds: BackgroundAsset[];
+  stingers: StingerAsset[];
   tarpPresentations: TarpPresentationSummary[];
   onUploadImage: (file: File) => Promise<ImageAsset>;
   first: boolean;
@@ -186,6 +197,10 @@ function ItemRow({
     item.imageFit ?? "scale",
   );
   const [backgroundId, setBackgroundId] = useState(item.backgroundId ?? "");
+  const [stingerId, setStingerId] = useState(item.stingerId ?? "");
+  const [pageStingers, setPageStingers] = useState(() =>
+    stingerPageRows(item.stingerPageOverrides),
+  );
   const initialImageList = parseImageListContent(item.content);
   const [listFolder, setListFolder] = useState(initialImageList?.folder ?? "");
   const [listAutoplay, setListAutoplay] = useState(initialImageList?.autoplay ?? false);
@@ -212,6 +227,8 @@ function ItemRow({
     setTextAlign(item.textAlign ?? "left");
     setImageFit(item.imageFit ?? "scale");
     setBackgroundId(item.backgroundId ?? "");
+    setStingerId(item.stingerId ?? "");
+    setPageStingers(stingerPageRows(item.stingerPageOverrides));
     const nextImageList = parseImageListContent(item.content);
     setListFolder(nextImageList?.folder ?? "");
     setListAutoplay(nextImageList?.autoplay ?? false);
@@ -248,6 +265,8 @@ function ItemRow({
     setTextAlign(item.textAlign ?? "left");
     setImageFit(item.imageFit ?? "scale");
     setBackgroundId(item.backgroundId ?? "");
+    setStingerId(item.stingerId ?? "");
+    setPageStingers(stingerPageRows(item.stingerPageOverrides));
     const nextImageList = parseImageListContent(item.content);
     setListFolder(nextImageList?.folder ?? "");
     setListAutoplay(nextImageList?.autoplay ?? false);
@@ -282,6 +301,17 @@ function ItemRow({
     }
   }
 
+  function stingerFields(): Record<string, unknown> {
+    return {
+      stingerId: stingerId || null,
+      stingerPageOverrides: Object.fromEntries(
+        pageStingers
+          .filter((entry) => entry.page > 0 && entry.stingerId)
+          .map((entry) => [String(entry.page), entry.stingerId]),
+      ),
+    };
+  }
+
   function payload(): Record<string, unknown> {
     if (item.kind === "image") {
       return {
@@ -289,6 +319,7 @@ function ItemRow({
         content,
         imageFit,
         notes: notes || null,
+        ...stingerFields(),
       };
     }
     if (item.kind === "image_list") {
@@ -305,6 +336,7 @@ function ItemRow({
         }),
         imageFit,
         notes: notes || null,
+        ...stingerFields(),
       };
     }
     if (item.kind === "tarp") {
@@ -321,6 +353,7 @@ function ItemRow({
           delaySeconds: tarpDelay,
         }),
         notes: notes || null,
+        ...stingerFields(),
       };
     }
     const nextContent = content;
@@ -340,6 +373,7 @@ function ItemRow({
       verseOrder: verseOrder || null,
       notes: notes || null,
       backgroundId: backgroundId || null,
+      ...stingerFields(),
       ...(item.kind === "text" ? { format, textAlign } : {}),
     };
   }
@@ -510,6 +544,104 @@ function ItemRow({
             Title
             <input value={title} onChange={(event) => setTitle(event.target.value)} />
           </label>
+          <label>
+            Stinger override
+            <select value={stingerId} onChange={(event) => setStingerId(event.target.value)}>
+              <option value="">Use set-list stinger</option>
+              <option value={NO_STINGER_ID}>No stinger</option>
+              {stingers.map((stinger) => (
+                <option key={stinger.id} value={stinger.id}>
+                  {stinger.name} · {stinger.durationMs} ms
+                </option>
+              ))}
+            </select>
+          </label>
+          <details className="stinger-page-overrides">
+            <summary>
+              Page stinger overrides
+              {pageStingers.length ? ` (${pageStingers.length})` : ""}
+            </summary>
+            <p className="hint">
+              Overrides are keyed by the 1-based page number shown on stage. They win over the
+              item and set-list stingers.
+            </p>
+            {pageStingers.map((entry, index) => (
+              <div className="stinger-page-row" key={`${entry.page}-${index}`}>
+                <label>
+                  Page
+                  <input
+                    type="number"
+                    min={1}
+                    max={999}
+                    value={entry.page}
+                    onChange={(event) =>
+                      setPageStingers((current) =>
+                        current.map((candidate, candidateIndex) =>
+                          candidateIndex === index
+                            ? {
+                                ...candidate,
+                                page: Math.max(1, Number(event.target.value) || 1),
+                              }
+                            : candidate,
+                        ),
+                      )
+                    }
+                  />
+                </label>
+                <label>
+                  Stinger
+                  <select
+                    value={entry.stingerId}
+                    onChange={(event) =>
+                      setPageStingers((current) =>
+                        current.map((candidate, candidateIndex) =>
+                          candidateIndex === index
+                            ? { ...candidate, stingerId: event.target.value }
+                            : candidate,
+                        ),
+                      )
+                    }
+                  >
+                    <option value={NO_STINGER_ID}>No stinger</option>
+                    {stingers.map((stinger) => (
+                      <option key={stinger.id} value={stinger.id}>
+                        {stinger.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <button
+                  type="button"
+                  className="button ghost small danger-text"
+                  onClick={() =>
+                    setPageStingers((current) =>
+                      current.filter((_candidate, candidateIndex) => candidateIndex !== index),
+                    )
+                  }
+                  title="Remove this page override"
+                >
+                  Remove
+                </button>
+              </div>
+            ))}
+            <button
+              type="button"
+              className="button ghost small"
+              onClick={() =>
+                setPageStingers((current) => [
+                  ...current,
+                  {
+                    page:
+                      current.reduce((highest, entry) => Math.max(highest, entry.page), 0) + 1,
+                    stingerId: stingers[0]?.id ?? NO_STINGER_ID,
+                  },
+                ])
+              }
+              title="Add a stinger override for one page"
+            >
+              Add page override
+            </button>
+          </details>
           {item.kind === "image" && (
             <>
               {content && (
@@ -895,6 +1027,7 @@ export default function SetlistsPage({
   const [songs, setSongs] = useState<Song[]>([]);
   const [images, setImages] = useState<ImageAsset[]>([]);
   const [backgrounds, setBackgrounds] = useState<BackgroundAsset[]>([]);
+  const [stingers, setStingers] = useState<StingerAsset[]>([]);
   const [revisions, setRevisions] = useState<SetlistRevisionInfo[]>([]);
   const [importFile, setImportFile] = useState<File | null>(null);
   const [importPreview, setImportPreview] = useState<SetlistImportPreview | null>(null);
@@ -915,6 +1048,7 @@ export default function SetlistsPage({
   const [serviceTime, setServiceTime] = useState("");
   const [notes, setNotes] = useState("");
   const [backgroundId, setBackgroundId] = useState("");
+  const [stingerId, setStingerId] = useState("");
 
   const [addKind, setAddKind] = useState<
     "song" | "text" | "bible" | "image" | "image_list" | "tarp"
@@ -974,6 +1108,7 @@ export default function SetlistsPage({
     setServiceTime(result.setlist.serviceTime ?? "");
     setNotes(result.setlist.notes ?? "");
     setBackgroundId(result.setlist.backgroundId ?? "");
+    setStingerId(result.setlist.stingerId ?? "");
     api
       .revisions(id)
       .then((revisionResult) => setRevisions(revisionResult.revisions))
@@ -990,6 +1125,10 @@ export default function SetlistsPage({
     api
       .backgrounds()
       .then((result) => setBackgrounds(result.backgrounds))
+      .catch(() => undefined);
+    api
+      .stingers()
+      .then((result) => setStingers(result.stingers))
       .catch(() => undefined);
     api
       .tarpPresentations()
@@ -1074,6 +1213,7 @@ export default function SetlistsPage({
         serviceTime: serviceTime || null,
         notes: notes || null,
         backgroundId: backgroundId || null,
+        stingerId: stingerId || null,
       });
       setDetail(result.setlist);
       await loadList(detail.id);
@@ -1641,6 +1781,17 @@ export default function SetlistsPage({
                 ))}
               </select>
             </label>
+            <label>
+              Stinger
+              <select value={stingerId} onChange={(event) => setStingerId(event.target.value)}>
+                <option value="">No stinger</option>
+                {stingers.map((stinger) => (
+                  <option key={stinger.id} value={stinger.id}>
+                    {stinger.name}
+                  </option>
+                ))}
+              </select>
+            </label>
             <label className="grow">
               Notes
               <input value={notes} onChange={(event) => setNotes(event.target.value)} />
@@ -1662,6 +1813,7 @@ export default function SetlistsPage({
                 song={songs.find((song) => song.id === item.songId)}
                 images={images}
                 backgrounds={backgrounds}
+                stingers={stingers}
                 tarpPresentations={tarpPresentations}
                 onUploadImage={(file) => uploadImage(file)}
                 first={index === 0}

@@ -125,6 +125,8 @@ export interface SetlistItem {
   textAlign: "left" | "center";
   imageFit: ImageFit;
   backgroundId: string | null;
+  stingerId: string | null;
+  stingerPageOverrides: Record<string, string>;
   keyOverride: string | null;
   transpose: number;
   maxLines: number;
@@ -139,6 +141,7 @@ export interface SetlistSummary {
   serviceTime: string | null;
   notes: string | null;
   backgroundId: string | null;
+  stingerId: string | null;
   itemCount: number;
   updatedAt: string;
 }
@@ -196,6 +199,7 @@ export interface LivePage {
   index: number;
   section: string | null;
   html: string;
+  stinger?: StingerAsset | null;
 }
 
 export interface DisplayTemplate {
@@ -226,6 +230,23 @@ export type BackgroundKind = "image" | "css" | "svg";
 
 /** Item-level override that explicitly suppresses the set-list background. */
 export const NO_BACKGROUND_ID = "__none__";
+
+/** Item/page override that explicitly suppresses the set-list stinger. */
+export const NO_STINGER_ID = "__none__";
+
+export type StingerKind = "svg" | "image";
+
+export interface StingerAsset {
+  id: string;
+  name: string;
+  kind: StingerKind;
+  preset: string | null;
+  imagePath: string | null;
+  durationMs: number;
+  render: string;
+  createdAt: string;
+  updatedAt: string;
+}
 
 export interface BackgroundColors {
   background: string;
@@ -646,6 +667,7 @@ export const setlistInputSchema = z.object({
   serviceTime: z.string().trim().max(10).optional().nullable(),
   notes: z.string().trim().max(2000).optional().nullable(),
   backgroundId: z.string().trim().max(100).optional().nullable(),
+  stingerId: z.string().trim().max(100).optional().nullable(),
 });
 
 export const setlistItemInputSchema = z.object({
@@ -657,6 +679,10 @@ export const setlistItemInputSchema = z.object({
   textAlign: z.enum(["left", "center"]).optional(),
   imageFit: z.enum(["scale", "actual", "crop", "stretch"]).optional(),
   backgroundId: z.string().trim().max(100).optional().nullable(),
+  stingerId: z.string().trim().max(100).optional().nullable(),
+  stingerPageOverrides: z
+    .record(z.string().regex(/^\d+$/), z.string().trim().max(100))
+    .optional(),
   keyOverride: z.string().trim().max(10).optional().nullable(),
   transpose: z.number().int().min(-24).max(24).optional(),
   maxLines: z.number().int().min(1).max(30).optional(),
@@ -859,6 +885,25 @@ export const backgroundInputSchema = z
   });
 
 export type BackgroundInput = z.infer<typeof backgroundInputSchema>;
+
+export const stingerInputSchema = z
+  .object({
+    name: z.string().trim().min(1).max(120),
+    kind: z.enum(["svg", "image"]).default("svg"),
+    preset: z.string().trim().max(80).nullable().optional(),
+    imagePath: z.string().trim().max(2000).nullable().optional(),
+    durationMs: z.number().int().min(200).max(10_000).default(1200),
+  })
+  .superRefine((value, context) => {
+    if (value.kind === "image" && !value.imagePath) {
+      context.addIssue({ code: "custom", message: "imagePath is required for image stingers" });
+    }
+    if (value.kind === "svg" && !value.preset) {
+      context.addIssue({ code: "custom", message: "preset is required for SVG stingers" });
+    }
+  });
+
+export type StingerInput = z.infer<typeof stingerInputSchema>;
 
 export const fontImportSchema = z
   .object({

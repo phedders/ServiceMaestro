@@ -6,6 +6,9 @@
   const backgroundLayer = document.createElement("div");
   backgroundLayer.id = "sm-background-layer";
   document.body.prepend(backgroundLayer);
+  const stingerLayer = document.createElement("div");
+  stingerLayer.id = "sm-stinger-layer";
+  document.body.appendChild(stingerLayer);
   const style = document.createElement("style");
   style.id = "sm-template-style";
   document.head.appendChild(style);
@@ -26,6 +29,10 @@
   let lastCss = "";
   let lastBackground = "";
   let fadeTimer = null;
+  let stingerCommitTimer = null;
+  let stingerEndTimer = null;
+  let pendingStingerPage = "";
+  let displayedPageKey = "";
 
   function checkHeartbeat() {
     if (document.visibilityState === "hidden") return;
@@ -94,6 +101,51 @@
     );
   }
 
+  function currentPageKey(state) {
+    const page = state.pages && state.pages[state.pageIndex];
+    if (!page || state.mode === "idle") return "";
+    return `${state.setlistId || ""}:${state.itemIndex}:${state.pageIndex}`;
+  }
+
+  function cancelFade() {
+    if (fadeTimer) clearTimeout(fadeTimer);
+    fadeTimer = null;
+    document.body.classList.remove("sm-fading");
+  }
+
+  function cancelStinger() {
+    if (stingerCommitTimer) clearTimeout(stingerCommitTimer);
+    if (stingerEndTimer) clearTimeout(stingerEndTimer);
+    stingerCommitTimer = null;
+    stingerEndTimer = null;
+    stingerLayer.classList.remove("playing");
+    stingerLayer.innerHTML = "";
+    pendingStingerPage = "";
+  }
+
+  function playStinger(stinger, pageKey, commit) {
+    cancelFade();
+    cancelStinger();
+    const duration = Math.max(200, Number(stinger.durationMs) || 1000);
+    const coverAt = Math.max(120, Math.round(duration * 0.45));
+    pendingStingerPage = pageKey;
+    // Restart the inline SVG animation from the beginning.
+    stingerLayer.innerHTML = "";
+    void stingerLayer.offsetWidth;
+    stingerLayer.innerHTML = stinger.render;
+    stingerLayer.classList.add("playing");
+    stingerCommitTimer = setTimeout(() => {
+      stingerCommitTimer = null;
+      commit();
+    }, coverAt);
+    stingerEndTimer = setTimeout(() => {
+      stingerEndTimer = null;
+      stingerLayer.classList.remove("playing");
+      stingerLayer.innerHTML = "";
+      pendingStingerPage = "";
+    }, duration);
+  }
+
   function apply(state) {
     const page = state.pages && state.pages[state.pageIndex];
     const idle = !page || state.mode === "idle";
@@ -104,11 +156,18 @@
       "mode-image",
       state.mode === "image" || state.mode === "image_list",
     );
+    const pageKey = currentPageKey(state);
+    const pageChanged = Boolean(pageKey && displayedPageKey && pageKey !== displayedPageKey);
+    const stinger =
+      (target === "full" || target === "two_thirds") && !blank && page ? page.stinger : null;
     const backgroundHtml = target === "main" ? "" : state.background?.render || "";
-    if (backgroundHtml !== lastBackground) {
+    const applyBackground = () => {
+      if (backgroundHtml === lastBackground) return;
       backgroundLayer.innerHTML = backgroundHtml;
       lastBackground = backgroundHtml;
-    }
+    };
+    const deferBackground = Boolean(pageChanged && stinger && root.innerHTML);
+    if (!deferBackground) applyBackground();
 
     const config = state.displayConfig || {};
     if (target === "main" || target === "two_thirds" || target === "full") {
@@ -144,21 +203,40 @@
 
     const template = templateFor(state);
     const html = compose(state, template);
-    if (html === lastHtml && template.css === lastCss) return;
+    const sameContent = html === lastHtml && template.css === lastCss;
+
+    if (pendingStingerPage && pendingStingerPage === pageKey) {
+      if (!blank && page) return;
+      cancelStinger();
+    }
+    if (blank || !page) cancelStinger();
+    if (sameContent && pageKey === displayedPageKey) return;
+    if (sameContent && pageChanged && !stinger) {
+      displayedPageKey = pageKey;
+      return;
+    }
 
     const commit = () => {
+      applyBackground();
       if (template.css !== lastCss) {
         style.textContent = template.css;
         lastCss = template.css;
       }
       root.innerHTML = html;
       lastHtml = html;
+      displayedPageKey = pageKey;
       // Paint the new text at zero opacity before fading back in.
       requestAnimationFrame(() => {
         requestAnimationFrame(() => document.body.classList.remove("sm-fading"));
       });
     };
 
+    if (pageChanged && stinger && root.innerHTML) {
+      playStinger(stinger, pageKey, commit);
+      return;
+    }
+
+    cancelStinger();
     if (root.innerHTML) {
       document.body.classList.add("sm-fading");
       if (fadeTimer) clearTimeout(fadeTimer);

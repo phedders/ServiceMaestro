@@ -46,6 +46,8 @@ const itemSchema = z.object({
   textAlign: z.enum(["left", "center"]).nullable().optional(),
   imageFit: z.enum(["scale", "actual", "crop", "stretch"]).nullable().optional(),
   backgroundId: z.string().nullable().optional(),
+  stingerId: z.string().nullable().optional(),
+  stingerPageOverrides: z.record(z.string(), z.string()).optional(),
   song: songSchema.nullable().optional(),
   assetIds: z.array(z.string()).optional(),
 });
@@ -75,6 +77,7 @@ const manifestSchema = z.object({
     serviceTime: z.string().nullable().optional(),
     notes: z.string().nullable().optional(),
     backgroundId: z.string().nullable().optional(),
+    stingerId: z.string().nullable().optional(),
   }),
   items: z.array(itemSchema).max(1000),
   assets: z.array(assetSchema).max(1000).optional(),
@@ -85,6 +88,21 @@ export type SetlistManifest = z.infer<typeof manifestSchema>;
 interface ParsedSetlist {
   manifest: SetlistManifest;
   files: Map<string, Uint8Array>;
+}
+
+function parseStingerOverrides(value: string | null): Record<string, string> {
+  if (!value) return {};
+  try {
+    const parsed = JSON.parse(value) as unknown;
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
+    return Object.fromEntries(
+      Object.entries(parsed as Record<string, unknown>).filter(
+        ([key, entry]) => /^\d+$/.test(key) && typeof entry === "string",
+      ),
+    ) as Record<string, string>;
+  } catch {
+    return {};
+  }
 }
 
 function safeName(value: string): string {
@@ -183,6 +201,7 @@ export function buildSetlistExport(
         service_time: string | null;
         notes: string | null;
         background_id: string | null;
+        stinger_id: string | null;
       }
     | undefined;
   if (!setlist) throw new Error("Set list not found");
@@ -198,6 +217,8 @@ export function buildSetlistExport(
     text_align: string | null;
     image_fit: string | null;
     background_id: string | null;
+    stinger_id: string | null;
+    stinger_overrides_json: string | null;
     key_override: string | null;
     transpose: number;
     max_lines: number;
@@ -250,6 +271,8 @@ export function buildSetlistExport(
         format: null,
         textAlign: null,
         backgroundId: row.background_id,
+        stingerId: row.stinger_id,
+        stingerPageOverrides: parseStingerOverrides(row.stinger_overrides_json),
         song: song
           ? {
               title: song.title,
@@ -283,6 +306,8 @@ export function buildSetlistExport(
         textAlign: null,
         imageFit: (row.image_fit as "scale" | "actual" | "crop" | "stretch" | null) ?? "scale",
         backgroundId: row.background_id,
+        stingerId: row.stinger_id,
+        stingerPageOverrides: parseStingerOverrides(row.stinger_overrides_json),
       };
     }
     return {
@@ -299,6 +324,8 @@ export function buildSetlistExport(
       format: (row.text_format as SetlistManifest["items"][number]["format"]) ?? null,
       textAlign: (row.text_align === "center" ? "center" : "left") as "left" | "center",
       backgroundId: row.background_id,
+      stingerId: row.stinger_id,
+      stingerPageOverrides: parseStingerOverrides(row.stinger_overrides_json),
     };
   });
 
@@ -315,6 +342,7 @@ export function buildSetlistExport(
       serviceTime: setlist.service_time,
       notes: setlist.notes,
       backgroundId: setlist.background_id,
+      stingerId: setlist.stinger_id,
     },
     items,
     assets: assets.length ? assets : undefined,
@@ -414,8 +442,9 @@ export function importSetlistFile(
 
   db.prepare(
     `INSERT INTO setlists
-     (id, name, service_date, service_time, notes, background_id, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+     (id, name, service_date, service_time, notes, background_id, stinger_id,
+      created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   ).run(
     setlistId,
     name,
@@ -423,6 +452,7 @@ export function importSetlistFile(
     manifest.setlist.serviceTime ?? null,
     manifest.setlist.notes ?? null,
     manifest.setlist.backgroundId ?? null,
+    manifest.setlist.stingerId ?? null,
     now,
     now,
   );
@@ -430,8 +460,9 @@ export function importSetlistFile(
   const insertItem = db.prepare(
     `INSERT INTO setlist_items
      (id, setlist_id, position, kind, song_id, title, content, text_format, text_align,
-      image_fit, background_id, key_override, transpose, max_lines, verse_order, notes)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      image_fit, background_id, stinger_id, stinger_overrides_json, key_override,
+      transpose, max_lines, verse_order, notes)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   );
 
   let importedItems = 0;
@@ -503,6 +534,8 @@ export function importSetlistFile(
       item.kind === "text" ? item.textAlign ?? "left" : null,
       item.kind === "image" || item.kind === "image_list" ? item.imageFit ?? "scale" : "scale",
       item.backgroundId ?? null,
+      item.stingerId ?? null,
+      item.stingerPageOverrides ? JSON.stringify(item.stingerPageOverrides) : null,
       item.keyOverride ?? null,
       item.transpose ?? 0,
       item.maxLines ?? 4,

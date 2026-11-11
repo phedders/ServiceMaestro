@@ -1,7 +1,11 @@
 import fs from "node:fs";
 import { randomUUID } from "node:crypto";
 import type { Server } from "socket.io";
-import { NO_BACKGROUND_ID, parseImageListContent } from "@sm/shared";
+import {
+  NO_BACKGROUND_ID,
+  NO_STINGER_ID,
+  parseImageListContent,
+} from "@sm/shared";
 import type {
   DisplayConfig,
   LiveApplyMode,
@@ -17,11 +21,14 @@ import { getDisplayConfig } from "./display-config.js";
 import { getAppSettings } from "./settings.js";
 import { resolveImage } from "./images.js";
 import { getBackground } from "./backgrounds.js";
+import { getStinger } from "./stingers.js";
 
 interface SnapshotItem extends RenderItem {
   itemId: string | null;
   songId: string | null;
   backgroundId?: string | null;
+  stingerId?: string | null;
+  stingerPageOverrides?: Record<string, string>;
   notes: string | null;
 }
 
@@ -80,11 +87,26 @@ function summaries(items: SnapshotItem[]): LiveState["items"] {
   }));
 }
 
+function parseStingerOverrides(value: string | null): Record<string, string> {
+  if (!value) return {};
+  try {
+    const parsed = JSON.parse(value) as unknown;
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
+    return Object.fromEntries(
+      Object.entries(parsed as Record<string, unknown>).filter(
+        ([key, entry]) => /^\d+$/.test(key) && typeof entry === "string",
+      ),
+    ) as Record<string, string>;
+  } catch {
+    return {};
+  }
+}
+
 function resolveSetlistItems(setlistId: string): { name: string; items: SnapshotItem[] } {
   const setlist = db
-    .prepare("SELECT id, name, background_id FROM setlists WHERE id = ?")
+    .prepare("SELECT id, name, background_id, stinger_id FROM setlists WHERE id = ?")
     .get(setlistId) as
-    | { id: string; name: string; background_id: string | null }
+    | { id: string; name: string; background_id: string | null; stinger_id: string | null }
     | undefined;
   if (!setlist) throw new Error("Set list not found");
 
@@ -100,6 +122,8 @@ function resolveSetlistItems(setlistId: string): { name: string; items: Snapshot
     text_align: string | null;
     image_fit: string | null;
     background_id: string | null;
+    stinger_id: string | null;
+    stinger_overrides_json: string | null;
     key_override: string | null;
     transpose: number;
     max_lines: number;
@@ -174,9 +198,18 @@ function resolveSetlistItems(setlistId: string): { name: string; items: Snapshot
   });
 
   for (const [index, item] of items.entries()) {
-    const override = rows[index]?.background_id;
+    const row = rows[index];
+    const backgroundOverride = row?.background_id;
     item.backgroundId =
-      override === NO_BACKGROUND_ID ? null : override ?? setlist.background_id ?? null;
+      backgroundOverride === NO_BACKGROUND_ID
+        ? null
+        : backgroundOverride ?? setlist.background_id ?? null;
+    const stingerOverride = row?.stinger_id;
+    item.stingerId =
+      stingerOverride === NO_STINGER_ID
+        ? null
+        : stingerOverride ?? setlist.stinger_id ?? null;
+    item.stingerPageOverrides = parseStingerOverrides(row?.stinger_overrides_json ?? null);
   }
 
   if (!items.length) throw new Error("Set list is empty");
@@ -820,12 +853,19 @@ class LiveService {
     if (!this.active) return [];
     const stored = this.active.state.displayConfig;
     const config = { ...getDisplayConfig(), ...(stored ?? {}) };
-    return buildPages(item, this.active.state.transpose, {
+    const pages = buildPages(item, this.active.state.transpose, {
       maxLines: this.active.state.maxLines || config.maxLines,
       maxWords: config.maxWords,
       smartPageSplits: config.smartPageSplits,
       textScale: config.textScale,
     });
+    for (const page of pages) {
+      const pageOverride = item.stingerPageOverrides?.[String(page.index + 1)];
+      const stingerId =
+        pageOverride === NO_STINGER_ID ? null : pageOverride ?? item.stingerId ?? null;
+      page.stinger = stingerId ? getStinger(stingerId) : null;
+    }
+    return pages;
   }
 
   private scheduleAutoplay(): void {

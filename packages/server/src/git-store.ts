@@ -254,13 +254,14 @@ function importSetlist(manifest: SetlistManifest): void {
   if (existing) {
     db.prepare(
       `UPDATE setlists SET name = ?, service_date = ?, service_time = ?, notes = ?,
-       background_id = ?, updated_at = ? WHERE id = ?`,
+       background_id = ?, stinger_id = ?, updated_at = ? WHERE id = ?`,
     ).run(
       manifest.setlist.name,
       manifest.setlist.serviceDate,
       manifest.setlist.serviceTime ?? null,
       manifest.setlist.notes ?? null,
       manifest.setlist.backgroundId ?? null,
+      manifest.setlist.stingerId ?? null,
       now,
       id,
     );
@@ -268,8 +269,9 @@ function importSetlist(manifest: SetlistManifest): void {
   } else {
     db.prepare(
       `INSERT INTO setlists
-       (id, name, service_date, service_time, notes, background_id, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+       (id, name, service_date, service_time, notes, background_id, stinger_id,
+        created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     ).run(
       id,
       manifest.setlist.name,
@@ -277,6 +279,7 @@ function importSetlist(manifest: SetlistManifest): void {
       manifest.setlist.serviceTime ?? null,
       manifest.setlist.notes ?? null,
       manifest.setlist.backgroundId ?? null,
+      manifest.setlist.stingerId ?? null,
       now,
       now,
     );
@@ -285,8 +288,9 @@ function importSetlist(manifest: SetlistManifest): void {
   const insert = db.prepare(
     `INSERT INTO setlist_items
      (id, setlist_id, position, kind, song_id, title, content, text_format, text_align,
-      image_fit, background_id, key_override, transpose, max_lines, verse_order, notes)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      image_fit, background_id, stinger_id, stinger_overrides_json, key_override,
+      transpose, max_lines, verse_order, notes)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   );
 
   for (const item of manifest.items) {
@@ -338,6 +342,8 @@ function importSetlist(manifest: SetlistManifest): void {
       item.kind === "text" ? item.textAlign ?? "left" : null,
       item.kind === "image" || item.kind === "image_list" ? item.imageFit ?? "scale" : "scale",
       item.backgroundId ?? null,
+      item.stingerId ?? null,
+      item.stingerPageOverrides ? JSON.stringify(item.stingerPageOverrides) : null,
       item.keyOverride ?? null,
       item.transpose ?? 0,
       item.maxLines ?? 4,

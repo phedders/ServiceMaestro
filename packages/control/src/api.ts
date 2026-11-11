@@ -4,6 +4,8 @@ import type {
   BackgroundColors,
   BackgroundInput,
   BibleBook,
+  StingerAsset,
+  StingerInput,
   BiblePassage,
   BibleTranslationInfo,
   ChurchSuiteImportReport,
@@ -347,6 +349,19 @@ export const api = {
     }),
   deleteBackground: (id: string) =>
     request<{ ok: true }>(`/api/backgrounds/${id}`, { method: "DELETE" }),
+  stingers: () => request<{ stingers: StingerAsset[] }>("/api/stingers"),
+  createStinger: (stinger: StingerInput) =>
+    request<{ stinger: StingerAsset }>("/api/stingers", {
+      method: "POST",
+      body: JSON.stringify(stinger),
+    }),
+  updateStinger: (id: string, stinger: StingerInput) =>
+    request<{ stinger: StingerAsset }>(`/api/stingers/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(stinger),
+    }),
+  deleteStinger: (id: string) =>
+    request<{ ok: true }>(`/api/stingers/${id}`, { method: "DELETE" }),
   tarpThemes: () => request<{ themes: TarpTheme[] }>("/api/tarp/themes"),
   createTarpTheme: (theme: TarpThemeInput) =>
     request<{ theme: TarpTheme }>("/api/tarp/themes", {

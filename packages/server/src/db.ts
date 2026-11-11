@@ -50,6 +50,7 @@ db.exec(`
     service_time TEXT,
     notes TEXT,
     background_id TEXT,
+    stinger_id TEXT,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
   );
@@ -63,6 +64,8 @@ db.exec(`
     title TEXT NOT NULL,
     content TEXT,
     background_id TEXT,
+    stinger_id TEXT,
+    stinger_overrides_json TEXT,
     key_override TEXT,
     transpose INTEGER NOT NULL DEFAULT 0,
     max_lines INTEGER NOT NULL DEFAULT 4,
@@ -144,6 +147,17 @@ db.exec(`
     image_path TEXT,
     use_global_colors INTEGER NOT NULL DEFAULT 0,
     colors_json TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS stingers (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    preset TEXT,
+    image_path TEXT,
+    duration_ms INTEGER NOT NULL DEFAULT 1200,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
   );
@@ -230,7 +244,10 @@ ensureColumn("setlist_items", "text_format", "TEXT");
 ensureColumn("setlist_items", "text_align", "TEXT");
 ensureColumn("setlist_items", "image_fit", "TEXT");
 ensureColumn("setlist_items", "background_id", "TEXT");
+ensureColumn("setlist_items", "stinger_id", "TEXT");
+ensureColumn("setlist_items", "stinger_overrides_json", "TEXT");
 ensureColumn("setlists", "background_id", "TEXT");
+ensureColumn("setlists", "stinger_id", "TEXT");
 ensureColumn("service_sessions", "revision_id", "TEXT");
 ensureColumn("service_sessions", "pending_json", "TEXT");
 ensureColumn("display_config", "max_words", "INTEGER NOT NULL DEFAULT 90");

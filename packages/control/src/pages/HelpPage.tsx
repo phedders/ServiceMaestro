@@ -359,6 +359,22 @@ export default function HelpPage({ onOpenSettings }: { onOpenSettings: () => voi
             </ul>
           </article>
           <article className="help-card">
+            <h3>Transition stingers</h3>
+            <ul className="help-list">
+              <li>
+                Manage transparent SVG and image stingers from <strong>Menu → Stingers</strong>.
+              </li>
+              <li>
+                Set a default on the set list, override it on an item, or add page-level overrides
+                using the 1-based page numbers shown on stage.
+              </li>
+              <li>
+                Stingers play on full-screen and two-thirds outputs as the old page is covered and
+                the new page is revealed.
+              </li>
+            </ul>
+          </article>
+          <article className="help-card">
             <h3>Bible and ChurchSuite</h3>
             <ul className="help-list">
               <li>

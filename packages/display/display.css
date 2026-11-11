@@ -222,6 +222,30 @@ body.idle #sm-background-layer {
   opacity: 0;
 }
 
+#sm-stinger-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0;
+}
+
+#sm-stinger-layer.playing {
+  opacity: 1;
+}
+
+#sm-stinger-layer .sm-stinger-fill {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+body.blank #sm-stinger-layer {
+  display: none;
+}
+
 .sm-template {
   width: 100%;
   height: 100%;

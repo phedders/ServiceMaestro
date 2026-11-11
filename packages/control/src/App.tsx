@@ -14,6 +14,7 @@ import HelpPage from "./pages/HelpPage";
 import ChurchsuitePage from "./pages/ChurchsuitePage";
 import ImagesPage from "./pages/ImagesPage";
 import BackgroundsPage from "./pages/BackgroundsPage";
+import StingersPage from "./pages/StingersPage";
 
 const TarpPage = lazy(() => import("./pages/TarpPage"));
 import {
@@ -35,6 +36,7 @@ type Page =
   | "churchsuite"
   | "settings"
   | "backgrounds"
+  | "stingers"
   | "help";
 
 interface Toast {
@@ -314,6 +316,8 @@ export default function App() {
         return "Settings";
       case "backgrounds":
         return "Backgrounds";
+      case "stingers":
+        return "Stingers";
       case "help":
         return "Help";
     }
@@ -497,6 +501,21 @@ export default function App() {
                   type="button"
                   className="nav-dropdown-link"
                   role="menuitem"
+                  onClick={() => {
+                    setPage("stingers");
+                    setMenuOpen(false);
+                  }}
+                  title="Open the transition stinger library"
+                >
+                  <span>Stingers</span>
+                  <span className="nav-dropdown-external" aria-hidden="true">
+                    ✦
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  className="nav-dropdown-link"
+                  role="menuitem"
                   onClick={openSettings}
                   title="Open keyboard, display, ChurchSuite and Git settings"
                 >
@@ -607,6 +626,7 @@ export default function App() {
         )}
         {page === "settings" && <SettingsPage notify={notify} />}
         {page === "backgrounds" && <BackgroundsPage notify={notify} />}
+        {page === "stingers" && <StingersPage notify={notify} />}
         {page === "help" && <HelpPage onOpenSettings={() => setPage("settings")} />}
       </main>
 
