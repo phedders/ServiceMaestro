@@ -1,4 +1,10 @@
-import { useEffect, useState } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
 import type { DisplayConfig, FontOption, LiveState, SetlistSummary } from "@sm/shared";
 import { api, ApiError } from "../api";
 import { SlidePreview } from "../components/SlidePreview";
@@ -50,6 +56,24 @@ const FALLBACK_FONTS: FontOption[] = [
   },
 ];
 
+const DEFAULT_QUEUE_HEIGHT = 420;
+const MIN_QUEUE_HEIGHT = 220;
+const MAX_QUEUE_HEIGHT = 1000;
+const QUEUE_HEIGHT_STORAGE_KEY = "sm-live-queue-height";
+
+function clampQueueHeight(value: number): number {
+  return Math.max(MIN_QUEUE_HEIGHT, Math.min(MAX_QUEUE_HEIGHT, Math.round(value)));
+}
+
+function initialQueueHeight(): number {
+  try {
+    const stored = Number(window.localStorage.getItem(QUEUE_HEIGHT_STORAGE_KEY));
+    return Number.isFinite(stored) && stored > 0 ? clampQueueHeight(stored) : DEFAULT_QUEUE_HEIGHT;
+  } catch {
+    return DEFAULT_QUEUE_HEIGHT;
+  }
+}
+
 export default function LivePage({
   live,
   onCommand,
@@ -82,6 +106,44 @@ export default function LivePage({
     },
   );
   const [configSaving, setConfigSaving] = useState(false);
+  const [queueHeight, setQueueHeight] = useState(initialQueueHeight);
+  const queueResizeRef = useRef<{ startY: number; startHeight: number } | null>(null);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(QUEUE_HEIGHT_STORAGE_KEY, String(queueHeight));
+    } catch {
+      // Layout persistence is optional; dragging still works for this session.
+    }
+  }, [queueHeight]);
+
+  useEffect(() => () => document.body.classList.remove("resizing-live-queue"), []);
+
+  function startQueueResize(event: ReactPointerEvent<HTMLButtonElement>) {
+    event.preventDefault();
+    try {
+      event.currentTarget.setPointerCapture(event.pointerId);
+    } catch {
+      // Pointer capture may be unavailable for programmatic or older pointer events.
+    }
+    queueResizeRef.current = { startY: event.clientY, startHeight: queueHeight };
+    document.body.classList.add("resizing-live-queue");
+  }
+
+  function moveQueueResize(event: ReactPointerEvent<HTMLButtonElement>) {
+    const drag = queueResizeRef.current;
+    if (!drag) return;
+    setQueueHeight(clampQueueHeight(drag.startHeight + event.clientY - drag.startY));
+  }
+
+  function endQueueResize(event: ReactPointerEvent<HTMLButtonElement>) {
+    if (!queueResizeRef.current) return;
+    queueResizeRef.current = null;
+    document.body.classList.remove("resizing-live-queue");
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+  }
 
   useEffect(() => {
     if (live.displayConfig) {
@@ -237,27 +299,48 @@ export default function LivePage({
         </label>
       </section>
 
-      <section className="panel">
-        <div className="panel-heading">
-          <h2>Items</h2>
-          <span className="muted">{live.items.length} in session</span>
-        </div>
-        <ItemList live={live} onCommand={onCommand} />
-      </section>
+      <div
+        className="live-queue-section"
+        style={{ "--live-queue-height": `${queueHeight}px` } as CSSProperties}
+      >
+        <div className="live-queue-grid">
+          <section className="panel">
+            <div className="panel-heading">
+              <h2>Items</h2>
+              <span className="muted">{live.items.length} in session</span>
+            </div>
+            <ItemList live={live} onCommand={onCommand} />
+          </section>
 
-      <section className="panel">
-        <div className="panel-heading">
-          <h2>Pages</h2>
-          <span className="muted">
-            {live.queuedItemIndex != null
-              ? `Queued: ${live.queuedTitle ?? "item"} · ${live.queuedPages?.length ?? 0} pages`
-              : live.pageCount
-                ? `${live.pageIndex + 1} / ${live.pageCount}`
-                : "0 pages"}
-          </span>
+          <section className="panel">
+            <div className="panel-heading">
+              <h2>Pages</h2>
+              <span className="muted">
+                {live.queuedItemIndex != null
+                  ? `Queued: ${live.queuedTitle ?? "item"} · ${live.queuedPages?.length ?? 0} pages`
+                  : live.pageCount
+                    ? `${live.pageIndex + 1} / ${live.pageCount}`
+                    : "0 pages"}
+              </span>
+            </div>
+            <PageList live={live} onCommand={onCommand} />
+          </section>
         </div>
-        <PageList live={live} onCommand={onCommand} />
-      </section>
+        <button
+          type="button"
+          className="live-queue-resize"
+          onPointerDown={startQueueResize}
+          onPointerMove={moveQueueResize}
+          onPointerUp={endQueueResize}
+          onPointerCancel={endQueueResize}
+          onLostPointerCapture={endQueueResize}
+          onDoubleClick={() => setQueueHeight(DEFAULT_QUEUE_HEIGHT)}
+          title="Drag to resize the set-list and queue panels; double-click to reset"
+          aria-label="Resize set-list and queue panels"
+        >
+          <span className="live-queue-grip" aria-hidden="true" />
+        </button>
+      </div>
 
       <section className="panel wide-panel">
         <div className="panel-heading">
