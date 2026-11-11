@@ -217,3 +217,10 @@ The presentation itself is library data, not duplicated into the set list. Expor
 5. Initial object set: **text and images**, with shape support deferred.
 
 If these defaults are accepted, implementation should start with Sections 1–2 so themes and storage are stable before building the editor.
+
+## 8. Implementation status
+
+- **Section 1 — model, storage and APIs:** implemented. Themes, presentations and pages have SQLite tables and authenticated CRUD routes. Pages store independent normal/lower-third views and object animation/placement data.
+- **Section 2 — global themes:** implemented. The Tarp page includes theme CRUD, colour/font controls, colour/gradient/image backgrounds and a live theme preview. Three starter themes are seeded.
+- **Section 3 — presentation shell:** partially implemented. Presentation create/rename/delete, theme/aspect selection, page add/delete and page inventory are in place.
+- Next: **Section 4 — dual-view canvas editor**.

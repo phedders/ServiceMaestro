@@ -26,6 +26,13 @@ import type {
   SongImportScan,
   SongImportDecision,
   SongVerseOrder,
+  TarpPage,
+  TarpPageInput,
+  TarpPresentationDetail,
+  TarpPresentationInput,
+  TarpPresentationSummary,
+  TarpTheme,
+  TarpThemeInput,
 } from "@sm/shared";
 
 export class ApiError extends Error {
@@ -318,6 +325,52 @@ export const api = {
     }),
   resetLayout: () => request<{ layout: DashboardLayout }>("/api/dashboard/layout/reset", { method: "POST" }),
 
+  tarpThemes: () => request<{ themes: TarpTheme[] }>("/api/tarp/themes"),
+  createTarpTheme: (theme: TarpThemeInput) =>
+    request<{ theme: TarpTheme }>("/api/tarp/themes", {
+      method: "POST",
+      body: JSON.stringify(theme),
+    }),
+  updateTarpTheme: (id: string, theme: TarpThemeInput) =>
+    request<{ theme: TarpTheme }>(`/api/tarp/themes/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(theme),
+    }),
+  deleteTarpTheme: (id: string) =>
+    request<{ ok: true }>(`/api/tarp/themes/${id}`, { method: "DELETE" }),
+  tarpPresentations: () =>
+    request<{ presentations: TarpPresentationSummary[] }>("/api/tarp/presentations"),
+  tarpPresentation: (id: string) =>
+    request<{ presentation: TarpPresentationDetail }>(`/api/tarp/presentations/${id}`),
+  createTarpPresentation: (presentation: TarpPresentationInput) =>
+    request<{ presentation: TarpPresentationDetail }>("/api/tarp/presentations", {
+      method: "POST",
+      body: JSON.stringify(presentation),
+    }),
+  updateTarpPresentation: (id: string, presentation: Partial<TarpPresentationInput>) =>
+    request<{ presentation: TarpPresentationDetail }>(`/api/tarp/presentations/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(presentation),
+    }),
+  deleteTarpPresentation: (id: string) =>
+    request<{ ok: true }>(`/api/tarp/presentations/${id}`, { method: "DELETE" }),
+  addTarpPage: (id: string, fromPageId?: string | null) =>
+    request<{ presentation: TarpPresentationDetail }>(`/api/tarp/presentations/${id}/pages`, {
+      method: "POST",
+      body: JSON.stringify({ fromPageId: fromPageId ?? null }),
+    }),
+  updateTarpPage: (id: string, page: TarpPageInput) =>
+    request<{ page: TarpPage }>(`/api/tarp/pages/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(page),
+    }),
+  deleteTarpPage: (id: string) =>
+    request<{ ok: true }>(`/api/tarp/pages/${id}`, { method: "DELETE" }),
+  reorderTarpPages: (id: string, pageIds: string[]) =>
+    request<{ presentation: TarpPresentationDetail }>(`/api/tarp/presentations/${id}/pages/reorder`, {
+      method: "POST",
+      body: JSON.stringify({ pageIds }),
+    }),
   displayViews: () => request<{ views: DisplayViewLink[] }>("/api/display/views"),
   displayConfig: () => request<{ config: DisplayConfig }>("/api/display/config"),
   saveDisplayConfig: (config: DisplayConfig) =>

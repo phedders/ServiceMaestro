@@ -13,6 +13,7 @@ import SettingsPage from "./pages/SettingsPage";
 import HelpPage from "./pages/HelpPage";
 import ChurchsuitePage from "./pages/ChurchsuitePage";
 import ImagesPage from "./pages/ImagesPage";
+import TarpPage from "./pages/TarpPage";
 import {
   SHORTCUT_CHANGE_EVENT,
   handleListNavigation,
@@ -22,7 +23,16 @@ import {
   type KeyboardShortcuts,
 } from "./keyboard";
 
-type Page = "live" | "setlists" | "songs" | "images" | "bible" | "churchsuite" | "settings" | "help";
+type Page =
+  | "live"
+  | "setlists"
+  | "songs"
+  | "images"
+  | "tarp"
+  | "bible"
+  | "churchsuite"
+  | "settings"
+  | "help";
 
 interface Toast {
   id: number;
@@ -291,6 +301,8 @@ export default function App() {
         return "Songs";
       case "images":
         return "Images";
+      case "tarp":
+        return "Tarp";
       case "bible":
         return "Bible";
       case "churchsuite":
@@ -395,6 +407,13 @@ export default function App() {
             title="Browse, upload and add images to set lists"
           >
             <span className="nav-icon">▣</span> Images
+          </button>
+          <button
+            className={page === "tarp" ? "active" : ""}
+            onClick={() => setPage("tarp")}
+            title="Create Tarp themes and presentations"
+          >
+            <span className="nav-icon">▧</span> Tarp
           </button>
           <button
             className={page === "bible" ? "active" : ""}
@@ -557,6 +576,7 @@ export default function App() {
         {page === "images" && (
           <ImagesPage live={live} notify={notify} onQuickImage={quickImage} />
         )}
+        {page === "tarp" && <TarpPage notify={notify} />}
         {page === "bible" && <BiblePage live={live} onQuickText={quickText} notify={notify} />}
         {page === "churchsuite" && (
           <ChurchsuitePage notify={notify} onOpenSetlists={() => setPage("setlists")} />

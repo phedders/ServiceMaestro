@@ -134,6 +134,41 @@ db.exec(`
     updated_at TEXT NOT NULL
   );
 
+  CREATE TABLE IF NOT EXISTS tarp_themes (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    background_json TEXT NOT NULL,
+    font_family TEXT NOT NULL,
+    text_color TEXT NOT NULL,
+    accent_color TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS tarp_presentations (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    aspect TEXT NOT NULL DEFAULT '16:9',
+    theme_id TEXT REFERENCES tarp_themes(id) ON DELETE SET NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS tarp_pages (
+    id TEXT PRIMARY KEY,
+    presentation_id TEXT NOT NULL REFERENCES tarp_presentations(id) ON DELETE CASCADE,
+    position INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    theme_id TEXT REFERENCES tarp_themes(id) ON DELETE SET NULL,
+    start_from_previous INTEGER NOT NULL DEFAULT 0,
+    transition_json TEXT,
+    normal_json TEXT NOT NULL,
+    lowerthird_json TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_tarp_pages_presentation ON tarp_pages(presentation_id, position);
+
   CREATE TABLE IF NOT EXISTS song_verse_orders (
     id TEXT PRIMARY KEY,
     song_id TEXT NOT NULL REFERENCES songs(id) ON DELETE CASCADE,
@@ -207,6 +242,51 @@ db.prepare(
   48,
   new Date().toISOString(),
 );
+
+const tarpThemeNow = new Date().toISOString();
+const defaultTarpThemes = [
+  {
+    id: "tarp-midnight",
+    name: "Midnight",
+    background: { type: "color", color: "#0b1220" },
+    fontFamily: '"Clear Sans", "Segoe UI", system-ui, -apple-system, sans-serif',
+    textColor: "#ffffff",
+    accentColor: "#4cc2ff",
+  },
+  {
+    id: "tarp-paper",
+    name: "Paper",
+    background: { type: "color", color: "#f4efe7" },
+    fontFamily: 'Georgia, "Times New Roman", serif',
+    textColor: "#1d1a16",
+    accentColor: "#b45309",
+  },
+  {
+    id: "tarp-warm",
+    name: "Warm",
+    background: { type: "color", color: "#1d1210" },
+    fontFamily: '"Trebuchet MS", "Segoe UI", sans-serif',
+    textColor: "#fff7ed",
+    accentColor: "#fb923c",
+  },
+];
+const seedTarpTheme = db.prepare(
+  `INSERT OR IGNORE INTO tarp_themes
+   (id, name, background_json, font_family, text_color, accent_color, created_at, updated_at)
+   VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+);
+for (const theme of defaultTarpThemes) {
+  seedTarpTheme.run(
+    theme.id,
+    theme.name,
+    JSON.stringify(theme.background),
+    theme.fontFamily,
+    theme.textColor,
+    theme.accentColor,
+    tarpThemeNow,
+    tarpThemeNow,
+  );
+}
 
 db.prepare(
   `INSERT INTO app_settings (key, value, updated_at) VALUES ('page_navigation', 'stop', ?)

@@ -187,6 +187,107 @@ export interface DisplayViewLink {
   url: string;
 }
 
+export type TarpAspect = "16:9" | "16:10";
+export type TarpObjectKind = "text" | "image";
+export type TarpAnimationType =
+  | "fade-in"
+  | "fade-out"
+  | "slide-in"
+  | "move"
+  | "scale"
+  | "rotate";
+
+export type TarpBackground =
+  | { type: "color"; color: string }
+  | { type: "gradient"; from: string; to: string; angle: number }
+  | { type: "image"; path: string };
+
+export interface TarpAnimation {
+  id: string;
+  type: TarpAnimationType;
+  delayMs: number;
+  durationMs: number;
+  easing: string;
+}
+
+export interface TarpObjectPlacement {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  rotation: number;
+  opacity: number;
+  fontSize: number | null;
+  fontWeight: number | null;
+  textAlign: "left" | "center" | "right";
+  fit: "contain" | "cover";
+  color: string | null;
+  fontFamily: string | null;
+  animations: TarpAnimation[];
+}
+
+export interface TarpObject {
+  id: string;
+  kind: TarpObjectKind;
+  content: string;
+  locked: boolean;
+  visible: boolean;
+  normal: TarpObjectPlacement;
+  lowerthird: TarpObjectPlacement;
+}
+
+export interface TarpView {
+  background: TarpBackground | null;
+  fontFamily: string | null;
+  textColor: string | null;
+  objects: TarpObject[];
+}
+
+export interface TarpPageTransition {
+  type: "cut" | "fade" | "move";
+  durationMs: number;
+  easing: string;
+}
+
+export interface TarpPage {
+  id: string;
+  presentationId: string;
+  position: number;
+  name: string;
+  themeId: string | null;
+  startFromPrevious: boolean;
+  transition: TarpPageTransition | null;
+  normal: TarpView;
+  lowerthird: TarpView;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TarpTheme {
+  id: string;
+  name: string;
+  background: TarpBackground;
+  fontFamily: string;
+  textColor: string;
+  accentColor: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TarpPresentationSummary {
+  id: string;
+  name: string;
+  aspect: TarpAspect;
+  themeId: string | null;
+  pageCount: number;
+  updatedAt: string;
+}
+
+export interface TarpPresentationDetail extends TarpPresentationSummary {
+  pages: TarpPage[];
+  createdAt: string;
+}
+
 export interface FontOption {
   id: string;
   label: string;
@@ -575,6 +676,97 @@ export const displayConfigSchema = z.object({
   lowerThirdFontFamily: z.string().trim().min(1).max(200),
   lowerThirdTextScale: z.number().min(0.5).max(2.5),
 });
+
+const tarpColorSchema = z.string().trim().regex(/^#[0-9a-f]{6}$/i);
+
+export const tarpBackgroundSchema = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("color"), color: tarpColorSchema }),
+  z.object({
+    type: z.literal("gradient"),
+    from: tarpColorSchema,
+    to: tarpColorSchema,
+    angle: z.number().min(0).max(360).default(180),
+  }),
+  z.object({ type: z.literal("image"), path: z.string().trim().min(1).max(2000) }),
+]);
+
+export const tarpAnimationSchema = z.object({
+  id: z.string().min(1).max(100),
+  type: z.enum(["fade-in", "fade-out", "slide-in", "move", "scale", "rotate"]),
+  delayMs: z.number().int().min(0).max(600_000).default(0),
+  durationMs: z.number().int().min(0).max(600_000).default(600),
+  easing: z.string().trim().max(80).default("ease"),
+});
+
+export const tarpPlacementSchema = z.object({
+  x: z.number().min(-1).max(2).default(0),
+  y: z.number().min(-1).max(2).default(0),
+  width: z.number().min(0.001).max(2).default(1),
+  height: z.number().min(0.001).max(2).default(0.2),
+  rotation: z.number().min(-360).max(360).default(0),
+  opacity: z.number().min(0).max(1).default(1),
+  fontSize: z.number().min(0.005).max(0.5).nullable().default(null),
+  fontWeight: z.number().int().min(100).max(900).nullable().default(null),
+  textAlign: z.enum(["left", "center", "right"]).default("left"),
+  fit: z.enum(["contain", "cover"]).default("contain"),
+  color: z.string().trim().max(40).nullable().default(null),
+  fontFamily: z.string().trim().max(200).nullable().default(null),
+  animations: z.array(tarpAnimationSchema).max(100).default([]),
+});
+
+export const tarpObjectSchema = z.object({
+  id: z.string().min(1).max(100),
+  kind: z.enum(["text", "image"]),
+  content: z.string().max(200_000).default(""),
+  locked: z.boolean().default(false),
+  visible: z.boolean().default(true),
+  normal: tarpPlacementSchema,
+  lowerthird: tarpPlacementSchema,
+});
+
+export const tarpViewSchema = z.object({
+  background: tarpBackgroundSchema.nullable().default(null),
+  fontFamily: z.string().trim().max(200).nullable().default(null),
+  textColor: z.string().trim().max(40).nullable().default(null),
+  objects: z.array(tarpObjectSchema).max(200).default([]),
+});
+
+export const tarpPageTransitionSchema = z.object({
+  type: z.enum(["cut", "fade", "move"]).default("fade"),
+  durationMs: z.number().int().min(0).max(10_000).default(500),
+  easing: z.string().trim().max(80).default("ease"),
+});
+
+export const tarpPageInputSchema = z.object({
+  name: z.string().trim().min(1).max(120).optional(),
+  themeId: z.string().trim().max(100).nullable().optional(),
+  startFromPrevious: z.boolean().optional(),
+  transition: tarpPageTransitionSchema.nullable().optional(),
+  normal: tarpViewSchema.optional(),
+  lowerthird: tarpViewSchema.optional(),
+});
+
+export const tarpThemeInputSchema = z.object({
+  name: z.string().trim().min(1).max(120),
+  background: tarpBackgroundSchema,
+  fontFamily: z.string().trim().min(1).max(200),
+  textColor: tarpColorSchema,
+  accentColor: tarpColorSchema,
+});
+
+export const tarpPresentationInputSchema = z.object({
+  name: z.string().trim().min(1).max(160),
+  aspect: z.enum(["16:9", "16:10"]).default("16:9"),
+  themeId: z.string().trim().max(100).nullable().optional(),
+});
+
+export const tarpReorderSchema = z.object({
+  pageIds: z.array(z.string().min(1)).max(500),
+});
+
+export type TarpThemeInput = z.infer<typeof tarpThemeInputSchema>;
+export type TarpPresentationInput = z.infer<typeof tarpPresentationInputSchema>;
+export type TarpPageInput = z.infer<typeof tarpPageInputSchema>;
 
 export const fontImportSchema = z
   .object({
