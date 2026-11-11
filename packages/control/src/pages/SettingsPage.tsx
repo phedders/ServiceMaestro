@@ -487,6 +487,56 @@ export default function SettingsPage({
               </>
             )}
 
+            <details className="git-config-vars">
+              <summary>Repository configuration variables</summary>
+              <p className="hint">
+                Repository paths, remotes and branches are configured through the container
+                environment or <code>WLM_CONFIG_FILE</code>. Remote secrets can be mounted and read
+                from <code>_FILE</code> variables; never commit tokens or SSH keys. The runtime
+                auto-commit/auto-push/pull/merge options above are stored in SQLite and override the
+                environment defaults.
+              </p>
+              <div className="git-config-grid">
+                <div>
+                  <strong>Songs</strong>
+                  <code>WLM_GIT_SONGS_PATH</code>
+                  <code>WLM_GIT_SONGS_REMOTE</code>
+                  <code>WLM_GIT_SONGS_REMOTE_FILE</code>
+                  <code>WLM_GIT_SONGS_BRANCH</code>
+                </div>
+                <div>
+                  <strong>Set lists</strong>
+                  <code>WLM_GIT_SETLISTS_PATH</code>
+                  <code>WLM_GIT_SETLISTS_REMOTE</code>
+                  <code>WLM_GIT_SETLISTS_REMOTE_FILE</code>
+                  <code>WLM_GIT_SETLISTS_BRANCH</code>
+                </div>
+                <div>
+                  <strong>Bibles</strong>
+                  <code>WLM_GIT_BIBLES_PATH</code>
+                  <code>WLM_GIT_BIBLES_REMOTE</code>
+                  <code>WLM_GIT_BIBLES_REMOTE_FILE</code>
+                  <code>WLM_GIT_BIBLES_BRANCH</code>
+                  <code>WLM_GIT_BIBLES_OPTIONAL</code>
+                  <code>WLM_GIT_BIBLES_LFS</code>
+                </div>
+                <div>
+                  <strong>Templates</strong>
+                  <code>WLM_GIT_TEMPLATES_PATH</code>
+                  <code>WLM_GIT_TEMPLATES_REMOTE</code>
+                  <code>WLM_GIT_TEMPLATES_REMOTE_FILE</code>
+                  <code>WLM_GIT_TEMPLATES_BRANCH</code>
+                </div>
+              </div>
+              <p className="hint">
+                Global: <code>WLM_GIT_ENABLED</code>, <code>WLM_GIT_AUTO_SAVE</code>,{" "}
+                <code>WLM_GIT_AUTO_PUSH</code>, <code>WLM_GIT_PULL_INTERVAL</code>,{" "}
+                <code>WLM_GIT_SSH_KEY_FILE</code>, <code>WLM_GIT_KNOWN_HOSTS_FILE</code>. YAML
+                equivalent: <code>git.repositories.&lt;name&gt;.path/remote/branch</code> and{" "}
+                <code>git.repositories.&lt;name&gt;.optional/lfs</code>.
+              </p>
+            </details>
+
             <div className="git-repo-list">
               {git.repositories.map((repo) => (
                 <div key={repo.name} className="git-repo-row">

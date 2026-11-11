@@ -1411,6 +1411,52 @@ label {
   margin-top: 14px;
 }
 
+.git-config-vars {
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.015);
+  padding: 10px 12px;
+  margin-top: 12px;
+}
+
+.git-config-vars summary {
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.git-config-vars .hint {
+  margin: 8px 0;
+}
+
+.git-config-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.git-config-grid > div {
+  display: grid;
+  gap: 3px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px;
+  background: var(--panel-2);
+}
+
+.git-config-grid strong {
+  font-size: 0.76rem;
+  margin-bottom: 2px;
+}
+
+.git-config-grid code {
+  color: #a5e8ff;
+  font-size: 0.66rem;
+  overflow-wrap: anywhere;
+}
+
 .git-repo-row {
   display: grid;
   grid-template-columns: minmax(180px, 1fr) minmax(260px, 1.2fr) auto;
@@ -2563,6 +2609,10 @@ label {
   .git-settings-grid,
   .git-repo-row {
     grid-template-columns: 1fr;
+  }
+
+  .git-config-grid {
+    grid-template-columns: 1fr 1fr;
   }
 
   .churchsuite-grid {

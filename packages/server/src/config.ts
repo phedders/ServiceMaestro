@@ -112,6 +112,18 @@ function envFile(name: string): string {
   return process.env[name] ?? "";
 }
 
+function optionalEnvFile(name: string): string | undefined {
+  const file = process.env[`${name}_FILE`];
+  if (file) {
+    try {
+      return fs.readFileSync(file, "utf8").trim();
+    } catch {
+      return undefined;
+    }
+  }
+  return process.env[name];
+}
+
 export const CHURCHSUITE_CLIENT_ID = envFile("WLM_CHURCHSUITE_CLIENT_ID");
 export const CHURCHSUITE_CLIENT_SECRET = envFile("WLM_CHURCHSUITE_CLIENT_SECRET");
 export const CHURCHSUITE_TOKEN_URL =
@@ -129,7 +141,8 @@ function repo(
 ): GitRepoConfig {
   const fromFile = gitConfig.repositories?.[name] ?? {};
   const envPrefix = `WLM_GIT_${name.toUpperCase()}`;
-  const remote = process.env[`${envPrefix}_REMOTE`] ?? fromFile.remote ?? "";
+  const remote =
+    optionalEnvFile(`${envPrefix}_REMOTE`) ?? fromFile.remote ?? "";
   return {
     name,
     path: path.resolve(process.env[`${envPrefix}_PATH`] ?? fromFile.path ?? defaultPath),
