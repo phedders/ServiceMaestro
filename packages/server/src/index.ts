@@ -3,6 +3,11 @@ import { DISPLAY_PORT, HOST, PORT } from "./config.js";
 import { buildDisplayApp } from "./display-app.js";
 import { shutdownGit } from "./git-store.js";
 
+if (PORT === DISPLAY_PORT) {
+  console.error("[sm] SM_PORT and SM_DISPLAY_PORT must be different ports");
+  process.exit(1);
+}
+
 const { app, io, outputIo } = await buildApp();
 const display = await buildDisplayApp();
 

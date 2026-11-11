@@ -63,9 +63,19 @@ export interface GitRepoConfig {
   lfs: "required" | "auto" | "off";
 }
 
+function portEnv(name: string, fallback: number): number {
+  const raw = process.env[name];
+  if (raw === undefined || raw.trim() === "") return fallback;
+  const value = Number(raw);
+  if (!Number.isInteger(value) || value < 1 || value > 65_535) {
+    throw new Error(`${name} must be an integer between 1 and 65535`);
+  }
+  return value;
+}
+
 export const HOST = process.env.SM_HOST ?? "0.0.0.0";
-export const PORT = Number(process.env.SM_PORT ?? 8080);
-export const DISPLAY_PORT = Number(process.env.SM_DISPLAY_PORT ?? 8081);
+export const PORT = portEnv("SM_PORT", 8080);
+export const DISPLAY_PORT = portEnv("SM_DISPLAY_PORT", 8081);
 export const DATA_DIR = path.resolve(process.env.SM_DATA_DIR ?? path.join(packageRoot, "data"));
 export const CONTROL_DIST = path.resolve(packageRoot, "../control/dist");
 export const DISPLAY_DIR = path.resolve(packageRoot, "../display");

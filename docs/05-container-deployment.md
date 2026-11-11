@@ -110,7 +110,7 @@ Environment-first, with optional file values and `_FILE` secret support:
 | `SM_LOG_LEVEL` | `info` | `debug`/`info`/`warn`/`error` |
 | `SM_TRUST_PROXY` | `false` | Honour `X-Forwarded-*` behind TLS proxy |
 
-Secrets are never printed; `_FILE` variants allow Docker/Podman secrets and Incus/LXC files. Git repositories use `SM_GIT_*` remotes (`ssh://` or `https://token@…`), SSH key/known-hosts secrets, and optional Git LFS for Bibles — see [11-git-data-sync.md](11-git-data-sync.md).
+`SM_PORT` and `SM_DISPLAY_PORT` are read at startup, must be different, and accept values from `1` to `65535`. Secrets are never printed; `_FILE` variants allow Docker/Podman secrets and Incus/LXC files. Git repositories use `SM_GIT_*` remotes (`ssh://` or `https://token@…`), SSH key/known-hosts secrets, and optional Git LFS for Bibles — see [11-git-data-sync.md](11-git-data-sync.md).
 
 ## 5. Docker / Podman
 
@@ -123,11 +123,12 @@ services:
     container_name: service-maestro
     restart: unless-stopped
     ports:
-      - "8080:8080"
-      - "8081:8081"
+      - "8080:${SM_PORT:-8080}"
+      - "8081:${SM_DISPLAY_PORT:-8081}"
     environment:
       SM_TZ: Europe/London
-      SM_DISPLAY_PORT: 8081
+      SM_PORT: ${SM_PORT:-8080}
+      SM_DISPLAY_PORT: ${SM_DISPLAY_PORT:-8081}
       SM_PUBLIC_URL: http://10.181.1.10:8080
     volumes:
       - ./data:/data

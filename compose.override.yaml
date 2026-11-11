@@ -1,5 +1,5 @@
 services:
   service-maestro:
     ports:
-      - "8899:8080"
-      - "8898:8081"
+      - "8899:${SM_PORT:-8080}"
+      - "8898:${SM_DISPLAY_PORT:-8081}"

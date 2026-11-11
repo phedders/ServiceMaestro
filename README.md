@@ -94,6 +94,8 @@ Open <http://localhost:8080/musicians> to see the read-only musician view. It de
 
 ## Configuration
 
+Listener ports are set with `SM_PORT` and `SM_DISPLAY_PORT`; both are read at startup and must be different.
+
 | Variable | Default | Purpose |
 | --- | --- | --- |
 | `SM_PORT` | `8080` | Control HTTP/WebSocket port |

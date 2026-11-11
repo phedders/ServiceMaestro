@@ -5,11 +5,12 @@ services:
     container_name: service-maestro
     restart: unless-stopped
     ports:
-      - "6111:8080"
-      - "6112:8081"
+      - "6111:${SM_PORT:-8080}"
+      - "6112:${SM_DISPLAY_PORT:-8081}"
     environment:
       SM_TZ: Europe/London
-      SM_DISPLAY_PORT: 8081
+      SM_PORT: ${SM_PORT:-8080}
+      SM_DISPLAY_PORT: ${SM_DISPLAY_PORT:-8081}
       SM_ADMIN_PASSWORD: ${SM_ADMIN_PASSWORD:-change-me}
       SM_OUTPUT_TOKEN: ${SM_OUTPUT_TOKEN:-dev-output}
       SM_SONGS_DIR: /library/songs
