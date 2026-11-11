@@ -27,8 +27,6 @@ const NOTES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
   "F#": 6, Gb: 6, G: 7, "G#": 8, Ab: 8, A: 9, "A#": 10, Bb: 10, B: 11,
 };
 const CHORD_RE = /^([A-G](?:#|b)?)(.*)$/;
-const SECTION_RE =
-  /^\s*\[(verse|chorus|bridge|intro|outro|tag|ending|pre[- ]?chorus|interlude|instrumental)[^\]]*\]\s*$/i;
 
 export function escapeHtml(value: string): string {
   return value
@@ -90,10 +88,11 @@ function parseSong(lyrics: string): Block[] {
 
   for (const raw of rawLines) {
     const line = raw.replace(/\s+$/, "");
-    const sectionMatch = line.match(SECTION_RE);
-    if (sectionMatch) {
+    const bracketed = line.match(/^\s*\[([^\]]+)\]\s*$/);
+    const bracketedSection = bracketed ? bareSectionLabel(bracketed[1]) : null;
+    if (bracketedSection) {
       flush();
-      pendingSection = sectionMatch[0].replace(/^\[|\]$/g, "");
+      pendingSection = bracketedSection;
       continue;
     }
     const bareSection = bareSectionLabel(line);
@@ -421,72 +420,19 @@ export interface RenderOptions {
 
 interface PaginationMetrics {
   maxLines: number;
-  charsPerLine: number;
-  autoLines: number;
 }
 
 function paginationMetrics(textScale: number, maxLines: number, smart: boolean): PaginationMetrics {
   // Estimate a 1920×1080 landscape frame with a ~4.2vw main/two-thirds font.
   const fontPx = 82 * clamp(textScale, 0.5, 2.5);
-  const charsPerLine = clamp(Math.floor(1610 / (fontPx * 0.52)), 18, 110);
   const autoLines = clamp(Math.floor(780 / (fontPx * 1.2)), 1, 30);
   return {
     maxLines: smart ? Math.min(maxLines, autoLines) : maxLines,
-    charsPerLine,
-    autoLines,
   };
 }
 
 function countWords(text: string): number {
   return text.trim() ? text.trim().split(/\s+/).length : 0;
-}
-
-function wrapWords(text: string, maxChars: number): string[] {
-  const words = text.trim().split(/\s+/).filter(Boolean);
-  if (!words.length) return [""];
-
-  // Keep SongSelect-style "sat - is - fied" sequences together so a line wrap
-  // never separates the " - " marker from the following syllable.
-  const units: string[] = [];
-  for (let index = 0; index < words.length; ) {
-    if (index + 2 < words.length && words[index + 1] === "-") {
-      let unit = words[index];
-      index += 1;
-      while (index + 1 < words.length && words[index] === "-") {
-        unit += ` - ${words[index + 1]}`;
-        index += 2;
-      }
-      units.push(unit);
-    } else {
-      units.push(words[index]);
-      index += 1;
-    }
-  }
-
-  const lines: string[] = [];
-  let current = "";
-  for (const unit of units) {
-    if (!current) {
-      current = unit;
-    } else if (`${current} ${unit}`.length <= maxChars) {
-      current += ` ${unit}`;
-    } else {
-      lines.push(current);
-      current = unit;
-    }
-  }
-  if (current) lines.push(current);
-  return lines;
-}
-
-function splitWords(text: string, limit: number): string[] {
-  const words = text.trim().split(/\s+/).filter(Boolean);
-  if (!words.length) return [""];
-  const chunks: string[] = [];
-  for (let index = 0; index < words.length; index += limit) {
-    chunks.push(words.slice(index, index + limit).join(" "));
-  }
-  return chunks;
 }
 
 function paginateBlock(block: Block, options: RenderOptions): Block[] {
@@ -514,10 +460,6 @@ function paginateBlock(block: Block, options: RenderOptions): Block[] {
 
   const addSegment = (segment: string) => {
     const words = countWords(segment);
-    if (words > maxWords) {
-      for (const piece of splitWords(segment, maxWords)) addSegment(piece);
-      return;
-    }
     if (pageWords > 0 && pageWords + words > maxWords) flush();
     if (pageLines.length >= metrics.maxLines) flush();
     pageLines.push(segment);
@@ -526,8 +468,7 @@ function paginateBlock(block: Block, options: RenderOptions): Block[] {
   };
 
   for (const line of block.lines) {
-    const segments = smart ? wrapWords(line.text, metrics.charsPerLine) : [line.text];
-    for (const segment of segments) addSegment(segment);
+    addSegment(line.text);
   }
   flush();
   return pages;

@@ -568,7 +568,7 @@ export default function LivePage({
               Smart page splits
               <small>
                 Estimate 1080p coverage from font size and words. Pages break on whichever limit is
-                reached first.
+                reached first. Lyric lines are not word-wrapped.
               </small>
             </span>
           </label>

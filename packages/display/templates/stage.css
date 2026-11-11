@@ -37,7 +37,7 @@ body[data-target="stage"] {
 }
 
 .sm-stage .line {
-  white-space: pre-wrap;
+  white-space: pre;
 }
 
 .sm-stage .chord {

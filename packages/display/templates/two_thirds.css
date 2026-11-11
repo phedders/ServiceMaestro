@@ -30,7 +30,7 @@ body[data-target="full"] .sm-two-thirds .sm-content {
 }
 
 .sm-two-thirds .line {
-  white-space: pre-wrap;
+  white-space: pre;
 }
 
 .sm-two-thirds .chord,

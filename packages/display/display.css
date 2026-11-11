@@ -62,7 +62,7 @@ body.display-stage {
 }
 
 #content .line {
-  white-space: pre-wrap;
+  white-space: pre;
 }
 
 .section-label {
@@ -218,7 +218,7 @@ body.idle .sm-template {
 }
 
 .sm-content .line {
-  white-space: pre-wrap;
+  white-space: pre;
 }
 
 .sm-meta:empty {

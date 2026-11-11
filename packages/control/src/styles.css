@@ -902,7 +902,7 @@ body.resizing-live-queue {
 }
 
 .slide-preview .line {
-  white-space: pre-wrap;
+  white-space: pre;
 }
 
 .slide-preview .section-label {
@@ -1103,7 +1103,7 @@ body.resizing-live-queue {
 }
 
 .page-text .line {
-  white-space: pre-wrap;
+  white-space: pre;
 }
 
 .page-text .chord,
@@ -1376,7 +1376,7 @@ body.resizing-live-queue {
   color: var(--muted);
   font-size: 0.78rem;
   line-height: 1.45;
-  white-space: pre-wrap;
+  white-space: pre;
   overflow: hidden;
   display: -webkit-box;
   -webkit-line-clamp: 5;

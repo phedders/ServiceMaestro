@@ -37,6 +37,19 @@ test("splits sections into pages by max lines", () => {
   assert.match(pages[0].html, /line one/);
 });
 
+test("renders V1-style tags as section labels", () => {
+  const pages = buildPages({
+    kind: "song",
+    title: "Default tags",
+    lyrics: "[V1]\nfirst line\n\n[V2]\nsecond line",
+    transpose: 0,
+    maxLines: 8,
+  });
+  assert.equal(pages.length, 2);
+  assert.match(pages[0].html, /section-label">V1</);
+  assert.doesNotMatch(pages[0].html, /class="line">\[V1\]</);
+});
+
 test("treats bare verse headings as section labels", () => {
   const pages = buildPages({
     kind: "song",
@@ -175,13 +188,16 @@ test("extracts a text format header into metadata", () => {
   assert.equal(extractTextFormat("plain words").format, null);
 });
 
-test("splits pages on max words whichever comes first", () => {
-  const words = Array.from({ length: 30 }, (_, index) => `word${index + 1}`).join(" ");
+test("splits pages on max words at line boundaries", () => {
+  const content = Array.from(
+    { length: 6 },
+    (_, index) => `line ${index + 1} has four words`,
+  ).join("\n");
   const pages = buildPages(
     {
       kind: "text",
       title: "Long",
-      content: words,
+      content,
       transpose: 0,
       maxLines: 50,
     },
@@ -189,11 +205,11 @@ test("splits pages on max words whichever comes first", () => {
     { maxLines: 50, maxWords: 10, smartPageSplits: false },
   );
   assert.equal(pages.length, 3);
-  assert.match(pages[0].html, /word1/);
-  assert.match(pages[2].html, /word30/);
+  assert.match(pages[0].html, /line 1 has four words/);
+  assert.match(pages[2].html, /line 6 has four words/);
 });
 
-test("smart splitting wraps long lines and limits page lines by scale", () => {
+test("smart splitting does not wrap long lyric lines", () => {
   const words = Array.from({ length: 220 }, (_, index) => `word${index + 1}`).join(" ");
   const pages = buildPages(
     {
@@ -206,10 +222,10 @@ test("smart splitting wraps long lines and limits page lines by scale", () => {
     0,
     { maxLines: 8, maxWords: 500, smartPageSplits: true, textScale: 1 },
   );
-  assert.ok(pages.length > 1);
-  const firstLines = (pages[0].html.match(/class="line"/g) ?? []).length;
-  assert.ok(firstLines <= 8);
+  assert.equal(pages.length, 1);
+  assert.equal((pages[0].html.match(/class="line"/g) ?? []).length, 1);
   assert.match(pages[0].html, /word1/);
+  assert.match(pages[0].html, /word220/);
 });
 
 test("renders song Markdown and split-word tags", () => {
