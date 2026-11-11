@@ -6,6 +6,8 @@ import type {
   DashboardLayout,
   DisplayConfig,
   FontOption,
+  GitSettings,
+  GitStatus,
   LiveState,
   PublicUser,
   SetlistDetail,
@@ -91,6 +93,21 @@ export const api = {
     request<{ settings: AppSettings }>("/api/settings", {
       method: "PUT",
       body: JSON.stringify(settings),
+    }),
+
+  gitStatus: () => request<GitStatus>("/api/git/status"),
+  saveGitSettings: (settings: GitSettings) =>
+    request<{ settings: GitSettings; repositories: GitStatus["repositories"] }>("/api/git/settings", {
+      method: "PUT",
+      body: JSON.stringify(settings),
+    }),
+  syncGit: () =>
+    request<{ ok: true; repositories: GitStatus["repositories"] }>("/api/git/sync", {
+      method: "POST",
+    }),
+  exportGit: () =>
+    request<{ ok: true; repositories: GitStatus["repositories"] }>("/api/git/export", {
+      method: "POST",
     }),
 
   churchsuiteStatus: () =>

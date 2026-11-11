@@ -84,7 +84,7 @@ Open <http://localhost:8080/musicians> to see the read-only musician view. It de
 - **Git-backed shared data** — designed: local-only repos by default with optional remote, auto-save/push on by default, separate songs/setlists/(optional LFS) Bibles repos, standard SSH or HTTP(S)+token URIs. See [11](docs/11-git-data-sync.md).
 - **Displays** — vanilla HTML/CSS/JS, no CDN, snapshot-on-connect, transparent main output, full-screen and stage-with-chords variants.
 - **Persistence** — SQLite (WAL) for users, sessions, songs, set lists, session snapshots and dashboard layouts; the live session survives a restart.
-- **Git-backed data (local foundation)** — songs and set lists are written to local Git repositories and committed automatically (`autoSave` default on); optional remotes, pull/push and Bibles/LFS are configurable. See [11](docs/11-git-data-sync.md).
+- **Git-backed data (local foundation)** — songs and set lists are written to local Git repositories and committed automatically (`autoSave` default on); optional remotes, pull/push and Bibles/LFS are configurable. The Settings page shows repository status and can change auto-commit, auto-push, pull interval and fast-forward-vs-merge behaviour at runtime. See [11](docs/11-git-data-sync.md).
 - **Container** — multi-stage Dockerfile, non-root UID 10001, health check, Compose file; image builds and runs.
 
 ## Configuration

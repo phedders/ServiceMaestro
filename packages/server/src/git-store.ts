@@ -4,15 +4,13 @@ import { simpleGit, type SimpleGit } from "simple-git";
 import { z } from "zod";
 import { db } from "./db.js";
 import {
-  GIT_AUTO_PUSH,
-  GIT_AUTO_SAVE,
   GIT_AUTHOR_EMAIL,
   GIT_AUTHOR_NAME,
   GIT_ENABLED,
-  GIT_PULL_INTERVAL,
   GIT_REPOS,
   type GitRepoConfig,
 } from "./config.js";
+import { getGitSettings } from "./settings.js";
 import { buildSetlistExport, parseSetlistFile, type SetlistManifest } from "./setlist-transfer.js";
 import { reloadBibleCatalog, setBibleDir } from "./bible.js";
 
@@ -141,7 +139,7 @@ async function commit(runtime: RepoRuntime, message: string): Promise<void> {
   if (!status.files.length) return;
   await runtime.git.commit(message);
   runtime.localCommit = (await runtime.git.revparse(["HEAD"])).trim();
-  if (GIT_AUTO_PUSH && runtime.config.remote) {
+  if (getGitSettings().autoPush && runtime.config.remote) {
     try {
       await runtime.git.raw(["push", "origin", runtime.config.branch]);
       runtime.lastPushAt = new Date().toISOString();
@@ -428,7 +426,13 @@ async function pullRuntime(runtime: RepoRuntime): Promise<void> {
   if (!runtime.config.remote) return;
   try {
     await runtime.git.raw(["fetch", "origin", runtime.config.branch]);
-    await runtime.git.raw(["pull", "--ff-only", "origin", runtime.config.branch]);
+    const mergeMode = getGitSettings().mergeMode;
+    await runtime.git.raw([
+      "pull",
+      mergeMode === "merge" ? "--no-rebase" : "--ff-only",
+      "origin",
+      runtime.config.branch,
+    ]);
     runtime.lastPullAt = new Date().toISOString();
     runtime.lastError = null;
   } catch (error) {
@@ -459,6 +463,21 @@ export async function syncGitFromRemotes(): Promise<void> {
       setBibleDir(bibles.config.path);
       reloadBibleCatalog();
     }
+  }
+}
+
+export function configureGitAutoSync(): void {
+  if (timer) {
+    clearInterval(timer);
+    timer = null;
+  }
+  if (!GIT_ENABLED) return;
+  const interval = getGitSettings().pullIntervalSeconds;
+  if (interval > 0) {
+    timer = setInterval(() => {
+      void syncGitFromRemotes().catch(() => undefined);
+    }, interval * 1000);
+    timer.unref();
   }
 }
 
@@ -505,12 +524,7 @@ export async function initializeGitStorage(): Promise<void> {
     console.warn(`[wlm] Git storage disabled: ${(error as Error).message}`);
   }
 
-  if (!timer && GIT_AUTO_SAVE && GIT_PULL_INTERVAL > 0) {
-    timer = setInterval(() => {
-      void syncGitFromRemotes().catch(() => undefined);
-    }, GIT_PULL_INTERVAL * 1000);
-    timer.unref();
-  }
+  configureGitAutoSync();
 }
 
 async function exportAllSongs(runtime: RepoRuntime): Promise<void> {
@@ -535,21 +549,21 @@ async function exportAllSetlists(runtime: RepoRuntime): Promise<void> {
 }
 
 export async function saveSongToGit(id: string): Promise<void> {
-  if (!GIT_ENABLED || !GIT_AUTO_SAVE) return;
+  if (!GIT_ENABLED || !getGitSettings().autoSave) return;
   const runtime = runtimes.get("songs");
   if (!runtime) return;
   await serial(() => writeSong(runtime, id));
 }
 
 export async function deleteSongFromGit(id: string): Promise<void> {
-  if (!GIT_ENABLED || !GIT_AUTO_SAVE) return;
+  if (!GIT_ENABLED || !getGitSettings().autoSave) return;
   const runtime = runtimes.get("songs");
   if (!runtime) return;
   await serial(() => deleteSong(runtime, id));
 }
 
 export async function saveSetlistToGit(id: string): Promise<void> {
-  if (!GIT_ENABLED || !GIT_AUTO_SAVE) return;
+  if (!GIT_ENABLED || !getGitSettings().autoSave) return;
   const runtime = runtimes.get("setlists");
   if (!runtime) return;
   const manifest = buildSetlistExport(id, false).manifest;
@@ -563,7 +577,7 @@ export async function saveSetlistToGit(id: string): Promise<void> {
 }
 
 export async function deleteSetlistFromGit(id: string): Promise<void> {
-  if (!GIT_ENABLED || !GIT_AUTO_SAVE) return;
+  if (!GIT_ENABLED || !getGitSettings().autoSave) return;
   const runtime = runtimes.get("setlists");
   if (!runtime) return;
   await serial(async () => {
@@ -596,6 +610,7 @@ export async function pushGit(): Promise<void> {
 }
 
 export function gitStatus(): Array<Record<string, unknown>> {
+  const settings = getGitSettings();
   return [...runtimes.values()].map((runtime) => ({
     name: runtime.config.name,
     path: runtime.config.path,
@@ -603,8 +618,8 @@ export function gitStatus(): Array<Record<string, unknown>> {
     branch: runtime.config.branch,
     optional: runtime.config.optional,
     lfs: runtime.config.lfs,
-    autoSave: GIT_AUTO_SAVE,
-    autoPush: GIT_AUTO_PUSH,
+    autoSave: settings.autoSave,
+    autoPush: settings.autoPush,
     lastPullAt: runtime.lastPullAt,
     lastPushAt: runtime.lastPushAt,
     localCommit: runtime.localCommit,

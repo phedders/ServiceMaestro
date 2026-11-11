@@ -223,6 +223,15 @@ repositories:
 - If a token is embedded in the URI, protect the config file (`chmod 600`, mounted secret). Prefer a Docker/Podman/Incus secret for the whole config file or for `WLM_GIT_<REPO>_REMOTE_FILE`.
 - Git stores the remote URL in `.git/config`; the repository directory is under the protected `/data` volume and must not be exported or committed.
 
+Runtime settings (Settings → Git repositories):
+
+- **Auto-commit** — write and commit song/set-list changes automatically.
+- **Auto-push** — push after commits when a remote is configured.
+- **Pull interval** — seconds between automatic fetches/pulls; `0` disables automatic pulls.
+- **Remote divergence** — `Fast-forward only` (default; stop on divergence) or `Pull and merge` (normal Git merge).
+- Repository cards show path, redacted remote, branch, last pull/push, latest local commit and the last error. The section also has **Pull / sync now** and **Export & push** actions.
+- These runtime values are stored in SQLite and override the environment/YAML defaults; remote URLs and credentials still come from environment/YAML/secrets.
+
 Environment equivalents:
 
 ```sh

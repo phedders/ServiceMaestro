@@ -5,11 +5,12 @@ import cookie from "@fastify/cookie";
 import fastifyStatic from "@fastify/static";
 import multipart from "@fastify/multipart";
 import { Server } from "socket.io";
-import { displayConfigSchema, liveCommandSchema, quickTextSchema, type PublicUser } from "@wlm/shared";
-import { COOKIE_NAME, CONTROL_DIST, DISPLAY_DIR, FONTS_DIR, GIT_AUTO_PUSH, GIT_AUTO_SAVE, GIT_ENABLED, OUTPUT_TOKEN } from "./config.js";
+import { displayConfigSchema, gitSettingsSchema, liveCommandSchema, quickTextSchema, type PublicUser } from "@wlm/shared";
+import { COOKIE_NAME, CONTROL_DIST, DISPLAY_DIR, FONTS_DIR, GIT_ENABLED, OUTPUT_TOKEN } from "./config.js";
 import { parseCookies, requireAuth, requireRole, userForToken } from "./auth.js";
 import { live } from "./live.js";
 import { getDisplayConfig, saveDisplayConfig } from "./display-config.js";
+import { getGitSettings, saveGitSettings } from "./settings.js";
 import { authRoutes } from "./routes/auth.js";
 import { songRoutes } from "./routes/songs.js";
 import { setlistRoutes } from "./routes/setlists.js";
@@ -23,6 +24,7 @@ import { fontRoutes } from "./routes/fonts.js";
 import { churchsuiteRoutes } from "./routes/churchsuite.js";
 import { settingsRoutes } from "./routes/settings.js";
 import {
+  configureGitAutoSync,
   exportAllToGit,
   gitStatus,
   initializeGitStorage,
@@ -144,12 +146,28 @@ export async function buildApp(): Promise<{ app: FastifyInstance; io: Server }> 
     },
   );
 
-  app.get("/api/git/status", { preHandler: requireAuth }, async () => ({
-    enabled: GIT_ENABLED,
-    autoSave: GIT_AUTO_SAVE,
-    autoPush: GIT_AUTO_PUSH,
-    repositories: gitStatus(),
-  }));
+  app.get("/api/git/status", { preHandler: requireAuth }, async () => {
+    const settings = getGitSettings();
+    return {
+      enabled: GIT_ENABLED,
+      ...settings,
+      repositories: gitStatus(),
+    };
+  });
+
+  app.put(
+    "/api/git/settings",
+    { preHandler: [requireAuth, requireRole("admin", "editor")] },
+    async (request, reply) => {
+      const parsed = gitSettingsSchema.safeParse(request.body);
+      if (!parsed.success) {
+        return reply.code(400).send({ error: "Invalid Git settings", issues: parsed.error.issues });
+      }
+      const settings = saveGitSettings(parsed.data);
+      configureGitAutoSync();
+      return { settings, repositories: gitStatus() };
+    },
+  );
 
   app.post(
     "/api/git/sync",

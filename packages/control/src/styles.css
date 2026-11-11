@@ -1393,6 +1393,64 @@ label {
   gap: 10px;
 }
 
+.git-settings-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) minmax(160px, 0.8fr) minmax(220px, 1fr) auto;
+  gap: 10px;
+  align-items: end;
+  margin-bottom: 10px;
+}
+
+.git-settings-grid .checkbox {
+  align-self: center;
+}
+
+.git-repo-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.git-repo-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(260px, 1.2fr) auto;
+  gap: 12px;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--panel-2);
+  padding: 9px 12px;
+}
+
+.git-repo-row > div:first-child {
+  display: grid;
+  gap: 2px;
+}
+
+.git-repo-row .muted {
+  font-size: 0.7rem;
+  overflow-wrap: anywhere;
+}
+
+.git-repo-meta {
+  display: grid;
+  gap: 2px;
+  color: var(--muted);
+  font-size: 0.7rem;
+}
+
+.git-repo-ok {
+  color: var(--success);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.git-repo-error {
+  color: #ffb2b2;
+  font-size: 0.7rem;
+  overflow-wrap: anywhere;
+}
+
 .config-kv > div {
   display: grid;
   gap: 3px;
@@ -2356,6 +2414,11 @@ label {
   .font-import,
   .font-row,
   .verse-order-add {
+    grid-template-columns: 1fr;
+  }
+
+  .git-settings-grid,
+  .git-repo-row {
     grid-template-columns: 1fr;
   }
 

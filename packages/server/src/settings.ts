@@ -1,8 +1,16 @@
-import type { AppSettings } from "@wlm/shared";
+import type { AppSettings, GitSettings } from "@wlm/shared";
 import { db } from "./db.js";
+import { GIT_AUTO_PUSH, GIT_AUTO_SAVE, GIT_PULL_INTERVAL } from "./config.js";
 
 const DEFAULTS: AppSettings = {
   pageNavigation: "stop",
+};
+
+const GIT_DEFAULTS: GitSettings = {
+  autoSave: GIT_AUTO_SAVE,
+  autoPush: GIT_AUTO_PUSH,
+  pullIntervalSeconds: GIT_PULL_INTERVAL,
+  mergeMode: "ff-only",
 };
 
 interface Row {
@@ -28,4 +36,40 @@ export function saveAppSettings(settings: AppSettings): AppSettings {
   );
   write.run("page_navigation", settings.pageNavigation, now);
   return getAppSettings();
+}
+
+function boolValue(value: string | undefined, fallback: boolean): boolean {
+  if (value === undefined) return fallback;
+  return !["0", "false", "no", "off"].includes(value.toLowerCase());
+}
+
+export function getGitSettings(): GitSettings {
+  const rows = db.prepare("SELECT key, value FROM app_settings").all() as Row[];
+  const values = new Map(rows.map((row) => [row.key, row.value]));
+  const interval = Number(values.get("git_pull_interval_seconds"));
+  return {
+    autoSave: boolValue(values.get("git_auto_save"), GIT_DEFAULTS.autoSave),
+    autoPush: boolValue(values.get("git_auto_push"), GIT_DEFAULTS.autoPush),
+    pullIntervalSeconds:
+      Number.isFinite(interval) && interval >= 0
+        ? Math.min(86_400, Math.floor(interval))
+        : GIT_DEFAULTS.pullIntervalSeconds,
+    mergeMode: values.get("git_merge_mode") === "merge" ? "merge" : "ff-only",
+  };
+}
+
+export function saveGitSettings(settings: GitSettings): GitSettings {
+  const now = new Date().toISOString();
+  const write = db.prepare(
+    `INSERT INTO app_settings (key, value, updated_at) VALUES (?, ?, ?)
+     ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`,
+  );
+  const apply = db.transaction(() => {
+    write.run("git_auto_save", settings.autoSave ? "1" : "0", now);
+    write.run("git_auto_push", settings.autoPush ? "1" : "0", now);
+    write.run("git_pull_interval_seconds", String(settings.pullIntervalSeconds), now);
+    write.run("git_merge_mode", settings.mergeMode, now);
+  });
+  apply();
+  return getGitSettings();
 }

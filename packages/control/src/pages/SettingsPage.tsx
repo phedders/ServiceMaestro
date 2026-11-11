@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { KeyboardEvent as ReactKeyboardEvent } from "react";
-import type { AppSettings, FontOption } from "@wlm/shared";
+import type { AppSettings, FontOption, GitSettings, GitStatus } from "@wlm/shared";
 import { api, ApiError } from "../api";
 import { compactDateTime } from "../service-date";
 import {
@@ -34,6 +34,11 @@ export default function SettingsPage({
   const [shortcuts, setShortcuts] = useState<KeyboardShortcuts>(loadKeyboardShortcuts);
   const [settings, setSettings] = useState<AppSettings>({ pageNavigation: "stop" });
   const [savingSettings, setSavingSettings] = useState(false);
+  const [git, setGit] = useState<GitStatus | null>(null);
+  const [gitForm, setGitForm] = useState<GitSettings | null>(null);
+  const [gitSaving, setGitSaving] = useState(false);
+  const [gitSyncing, setGitSyncing] = useState(false);
+  const [gitExporting, setGitExporting] = useState(false);
 
   async function loadFonts() {
     setLoadingFonts(true);
@@ -56,6 +61,18 @@ export default function SettingsPage({
     api
       .settings()
       .then((result) => setSettings(result.settings))
+      .catch(() => undefined);
+    api
+      .gitStatus()
+      .then((result) => {
+        setGit(result);
+        setGitForm({
+          autoSave: result.autoSave,
+          autoPush: result.autoPush,
+          pullIntervalSeconds: result.pullIntervalSeconds,
+          mergeMode: result.mergeMode,
+        });
+      })
       .catch(() => undefined);
   }, []);
 
@@ -149,6 +166,51 @@ export default function SettingsPage({
       notify(error instanceof ApiError ? error.message : "Could not save live navigation", "error");
     } finally {
       setSavingSettings(false);
+    }
+  }
+
+  async function saveGit() {
+    if (!gitForm) return;
+    setGitSaving(true);
+    try {
+      const result = await api.saveGitSettings(gitForm);
+      setGit((current) =>
+        current
+          ? { ...current, ...result.settings, repositories: result.repositories }
+          : current,
+      );
+      setGitForm(result.settings);
+      notify("Git settings saved");
+    } catch (error) {
+      notify(error instanceof ApiError ? error.message : "Could not save Git settings", "error");
+    } finally {
+      setGitSaving(false);
+    }
+  }
+
+  async function syncGitNow() {
+    setGitSyncing(true);
+    try {
+      const result = await api.syncGit();
+      setGit((current) => (current ? { ...current, repositories: result.repositories } : current));
+      notify("Git pull/sync complete");
+    } catch (error) {
+      notify(error instanceof ApiError ? error.message : "Git sync failed", "error");
+    } finally {
+      setGitSyncing(false);
+    }
+  }
+
+  async function exportGitNow() {
+    setGitExporting(true);
+    try {
+      const result = await api.exportGit();
+      setGit((current) => (current ? { ...current, repositories: result.repositories } : current));
+      notify("Git export and push complete");
+    } catch (error) {
+      notify(error instanceof ApiError ? error.message : "Git export failed", "error");
+    } finally {
+      setGitExporting(false);
     }
   }
 
@@ -334,6 +396,123 @@ export default function SettingsPage({
           <code>WLM_CHURCHSUITE_CLIENT_SECRET</code> in the project&apos;s <code>.env</code> file
           next to <code>compose.yaml</code>, then restart the container.
         </p>
+      </section>
+
+      <section className="panel">
+        <div className="panel-heading">
+          <div>
+            <h2>Git repositories</h2>
+            <p className="muted">
+              Status of the local songs, set-list, Bible and template repositories.
+            </p>
+          </div>
+          <div className="button-row">
+            <button className="button ghost" onClick={syncGitNow} disabled={gitSyncing || !git?.enabled}>
+              {gitSyncing ? "Syncing…" : "Pull / sync now"}
+            </button>
+            <button className="button" onClick={exportGitNow} disabled={gitExporting || !git?.enabled}>
+              {gitExporting ? "Exporting…" : "Export & push"}
+            </button>
+          </div>
+        </div>
+
+        {!git ? (
+          <p className="muted">Could not read Git status.</p>
+        ) : !git.enabled ? (
+          <p className="muted">Git persistence is disabled for this deployment.</p>
+        ) : (
+          <>
+            {gitForm && (
+              <>
+                <div className="git-settings-grid">
+                  <label className="checkbox">
+                    <input
+                      type="checkbox"
+                      checked={gitForm.autoSave}
+                      onChange={(event) =>
+                        setGitForm({ ...gitForm, autoSave: event.target.checked })
+                      }
+                    />
+                    Auto-commit changes
+                  </label>
+                  <label className="checkbox">
+                    <input
+                      type="checkbox"
+                      checked={gitForm.autoPush}
+                      onChange={(event) =>
+                        setGitForm({ ...gitForm, autoPush: event.target.checked })
+                      }
+                    />
+                    Auto-push after commit
+                  </label>
+                  <label>
+                    Pull interval (seconds)
+                    <input
+                      type="number"
+                      min={0}
+                      max={86400}
+                      value={gitForm.pullIntervalSeconds}
+                      onChange={(event) =>
+                        setGitForm({
+                          ...gitForm,
+                          pullIntervalSeconds: Math.max(0, Number(event.target.value) || 0),
+                        })
+                      }
+                    />
+                  </label>
+                  <label>
+                    Remote divergence
+                    <select
+                      value={gitForm.mergeMode}
+                      onChange={(event) =>
+                        setGitForm({
+                          ...gitForm,
+                          mergeMode: event.target.value as GitSettings["mergeMode"],
+                        })
+                      }
+                    >
+                      <option value="ff-only">Fast-forward only (stop on divergence)</option>
+                      <option value="merge">Pull and merge</option>
+                    </select>
+                  </label>
+                  <button className="button primary" onClick={saveGit} disabled={gitSaving}>
+                    {gitSaving ? "Saving…" : "Save Git settings"}
+                  </button>
+                </div>
+                <p className="hint">
+                  Pull interval <code>0</code> disables automatic pulls. “Pull and merge” attempts a
+                  normal Git merge when the local and remote branches have diverged. Auto-commit
+                  controls whether songs/set lists are written when edited.
+                </p>
+              </>
+            )}
+
+            <div className="git-repo-list">
+              {git.repositories.map((repo) => (
+                <div key={repo.name} className="git-repo-row">
+                  <div>
+                    <strong>{repo.name}</strong>
+                    <span className="muted">
+                      {repo.remote ? repo.remote : "Local only"} · branch {repo.branch}
+                      {repo.optional ? " · optional" : ""}
+                    </span>
+                  </div>
+                  <div className="git-repo-meta">
+                    <span>Last pull: {repo.lastPullAt ? compactDateTime(repo.lastPullAt) : "never"}</span>
+                    <span>Last push: {repo.lastPushAt ? compactDateTime(repo.lastPushAt) : "never"}</span>
+                    {repo.localCommit && <span>Commit: {repo.localCommit.slice(0, 10)}</span>}
+                  </div>
+                  {repo.error ? (
+                    <span className="git-repo-error">{repo.error}</span>
+                  ) : (
+                    <span className="git-repo-ok">OK</span>
+                  )}
+                </div>
+              ))}
+              {!git.repositories.length && <p className="muted">No Git repositories initialised.</p>}
+            </div>
+          </>
+        )}
       </section>
     </div>
   );

@@ -147,6 +147,37 @@ export interface AppSettings {
   pageNavigation: "stop" | "next-item";
 }
 
+export interface GitSettings {
+  autoSave: boolean;
+  autoPush: boolean;
+  pullIntervalSeconds: number;
+  mergeMode: "ff-only" | "merge";
+}
+
+export interface GitRepositoryStatus {
+  name: string;
+  path: string;
+  remote: string | null;
+  branch: string;
+  optional: boolean;
+  lfs: string;
+  autoSave: boolean;
+  autoPush: boolean;
+  lastPullAt: string | null;
+  lastPushAt: string | null;
+  localCommit: string | null;
+  error: string | null;
+}
+
+export interface GitStatus {
+  enabled: boolean;
+  autoSave: boolean;
+  autoPush: boolean;
+  pullIntervalSeconds: number;
+  mergeMode: "ff-only" | "merge";
+  repositories: GitRepositoryStatus[];
+}
+
 export interface LiveState {
   sessionId: string;
   setlistId: string | null;
@@ -427,6 +458,13 @@ export const fontImportSchema = z
 
 export const appSettingsSchema = z.object({
   pageNavigation: z.enum(["stop", "next-item"]).default("stop"),
+});
+
+export const gitSettingsSchema = z.object({
+  autoSave: z.boolean(),
+  autoPush: z.boolean(),
+  pullIntervalSeconds: z.number().int().min(0).max(86_400),
+  mergeMode: z.enum(["ff-only", "merge"]),
 });
 
 export const dashboardLayoutSchema = z.object({  version: z.literal(1),
