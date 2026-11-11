@@ -119,7 +119,7 @@ Why structured, not raw HTML:
 
 - transposition can rewrite chords without touching text or markup;
 - page splitting can count lines reliably;
-- the stage output can show chord positions;
+- the chords output shows chord positions; the stage output shows lyrics only;
 - the main output can hide chords without a second document;
 - HTML can be sanitized once.
 

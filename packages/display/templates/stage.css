@@ -41,12 +41,7 @@ body[data-target="stage"] {
 }
 
 .sm-stage .chord {
-  display: inline-block;
-  font-size: 0.55em;
-  vertical-align: super;
-  margin-right: 0.18em;
-  color: var(--chord, #ffd479);
-  font-weight: 700;
+  display: none;
 }
 
 .sm-stage .section-label {

@@ -241,7 +241,7 @@ Rules:
 | `/display/lowerthird` | Lower-third / main lyric output (aliases `/display/twothirds`, `/display/main`, `/display/lower`, `/obs-main` on the control port) | `?token=` or `?key=` |
 | `/display/two-thirds` | Centered two-thirds output (also `/display/two_thirds`) | `?token=` |
 | `/display/full` | Full-screen output (aliases `/display/fullscreen`, `/display/mainfull`, `/obs-mainfull`) | `?token=` |
-| `/display/stage` | Stage monitor (chords, notes, next) | `?token=` |
+| `/display/stage` | Stage monitor (lyrics, notes, next pages; no chords) | `?token=` |
 | `/display/chords` | Chords view | `?token=` |
 | `/display/socket.ro.io` | Output-only Socket.IO stream; receives snapshots, accepts no commands | output token |
 | `/display/image` | Image/slide output | `?token=` |
@@ -329,7 +329,7 @@ No arbitrary HTML/CSS from operators. Content is sanitized at import/render time
 
 - **`main`** — transparent background, lower third/lyric area + footer; OBS scene where camera is visible behind.
 - **`full`** — opaque or transparent full-frame lyrics; chords hidden.
-- **`stage`** — current line + next lines, chords visible, per-item notes/verse order, maybe clock; no transparency assumption.
+- **`stage`** — current page + following pages, lyrics only (no chords), per-item notes/verse order; no transparency assumption.
 - **`image`** — renders the selected image/slide with fit mode; can be combined with `main` in OBS.
 - Shared client (`display/src/display.ts`): connect WS, apply snapshot, re-render text with DOM APIs (no `innerHTML` from network beyond sanitized server HTML), handle resize/`vw`, reconnect with backoff, optional `?debug` overlay showing version/latency.
 - Fonts served locally (`/media/fonts`), CSS variables for theme; CSS is versioned and cache-busted.

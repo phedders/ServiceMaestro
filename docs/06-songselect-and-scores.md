@@ -125,7 +125,7 @@ Requirements:
 ### Chords and musical tokens
 
 - Inline chords: `[C]`, `[G/B]`, `[B5]`, `[E2]`, `[G#m7]`, `[N.C.]`; slash chords are supported.
-- **Bar/repeat markers** appear in brackets and are not chords: `[|]`, `[||:]`, `[:||]`. Keep them as rhythm/bar tokens (stage view) or strip them from the lyric text; never transpose them.
+- **Bar/repeat markers** appear in brackets and are not chords: `[|]`, `[||:]`, `[:||]`. Keep them as rhythm/bar tokens in the chords view or strip them from lyric text; never transpose them.
 - Chord-only lines belong to the following lyric line; chord spacing is approximate and may include multiple spaces for alignment.
 - Chords may be lowercase or use unusual suffixes; preserve unknown tokens and flag them.
 

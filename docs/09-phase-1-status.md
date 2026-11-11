@@ -35,7 +35,7 @@ SM_ADMIN_PASSWORD='change-me' npm start
 | Display templates | main, two-thirds, full, stage, chords; HTML/CSS lookup from set-list repo, templates folder/repo or built-ins; fade in/out |
 | Rich text | Format dropdown (Markdown default, plain, HTML, RST); legacy headers extracted into metadata; per-item left/centre alignment; inline page markers or multiple page boxes; sanitised render, page breaks |
 | Song presentation | Optional inline Markdown styling ignored on stage/chords; SongSelect/SongPro `-` split-word joins on presentation views |
-| Outputs | Vanilla HTML/CSS/JS; snapshot-on-connect over Socket.IO; transparent main, full-screen, stage with chords; output-only `/display/socket.ro.io`; read-only display listener with all assets under `/display/*`; legacy `/obs-*` aliases on the control port |
+| Outputs | Vanilla HTML/CSS/JS; snapshot-on-connect over Socket.IO; transparent main, full-screen, lyrics-only stage and chord view; output-only `/display/socket.ro.io`; read-only display listener with all assets under `/display/*`; legacy `/obs-*` aliases on the control port |
 | Help | Built-in operator guide covering quick start, live control, publishing, content types, OBS output URLs, current shortcuts and troubleshooting |
 | Layout | Collapsible sidebar, optional top-bar navigation, automatic top-bar layout on small screens |
 | Dashboard | Page temporarily hidden from navigation — its widgets changed live output and need a safer design. Layout service remains for later work. |
@@ -76,7 +76,7 @@ Socket.IO: `live:snapshot` events to `control` and `outputs` rooms; commands ove
 - **One seeded admin**; user management UI is not built.
 - **Song versions/arrangements** are not yet immutable; a song has one lyrics field plus a verse-order override.
 - **Dashboard** is temporarily hidden from the navigation because its widgets changed live output; its personal-layout service remains for a safer Phase 2 redesign.
-- **Chord rendering** is inline (chords above the following syllable in the stage view); a proper two-row chord layout is a later refinement.
+- **Chord rendering** is inline in the chords view; the stage view shows lyrics only. A proper two-row chord layout is a later refinement.
 - **No CSRF tokens** or per-output auth yet; do not expose the app directly to the public internet.
 
 ## Verification

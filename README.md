@@ -54,7 +54,7 @@ Or `npm run dev` runs both (server on 8080, control on 5173).
 | Lower-third / main (`lowerthird`) | `/display/lowerthird?token=dev-output` | `/display/twothirds`, `/display/main`, `/display/lower`, `/obs-main`, `/obs-lower`, `/obs-lowerthird`, `/obs-twothirds` |
 | Full screen (`full`) | `/display/full?token=dev-output` | `/display/fullscreen`, `/display/mainfull`, `/obs-mainfull`, `/obs-fullscreen` |
 | Centered two-thirds | `/display/two-thirds?token=dev-output` | `/display/two_thirds`, `/obs-two-thirds` |
-| Stage monitor (chords) | `/display/stage?token=dev-output` | `/obs-stage` |
+| Stage monitor (lyrics) | `/display/stage?token=dev-output` | `/obs-stage` |
 
 The output token defaults to `dev-output`; set `SM_OUTPUT_TOKEN` in production. Displays receive a **full snapshot on connect**, so refreshing or reconnecting OBS never blanks the screen. The `/obs-*` aliases remain on the control port for compatibility; use the `/display/*` paths through a read-only proxy.
 
@@ -87,7 +87,7 @@ Open <http://localhost:8080/musicians> to see the read-only musician view. It de
 - **Dashboard** — the configurable widget dashboard page is currently hidden from the navigation; its widgets changed live output and need a safer design before it returns.
 - **ChurchSuite planning** — browse published plans for a date range, review the plan’s service items, see local song matches and create a draft set list. Matched songs link to the library; unmatched songs and named service items become editable text placeholders. See [10](docs/10-churchsuite-sync.md).
 - **Git-backed shared data** — designed: local-only repos by default with optional remote, auto-save/push on by default, separate songs/setlists/(optional LFS) Bibles repos, standard SSH or HTTP(S)+token URIs. See [11](docs/11-git-data-sync.md).
-- **Displays** — vanilla HTML/CSS/JS, no CDN, snapshot-on-connect, transparent main output, full-screen and stage-with-chords variants.
+- **Displays** — vanilla HTML/CSS/JS, no CDN, snapshot-on-connect, transparent main output, full-screen, chord and stage lyric variants.
 - **Persistence** — SQLite (WAL) for users, sessions, songs, set lists, session snapshots and dashboard layouts; the live session survives a restart.
 - **Git-backed data (local foundation)** — songs and set lists are written to local Git repositories and committed automatically (`autoSave` default on); optional remotes, pull/push and Bibles/LFS are configurable. The Settings page shows repository status and can change auto-commit, auto-push, pull interval and fast-forward-vs-merge behaviour at runtime. See [11](docs/11-git-data-sync.md).
 - **Container** — multi-stage Dockerfile, non-root UID 10001, health check, Compose file; image builds and runs.

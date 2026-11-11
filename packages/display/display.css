@@ -104,12 +104,7 @@ body.display-full #meta {
 }
 
 body.display-stage .chord {
-  display: inline-block;
-  font-size: 0.52em;
-  line-height: 1;
-  vertical-align: super;
-  margin-right: 0.18em;
-  color: var(--chord);
+  display: none;
 }
 
 body.display-main .chord,
