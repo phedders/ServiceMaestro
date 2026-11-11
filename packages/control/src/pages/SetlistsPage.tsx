@@ -14,6 +14,7 @@ import {
   type BibleTranslationInfo,
   type ImageAsset,
   type LiveState,
+  type PlaybackMode,
   type SetlistDetail,
   type SetlistImportPreview,
   type SetlistImportReport,
@@ -137,6 +138,10 @@ function songFirstLines(song: Song): string {
     .join("\n");
 }
 
+function playbackModeLabel(mode: PlaybackMode): string {
+  return mode === "bounce" ? "bounce" : mode === "loop" ? "looping" : "single pass";
+}
+
 function stingerPageRows(overrides: Record<string, string>) {
   return Object.entries(overrides)
     .map(([page, stingerId]) => ({ page: Number(page), stingerId }))
@@ -206,12 +211,12 @@ function ItemRow({
   const initialImageList = parseImageListContent(item.content);
   const [listFolder, setListFolder] = useState(initialImageList?.folder ?? "");
   const [listAutoplay, setListAutoplay] = useState(initialImageList?.autoplay ?? false);
-  const [listLoop, setListLoop] = useState(initialImageList?.loop ?? true);
+  const [listMode, setListMode] = useState<PlaybackMode>(initialImageList?.mode ?? "loop");
   const [listDelay, setListDelay] = useState(initialImageList?.delaySeconds ?? 6);
   const initialTarp = parseTarpItemContent(item.content);
   const [tarpPresentationId, setTarpPresentationId] = useState(initialTarp?.presentationId ?? "");
   const [tarpAutoplay, setTarpAutoplay] = useState(initialTarp?.autoplay ?? false);
-  const [tarpLoop, setTarpLoop] = useState(initialTarp?.loop ?? true);
+  const [tarpMode, setTarpMode] = useState<PlaybackMode>(initialTarp?.mode ?? "loop");
   const [tarpDelay, setTarpDelay] = useState(initialTarp?.delaySeconds ?? 6);
   const [keyOverride, setKeyOverride] = useState(item.keyOverride ?? "");
   const [transpose, setTranspose] = useState(item.transpose);
@@ -234,12 +239,12 @@ function ItemRow({
     const nextImageList = parseImageListContent(item.content);
     setListFolder(nextImageList?.folder ?? "");
     setListAutoplay(nextImageList?.autoplay ?? false);
-    setListLoop(nextImageList?.loop ?? true);
+    setListMode(nextImageList?.mode ?? "loop");
     setListDelay(nextImageList?.delaySeconds ?? 6);
     const nextTarp = parseTarpItemContent(item.content);
     setTarpPresentationId(nextTarp?.presentationId ?? "");
     setTarpAutoplay(nextTarp?.autoplay ?? false);
-    setTarpLoop(nextTarp?.loop ?? true);
+    setTarpMode(nextTarp?.mode ?? "loop");
     setTarpDelay(nextTarp?.delaySeconds ?? 6);
     setContent(item.kind === "song" ? item.content ?? song?.lyrics ?? "" : next.content);
     setKeyOverride(item.keyOverride ?? "");
@@ -272,12 +277,12 @@ function ItemRow({
     const nextImageList = parseImageListContent(item.content);
     setListFolder(nextImageList?.folder ?? "");
     setListAutoplay(nextImageList?.autoplay ?? false);
-    setListLoop(nextImageList?.loop ?? true);
+    setListMode(nextImageList?.mode ?? "loop");
     setListDelay(nextImageList?.delaySeconds ?? 6);
     const nextTarp = parseTarpItemContent(item.content);
     setTarpPresentationId(nextTarp?.presentationId ?? "");
     setTarpAutoplay(nextTarp?.autoplay ?? false);
-    setTarpLoop(nextTarp?.loop ?? true);
+    setTarpMode(nextTarp?.mode ?? "loop");
     setTarpDelay(nextTarp?.delaySeconds ?? 6);
     setContent(item.kind === "song" ? item.content ?? song?.lyrics ?? "" : next.content);
     setKeyOverride(item.keyOverride ?? "");
@@ -333,7 +338,7 @@ function ItemRow({
           folder: listFolder,
           images: listImages.map((image) => image.path),
           autoplay: listAutoplay,
-          loop: listAutoplay ? listLoop : true,
+          mode: listMode,
           delaySeconds: listDelay,
         }),
         imageFit,
@@ -351,7 +356,7 @@ function ItemRow({
         content: serializeTarpItemContent({
           presentationId: tarpPresentationId,
           autoplay: tarpAutoplay,
-          loop: tarpAutoplay ? tarpLoop : true,
+          mode: tarpMode,
           delaySeconds: tarpDelay,
         }),
         notes: notes || null,
@@ -469,14 +474,14 @@ function ItemRow({
           {!editing && item.kind === "image_list" && imageListPreview && (
             <span className="setlist-item-preview">
               {imageListPreview.autoplay
-                ? `Autoplay every ${imageListPreview.delaySeconds}s${imageListPreview.loop ? " · looping" : ""}`
+                ? `Autoplay every ${imageListPreview.delaySeconds}s · ${playbackModeLabel(imageListPreview.mode)}`
                 : "Autoplay off · advance manually"}
             </span>
           )}
           {!editing && item.kind === "tarp" && tarpSummary && (
             <span className="setlist-item-preview">
               {tarpSummary.autoplay
-                ? `Autoplay every ${tarpSummary.delaySeconds}s${tarpSummary.loop ? " · looping" : ""}`
+                ? `Autoplay every ${tarpSummary.delaySeconds}s · ${playbackModeLabel(tarpSummary.mode)}`
                 : "Autoplay off · advance manually"}
             </span>
           )}
@@ -756,21 +761,20 @@ function ItemRow({
                   <input
                     type="checkbox"
                     checked={listAutoplay}
-                    onChange={(event) => {
-                      setListAutoplay(event.target.checked);
-                      if (!event.target.checked) setListLoop(true);
-                    }}
+                    onChange={(event) => setListAutoplay(event.target.checked)}
                   />
                   Autoplay
                 </label>
-                <label className={`checkbox ${listAutoplay ? "" : "disabled"}`}>
-                  <input
-                    type="checkbox"
-                    checked={!listAutoplay || listLoop}
-                    disabled={!listAutoplay}
-                    onChange={(event) => setListLoop(event.target.checked)}
-                  />
-                  Loop
+                <label>
+                  Mode
+                  <select
+                    value={listMode}
+                    onChange={(event) => setListMode(event.target.value as PlaybackMode)}
+                  >
+                    <option value="single">Single</option>
+                    <option value="loop">Loop</option>
+                    <option value="bounce">Bounce</option>
+                  </select>
                 </label>
                 <label>
                   Delay (seconds)
@@ -828,21 +832,20 @@ function ItemRow({
                   <input
                     type="checkbox"
                     checked={tarpAutoplay}
-                    onChange={(event) => {
-                      setTarpAutoplay(event.target.checked);
-                      if (!event.target.checked) setTarpLoop(true);
-                    }}
+                    onChange={(event) => setTarpAutoplay(event.target.checked)}
                   />
                   Autoplay
                 </label>
-                <label className={`checkbox ${tarpAutoplay ? "" : "disabled"}`}>
-                  <input
-                    type="checkbox"
-                    checked={!tarpAutoplay || tarpLoop}
-                    disabled={!tarpAutoplay}
-                    onChange={(event) => setTarpLoop(event.target.checked)}
-                  />
-                  Loop
+                <label>
+                  Mode
+                  <select
+                    value={tarpMode}
+                    onChange={(event) => setTarpMode(event.target.value as PlaybackMode)}
+                  >
+                    <option value="single">Single</option>
+                    <option value="loop">Loop</option>
+                    <option value="bounce">Bounce</option>
+                  </select>
                 </label>
                 <label>
                   Delay (seconds)
@@ -1062,13 +1065,13 @@ export default function SetlistsPage({
   const [imageListFolder, setImageListFolder] = useState<string | null>(null);
   const [imageListTitle, setImageListTitle] = useState("");
   const [imageListAutoplay, setImageListAutoplay] = useState(false);
-  const [imageListLoop, setImageListLoop] = useState(true);
+  const [imageListMode, setImageListMode] = useState<PlaybackMode>("loop");
   const [imageListDelay, setImageListDelay] = useState(6);
   const [tarpPresentations, setTarpPresentations] = useState<TarpPresentationSummary[]>([]);
   const [tarpToAdd, setTarpToAdd] = useState("");
   const [tarpTitle, setTarpTitle] = useState("");
   const [tarpAutoplay, setTarpAutoplay] = useState(false);
-  const [tarpLoop, setTarpLoop] = useState(true);
+  const [tarpMode, setTarpMode] = useState<PlaybackMode>("loop");
   const [tarpDelay, setTarpDelay] = useState(6);
   const [bibleTranslations, setBibleTranslations] = useState<BibleTranslationInfo[]>([]);
   const [bibleTranslation, setBibleTranslation] = useState("");
@@ -1272,7 +1275,7 @@ export default function SetlistsPage({
           folder: imageListFolder,
           images: listImages.map((image) => image.path),
           autoplay: imageListAutoplay,
-          loop: imageListAutoplay ? imageListLoop : true,
+          mode: imageListMode,
           delaySeconds: imageListDelay,
         }),
         imageFit: "scale",
@@ -1281,7 +1284,7 @@ export default function SetlistsPage({
       setImageListFolder(null);
       setImageListTitle("");
       setImageListAutoplay(false);
-      setImageListLoop(true);
+      setImageListMode("loop");
       setImageListDelay(6);
       await loadList(detail.id);
     } catch (error) {
@@ -1299,7 +1302,7 @@ export default function SetlistsPage({
         content: serializeTarpItemContent({
           presentationId: tarpToAdd,
           autoplay: tarpAutoplay,
-          loop: tarpAutoplay ? tarpLoop : true,
+          mode: tarpMode,
           delaySeconds: tarpDelay,
         }),
       });
@@ -1307,7 +1310,7 @@ export default function SetlistsPage({
       setTarpToAdd("");
       setTarpTitle("");
       setTarpAutoplay(false);
-      setTarpLoop(true);
+      setTarpMode("loop");
       setTarpDelay(6);
       await loadList(detail.id);
     } catch (error) {
@@ -2170,21 +2173,22 @@ export default function SetlistsPage({
                       <input
                         type="checkbox"
                         checked={imageListAutoplay}
-                        onChange={(event) => {
-                          setImageListAutoplay(event.target.checked);
-                          if (!event.target.checked) setImageListLoop(true);
-                        }}
+                        onChange={(event) => setImageListAutoplay(event.target.checked)}
                       />
                       Autoplay
                     </label>
-                    <label className={`checkbox ${imageListAutoplay ? "" : "disabled"}`}>
-                      <input
-                        type="checkbox"
-                        checked={!imageListAutoplay || imageListLoop}
-                        disabled={!imageListAutoplay}
-                        onChange={(event) => setImageListLoop(event.target.checked)}
-                      />
-                      Loop
+                    <label>
+                      Mode
+                      <select
+                        value={imageListMode}
+                        onChange={(event) =>
+                          setImageListMode(event.target.value as PlaybackMode)
+                        }
+                      >
+                        <option value="single">Single</option>
+                        <option value="loop">Loop</option>
+                        <option value="bounce">Bounce</option>
+                      </select>
                     </label>
                     <label>
                       Delay (seconds)
@@ -2232,21 +2236,20 @@ export default function SetlistsPage({
                       <input
                         type="checkbox"
                         checked={tarpAutoplay}
-                        onChange={(event) => {
-                          setTarpAutoplay(event.target.checked);
-                          if (!event.target.checked) setTarpLoop(true);
-                        }}
+                        onChange={(event) => setTarpAutoplay(event.target.checked)}
                       />
                       Autoplay
                     </label>
-                    <label className={`checkbox ${tarpAutoplay ? "" : "disabled"}`}>
-                      <input
-                        type="checkbox"
-                        checked={!tarpAutoplay || tarpLoop}
-                        disabled={!tarpAutoplay}
-                        onChange={(event) => setTarpLoop(event.target.checked)}
-                      />
-                      Loop
+                    <label>
+                      Mode
+                      <select
+                        value={tarpMode}
+                        onChange={(event) => setTarpMode(event.target.value as PlaybackMode)}
+                      >
+                        <option value="single">Single</option>
+                        <option value="loop">Loop</option>
+                        <option value="bounce">Bounce</option>
+                      </select>
                     </label>
                     <label>
                       Delay (seconds)

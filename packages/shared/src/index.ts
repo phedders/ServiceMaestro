@@ -40,11 +40,41 @@ export interface Song {
 export type ItemKind = "song" | "text" | "image" | "image_list" | "tarp";
 export type ImageFit = "scale" | "actual" | "crop" | "stretch";
 
+export type PlaybackMode = "single" | "loop" | "bounce";
+
+function normalizePlaybackMode(mode: unknown, legacyLoop: unknown): PlaybackMode {
+  if (mode === "single" || mode === "loop" || mode === "bounce") return mode;
+  return legacyLoop === false ? "single" : "loop";
+}
+
+export function nextPlaybackPage(
+  pageIndex: number,
+  pageCount: number,
+  mode: PlaybackMode,
+  direction: 1 | -1,
+): { pageIndex: number; direction: 1 | -1; done: boolean } {
+  if (pageCount <= 1) return { pageIndex: 0, direction, done: true };
+  if (mode === "single") {
+    const next = pageIndex + 1;
+    return next < pageCount
+      ? { pageIndex: next, direction: 1, done: false }
+      : { pageIndex, direction: 1, done: true };
+  }
+  if (mode === "loop") {
+    return { pageIndex: (pageIndex + 1) % pageCount, direction: 1, done: false };
+  }
+  let nextDirection = direction;
+  if (nextDirection === 1 && pageIndex >= pageCount - 1) nextDirection = -1;
+  if (nextDirection === -1 && pageIndex <= 0) nextDirection = 1;
+  const next = Math.max(0, Math.min(pageCount - 1, pageIndex + nextDirection));
+  return { pageIndex: next, direction: nextDirection, done: false };
+}
+
 export interface ImageListContent {
   folder: string;
   images: string[];
   autoplay: boolean;
-  loop: boolean;
+  mode: PlaybackMode;
   delaySeconds: number;
 }
 
@@ -53,7 +83,7 @@ export function parseImageListContent(
 ): ImageListContent | null {
   if (!value) return null;
   try {
-    const parsed = JSON.parse(value) as Partial<ImageListContent>;
+    const parsed = JSON.parse(value) as Partial<ImageListContent> & { loop?: unknown };
     const images = Array.isArray(parsed.images)
       ? parsed.images.filter((entry): entry is string => typeof entry === "string" && Boolean(entry.trim()))
       : [];
@@ -63,7 +93,7 @@ export function parseImageListContent(
       folder: typeof parsed.folder === "string" ? parsed.folder : "",
       images,
       autoplay: parsed.autoplay === true,
-      loop: parsed.loop !== false,
+      mode: normalizePlaybackMode(parsed.mode, parsed.loop),
       delaySeconds: Number.isFinite(delay) ? Math.max(1, Math.min(300, delay)) : 6,
     };
   } catch {
@@ -76,7 +106,9 @@ export function serializeImageListContent(value: ImageListContent): string {
     folder: value.folder,
     images: value.images,
     autoplay: value.autoplay,
-    loop: value.loop,
+    mode: value.mode,
+    // Keep the legacy field for older bundles; new readers use `mode`.
+    loop: value.mode !== "single",
     delaySeconds: Math.max(1, Math.min(300, value.delaySeconds || 6)),
   });
 }
@@ -84,20 +116,20 @@ export function serializeImageListContent(value: ImageListContent): string {
 export interface TarpItemContent {
   presentationId: string;
   autoplay: boolean;
-  loop: boolean;
+  mode: PlaybackMode;
   delaySeconds: number;
 }
 
 export function parseTarpItemContent(value: string | null | undefined): TarpItemContent | null {
   if (!value) return null;
   try {
-    const parsed = JSON.parse(value) as Partial<TarpItemContent>;
+    const parsed = JSON.parse(value) as Partial<TarpItemContent> & { loop?: unknown };
     if (typeof parsed.presentationId !== "string" || !parsed.presentationId.trim()) return null;
     const delay = Number(parsed.delaySeconds);
     return {
       presentationId: parsed.presentationId,
       autoplay: parsed.autoplay === true,
-      loop: parsed.loop !== false,
+      mode: normalizePlaybackMode(parsed.mode, parsed.loop),
       delaySeconds: Number.isFinite(delay) ? Math.max(1, Math.min(300, delay)) : 6,
     };
   } catch {
@@ -109,7 +141,9 @@ export function serializeTarpItemContent(value: TarpItemContent): string {
   return JSON.stringify({
     presentationId: value.presentationId,
     autoplay: value.autoplay,
-    loop: value.loop,
+    mode: value.mode,
+    // Keep the legacy field for older bundles; new readers use `mode`.
+    loop: value.mode !== "single",
     delaySeconds: Math.max(1, Math.min(300, value.delaySeconds || 6)),
   });
 }

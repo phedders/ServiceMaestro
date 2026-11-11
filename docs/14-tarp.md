@@ -5,7 +5,7 @@ Tarp is a lightweight presentation system for building simple, animated slides w
 - **Normal view** for 16:9 or 16:10 full-screen output.
 - **Lower-third view** for the transparent YouTube/OBS speaker overlay.
 
-Each page, object and theme is reusable from the set-list system. A set-list **Tarp** item references a presentation and supports the same autoplay, looping and delay options as image lists.
+Each page, object and theme is reusable from the set-list system. A set-list **Tarp** item references a presentation and supports the same autoplay, Single/Loop/Bounce mode and delay options as image lists.
 
 ## 1. Scope and principles
 
@@ -120,7 +120,7 @@ Set-list items gain a `tarp` kind. Its content JSON mirrors the image-list patte
 {
   "presentationId": "...",
   "autoplay": false,
-  "loop": true,
+  "mode": "loop",
   "delaySeconds": 6
 }
 ```
@@ -134,7 +134,7 @@ The presentation itself is library data, not duplicated into the set list. Expor
 - Lower-third output remains transparent around the Tarp content.
 - Animations are CSS/JS driven on page entry. The server owns page sequencing and autoplay; displays own in-page object animation.
 - The normal view is letterboxed/responsive inside its output container. Editor and output use normalized coordinates.
-- Reuse the existing autoplay scheduler for Tarp items: page advance, loop, delay and pause-on-blank behave like image lists.
+- Reuse the existing autoplay scheduler for Tarp items: page advance, Single/Loop/Bounce mode, delay and pause-on-blank behave like image lists.
 
 ## 5. Editor experience
 
@@ -187,7 +187,7 @@ The presentation itself is library data, not duplicated into the set list. Expor
 
 ### Section 7 — Set-list integration and autoplay
 - Add Tarp item picker to set-list editor.
-- Autoplay, loop and delay controls.
+- Autoplay, Single/Loop/Bounce mode and delay controls.
 - Page sequencing through the existing live service.
 - Queue/publish/revision behavior.
 
@@ -212,7 +212,7 @@ The presentation itself is library data, not duplicated into the set list. Expor
 
 1. Normal aspect ratio: support both 16:9 and 16:10 per presentation, default **16:9**.
 2. Lower-third canvas aspect: use a normalized wide strip (default 16:3) with safe-area guides.
-3. Tarp item behaviour: one Tarp presentation per set-list item, with autoplay default off, loop default on and delay default 6 seconds.
+3. Tarp item behaviour: one Tarp presentation per set-list item, with autoplay default off, playback mode default Loop and delay default 6 seconds.
 4. Stage output: use the normal view; chords output continues to show chord content, not Tarp.
 5. Initial object set: **text and images**, with shape support deferred.
 
@@ -224,6 +224,6 @@ If these defaults are accepted, implementation should start with Sections 1–2 
 - **Section 2 — global themes:** implemented. The Tarp page includes theme CRUD, colour/font controls, colour/gradient/image backgrounds and a live theme preview. Three starter themes are seeded.
 - **Section 3 — presentation shell:** implemented. Presentation create/rename/delete, theme/aspect selection, page add/delete and page inventory are in place.
 - **Section 4 — dual-view canvas editor:** implemented. Normal and lower-third canvases, text/Markdown/image objects, drag and resize, layers, visibility/locking and per-view placement controls are in place. Page names, per-page theme overrides and “use previous page as starting point” are editable; transition playback remains for Section 8.
-- **Set-list item shell:** implemented. The unified **Add** selector can create Tarp items referencing a presentation, with autoplay/loop/delay fields. Tarp page rendering on live outputs remains Section 6.
+- **Set-list item shell:** implemented. The unified **Add** selector can create Tarp items referencing a presentation, with autoplay, Single/Loop/Bounce mode and delay fields. Tarp page rendering on live outputs remains Section 6.
 - **Backgrounds:** global background library implemented with uploaded images/animated images, seeded CSS/SVG animations and a global colour theme. Set lists, text/song overrides and Tarp page views can reference them. Tarp output rendering remains Section 6.
 - Next: Tarp output rendering and set-list runtime integration, then animations.

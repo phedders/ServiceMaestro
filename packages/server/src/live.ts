@@ -4,7 +4,10 @@ import type { Server } from "socket.io";
 import {
   NO_BACKGROUND_ID,
   NO_STINGER_ID,
+  nextPlaybackPage,
   parseImageListContent,
+  parseTarpItemContent,
+  type PlaybackMode,
 } from "@sm/shared";
 import type {
   DisplayConfig,
@@ -48,6 +51,7 @@ interface SessionRecord {
   transient: SnapshotItem | null;
   pending: PendingUpdate | null;
   state: LiveState;
+  autoplayDirection: 1 | -1;
 }
 
 function now(): string {
@@ -273,6 +277,29 @@ function mapRevision(row: {
   };
 }
 
+interface AutoplayConfig {
+  autoplay: boolean;
+  mode: PlaybackMode;
+  delaySeconds: number;
+}
+
+function autoplayConfigFor(item: SnapshotItem | null | undefined): AutoplayConfig | null {
+  if (!item) return null;
+  if (item.kind === "image_list") {
+    const list = parseImageListContent(item.content);
+    return list
+      ? { autoplay: list.autoplay, mode: list.mode, delaySeconds: list.delaySeconds }
+      : null;
+  }
+  if (item.kind === "tarp") {
+    const tarp = parseTarpItemContent(item.content);
+    return tarp
+      ? { autoplay: tarp.autoplay, mode: tarp.mode, delaySeconds: tarp.delaySeconds }
+      : null;
+  }
+  return null;
+}
+
 class LiveService {
   private ios = new Set<Server>();
   private active: SessionRecord | null = null;
@@ -357,6 +384,7 @@ class LiveService {
         transient: null,
         pending,
         state,
+        autoplayDirection: 1,
       };
       this.active.state.queuedItemIndex = null;
       this.active.state.queuedTitle = null;
@@ -425,6 +453,7 @@ class LiveService {
       transient: null,
       pending: null,
       state,
+      autoplayDirection: 1,
     };
     this.renderCurrent();
     this.persist();
@@ -880,15 +909,15 @@ class LiveService {
     const record = this.active;
     if (!record || record.state.blank) return;
     const item = record.transient ?? record.items[record.state.itemIndex];
-    if (!item || item.kind !== "image_list") return;
-    const list = parseImageListContent(item.content);
-    if (!list?.autoplay) return;
+    if (!item) return;
+    const autoplay = autoplayConfigFor(item);
+    if (!autoplay?.autoplay) return;
     const count = this.pagesFor(item).length;
     if (count < 2 || record.state.pageIndex >= count) return;
-    if (!list.loop && record.state.pageIndex >= count - 1) return;
+    if (autoplay.mode === "single" && record.state.pageIndex >= count - 1) return;
     this.autoplayTimer = setTimeout(
       () => this.advanceAutoplay(),
-      Math.max(1, list.delaySeconds) * 1000,
+      Math.max(1, autoplay.delaySeconds) * 1000,
     );
   }
 
@@ -897,18 +926,20 @@ class LiveService {
     const record = this.active;
     if (!record || record.state.blank) return;
     const item = record.transient ?? record.items[record.state.itemIndex];
-    if (!item || item.kind !== "image_list") return;
-    const list = parseImageListContent(item.content);
-    if (!list?.autoplay) return;
+    if (!item) return;
+    const autoplay = autoplayConfigFor(item);
+    if (!autoplay?.autoplay) return;
     const count = this.pagesFor(item).length;
     if (count < 2) return;
-    if (record.state.pageIndex + 1 < count) {
-      record.state.pageIndex += 1;
-    } else if (list.loop) {
-      record.state.pageIndex = 0;
-    } else {
-      return;
-    }
+    const step = nextPlaybackPage(
+      record.state.pageIndex,
+      count,
+      autoplay.mode,
+      record.autoplayDirection,
+    );
+    record.autoplayDirection = step.direction;
+    if (step.done || step.pageIndex === record.state.pageIndex) return;
+    record.state.pageIndex = step.pageIndex;
     record.state.version += 1;
     record.state.updatedAt = now();
     this.persist();

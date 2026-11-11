@@ -344,8 +344,10 @@ export default function HelpPage({ onOpenSettings }: { onOpenSettings: () => voi
               </li>
               <li>
                 A folder can be converted into a <strong>multiple images</strong> item. Autoplay is
-                off by default; when enabled it advances every configured delay (default 6 seconds),
-                with optional looping. Without autoplay, advance the images manually.
+                off by default; when enabled it advances every configured delay (default 6 seconds)
+                using <strong>Single</strong>, <strong>Loop</strong> or <strong>Bounce</strong>{" "}
+                playback. Bounce runs forwards through every page, then backwards, and repeats.
+                Without autoplay, advance the images manually.
               </li>
             </ul>
           </article>
