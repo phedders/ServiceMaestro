@@ -1335,6 +1335,7 @@ export default function SetlistsPage({
         kind: "text",
         title: reference || "Bible passage",
         content: bibleIncludeReference ? `${reference}\n${body}` : body,
+        contentSource: "bible",
         format: "text",
       });
       setDetail(result.setlist);

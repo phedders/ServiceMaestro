@@ -1,4 +1,9 @@
-import { parseImageListContent, type LivePage } from "@sm/shared";
+import {
+  SMART_WRAP_MODULES,
+  parseImageListContent,
+  type LivePage,
+  type SmartWrapModule,
+} from "@sm/shared";
 import { marked } from "marked";
 import rst2html from "rst2html";
 import sanitizeHtml from "sanitize-html";
@@ -15,6 +20,7 @@ export interface RenderItem {
   textAlign?: "left" | "center";
   imageFit?: "scale" | "actual" | "crop" | "stretch";
   lyricsMarkdown?: boolean;
+  contentSource?: "text" | "bible";
   key?: string | null;
   keyOverride?: string | null;
   transpose: number;
@@ -415,19 +421,27 @@ export interface RenderOptions {
   maxLines?: number;
   maxWords?: number;
   smartPageSplits?: boolean;
+  smartWrapMinWords?: number;
+  smartWrapModules?: SmartWrapModule[];
+  smartWrapModule?: SmartWrapModule;
   textScale?: number;
 }
 
 interface PaginationMetrics {
   maxLines: number;
+  charsPerLine: number;
+  autoLines: number;
 }
 
 function paginationMetrics(textScale: number, maxLines: number, smart: boolean): PaginationMetrics {
   // Estimate a 1920×1080 landscape frame with a ~4.2vw main/two-thirds font.
   const fontPx = 82 * clamp(textScale, 0.5, 2.5);
+  const charsPerLine = clamp(Math.floor(1610 / (fontPx * 0.52)), 18, 110);
   const autoLines = clamp(Math.floor(780 / (fontPx * 1.2)), 1, 30);
   return {
     maxLines: smart ? Math.min(maxLines, autoLines) : maxLines,
+    charsPerLine,
+    autoLines,
   };
 }
 
@@ -435,11 +449,60 @@ function countWords(text: string): number {
   return text.trim() ? text.trim().split(/\s+/).length : 0;
 }
 
+function countWrapWords(text: string): number {
+  return text
+    .trim()
+    .split(/\s+/)
+    .filter((token) => /[a-z0-9]/i.test(token)).length;
+}
+
+function wrapWords(text: string, maxChars: number): string[] {
+  const words = text.trim().split(/\s+/).filter(Boolean);
+  if (!words.length) return [""];
+
+  // Keep SongSelect-style "sat - is - fied" sequences together so a line wrap
+  // never separates the " - " marker from the following syllable.
+  const units: string[] = [];
+  for (let index = 0; index < words.length; ) {
+    if (index + 2 < words.length && words[index + 1] === "-") {
+      let unit = words[index];
+      index += 1;
+      while (index + 1 < words.length && words[index] === "-") {
+        unit += ` - ${words[index + 1]}`;
+        index += 2;
+      }
+      units.push(unit);
+    } else {
+      units.push(words[index]);
+      index += 1;
+    }
+  }
+
+  const lines: string[] = [];
+  let current = "";
+  for (const unit of units) {
+    if (!current) {
+      current = unit;
+    } else if (`${current} ${unit}`.length <= maxChars) {
+      current += ` ${unit}`;
+    } else {
+      lines.push(current);
+      current = unit;
+    }
+  }
+  if (current) lines.push(current);
+  return lines;
+}
+
 function paginateBlock(block: Block, options: RenderOptions): Block[] {
   const maxLines = Math.max(1, options.maxLines ?? 4);
   const maxWords = Math.max(1, options.maxWords ?? 90);
   const smart = options.smartPageSplits !== false;
   const metrics = paginationMetrics(options.textScale ?? 1, maxLines, smart);
+  const smartWrapMinWords = clamp(Math.floor(options.smartWrapMinWords ?? 15), 1, 100);
+  const smartWrapModules = options.smartWrapModules ?? [...SMART_WRAP_MODULES];
+  const shouldSmartWrap =
+    smartWrapModules.includes(options.smartWrapModule ?? "text");
 
   const pages: Block[] = [];
   let pageLines: string[] = [];
@@ -468,7 +531,11 @@ function paginateBlock(block: Block, options: RenderOptions): Block[] {
   };
 
   for (const line of block.lines) {
-    addSegment(line.text);
+    const segments =
+      shouldSmartWrap && countWrapWords(line.text) >= smartWrapMinWords
+        ? wrapWords(line.text, metrics.charsPerLine)
+        : [line.text];
+    for (const segment of segments) addSegment(segment);
   }
   flush();
   return pages;
@@ -488,6 +555,14 @@ export function buildPages(
     maxLines,
     maxWords: Math.max(1, options.maxWords ?? 90),
     smartPageSplits: options.smartPageSplits !== false,
+    smartWrapMinWords: Math.max(1, options.smartWrapMinWords ?? 15),
+    smartWrapModules: options.smartWrapModules ?? [...SMART_WRAP_MODULES],
+    smartWrapModule:
+      item.kind === "song"
+        ? "songs"
+        : item.kind === "text" && item.contentSource === "bible"
+          ? "bible"
+          : "text",
     textScale: options.textScale ?? 1,
   };
 

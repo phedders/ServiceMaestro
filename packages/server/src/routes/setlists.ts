@@ -37,6 +37,7 @@ interface ItemRow {
   song_id: string | null;
   title: string;
   content: string | null;
+  content_source: string | null;
   text_format: string | null;
   text_align: string | null;
   image_fit: string | null;
@@ -81,6 +82,7 @@ function mapItem(row: ItemRow): SetlistItem {
     songId: row.song_id,
     title: row.title,
     content: row.content,
+    contentSource: row.content_source === "bible" ? "bible" : "text",
     format: (row.text_format as SetlistItem["format"]) ?? null,
     textAlign: row.text_align === "center" ? "center" : "left",
     imageFit:
@@ -272,10 +274,10 @@ export async function setlistRoutes(app: FastifyInstance): Promise<void> {
       const itemId = randomUUID();
       db.prepare(
         `INSERT INTO setlist_items
-         (id, setlist_id, position, kind, song_id, title, content, text_format, text_align,
-          image_fit, background_id, stinger_id, stinger_overrides_json, key_override,
-          transpose, max_lines, verse_order, notes)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         (id, setlist_id, position, kind, song_id, title, content, content_source,
+          text_format, text_align, image_fit, background_id, stinger_id,
+          stinger_overrides_json, key_override, transpose, max_lines, verse_order, notes)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       ).run(
         itemId,
         id,
@@ -284,6 +286,7 @@ export async function setlistRoutes(app: FastifyInstance): Promise<void> {
         data.songId ?? null,
         title,
         content,
+        data.contentSource ?? "text",
         format,
         data.kind === "text" ? data.textAlign ?? "left" : null,
         data.kind === "image" || data.kind === "image_list" ? data.imageFit ?? "scale" : "scale",
@@ -327,12 +330,14 @@ export async function setlistRoutes(app: FastifyInstance): Promise<void> {
         }
       }
       db.prepare(
-        `UPDATE setlist_items SET title = ?, content = ?, text_format = ?, text_align = ?,
-         image_fit = ?, background_id = ?, stinger_id = ?, stinger_overrides_json = ?,
-         key_override = ?, transpose = ?, max_lines = ?, verse_order = ?, notes = ? WHERE id = ?`,
+        `UPDATE setlist_items SET title = ?, content = ?, content_source = ?, text_format = ?,
+         text_align = ?, image_fit = ?, background_id = ?, stinger_id = ?,
+         stinger_overrides_json = ?, key_override = ?, transpose = ?, max_lines = ?,
+         verse_order = ?, notes = ? WHERE id = ?`,
       ).run(
         data.title ?? existing.title,
         nextContent,
+        data.contentSource ?? existing.content_source ?? "text",
         nextFormat,
         existing.kind === "text"
           ? data.textAlign ?? existing.text_align ?? "left"

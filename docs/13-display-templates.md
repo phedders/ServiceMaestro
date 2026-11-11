@@ -126,14 +126,16 @@ A **Display config** panel on the Live page controls:
 - **Max words per page** — a second hard limit; pages split on whichever of max lines or max words is reached first.
 - **Lower-third image max height** — percentage of the viewport used as the image height limit (default 30%).
 - **Lower-third border padding** — the gap between the viewport bottom and the lower-third text/image area (default 48px). For images it is also subtracted from the maximum height. Images keep their aspect ratio and are never stretched. Text is shown in a dark 60%-opaque rounded panel with a lighter border.
-- **Smart page splits** — estimates a 1920×1080 landscape frame from the selected font size and limits lines per page to the estimated vertical coverage. The server never inserts word wraps; long lines wrap naturally in the browser to fit the output width.
+- **Smart page splits** — estimates a 1920×1080 landscape frame from the selected font size and limits lines per page to the estimated vertical coverage.
+- **Smart wrap minimum words** — server-side line wrapping only alters a source line when it contains at least this many words (default 15). Shorter lines are left intact and wrap naturally in the browser.
+- **Server smart wrap modules** — choose which content sources use server-side wrapping: Songs, Text and Bible. Bible items are tagged when added from the Bible module or the Set lists Bible panel; untagged text items use the Text setting.
 
 Scope:
 
 - The global font and size apply to **centered two-thirds and full-screen**. The lower-third uses its own font and size; text colour remains global.
 - **Stage and chords always keep their fixed styling**, regardless of the lower-third/centered two-thirds config.
 - **Stage and chords show the current page at the top and all following pages of the current queue below it**, so musicians can see what is coming next. The content area scrolls if needed; lower-third/centered two-thirds/full show only the current page.
-- Page splitting (max lines, max words, smart estimates) is shared by all outputs; `<!-- page -->` / `<!--- page --->` / `<hr class="page-break">` markers force additional breaks.
+- Page splitting (max lines, max words, smart estimates) and smart wrapping are shared by all outputs; `<!-- page -->` / `<!--- page --->` / `<hr class="page-break">` markers force additional breaks.
 - Settings persist in the database and are broadcast to outputs immediately.
 - The **Show** button reveals a blank screen. **Selecting a page** shows and fades it in; **selecting a set-list item** only queues its page list and leaves the current output unchanged.
 

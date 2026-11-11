@@ -118,6 +118,7 @@ function resolveSetlistItems(setlistId: string): { name: string; items: Snapshot
     song_id: string | null;
     title: string;
     content: string | null;
+    content_source: string | null;
     text_format: string | null;
     text_align: string | null;
     image_fit: string | null;
@@ -199,6 +200,7 @@ function resolveSetlistItems(setlistId: string): { name: string; items: Snapshot
 
   for (const [index, item] of items.entries()) {
     const row = rows[index];
+    item.contentSource = row?.content_source === "bible" ? "bible" : "text";
     const backgroundOverride = row?.background_id;
     item.backgroundId =
       backgroundOverride === NO_BACKGROUND_ID
@@ -857,6 +859,8 @@ class LiveService {
       maxLines: this.active.state.maxLines || config.maxLines,
       maxWords: config.maxWords,
       smartPageSplits: config.smartPageSplits,
+      smartWrapMinWords: config.smartWrapMinWords,
+      smartWrapModules: config.smartWrapModules,
       textScale: config.textScale,
     });
     for (const page of pages) {

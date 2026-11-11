@@ -11,6 +11,7 @@ import type {
   FontOption,
   LiveState,
   SetlistSummary,
+  SmartWrapModule,
 } from "@sm/shared";
 import { api, ApiError } from "../api";
 import { SlidePreview } from "../components/SlidePreview";
@@ -116,6 +117,8 @@ export default function LivePage({
       maxLines: 4,
       maxWords: 90,
       smartPageSplits: true,
+      smartWrapMinWords: 15,
+      smartWrapModules: ["songs", "text", "bible"],
       lowerThirdImageMaxHeightPercent: 30,
       lowerThirdImagePadding: 48,
       lowerThirdFontFamily: '"Clear Sans", "Segoe UI", system-ui, -apple-system, sans-serif',
@@ -179,6 +182,8 @@ export default function LivePage({
     live.displayConfig?.maxLines,
     live.displayConfig?.maxWords,
     live.displayConfig?.smartPageSplits,
+    live.displayConfig?.smartWrapMinWords,
+    live.displayConfig?.smartWrapModules?.join(","),
     live.displayConfig?.lowerThirdImageMaxHeightPercent,
     live.displayConfig?.lowerThirdImagePadding,
     live.displayConfig?.lowerThirdFontFamily,
@@ -191,6 +196,15 @@ export default function LivePage({
       .then((result) => setFonts(result.fonts))
       .catch(() => undefined);
   }, []);
+
+  function toggleSmartWrapModule(module: SmartWrapModule, checked: boolean) {
+    setDisplayConfig((current) => ({
+      ...current,
+      smartWrapModules: checked
+        ? [...new Set([...current.smartWrapModules, module])]
+        : current.smartWrapModules.filter((entry) => entry !== module),
+    }));
+  }
 
   async function saveConfig() {
     setConfigSaving(true);
@@ -526,6 +540,45 @@ export default function LivePage({
             />
           </label>
           <label>
+            Smart wrap minimum words
+            <input
+              type="number"
+              min={1}
+              max={100}
+              value={displayConfig.smartWrapMinWords}
+              onChange={(event) =>
+                setDisplayConfig({
+                  ...displayConfig,
+                  smartWrapMinWords: Math.max(
+                    1,
+                    Math.min(100, Number(event.target.value) || 15),
+                  ),
+                })
+              }
+            />
+          </label>
+          <div className="smart-wrap-modules">
+            <span className="field-label">Server smart wrap applies to</span>
+            <div className="button-row">
+              {(
+                [
+                  ["songs", "Songs"],
+                  ["text", "Text"],
+                  ["bible", "Bible"],
+                ] as const
+              ).map(([module, label]) => (
+                <label key={module} className="checkbox">
+                  <input
+                    type="checkbox"
+                    checked={displayConfig.smartWrapModules.includes(module)}
+                    onChange={(event) => toggleSmartWrapModule(module, event.target.checked)}
+                  />
+                  {label}
+                </label>
+              ))}
+            </div>
+          </div>
+          <label>
             Lower-third image max height · {displayConfig.lowerThirdImageMaxHeightPercent}%
             <input
               type="range"
@@ -568,7 +621,8 @@ export default function LivePage({
               Smart page splits
               <small>
                 Estimate 1080p coverage from font size and words. Pages break on whichever limit is
-                reached first. Long lines are wrapped by the browser to fit.
+                reached first. Server smart wrap splits selected modules only when a line reaches
+                the minimum word count; shorter lines are wrapped by the browser.
               </small>
             </span>
           </label>

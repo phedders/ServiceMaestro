@@ -170,6 +170,11 @@ export default function HelpPage({ onOpenSettings }: { onOpenSettings: () => voi
                 centered two-thirds and full-screen outputs.
               </li>
               <li>
+                Server smart wrap can be enabled for Songs, Text and Bible independently. It only
+                splits lines at or above the configured minimum word count (default 15); shorter
+                lines wrap naturally in the browser.
+              </li>
+              <li>
                 Lower-third text is shown in a dark translucent rounded panel, anchored to the bottom
                 with the configured border padding. Images use the same bottom padding.
               </li>

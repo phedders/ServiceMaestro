@@ -63,6 +63,7 @@ db.exec(`
     song_id TEXT REFERENCES songs(id) ON DELETE SET NULL,
     title TEXT NOT NULL,
     content TEXT,
+    content_source TEXT NOT NULL DEFAULT 'text',
     background_id TEXT,
     stinger_id TEXT,
     stinger_overrides_json TEXT,
@@ -117,6 +118,8 @@ db.exec(`
     max_lines INTEGER NOT NULL,
     max_words INTEGER NOT NULL DEFAULT 90,
     smart_page_splits INTEGER NOT NULL DEFAULT 1,
+    smart_wrap_min_words INTEGER NOT NULL DEFAULT 15,
+    smart_wrap_modules TEXT NOT NULL DEFAULT '["songs","text","bible"]',
     lower_third_image_max_height_percent REAL NOT NULL DEFAULT 30,
     lower_third_image_padding INTEGER NOT NULL DEFAULT 48,
     lower_third_font_family TEXT,
@@ -243,6 +246,7 @@ ensureColumn("setlist_items", "verse_order", "TEXT");
 ensureColumn("setlist_items", "text_format", "TEXT");
 ensureColumn("setlist_items", "text_align", "TEXT");
 ensureColumn("setlist_items", "image_fit", "TEXT");
+ensureColumn("setlist_items", "content_source", "TEXT NOT NULL DEFAULT 'text'");
 ensureColumn("setlist_items", "background_id", "TEXT");
 ensureColumn("setlist_items", "stinger_id", "TEXT");
 ensureColumn("setlist_items", "stinger_overrides_json", "TEXT");
@@ -252,6 +256,8 @@ ensureColumn("service_sessions", "revision_id", "TEXT");
 ensureColumn("service_sessions", "pending_json", "TEXT");
 ensureColumn("display_config", "max_words", "INTEGER NOT NULL DEFAULT 90");
 ensureColumn("display_config", "smart_page_splits", "INTEGER NOT NULL DEFAULT 1");
+ensureColumn("display_config", "smart_wrap_min_words", "INTEGER NOT NULL DEFAULT 15");
+ensureColumn("display_config", "smart_wrap_modules", "TEXT NOT NULL DEFAULT '[\"songs\",\"text\",\"bible\"]'");
 ensureColumn("display_config", "lower_third_image_max_height_percent", "REAL NOT NULL DEFAULT 30");
 ensureColumn("display_config", "lower_third_image_padding", "INTEGER NOT NULL DEFAULT 48");
 ensureColumn("display_config", "lower_third_font_family", "TEXT");

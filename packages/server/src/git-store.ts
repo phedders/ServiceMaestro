@@ -287,10 +287,10 @@ function importSetlist(manifest: SetlistManifest): void {
 
   const insert = db.prepare(
     `INSERT INTO setlist_items
-     (id, setlist_id, position, kind, song_id, title, content, text_format, text_align,
-      image_fit, background_id, stinger_id, stinger_overrides_json, key_override,
-      transpose, max_lines, verse_order, notes)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     (id, setlist_id, position, kind, song_id, title, content, content_source,
+      text_format, text_align, image_fit, background_id, stinger_id,
+      stinger_overrides_json, key_override, transpose, max_lines, verse_order, notes)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   );
 
   for (const item of manifest.items) {
@@ -338,6 +338,7 @@ function importSetlist(manifest: SetlistManifest): void {
       songId,
       item.title,
       content,
+      item.contentSource ?? "text",
       item.kind === "text" ? item.format ?? null : null,
       item.kind === "text" ? item.textAlign ?? "left" : null,
       item.kind === "image" || item.kind === "image_list" ? item.imageFit ?? "scale" : "scale",

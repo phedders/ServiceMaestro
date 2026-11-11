@@ -124,6 +124,7 @@ export interface SetlistItem {
   format: TextFormat | null;
   textAlign: "left" | "center";
   imageFit: ImageFit;
+  contentSource: "text" | "bible";
   backgroundId: string | null;
   stingerId: string | null;
   stingerPageOverrides: Record<string, string>;
@@ -207,6 +208,9 @@ export interface DisplayTemplate {
   css: string;
 }
 
+export const SMART_WRAP_MODULES = ["songs", "text", "bible"] as const;
+export type SmartWrapModule = (typeof SMART_WRAP_MODULES)[number];
+
 export interface DisplayConfig {
   fontFamily: string;
   textColor: string;
@@ -214,6 +218,8 @@ export interface DisplayConfig {
   maxLines: number;
   maxWords: number;
   smartPageSplits: boolean;
+  smartWrapMinWords: number;
+  smartWrapModules: SmartWrapModule[];
   lowerThirdImageMaxHeightPercent: number;
   lowerThirdImagePadding: number;
   lowerThirdFontFamily: string;
@@ -685,6 +691,7 @@ export const setlistItemInputSchema = z.object({
   format: z.enum(["text", "markdown", "html", "rst"]).optional().nullable(),
   textAlign: z.enum(["left", "center"]).optional(),
   imageFit: z.enum(["scale", "actual", "crop", "stretch"]).optional(),
+  contentSource: z.enum(["text", "bible"]).optional(),
   backgroundId: z.string().trim().max(100).optional().nullable(),
   stingerId: z.string().trim().max(100).optional().nullable(),
   stingerPageOverrides: z
@@ -768,6 +775,8 @@ export const displayConfigSchema = z.object({
   maxLines: z.number().int().min(1).max(30),
   maxWords: z.number().int().min(1).max(500).default(90),
   smartPageSplits: z.boolean().default(true),
+  smartWrapMinWords: z.number().int().min(1).max(100).default(15),
+  smartWrapModules: z.array(z.enum(SMART_WRAP_MODULES)).max(3).default([...SMART_WRAP_MODULES]),
   lowerThirdImageMaxHeightPercent: z.number().min(5).max(100).default(30),
   lowerThirdImagePadding: z.number().int().min(0).max(200).default(48),
   lowerThirdFontFamily: z.string().trim().min(1).max(200),

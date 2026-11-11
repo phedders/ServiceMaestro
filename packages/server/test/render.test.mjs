@@ -209,7 +209,7 @@ test("splits pages on max words at line boundaries", () => {
   assert.match(pages[2].html, /line 6 has four words/);
 });
 
-test("smart splitting does not wrap long lyric lines", () => {
+test("smart wrapping splits long lines at the minimum word count", () => {
   const words = Array.from({ length: 220 }, (_, index) => `word${index + 1}`).join(" ");
   const pages = buildPages(
     {
@@ -217,15 +217,82 @@ test("smart splitting does not wrap long lyric lines", () => {
       title: "Smart",
       content: words,
       transpose: 0,
-      maxLines: 8,
+      maxLines: 50,
     },
     0,
-    { maxLines: 8, maxWords: 500, smartPageSplits: true, textScale: 1 },
+    {
+      maxLines: 50,
+      maxWords: 500,
+      smartPageSplits: false,
+      smartWrapMinWords: 15,
+      textScale: 1,
+    },
   );
-  assert.equal(pages.length, 1);
-  assert.equal((pages[0].html.match(/class="line"/g) ?? []).length, 1);
+  assert.ok((pages[0].html.match(/class="line"/g) ?? []).length > 1);
   assert.match(pages[0].html, /word1/);
   assert.match(pages[0].html, /word220/);
+});
+
+test("smart wrapping leaves lines below the minimum untouched", () => {
+  const fourteen = Array.from({ length: 14 }, (_, index) => `superlongword${index}`).join(" ");
+  const fifteen = Array.from({ length: 15 }, (_, index) => `superlongword${index}`).join(" ");
+  const options = {
+    maxLines: 50,
+    maxWords: 500,
+    smartPageSplits: false,
+    smartWrapMinWords: 15,
+    textScale: 1,
+  };
+  const shortPages = buildPages(
+    { kind: "text", title: "Short", content: fourteen, transpose: 0, maxLines: 50 },
+    0,
+    options,
+  );
+  const longPages = buildPages(
+    { kind: "text", title: "Long", content: fifteen, transpose: 0, maxLines: 50 },
+    0,
+    options,
+  );
+  assert.equal((shortPages[0].html.match(/class="line"/g) ?? []).length, 1);
+  assert.ok((longPages[0].html.match(/class="line"/g) ?? []).length > 1);
+});
+
+test("smart wrapping respects the selected source modules", () => {
+  const words = Array.from({ length: 40 }, (_, index) => `word${index}`).join(" ");
+  const bible = {
+    kind: "text",
+    title: "Bible",
+    content: words,
+    contentSource: "bible",
+    transpose: 0,
+    maxLines: 50,
+  };
+  const withoutBible = buildPages(
+    bible,
+    0,
+    {
+      maxLines: 50,
+      maxWords: 500,
+      smartPageSplits: false,
+      smartWrapMinWords: 15,
+      smartWrapModules: ["songs", "text"],
+      textScale: 1,
+    },
+  );
+  const withBible = buildPages(
+    bible,
+    0,
+    {
+      maxLines: 50,
+      maxWords: 500,
+      smartPageSplits: false,
+      smartWrapMinWords: 15,
+      smartWrapModules: ["bible"],
+      textScale: 1,
+    },
+  );
+  assert.equal((withoutBible[0].html.match(/class="line"/g) ?? []).length, 1);
+  assert.ok((withBible[0].html.match(/class="line"/g) ?? []).length > 1);
 });
 
 test("renders song Markdown and split-word tags", () => {

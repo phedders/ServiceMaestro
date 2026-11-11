@@ -127,6 +127,7 @@ export default function BiblePage({
         kind: "text",
         title: reference() || "Bible passage",
         content: body,
+        contentSource: "bible",
         format: "text",
       });
       const target = setlists.find((setlist) => setlist.id === targetSetlist);

@@ -42,6 +42,7 @@ const itemSchema = z.object({
   verseOrder: z.string().nullable().optional(),
   notes: z.string().nullable().optional(),
   content: z.string().nullable().optional(),
+  contentSource: z.enum(["text", "bible"]).optional(),
   format: z.enum(["text", "markdown", "html", "rst"]).nullable().optional(),
   textAlign: z.enum(["left", "center"]).nullable().optional(),
   imageFit: z.enum(["scale", "actual", "crop", "stretch"]).nullable().optional(),
@@ -213,6 +214,7 @@ export function buildSetlistExport(
     song_id: string | null;
     title: string;
     content: string | null;
+    content_source: string | null;
     text_format: string | null;
     text_align: string | null;
     image_fit: string | null;
@@ -321,6 +323,9 @@ export function buildSetlistExport(
       verseOrder: row.verse_order,
       notes: row.notes,
       content: row.content ?? "",
+      contentSource: (row.content_source === "bible" ? "bible" : "text") as
+        | "text"
+        | "bible",
       format: (row.text_format as SetlistManifest["items"][number]["format"]) ?? null,
       textAlign: (row.text_align === "center" ? "center" : "left") as "left" | "center",
       backgroundId: row.background_id,
@@ -459,10 +464,10 @@ export function importSetlistFile(
 
   const insertItem = db.prepare(
     `INSERT INTO setlist_items
-     (id, setlist_id, position, kind, song_id, title, content, text_format, text_align,
-      image_fit, background_id, stinger_id, stinger_overrides_json, key_override,
-      transpose, max_lines, verse_order, notes)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     (id, setlist_id, position, kind, song_id, title, content, content_source,
+      text_format, text_align, image_fit, background_id, stinger_id,
+      stinger_overrides_json, key_override, transpose, max_lines, verse_order, notes)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   );
 
   let importedItems = 0;
@@ -530,6 +535,7 @@ export function importSetlistFile(
       songId,
       item.title,
       content,
+      item.contentSource ?? "text",
       item.kind === "text" ? item.format ?? null : null,
       item.kind === "text" ? item.textAlign ?? "left" : null,
       item.kind === "image" || item.kind === "image_list" ? item.imageFit ?? "scale" : "scale",
