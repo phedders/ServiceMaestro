@@ -69,7 +69,7 @@ WLM_CHURCHSUITE_REDIRECT_URI=...       # authorization-code flow only
 ```
 
 `docker compose` reads `.env` automatically and passes these values into the container. The
-Config page shows whether credentials are configured and has a **Test connection** button. The
+Settings page shows whether credentials are configured and has a **Test connection** button. The
 exploration endpoints are:
 
 ```text
@@ -86,7 +86,7 @@ GET  /api/integrations/churchsuite/plans/:id/items
 
 ### `unauthorized_client` on client credentials
 
-If the Config page reports:
+If the Settings page reports:
 
 ```text
 ChurchSuite rejected the client_credentials grant.

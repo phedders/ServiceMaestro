@@ -74,7 +74,7 @@ Open <http://localhost:8080/musicians> to see the read-only musician view. It de
 - **Templated outputs** — main, two-thirds, full, stage and chords; templates come from the set-list repo, a templates folder/repo, or built-in defaults, with fade-in/out changes.
 - **Display config** — Live-page panel for font, text colour, text size, max lines, max words and smart page splits; applies to main/two-thirds, while stage and chords keep their fixed style. Smart splits estimate 1080p coverage from font size and avoid long Bible-line overflow.
 - **Rich text items** — choose Markdown (default), plain text, HTML or RST in the editor; legacy `format:` headers are extracted into metadata. Text items also have a per-item **left/centre** alignment option. Pages can be authored with inline `<!-- page -->` markers or with separate page boxes in the editor; both serialize to the same page-break format. Page breaks and server-side sanitisation are supported.
-- **Config page** — import Google Fonts by family name or CSS URL; files are cached in `/data/fonts` and served locally. ChurchSuite credential status and connection testing live here too. Configurable keyboard shortcuts cover hide/show, page navigation and set-list item navigation, and a global setting chooses whether page navigation stops at item boundaries or continues into the previous/next item.
+- **Settings page** — import Google Fonts by family name or CSS URL; files are cached in `/data/fonts` and served locally. ChurchSuite credential status and connection testing live here too. Configurable keyboard shortcuts cover hide/show, page navigation and set-list item navigation, and a global setting chooses whether page navigation stops at item boundaries or continues into the previous/next item.
 - **Export/import** — download a reference JSON or self-contained ZIP bundle (songs, text, PDF/tab assets) and import it as a new draft with a preview; matching uses CCLI/title and never affects a live service.
 - **Live control** — next/previous, page show, item queue, append an item’s pages to the current live queue with its **+** button, blank, transpose, max-lines, footer and quick text.
 - **Layout** — collapse the left sidebar or move navigation into a top bar; smaller screens automatically use the top-bar layout.
@@ -128,7 +128,7 @@ docker run --rm -p 8080:8080 \
 
 Or `docker compose up -d` / `podman-compose up -d`. The container runs as UID/GID 10001; ensure the mounted data directory is writable by that user (`chown -R 10001:10001 ./data`, or use Incus `shift=true`).
 
-Copy `.env.example` to `.env` next to `compose.yaml` for local credentials. Docker Compose reads that file automatically; never commit it. ChurchSuite credentials belong under `WLM_CHURCHSUITE_CLIENT_ID` and `WLM_CHURCHSUITE_CLIENT_SECRET`, and the Config page can test the connection.
+Copy `.env.example` to `.env` next to `compose.yaml` for local credentials. Docker Compose reads that file automatically; never commit it. ChurchSuite credentials belong under `WLM_CHURCHSUITE_CLIENT_ID` and `WLM_CHURCHSUITE_CLIENT_SECRET`, and the Settings page can test the connection.
 
 See [05-container-deployment.md](docs/05-container-deployment.md) for Incus/LXC, read-only root filesystem, backups and hardening.
 

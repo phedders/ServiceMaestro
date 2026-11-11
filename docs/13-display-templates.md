@@ -115,7 +115,7 @@ Rich text uses a block container (`.text-html`), not the flex line container use
 
 A **Display config** panel on the Live page controls:
 
-- **Font** — built-in stacks plus Google Fonts imported from the Config page.
+- **Font** — built-in stacks plus Google Fonts imported from the Settings page.
 - **Text colour** — default text colour.
 - **Text size** — 50–200% scale.
 - **Max lines per page** — the number of lines after which a song/text/Bible item is split into another page.
@@ -140,7 +140,7 @@ Songs can opt into **inline Markdown styling** metadata. Supported tags include 
 
 ## 4.2 Imported Google Fonts
 
-The Config page imports a family name or a `https://fonts.googleapis.com/css2?...` URL. The server downloads the CSS and woff2 files into `/data/fonts`, rewrites the URLs to `/fonts/<id>/…`, and serves a concatenated `/fonts/all.css`. Displays and the control preview therefore work offline after import.
+The Settings page imports a family name or a `https://fonts.googleapis.com/css2?...` URL. The server downloads the CSS and woff2 files into `/data/fonts`, rewrites the URLs to `/fonts/<id>/…`, and serves a concatenated `/fonts/all.css`. Displays and the control preview therefore work offline after import.
 
 ## 5. Blank on session start
 

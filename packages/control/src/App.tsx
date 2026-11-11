@@ -9,7 +9,7 @@ import SetlistsPage from "./pages/SetlistsPage";
 import SongsPage from "./pages/SongsPage";
 import BiblePage from "./pages/BiblePage";
 import MusiciansPage from "./pages/MusiciansPage";
-import ConfigPage from "./pages/ConfigPage";
+import SettingsPage from "./pages/SettingsPage";
 import {
   SHORTCUT_CHANGE_EVENT,
   isTypingTarget,
@@ -18,7 +18,7 @@ import {
   type KeyboardShortcuts,
 } from "./keyboard";
 
-type Page = "live" | "setlists" | "songs" | "bible" | "config";
+type Page = "live" | "setlists" | "songs" | "bible" | "settings";
 
 interface Toast {
   id: number;
@@ -201,8 +201,8 @@ export default function App() {
         return "Songs";
       case "bible":
         return "Bible";
-      case "config":
-        return "Config";
+      case "settings":
+        return "Settings";
     }
   }, [page]);
 
@@ -287,8 +287,8 @@ export default function App() {
           <a className="nav-link" href="/musicians" target="_blank" rel="noreferrer">
             <span className="nav-icon">♪</span> Musicians
           </a>
-          <button className={page === "config" ? "active" : ""} onClick={() => setPage("config")}>
-            <span className="nav-icon">⚙</span> Config
+          <button className={page === "settings" ? "active" : ""} onClick={() => setPage("settings")}>
+            <span className="nav-icon">⚙</span> Settings
           </button>
         </nav>
 
@@ -367,7 +367,7 @@ export default function App() {
         )}
         {page === "songs" && <SongsPage live={live} onQuickSong={quickSong} notify={notify} />}
         {page === "bible" && <BiblePage live={live} onQuickText={quickText} notify={notify} />}
-        {page === "config" && <ConfigPage notify={notify} />}
+        {page === "settings" && <SettingsPage notify={notify} />}
       </main>
 
       <div className="toasts">

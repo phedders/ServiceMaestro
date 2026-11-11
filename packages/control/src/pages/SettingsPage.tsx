@@ -12,7 +12,7 @@ import {
   type KeyboardShortcuts,
 } from "../keyboard";
 
-export default function ConfigPage({
+export default function SettingsPage({
   notify,
 }: {
   notify: (text: string, kind?: "info" | "error") => void;
