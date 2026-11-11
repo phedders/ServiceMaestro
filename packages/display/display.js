@@ -15,6 +15,7 @@
     reconnectionDelayMax: 4000,
   });
 
+  const FADE_MS = 240;
   let lastHtml = "";
   let lastCss = "";
   let fadeTimer = null;
@@ -115,13 +116,17 @@
       }
       root.innerHTML = html;
       lastHtml = html;
-      requestAnimationFrame(() => document.body.classList.remove("sm-fading"));
+      // Paint the new text at zero opacity before fading back in.
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => document.body.classList.remove("sm-fading"));
+      });
     };
 
     if (root.innerHTML) {
       document.body.classList.add("sm-fading");
       if (fadeTimer) clearTimeout(fadeTimer);
-      fadeTimer = setTimeout(commit, 190);
+      // Wait for the fade-out to finish before swapping the text.
+      fadeTimer = setTimeout(commit, FADE_MS);
     } else {
       commit();
     }

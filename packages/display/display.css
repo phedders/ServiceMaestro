@@ -200,7 +200,7 @@ body.display-stage #stage::after {
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
-  transition: opacity 320ms ease;
+  transition: opacity 240ms ease;
 }
 
 body.sm-fading .sm-template {
