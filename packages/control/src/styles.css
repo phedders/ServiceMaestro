@@ -1270,6 +1270,11 @@ label {
   gap: 16px;
 }
 
+.iso-date-input {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.06em;
+}
+
 .shortcut-grid {
   display: grid;
   gap: 8px;

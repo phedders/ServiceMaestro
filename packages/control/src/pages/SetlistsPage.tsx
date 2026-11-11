@@ -11,6 +11,7 @@ import type {
   TextFormat,
 } from "@wlm/shared";
 import { api, ApiError } from "../api";
+import { IsoDateInput } from "../components/IsoDateInput";
 import { compactDate, compactDateTime, defaultSetlistName } from "../service-date";
 
 function today(): string {
@@ -730,11 +731,9 @@ export default function SetlistsPage({
           <div className="inline-fields">
             <label>
               Date
-              <input
-                type="date"
+              <IsoDateInput
                 value={newDate}
-                onChange={(event) => {
-                  const nextDate = event.target.value;
+                onChange={(nextDate) => {
                   setNewDate(nextDate);
                   if (!newNameEdited) setNewName(defaultSetlistName(nextDate));
                 }}
@@ -875,7 +874,7 @@ export default function SetlistsPage({
             </label>
             <label>
               Date
-              <input type="date" value={serviceDate} onChange={(event) => setServiceDate(event.target.value)} />
+              <IsoDateInput value={serviceDate} onChange={setServiceDate} />
             </label>
             <label>
               Time
