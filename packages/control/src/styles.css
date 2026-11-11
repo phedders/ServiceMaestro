@@ -844,6 +844,46 @@ label {
   font-size: 0.8rem;
 }
 
+.item-row {
+  align-items: stretch;
+  gap: 8px;
+  padding: 8px 10px;
+}
+
+.item-row-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  padding: 2px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.item-append {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--accent);
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.item-append:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
 .page-row:hover,
 .item-row:hover {
   border-color: #3a4a60;

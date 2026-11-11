@@ -317,6 +317,7 @@ class LiveService {
       queuedItemIndex: null,
       queuedTitle: null,
       queuedPages: [],
+      appendedItems: [],
       displayConfig,
     };
 
@@ -414,6 +415,7 @@ class LiveService {
     record.state.queuedItemIndex = null;
     record.state.queuedTitle = null;
     record.state.queuedPages = [];
+    record.state.appendedItems = [];
     if (mode === "now") {
       record.items = items;
       record.revisionId = revisionId;
@@ -449,6 +451,7 @@ class LiveService {
     record.state.items = summaries(record.items);
     record.state.pendingUpdate = false;
     record.state.pendingRevision = null;
+    record.state.appendedItems = [];
     this.renderCurrent();
   }
 
@@ -509,6 +512,10 @@ class LiveService {
         this.queueItem(Number(command.itemIndex));
         break;
       }
+      case "appendItem": {
+        this.appendItem(Number(command.itemIndex));
+        break;
+      }
       case "blank":
         state.blank = typeof command.value === "boolean" ? command.value : !state.blank;
         break;
@@ -559,6 +566,7 @@ class LiveService {
     record.state.itemIndex = -1;
     record.state.pageIndex = 0;
     record.state.blank = false;
+    record.state.appendedItems = [];
     this.renderCurrent();
     record.state.version += 1;
     record.state.updatedAt = now();
@@ -597,6 +605,7 @@ class LiveService {
     record.state.itemIndex = -1;
     record.state.pageIndex = 0;
     record.state.blank = false;
+    record.state.appendedItems = [];
     this.renderCurrent();
     record.state.version += 1;
     record.state.updatedAt = now();
@@ -613,6 +622,7 @@ class LiveService {
     state.queuedItemIndex = null;
     state.queuedTitle = null;
     state.queuedPages = [];
+    state.appendedItems = [];
     state.itemIndex = index;
     state.pageIndex = 0;
     state.mode = items[index].kind;
@@ -628,6 +638,14 @@ class LiveService {
     state.queuedItemIndex = index;
     state.queuedTitle = item.title;
     state.queuedPages = this.pagesFor(item);
+  }
+
+  private appendItem(index: number): void {
+    if (!this.active) return;
+    const { state, items } = this.active;
+    if (!Number.isFinite(index) || index < 0 || index >= items.length) return;
+    state.appendedItems = [...(state.appendedItems ?? []), index];
+    this.renderCurrent();
   }
 
   private setPage(index: number): void {
@@ -674,9 +692,19 @@ class LiveService {
       return;
     }
     const pages = this.pagesFor(item);
-    record.state.pages = pages;
-    record.state.pageCount = pages.length;
-    record.state.pageIndex = Math.max(0, Math.min(record.state.pageIndex, pages.length - 1));
+    const appendedPages = (record.state.appendedItems ?? []).flatMap((index) => {
+      const appended = record.items[index];
+      return appended ? this.pagesFor(appended) : [];
+    });
+    record.state.pages = [...pages, ...appendedPages].map((page, index) => ({
+      ...page,
+      index,
+    }));
+    record.state.pageCount = record.state.pages.length;
+    record.state.pageIndex = Math.max(
+      0,
+      Math.min(record.state.pageIndex, record.state.pages.length - 1),
+    );
     record.state.title = item.title;
     record.state.mode = item.kind;
 

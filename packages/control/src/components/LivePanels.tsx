@@ -30,15 +30,28 @@ export function ItemList({ live, onCommand }: { live: LiveState; onCommand: (pay
   return (
     <div className="item-list">
       {live.items.map((item) => (
-        <button
+        <div
           key={item.index}
           className={`item-row ${item.index === currentItem ? "current" : ""}`}
-          onClick={() => onCommand({ type: "queueItem", itemIndex: item.index })}
         >
-          <span className="item-icon">{item.kind === "song" ? "♫" : "T"}</span>
-          <span className="item-title">{item.title}</span>
-          {item.notes && <span className="item-notes">{item.notes}</span>}
-        </button>
+          <button
+            className="item-row-main"
+            onClick={() => onCommand({ type: "queueItem", itemIndex: item.index })}
+            title="Queue this item's page list"
+          >
+            <span className="item-icon">{item.kind === "song" ? "♫" : "T"}</span>
+            <span className="item-title">{item.title}</span>
+            {item.notes && <span className="item-notes">{item.notes}</span>}
+          </button>
+          <button
+            className="item-append"
+            onClick={() => onCommand({ type: "appendItem", itemIndex: item.index })}
+            title="Append this item's pages to the current live queue"
+            aria-label={`Append ${item.title} pages to the live queue`}
+          >
+            +
+          </button>
+        </div>
       ))}
     </div>
   );

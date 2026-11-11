@@ -29,7 +29,7 @@ WLM_ADMIN_PASSWORD='change-me' npm start
 | Fonts/config | Config page imports Google Fonts by family/URL; CSS and woff2 cached in `/data/fonts`; ChurchSuite credential status and connection test; configurable live keyboard shortcuts; global page-boundary navigation setting |
 | Export/import | Reference JSON and self-contained ZIP bundles (songs/text/assets); preview then import as a new draft, with song matching by CCLI/title |
 | Git local persistence | Songs/setlists written to local Git repos and committed; `autoSave`/`autoPush` configurable (default true); optional remotes, startup import/export, pull interval; Bibles repo optional (LFS in container) |
-| Live sessions | Snapshot-on-start; starts blank; page selection shows/fades; item selection only queues pages; publish/apply after-current or now; queued updates survive restarts; next/prev, page/item navigation, blank, transpose, max lines, footer, quick text |
+| Live sessions | Snapshot-on-start; starts blank; page selection shows/fades; item selection only queues pages; **+** appends an item’s pages to the current live queue without changing the set list; publish/apply after-current or now; queued updates survive restarts; next/prev, page/item navigation, blank, transpose, max lines, footer, quick text |
 | Display templates | main, two-thirds, full, stage, chords; HTML/CSS lookup from set-list repo, templates folder/repo or built-ins; fade in/out |
 | Rich text | Format dropdown (Markdown default, plain, HTML, RST); legacy headers extracted into metadata; per-item left/centre alignment; sanitised render, page breaks |
 | Song presentation | Optional inline Markdown styling ignored on stage/chords; SongSelect/SongPro `-` split-word joins on presentation views |

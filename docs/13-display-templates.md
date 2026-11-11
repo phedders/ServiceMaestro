@@ -148,6 +148,8 @@ Starting a live session now sets `blank: true`. Outputs remain black/transparent
 
 **Selecting a set-list item** only **queues** that item's page list. It does not change the live output, page, title or blank state; the Pages panel switches to the queued item and the first page is shown only when the operator clicks a page (or uses Show/Next as appropriate). The **Show** button remains for revealing the current live page without changing it.
 
+Each item also has a **+** button in the Live Items panel. It appends that item’s rendered pages to the current live page queue without modifying the set-list entry. Appended pages survive display-config/transpose changes and restart with the session; changing to another item clears the appended queue.
+
 ## 6. Preview pane size
 
 The Live page preview is no longer full-width: it sits beside the Transport panel at roughly the same height, with a maximum height of 280 px. The default dashboard layout gives Preview the same grid height as Transport (4 rows); existing saved layouts are unchanged, and **Reset** restores the new default.
