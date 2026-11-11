@@ -18,7 +18,7 @@ body:not(.mode-image) .sm-lowerthird-panel {
   padding: clamp(14px, 2.2vw, 28px) clamp(18px, 2.6vw, 34px);
   border: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: clamp(14px, 1.4vw, 22px);
-  background: rgba(6, 10, 16, 0.6);
+  background: rgba(6, 10, 16, 0.8);
 }
 
 .sm-main .sm-content {

@@ -125,7 +125,7 @@ A **Display config** panel on the Live page controls:
 - **Max lines per page** — the number of lines after which a song/text/Bible item is split into another page.
 - **Max words per page** — a second hard limit; pages split on whichever of max lines or max words is reached first.
 - **Lower-third image max height** — percentage of the viewport used as the image height limit (default 30%).
-- **Lower-third border padding** — the gap between the viewport bottom and the lower-third text/image area (default 48px). For images it is also subtracted from the maximum height. Images keep their aspect ratio and are never stretched. Text is shown in a dark 60%-opaque rounded panel with a lighter border.
+- **Lower-third border padding** — the gap between the viewport bottom and the lower-third text/image area (default 48px). For images it is also subtracted from the maximum height. Images keep their aspect ratio and are never stretched. Text is shown in a dark 80%-opaque rounded panel with a lighter border. The panel remains visible while page text fades between pages, and fades out only for blank/idle states.
 - **Smart page splits** — estimates a 1920×1080 landscape frame from the selected font size and limits lines per page to the estimated vertical coverage.
 - **Smart wrap minimum words** — server-side line wrapping only alters a source line when it contains at least this many words (default 15). Shorter lines are left intact and wrap naturally in the browser.
 - **Server smart wrap modules** — choose which content sources use server-side wrapping: Songs, Text and Bible. Bible items are tagged when added from the Bible module or the Set lists Bible panel; untagged text items use the Text setting.

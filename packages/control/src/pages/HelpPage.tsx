@@ -175,8 +175,9 @@ export default function HelpPage({ onOpenSettings }: { onOpenSettings: () => voi
                 lines wrap naturally in the browser.
               </li>
               <li>
-                Lower-third text is shown in a dark translucent rounded panel, anchored to the bottom
-                with the configured border padding. Images use the same bottom padding.
+                Lower-third text is shown in a dark 80%-opaque rounded panel, anchored to the bottom
+                with the configured border padding. The panel stays constant between page changes
+                and fades only when the output is blank or idle. Images use the same bottom padding.
               </li>
               <li>
                 Stage and chord outputs keep their fixed readable style.

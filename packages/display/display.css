@@ -259,6 +259,22 @@ body.sm-fading .sm-template {
   opacity: 0;
 }
 
+/* The lower-third panel is a constant backdrop; only its text changes during
+   page transitions. It still fades out for blank/idle states below. */
+body.sm-fading[data-target="main"]:not(.blank):not(.idle) .sm-template {
+  opacity: 1;
+}
+
+body.sm-fading[data-target="main"] .sm-lowerthird-panel .sm-content,
+body.sm-fading[data-target="main"] .sm-lowerthird-panel .sm-footer {
+  opacity: 0;
+}
+
+.sm-lowerthird-panel .sm-content,
+.sm-lowerthird-panel .sm-footer {
+  transition: opacity 220ms ease;
+}
+
 body.blank .sm-template,
 body.idle .sm-template {
   opacity: 0;
