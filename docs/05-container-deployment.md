@@ -19,8 +19,8 @@ See [02-architecture.md](02-architecture.md) for the application design and [03-
 
 | Item | Choice |
 | --- | --- |
-| Base (build) | `node:24-bookworm` + build tools for native modules |
-| Base (runtime) | `node:24-bookworm-slim` |
+| Base (build) | `node:24-trixie` + build tools for native modules |
+| Base (runtime) | `node:24-trixie-slim` |
 | Why Debian slim (not Alpine) | `better-sqlite3` and `sharp` ship glibc prebuilds; musl builds add risk and size. |
 | Init | `tini` as PID 1 (reaps zombies, forwards signals) |
 | User | `wlm` UID/GID **10001** (numeric, no login shell) |
@@ -33,14 +33,14 @@ See [02-architecture.md](02-architecture.md) for the application design and [03-
 Multi-stage sketch (to be committed with the code):
 
 ```dockerfile
-FROM node:24-bookworm AS build
+FROM node:24-trixie AS build
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 COPY . .
 RUN npm run build && npm prune --omit=dev
 
-FROM node:24-bookworm-slim
+FROM node:24-trixie-slim
 RUN apt-get update \
  && apt-get install -y --no-install-recommends tini ca-certificates tzdata git git-lfs openssh-client \
  && rm -rf /var/lib/apt/lists/* \
