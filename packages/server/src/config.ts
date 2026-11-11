@@ -65,6 +65,7 @@ export interface GitRepoConfig {
 
 export const HOST = process.env.SM_HOST ?? "0.0.0.0";
 export const PORT = Number(process.env.SM_PORT ?? 8080);
+export const DISPLAY_PORT = Number(process.env.SM_DISPLAY_PORT ?? 8081);
 export const DATA_DIR = path.resolve(process.env.SM_DATA_DIR ?? path.join(packageRoot, "data"));
 export const CONTROL_DIST = path.resolve(packageRoot, "../control/dist");
 export const DISPLAY_DIR = path.resolve(packageRoot, "../display");

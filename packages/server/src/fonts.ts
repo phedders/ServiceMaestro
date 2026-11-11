@@ -92,7 +92,10 @@ export function refreshAllFontsCss(): void {
   for (const row of rows) {
     const file = path.join(FONTS_DIR, row.css_path);
     if (fs.existsSync(file)) {
-      chunks.push(`/* ${row.label} */`, fs.readFileSync(file, "utf8"));
+      const css = fs
+        .readFileSync(file, "utf8")
+        .replace(/(^|[("'])\/fonts\//g, "$1/display/fonts/");
+      chunks.push(`/* ${row.label} */`, css);
     }
   }
   fs.writeFileSync(path.join(FONTS_DIR, "all.css"), `${chunks.join("\n")}\n`);
@@ -168,7 +171,7 @@ export async function importGoogleFont(input: { family?: string; url?: string })
     const extension = path.extname(parsed.pathname) || ".woff2";
     const name = `${createHash("sha1").update(remoteUrl).digest("hex").slice(0, 16)}${extension}`;
     fs.writeFileSync(path.join(dir, name), await download(remoteUrl));
-    css = css.split(remoteUrl).join(`/fonts/${id}/${name}`);
+    css = css.split(remoteUrl).join(`/display/fonts/${id}/${name}`);
   }
 
   fs.writeFileSync(path.join(dir, "fonts.css"), css);

@@ -12,7 +12,7 @@ SM_ADMIN_PASSWORD='change-me' npm start
 ```
 
 - Login: seeded `admin` / `SM_ADMIN_PASSWORD`.
-- Displays: `/display/lowerthird`, `/display/full`, `/display/stage` and `/display/chords` (with `/display/twothirds`, `/display/main`, `/display/lower`, `/display/fullscreen`, `/display/mainfull` and `/obs-*` aliases), `?token=dev-output`.
+- Displays: `/display/lowerthird`, `/display/full`, `/display/stage` and `/display/chords` (with `/display/twothirds`, `/display/main`, `/display/lower`, `/display/fullscreen` and `/display/mainfull` aliases), `?token=dev-output`. A read-only listener on `SM_DISPLAY_PORT` (default `8081`) serves only the `/display/*` tree; `/obs-*` compatibility aliases remain on the control port.
 - Docker image builds and runs as UID 10001; health check passes.
 
 ## Implemented
@@ -35,7 +35,7 @@ SM_ADMIN_PASSWORD='change-me' npm start
 | Display templates | main, two-thirds, full, stage, chords; HTML/CSS lookup from set-list repo, templates folder/repo or built-ins; fade in/out |
 | Rich text | Format dropdown (Markdown default, plain, HTML, RST); legacy headers extracted into metadata; per-item left/centre alignment; inline page markers or multiple page boxes; sanitised render, page breaks |
 | Song presentation | Optional inline Markdown styling ignored on stage/chords; SongSelect/SongPro `-` split-word joins on presentation views |
-| Outputs | Vanilla HTML/CSS/JS; snapshot-on-connect over Socket.IO; transparent main, full-screen, stage with chords; legacy `/obs-*` aliases |
+| Outputs | Vanilla HTML/CSS/JS; snapshot-on-connect over Socket.IO; transparent main, full-screen, stage with chords; output-only `/display/socket.ro.io`; read-only display listener with all assets under `/display/*`; legacy `/obs-*` aliases on the control port |
 | Help | Built-in operator guide covering quick start, live control, publishing, content types, OBS output URLs, current shortcuts and troubleshooting |
 | Layout | Collapsible sidebar, optional top-bar navigation, automatic top-bar layout on small screens |
 | Dashboard | Page temporarily hidden from navigation — its widgets changed live output and need a safer design. Layout service remains for later work. |

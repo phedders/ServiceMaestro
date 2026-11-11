@@ -143,7 +143,7 @@ Songs can opt into **inline Markdown styling** metadata. Supported tags include 
 
 ## 4.2 Imported Google Fonts
 
-The Settings page imports a family name or a `https://fonts.googleapis.com/css2?...` URL. The server downloads the CSS and woff2 files into `/data/fonts`, rewrites the URLs to `/fonts/<id>/…`, and serves a concatenated `/fonts/all.css`. Displays and the control preview therefore work offline after import.
+The Settings page imports a family name or a `https://fonts.googleapis.com/css2?...` URL. The server downloads the CSS and woff2 files into `/data/fonts`, rewrites the URLs to `/display/fonts/<id>/…`, and serves a concatenated `/display/fonts/all.css`. Displays and the control preview therefore work offline after import, and all font requests stay inside the read-only `/display/*` tree.
 
 ## 5. Blank on session start
 

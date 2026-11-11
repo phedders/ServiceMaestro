@@ -54,7 +54,7 @@ export function listImages(query?: string): ImageAsset[] {
         mime,
         bytes: stat.size,
         modifiedAt: stat.mtime.toISOString(),
-        url: `/api/images/file?path=${encodeURIComponent(relative)}`,
+        url: `/display/images/file?path=${encodeURIComponent(relative)}`,
       });
     }
   };
@@ -110,7 +110,7 @@ export function saveImage(input: {
     mime,
     bytes: stat.size,
     modifiedAt: stat.mtime.toISOString(),
-    url: `/api/images/file?path=${encodeURIComponent(relative)}`,
+    url: `/display/images/file?path=${encodeURIComponent(relative)}`,
   };
 }
 

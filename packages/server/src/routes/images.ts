@@ -1,8 +1,6 @@
-import fs from "node:fs";
 import type { FastifyInstance } from "fastify";
-import { COOKIE_NAME, OUTPUT_TOKEN } from "../config.js";
-import { parseCookies, requireAuth, requireRole, userForToken } from "../auth.js";
-import { deleteImage, imageMime, listImages, resolveImage, saveImage } from "../images.js";
+import { requireAuth, requireRole } from "../auth.js";
+import { deleteImage, listImages, saveImage } from "../images.js";
 
 function fieldValue(fields: Record<string, unknown>, name: string): string | undefined {
   const value = fields[name] as { value?: unknown } | { value?: unknown }[] | undefined;
@@ -36,23 +34,6 @@ export async function imageRoutes(app: FastifyInstance): Promise<void> {
       }
     },
   );
-
-  app.get("/api/images/file", async (request, reply) => {
-    const query = request.query as { path?: string; token?: string };
-    const cookies = parseCookies(request.headers.cookie);
-    const user = userForToken(cookies[COOKIE_NAME]);
-    if (!user && query.token !== OUTPUT_TOKEN) {
-      return reply.code(401).send({ error: "Unauthorized" });
-    }
-    const absolute = query.path ? resolveImage(query.path) : null;
-    if (!absolute || !fs.existsSync(absolute)) {
-      return reply.code(404).send({ error: "Image not found" });
-    }
-    reply
-      .type(imageMime(query.path!))
-      .header("cache-control", "private, max-age=300");
-    return reply.send(fs.createReadStream(absolute));
-  });
 
   app.delete(
     "/api/images",

@@ -56,7 +56,9 @@ Or `npm run dev` runs both (server on 8080, control on 5173).
 | Centered two-thirds | `/display/two-thirds?token=dev-output` | `/display/two_thirds`, `/obs-two-thirds` |
 | Stage monitor (chords) | `/display/stage?token=dev-output` | `/obs-stage` |
 
-The output token defaults to `dev-output`; set `SM_OUTPUT_TOKEN` in production. Displays receive a **full snapshot on connect**, so refreshing or reconnecting OBS never blanks the screen.
+The output token defaults to `dev-output`; set `SM_OUTPUT_TOKEN` in production. Displays receive a **full snapshot on connect**, so refreshing or reconnecting OBS never blanks the screen. The `/obs-*` aliases remain on the control port for compatibility; use the `/display/*` paths through a read-only proxy.
+
+Displays are also served by a separate **read-only listener** on `SM_DISPLAY_PORT` (default `8081`). It serves only the `/display/*` tree — views, `/display/assets`, `/display/fonts`, `/display/images/file` and the read-only `/display/socket.ro.io` — with no login, control UI or API. A forward proxy can expose only `/display/*` from this port without exposing the control server. These replace the old `/display-assets`, `/fonts` and `/api/images/file` paths.
 
 ### Musicians view
 
@@ -94,7 +96,8 @@ Open <http://localhost:8080/musicians> to see the read-only musician view. It de
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `SM_PORT` | `8080` | HTTP/WebSocket port |
+| `SM_PORT` | `8080` | Control HTTP/WebSocket port |
+| `SM_DISPLAY_PORT` | `8081` | Read-only display HTTP/WebSocket port; serves only `/display/*` |
 | `SM_HOST` | `0.0.0.0` | Bind address |
 | `SM_DATA_DIR` | `packages/server/data` | SQLite + runtime data |
 | `SM_SONGS_DIR` | `samples/` (local) | Source directory scanned for OpenLP/ChordPro/text imports |
@@ -123,7 +126,7 @@ Open <http://localhost:8080/musicians> to see the read-only musician view. It de
 
 ```sh
 docker build -t service-maestro .
-docker run --rm -p 8080:8080 \
+docker run --rm -p 8080:8080 -p 8081:8081 \
   -e SM_ADMIN_PASSWORD='change-me' \
   -e SM_OUTPUT_TOKEN='a-long-random-output-token' \
   -v "$PWD/data:/data" \

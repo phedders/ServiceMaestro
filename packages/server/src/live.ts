@@ -212,7 +212,7 @@ function mapRevision(row: {
 }
 
 class LiveService {
-  private io: Server | null = null;
+  private ios = new Set<Server>();
   private active: SessionRecord | null = null;
 
   constructor() {
@@ -220,7 +220,11 @@ class LiveService {
   }
 
   attach(io: Server): void {
-    this.io = io;
+    this.ios.add(io);
+  }
+
+  private emit(room: "control" | "outputs", state: LiveState): void {
+    for (const io of this.ios) io.to(room).emit("live:snapshot", state);
   }
 
   getState(): LiveState {
@@ -364,8 +368,8 @@ class LiveService {
     );
     this.active = null;
     const state = idleState();
-    this.io?.to("control").emit("live:snapshot", state);
-    this.io?.to("outputs").emit("live:snapshot", state);
+    this.emit("control", state);
+    this.emit("outputs", state);
     return state;
   }
 
@@ -768,8 +772,8 @@ class LiveService {
   private broadcast(): void {
     if (!this.active) return;
     const state = this.getState();
-    this.io?.to("control").emit("live:snapshot", state);
-    this.io?.to("outputs").emit("live:snapshot", state);
+    this.emit("control", state);
+    this.emit("outputs", state);
   }
 }
 

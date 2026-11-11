@@ -290,7 +290,7 @@ function ItemRow({
           {!editing && item.kind === "image" && content && (
             <img
               className="setlist-image-thumb"
-              src={`/api/images/file?path=${encodeURIComponent(content)}`}
+              src={`/display/images/file?path=${encodeURIComponent(content)}`}
               alt={displayTitle}
             />
           )}
@@ -357,7 +357,7 @@ function ItemRow({
               {content && (
                 <img
                   className="image-edit-preview"
-                  src={`/api/images/file?path=${encodeURIComponent(content)}`}
+                  src={`/display/images/file?path=${encodeURIComponent(content)}`}
                   alt={displayTitle}
                 />
               )}

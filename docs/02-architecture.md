@@ -235,15 +235,20 @@ Rules:
 | `/api/bible/translations`, `/books`, `/chapters`, `/passage` | Bible data | operator |
 | `/api/images`, `/api/images/upload`, `/api/scan` | Media + import | operator/admin |
 | `/api/live/*` | Commands (POST fallback) | operator |
-| `/media/...` | Images/thumbnails/fonts | output token or signed path |
-| `/display/lowerthird` | Lower-third / main lyric output (aliases `/display/twothirds`, `/display/main`, `/display/lower`, `/obs-main`) | `?token=` or `?key=` |
+| `/display/assets/*` | Display JS/CSS assets | read-only |
+| `/display/fonts/*` | Cached Google Fonts and `/display/fonts/all.css` | read-only |
+| `/display/images/file` | Set-list image file delivery | output token (or control session on port 8080) |
+| `/display/lowerthird` | Lower-third / main lyric output (aliases `/display/twothirds`, `/display/main`, `/display/lower`, `/obs-main` on the control port) | `?token=` or `?key=` |
 | `/display/two-thirds` | Centered two-thirds output (also `/display/two_thirds`) | `?token=` |
 | `/display/full` | Full-screen output (aliases `/display/fullscreen`, `/display/mainfull`, `/obs-mainfull`) | `?token=` |
 | `/display/stage` | Stage monitor (chords, notes, next) | `?token=` |
 | `/display/chords` | Chords view | `?token=` |
+| `/display/socket.ro.io` | Output-only Socket.IO stream; receives snapshots, accepts no commands | output token |
 | `/display/image` | Image/slide output | `?token=` |
 | `/musicians` | Standalone read-only musician view: services, items, lyrics, scores and tabs; never changes live | session |
 | `/healthz`, `/metrics` | Ops | local |
+
+The control server listens on `SM_PORT` (default `8080`). A second listener on `SM_DISPLAY_PORT` (default `8081`) serves only the `/display/*` tree: views, assets, fonts, image files and the output-only Socket.IO endpoint. It has no login, control UI or `/api` routes, so a forward proxy can expose only `/display/*` to display operators and OBS hosts.
 
 Set list export/import formats, conflict handling and the bundle layout are defined in [03-content-model.md §12](03-content-model.md#12-set-list-export--import).
 
@@ -272,11 +277,13 @@ Existing OBS Browser Sources must keep working without edits. The following rout
 | `/obs.css` | compatibility stylesheet URL (redirect to the versioned display CSS) |
 | `/obs-main.js` | compatibility client URL (redirect to the bundled display client) |
 
-Aliases use the same token query parameter, e.g. `/obs-main?token=…`. If no token is supplied, a configured legacy token may be accepted (disabled by default). They never expose a second code path: the alias rewrites to the same handler and renderer.
+Aliases use the same token query parameter, e.g. `/obs-main?token=…`. They are served by the control listener for existing local OBS sources; the read-only listener exposes the canonical `/display/*` paths only. They never expose a second code path: the alias rewrites to the same handler and renderer.
 
 Query options for OBS: `theme`, `font`, `scale`, `showChords`, `background=transparent|black`, `fit=contain|cover`, `debug=1`.
 
 ## 9. Realtime protocol (Socket.IO `/control`)
+
+Control uses `/socket.io` with the session cookie. Display outputs use the isolated read-only socket `/display/socket.ro.io` with the output token; it receives snapshots and accepts no control events.
 
 Server → clients:
 

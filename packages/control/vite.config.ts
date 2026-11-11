@@ -11,9 +11,10 @@ export default defineConfig({
         target: "http://127.0.0.1:8080",
         ws: true,
       },
-      "/display": "http://127.0.0.1:8080",
-      "/display-assets": "http://127.0.0.1:8080",
-      "/fonts": "http://127.0.0.1:8080",
+      "/display": {
+        target: "http://127.0.0.1:8080",
+        ws: true,
+      },
       "/icon.svg": "http://127.0.0.1:8080",
       "/obs-main": "http://127.0.0.1:8080",
       "/obs-mainfull": "http://127.0.0.1:8080",

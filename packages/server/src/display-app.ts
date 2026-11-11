@@ -1,0 +1,108 @@
+import fs from "node:fs";
+import path from "node:path";
+import Fastify, { type FastifyInstance } from "fastify";
+import fastifyStatic from "@fastify/static";
+import { Server } from "socket.io";
+import { COOKIE_NAME, DISPLAY_DIR, FONTS_DIR, OUTPUT_TOKEN } from "./config.js";
+import { parseCookies, userForToken } from "./auth.js";
+import { imageMime, resolveImage } from "./images.js";
+import { live } from "./live.js";
+import { sendHtmlFile } from "./send-html.js";
+
+export const OUTPUT_SOCKET_PATH = "/display/socket.ro.io";
+
+const DISPLAY_PAGES: Record<string, string> = {
+  main: "main.html",
+  lower: "main.html",
+  lowerthird: "main.html",
+  twothirds: "main.html",
+  "two-thirds": "two-thirds.html",
+  two_thirds: "two-thirds.html",
+  full: "full.html",
+  fullscreen: "full.html",
+  mainfull: "full.html",
+  stage: "stage.html",
+  chords: "chords.html",
+};
+
+export async function registerDisplayRoutes(
+  app: FastifyInstance,
+  options: { allowSessionImages?: boolean } = {},
+): Promise<void> {
+  await app.register(fastifyStatic, {
+    root: DISPLAY_DIR,
+    prefix: "/display/assets/",
+    decorateReply: false,
+    cacheControl: false,
+  });
+
+  await app.register(fastifyStatic, {
+    root: FONTS_DIR,
+    prefix: "/display/fonts/",
+    decorateReply: false,
+    cacheControl: true,
+    maxAge: "1d",
+  });
+
+  app.get("/display/images/file", async (request, reply) => {
+    const query = request.query as { path?: string; token?: string };
+    const cookies = parseCookies(request.headers.cookie);
+    const user = options.allowSessionImages ? userForToken(cookies[COOKIE_NAME]) : null;
+    if (!user && query.token !== OUTPUT_TOKEN) {
+      return reply.code(401).send({ error: "Unauthorized" });
+    }
+    const absolute = query.path ? resolveImage(query.path) : null;
+    if (!absolute || !fs.existsSync(absolute)) {
+      return reply.code(404).send({ error: "Image not found" });
+    }
+    reply
+      .type(imageMime(query.path!))
+      .header("cache-control", "private, max-age=300");
+    return reply.send(fs.createReadStream(absolute));
+  });
+
+  app.get("/display/:page", async (request, reply) => {
+    const page = (request.params as { page: string }).page;
+    const file = DISPLAY_PAGES[page];
+    if (!file) return reply.code(404).send({ error: "Unknown display" });
+    return sendHtmlFile(reply, path.join(DISPLAY_DIR, file));
+  });
+}
+
+export function createOutputSocket(app: FastifyInstance): Server {
+  const io = new Server(app.server, {
+    path: OUTPUT_SOCKET_PATH,
+    cors: { origin: true, credentials: false },
+  });
+
+  io.use((socket, next) => {
+    const auth = socket.handshake.auth as { outputToken?: string } | undefined;
+    const query = socket.handshake.query as { token?: string } | undefined;
+    const supplied = auth?.outputToken ?? query?.token;
+    if (supplied && supplied === OUTPUT_TOKEN) {
+      socket.data.kind = "output";
+      return next();
+    }
+    return next(new Error("unauthorized"));
+  });
+
+  io.on("connection", (socket) => {
+    socket.join("outputs");
+    socket.emit("live:snapshot", live.getState());
+  });
+
+  live.attach(io);
+  return io;
+}
+
+export async function buildDisplayApp(): Promise<{ app: FastifyInstance; io: Server }> {
+  const app = Fastify({ logger: { level: process.env.SM_LOG_LEVEL ?? "info" } });
+  await registerDisplayRoutes(app);
+
+  app.setNotFoundHandler(async (_request, reply) =>
+    reply.code(404).send({ error: "Not found" }),
+  );
+
+  const io = createOutputSocket(app);
+  return { app, io };
+}

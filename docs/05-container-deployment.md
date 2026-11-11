@@ -8,7 +8,7 @@ See [02-architecture.md](02-architecture.md) for the application design and [03-
 
 - **One process** (Node.js) owns HTTP, WebSockets, SQLite and background scans. No sidecars.
 - **One writable volume** (`/data`); library directories can be mounted read-only.
-- **One TCP port** (8080) with normal HTTP + WebSocket upgrades.
+- **Two TCP ports**: `8080` for control/login/API and `8081` for the read-only `/display/*` tree. Both use normal HTTP + WebSocket upgrades.
 - **No privileged operations**, no kernel modules, no FUSE, no Docker socket, no host PID/network namespaces.
 - **Runs as a non-root user** with a fixed UID/GID; no files created as root on bind mounts.
 - **Read-only root filesystem** is supported (`/tmp` as tmpfs, config read-only, data writable).
@@ -25,8 +25,8 @@ See [02-architecture.md](02-architecture.md) for the application design and [03-
 | Init | `tini` as PID 1 (reaps zombies, forwards signals) |
 | User | `sm` UID/GID **10001** (numeric, no login shell) |
 | Locale/TZ | `TZ` env, `tzdata` installed |
-| Port | `8080` (unprivileged) |
-| Healthcheck | `GET /healthz` |
+| Ports | `8080` control, `8081` read-only displays (both unprivileged) |
+| Healthcheck | `GET /api/health` |
 | Architectures | `linux/amd64`, `linux/arm64` |
 | Target size | ~200–300 MB compressed (fonts/media excluded — they live in `/data` or `/library`) |
 
@@ -50,10 +50,10 @@ COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/package.json ./
 USER 10001:10001
-EXPOSE 8080
-ENV NODE_ENV=production SM_PORT=8080 SM_DATA_DIR=/data
+EXPOSE 8080 8081
+ENV NODE_ENV=production SM_PORT=8080 SM_DISPLAY_PORT=8081 SM_DATA_DIR=/data
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
-  CMD node -e "fetch('http://127.0.0.1:8080/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+  CMD node -e "fetch('http://127.0.0.1:8080/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 ENTRYPOINT ["/usr/bin/tini", "--"]
 CMD ["node", "dist/server.js"]
 ```
@@ -85,7 +85,8 @@ Environment-first, with optional file values and `_FILE` secret support:
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `SM_PORT` | `8080` | HTTP/WS port |
+| `SM_PORT` | `8080` | Control HTTP/WS port |
+| `SM_DISPLAY_PORT` | `8081` | Read-only display HTTP/WS port; serves only `/display/*` |
 | `SM_HOST` | `0.0.0.0` | Bind address |
 | `SM_PUBLIC_URL` | — | Absolute URL used in generated links |
 | `SM_DATA_DIR` | `/data` | Writable state |
@@ -123,8 +124,10 @@ services:
     restart: unless-stopped
     ports:
       - "8080:8080"
+      - "8081:8081"
     environment:
       SM_TZ: Europe/London
+      SM_DISPLAY_PORT: 8081
       SM_PUBLIC_URL: http://10.181.1.10:8080
     volumes:
       - ./data:/data
@@ -167,6 +170,7 @@ incus config device add sm songs disk source=/srv/sm/songs path=/library/songs s
 incus config device add sm bible disk source=/srv/sm/bible path=/library/bible shift=true readonly=true
 incus config device add sm images disk source=/srv/sm/images path=/library/images shift=true
 incus config device add sm proxy proxy listen=tcp:0.0.0.0:8080 connect=tcp:127.0.0.1:8080
+incus config device add sm display-proxy proxy listen=tcp:0.0.0.0:8081 connect=tcp:127.0.0.1:8081
 ```
 
 This mode runs the container image as a single application (no systemd), exactly like Docker/Podman.
@@ -201,6 +205,7 @@ incus config device add sm songs disk source=/srv/sm/songs path=/library/songs s
 incus config device add sm bible disk source=/srv/sm/bible path=/library/bible shift=true readonly=true
 incus config device add sm images disk source=/srv/sm/images path=/library/images shift=true
 incus config device add sm proxy proxy listen=tcp:0.0.0.0:8080 connect=tcp:127.0.0.1:8080
+incus config device add sm display-proxy proxy listen=tcp:0.0.0.0:8081 connect=tcp:127.0.0.1:8081
 ```
 
 `/etc/systemd/system/sm.service`:
@@ -241,8 +246,22 @@ LXC (without Incus) follows Option B: unprivileged container, `lxc.idmap`/subuid
 
 ## 7. Networking and OBS
 
-- Expose only `8080`. OBS Browser Sources point at canonical URLs such as `http://<host>:8080/display/lowerthird?token=…` and `/display/full?token=…`; `/display/twothirds`, `/display/main`, `/display/lower`, `/display/fullscreen`, `/display/mainfull` and `/obs-*` remain aliases.
-- WebSockets use normal HTTP upgrade; if a reverse proxy is added, enable upgrade headers and set generous read timeouts (long-lived output sockets).
+- Keep `8080` on the trusted control network. OBS Browser Sources can use `http://<host>:8081/display/lowerthird?token=…` and `/display/full?token=…` on the read-only listener.
+- The `8081` listener serves only `/display/*` and has no login, control UI or API. It includes `/display/assets`, `/display/fonts`, `/display/images/file` and the output-only `/display/socket.ro.io`. A forward proxy can therefore expose only that prefix.
+- Example nginx location for the read-only listener:
+
+  ```nginx
+  location /display/ {
+      proxy_pass http://127.0.0.1:8081;
+      proxy_http_version 1.1;
+      proxy_set_header Upgrade $http_upgrade;
+      proxy_set_header Connection "upgrade";
+      proxy_set_header Host $host;
+  }
+  ```
+
+- `/display/twothirds`, `/display/main`, `/display/lower`, `/display/fullscreen`, `/display/mainfull`, `/display/stage` and `/display/chords` work on the read-only listener. Legacy `/obs-*` aliases remain on the control port for existing local OBS sources.
+- WebSockets use normal HTTP upgrade; enable upgrade headers and set generous read timeouts for the long-lived output sockets.
 - TLS is optional and best terminated by Caddy/nginx/Traefik in front. Set `SM_PUBLIC_URL` and `SM_TRUST_PROXY=true` accordingly.
 - LAN-only deployments can skip TLS; output tokens still prevent casual access.
 - No mDNS/discovery is required; outputs are plain URLs.
@@ -291,7 +310,7 @@ LXC (without Incus) follows Option B: unprivileged container, `lxc.idmap`/subuid
 - Provider credentials are encrypted with a master key from a secret, never logged, and revocable; licensed score/tab assets are served only to authenticated roles through signed URLs.
 - Session cookies `HttpOnly`/`SameSite`/`Secure` behind TLS; output tokens hashed at rest.
 - Keep the base image and Node patched; rebuild monthly and on CVEs.
-- Optional: run behind a reverse proxy with request limits and TLS; expose only 8080 on the LAN.
+- Optional: run behind a reverse proxy with request limits and TLS; keep the control port private and expose only the read-only `/display/*` listener to wider audiences.
 
 ## 12. Test matrix
 

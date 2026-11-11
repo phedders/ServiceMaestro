@@ -8,6 +8,7 @@
   document.head.appendChild(style);
 
   const socket = window.io({
+    path: "/display/socket.ro.io",
     auth: { outputToken: token },
     reconnection: true,
     reconnectionDelay: 800,

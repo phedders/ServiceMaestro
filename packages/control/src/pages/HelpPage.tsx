@@ -407,10 +407,17 @@ export default function HelpPage({ onOpenSettings }: { onOpenSettings: () => voi
           </table>
         </div>
         <p className="hint">
-          Aliases such as <code>/display/twothirds</code>, <code>/display/main</code>,
-          <code> /display/fullscreen</code> and the <code>/obs-*</code> routes remain available.
-          Displays receive a full snapshot on reconnect, so refreshing OBS does not lose the current
-          screen. Ask your administrator for the production token; never publish it publicly.
+          Aliases such as <code>/display/twothirds</code>, <code>/display/main</code> and
+          <code> /display/fullscreen</code> remain available. Displays receive a full snapshot on
+          reconnect, so refreshing OBS does not lose the current screen. Ask your administrator for
+          the production token; never publish it publicly.
+        </p>
+        <p className="hint">
+          A separate read-only server, normally on port <code>8081</code>, serves the complete
+          <code> /display/*</code> tree with no login or API. A forward proxy can expose only that
+          path and port to a wider audience. Image files are served from
+          <code> /display/images/file</code>, fonts from <code>/display/fonts</code> and display
+          assets from <code>/display/assets</code>.
         </p>
       </section>
 

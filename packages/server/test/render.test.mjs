@@ -237,7 +237,7 @@ test("renders image items", () => {
   });
   assert.equal(pages.length, 1);
   assert.match(pages[0].html, /class="slide-image fit-scale"/);
-  assert.match(pages[0].html, /\/api\/images\/file\?path=backgrounds%2Ftest\.png/);
+  assert.match(pages[0].html, /\/display\/images\/file\?path=backgrounds%2Ftest\.png/);
 
   const cropped = buildPages({
     kind: "image",

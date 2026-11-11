@@ -548,7 +548,7 @@ export function buildPages(
     if (!relative) {
       return [{ index: 0, section: null, html: "" }];
     }
-    const url = `/api/images/file?path=${encodeURIComponent(relative)}&token=${encodeURIComponent(OUTPUT_TOKEN)}`;
+    const url = `/display/images/file?path=${encodeURIComponent(relative)}&token=${encodeURIComponent(OUTPUT_TOKEN)}`;
     const fit =
       item.imageFit === "actual" || item.imageFit === "crop" || item.imageFit === "stretch"
         ? item.imageFit
