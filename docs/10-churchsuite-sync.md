@@ -84,6 +84,29 @@ GET  /api/integrations/churchsuite/plans/:id/items
 - Rotate any secret that has been shared in chat. Use separate ChurchSuite credentials per environment.
 - Request only `planning.read` unless two-way write-back is added later.
 
+### `unauthorized_client` on client credentials
+
+If the Config page reports:
+
+```text
+ChurchSuite rejected the client_credentials grant.
+```
+
+the identifier/secret are almost certainly **OAuth App** credentials, which only support the
+Authorization Code flow. Client Credentials requires a secret generated for an **API-enabled
+ChurchSuite user**:
+
+1. Log in as a user who can manage users/API settings.
+2. Create or choose a least-privilege user with Planning read access.
+3. Enable API access for that user, then log in as that user.
+4. Open the profile and create an API secret.
+5. Put that user's **identifier** and **secret** in `WLM_CHURCHSUITE_CLIENT_ID` /
+   `WLM_CHURCHSUITE_CLIENT_SECRET` and restart.
+
+The credentials currently in `.env` returned `unauthorized_client` for client credentials but
+`invalid_grant` for a dummy authorization code, confirming they are OAuth App credentials rather
+than an API-user secret.
+
 ## 3. Data model in the API
 
 ### Plan

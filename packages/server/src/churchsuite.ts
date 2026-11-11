@@ -52,6 +52,12 @@ async function tokenRequest(): Promise<string> {
   const data = (await response.json().catch(() => ({}))) as TokenResponse;
   if (!response.ok || !data.access_token) {
     const detail = data.error_description || data.error || response.statusText;
+    if (data.error === "unauthorized_client") {
+      throw new Error(
+        "ChurchSuite rejected the client_credentials grant. These look like OAuth App credentials; " +
+          "use an API-enabled user's identifier/secret, or configure the authorization-code flow.",
+      );
+    }
     throw new Error(`ChurchSuite OAuth ${response.status}: ${redact(detail)}`);
   }
   cached = {
