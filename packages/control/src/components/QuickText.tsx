@@ -26,7 +26,16 @@ export function QuickText({ onSend }: { onSend: (text: string) => void }) {
       />
       <div className="quick-text-actions">
         <span className="hint">Ctrl/⌘ + Enter to display</span>
-        <button className="button primary" onClick={send} disabled={!text.trim()}>
+        <button
+          className="button primary"
+          onClick={send}
+          disabled={!text.trim()}
+          title={
+            text.trim()
+              ? "Display this text immediately on the live outputs"
+              : "Type some text before displaying it"
+          }
+        >
           Display now
         </button>
       </div>

@@ -94,22 +94,44 @@ export function PdfViewer({ assetId, title }: { assetId: string; title: string }
     <div className="pdf-viewer">
       <div className="pdf-toolbar">
         <div className="button-row">
-          <button className="button ghost small" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
+          <button
+            className="button ghost small"
+            disabled={page <= 1}
+            onClick={() => setPage((p) => p - 1)}
+            title="Show the previous PDF page"
+            aria-label="Previous PDF page"
+          >
             ←
           </button>
           <span>
             Page {page} / {pages}
           </span>
-          <button className="button ghost small" disabled={page >= pages} onClick={() => setPage((p) => p + 1)}>
+          <button
+            className="button ghost small"
+            disabled={page >= pages}
+            onClick={() => setPage((p) => p + 1)}
+            title="Show the next PDF page"
+            aria-label="Next PDF page"
+          >
             →
           </button>
         </div>
         <div className="button-row">
-          <button className="button ghost small" onClick={() => setScale((s) => Math.max(0.5, s - 0.15))}>
+          <button
+            className="button ghost small"
+            onClick={() => setScale((s) => Math.max(0.5, s - 0.15))}
+            title="Zoom out"
+            aria-label="Zoom out"
+          >
             −
           </button>
           <span>{Math.round(scale * 100)}%</span>
-          <button className="button ghost small" onClick={() => setScale((s) => Math.min(3, s + 0.15))}>
+          <button
+            className="button ghost small"
+            onClick={() => setScale((s) => Math.min(3, s + 0.15))}
+            title="Zoom in"
+            aria-label="Zoom in"
+          >
             +
           </button>
         </div>

@@ -922,15 +922,26 @@ export default function SetlistsPage({
           <h3>Share / backup</h3>
           {detail && (
             <div className="button-row">
-              <a className="button ghost small" href={api.exportSetlistUrl(detail.id, "json")}>
+              <a
+                className="button ghost small"
+                href={api.exportSetlistUrl(detail.id, "json")}
+                title="Download this set list as a JSON reference file"
+              >
                 Export JSON
               </a>
-              <a className="button ghost small" href={api.exportSetlistUrl(detail.id, "bundle")}>
+              <a
+                className="button ghost small"
+                href={api.exportSetlistUrl(detail.id, "bundle")}
+                title="Download a self-contained bundle with songs and assets"
+              >
                 Export bundle
               </a>
             </div>
           )}
-          <label className="button ghost full file-button">
+          <label
+            className="button ghost full file-button"
+            title="Choose a JSON or ZIP set-list file to preview before importing"
+          >
             {importing ? "Reading…" : "Import set list file"}
             <input
               type="file"

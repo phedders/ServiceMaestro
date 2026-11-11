@@ -54,6 +54,7 @@ function FolderBranch({
         className={`image-folder ${node.path === selected ? "current" : ""}`}
         style={{ paddingLeft: `${12 + depth * 16}px` }}
         onClick={() => onSelect(node.path)}
+        title={node.path ? `Show images in “${node.name}”` : "Show all images"}
       >
         <span className="image-folder-icon">{node.path ? "▸" : "▣"}</span>
         <span>{node.name}</span>
@@ -204,7 +205,16 @@ export default function ImagesPage({
             accept="image/png,image/jpeg,image/gif,image/webp,image/avif,image/svg+xml"
             onChange={(event) => setFile(event.target.files?.[0] ?? null)}
           />
-          <button className="button primary" onClick={upload} disabled={!file || uploading}>
+          <button
+            className="button primary"
+            onClick={upload}
+            disabled={!file || uploading}
+            title={
+              file
+                ? `Upload “${file.name}” to the chosen folder`
+                : "Choose an image file before uploading"
+            }
+          >
             {uploading ? "Uploading…" : "Upload image"}
           </button>
         </div>
@@ -251,7 +261,13 @@ export default function ImagesPage({
             <div className="image-grid">
               {visible.map((image) => (
                 <article key={image.path} className="image-card">
-                  <a href={image.url} target="_blank" rel="noreferrer" className="image-thumb">
+                  <a
+                    href={image.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="image-thumb"
+                    title={`Open “${image.name}” full size in a new tab`}
+                  >
                     <img src={image.url} alt={image.name} loading="lazy" />
                   </a>
                   <div className="image-card-meta">
@@ -266,6 +282,11 @@ export default function ImagesPage({
                       className="button primary small"
                       onClick={() => addToSetlist(image)}
                       disabled={!targetSetlist || addingPath === image.path}
+                      title={
+                        targetSetlist
+                          ? `Add “${image.name}” to the selected set list`
+                          : "Choose a target set list first"
+                      }
                     >
                       {addingPath === image.path ? "Adding…" : "+ setlist"}
                     </button>
@@ -275,10 +296,15 @@ export default function ImagesPage({
                         navigator.clipboard?.writeText(image.path);
                         notify("Image path copied");
                       }}
+                      title="Copy this image's library-relative path"
                     >
                       Copy path
                     </button>
-                    <button className="button ghost small danger-text" onClick={() => remove(image)}>
+                    <button
+                      className="button ghost small danger-text"
+                      onClick={() => remove(image)}
+                      title={`Delete “${image.name}” from the image library`}
+                    >
                       Delete
                     </button>
                   </div>

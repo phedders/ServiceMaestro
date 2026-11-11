@@ -250,6 +250,7 @@ export default function BiblePage({
                   notify("Passage copied");
                 }}
                 disabled={!verses.length}
+                title="Copy the selected verses to the clipboard without the reference"
               >
                 Copy text
               </button>

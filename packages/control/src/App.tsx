@@ -108,13 +108,16 @@ export default function App() {
 
   useEffect(() => {
     const applyTitles = () => {
-      document.querySelectorAll<HTMLElement>("button, a.button, a.nav-link").forEach((element) => {
-        if (element.title) return;
-        const label =
-          element.getAttribute("aria-label") ??
-          element.innerText.replace(/\s+/g, " ").trim();
-        if (label) element.title = label;
-      });
+      document
+        .querySelectorAll<HTMLElement>("button, a.button, a.nav-link, a.image-thumb, label.button")
+        .forEach((element) => {
+          if (element.title) return;
+          const label =
+            element.getAttribute("aria-label") ||
+            element.innerText.replace(/\s+/g, " ").trim() ||
+            element.querySelector("img")?.alt;
+          if (label) element.title = label;
+        });
     };
     applyTitles();
     const observer = new MutationObserver(applyTitles);
@@ -258,10 +261,10 @@ export default function App() {
             <span className="muted">
               {user.username} · {user.role}
             </span>
-            <a className="button ghost" href="/">
+            <a className="button ghost" href="/" title="Open the main Service Maestro control window">
               Control
             </a>
-            <button className="button ghost" onClick={logout}>
+            <button className="button ghost" onClick={logout} title="Sign out of Service Maestro">
               Sign out
             </button>
           </div>
@@ -294,31 +297,62 @@ export default function App() {
         </div>
 
         <nav className="nav">
-          <button className={page === "live" ? "active" : ""} onClick={() => setPage("live")}>
+          <button
+            className={page === "live" ? "active" : ""}
+            onClick={() => setPage("live")}
+            title="Open live control, transport and display settings"
+          >
             <span className="nav-icon">▶</span> Live control
           </button>
-          <button className={page === "setlists" ? "active" : ""} onClick={() => setPage("setlists")}>
+          <button
+            className={page === "setlists" ? "active" : ""}
+            onClick={() => setPage("setlists")}
+            title="Open set lists to plan and publish services"
+          >
             <span className="nav-icon">☰</span> Set lists
           </button>
-          <button className={page === "songs" ? "active" : ""} onClick={() => setPage("songs")}>
+          <button
+            className={page === "songs" ? "active" : ""}
+            onClick={() => setPage("songs")}
+            title="Open the song library and import tools"
+          >
             <span className="nav-icon">♫</span> Songs
           </button>
-          <button className={page === "images" ? "active" : ""} onClick={() => setPage("images")}>
+          <button
+            className={page === "images" ? "active" : ""}
+            onClick={() => setPage("images")}
+            title="Browse, upload and add images to set lists"
+          >
             <span className="nav-icon">▣</span> Images
           </button>
-          <button className={page === "bible" ? "active" : ""} onClick={() => setPage("bible")}>
+          <button
+            className={page === "bible" ? "active" : ""}
+            onClick={() => setPage("bible")}
+            title="Look up a Bible passage to display or add to a set list"
+          >
             <span className="nav-icon">✝</span> Bible
           </button>
-          <a className="nav-link" href="/musicians" target="_blank" rel="noreferrer">
+          <a
+            className="nav-link"
+            href="/musicians"
+            target="_blank"
+            rel="noreferrer"
+            title="Open the read-only musicians view in a new tab"
+          >
             <span className="nav-icon">♪</span> Musicians
           </a>
           <button
             className={page === "churchsuite" ? "active" : ""}
             onClick={() => setPage("churchsuite")}
+            title="Pull ChurchSuite plans and create draft set lists"
           >
             <span className="nav-icon">⛪</span> ChurchSuite
           </button>
-          <button className={page === "settings" ? "active" : ""} onClick={() => setPage("settings")}>
+          <button
+            className={page === "settings" ? "active" : ""}
+            onClick={() => setPage("settings")}
+            title="Open keyboard, font, ChurchSuite and Git settings"
+          >
             <span className="nav-icon">⚙</span> Settings
           </button>
         </nav>
@@ -333,7 +367,11 @@ export default function App() {
               <strong>{user.username}</strong>
               <span>{user.role}</span>
             </div>
-            <button className="button ghost small" onClick={logout}>
+            <button
+              className="button ghost small"
+              onClick={logout}
+              title="Sign out of Service Maestro"
+            >
               Sign out
             </button>
           </div>
@@ -366,7 +404,11 @@ export default function App() {
               {topbarMode ? "Side menu" : "Top menu"}
             </button>
             {live.status !== "idle" && (
-              <button className="button danger" onClick={stopLive}>
+              <button
+                className="button danger"
+                onClick={stopLive}
+                title="End the live session and return all outputs to idle"
+              >
                 End session
               </button>
             )}

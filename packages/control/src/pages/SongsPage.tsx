@@ -366,7 +366,11 @@ export default function SongsPage({
         <aside className="panel list-panel">
         <div className="panel-heading">
           <h2>Songs</h2>
-          <button className="button primary small" onClick={newSong}>
+          <button
+            className="button primary small"
+            onClick={newSong}
+            title="Start a new song in the editor"
+          >
             New
           </button>
         </div>
@@ -382,6 +386,7 @@ export default function SongsPage({
               key={song.id}
               className={`song-row ${song.id === selectedId ? "current" : ""}`}
               onClick={() => select(song)}
+              title={`Edit “${song.title}”`}
             >
               <strong>{song.title}</strong>
               <span>
@@ -399,11 +404,24 @@ export default function SongsPage({
           <h2>{selectedId ? "Edit song" : "New song"}</h2>
           <div className="button-row">
             {selectedId && (
-              <button className="button ghost danger-text" onClick={remove}>
+              <button
+                className="button ghost danger-text"
+                onClick={remove}
+                title="Delete this song from the shared song library"
+              >
                 Delete
               </button>
             )}
-            <button className="button primary" onClick={save} disabled={saving || !form.title.trim()}>
+            <button
+              className="button primary"
+              onClick={save}
+              disabled={saving || !form.title.trim()}
+              title={
+                !form.title.trim()
+                  ? "Enter a song title first"
+                  : "Save this song to the shared song library"
+              }
+            >
               {saving ? "Saving…" : "Save song"}
             </button>
           </div>
@@ -532,6 +550,7 @@ export default function SongsPage({
                     <button
                       className="button ghost small danger-text"
                       onClick={() => removeVerseOrder(entry.id)}
+                      title={`Delete saved verse order “${entry.name}”`}
                     >
                       Remove
                     </button>
@@ -556,6 +575,7 @@ export default function SongsPage({
                   className="button"
                   onClick={addVerseOrder}
                   disabled={!newOrderName.trim() || !newOrderText.trim()}
+                  title="Save this named verse order on the song"
                 >
                   Add verse order
                 </button>
@@ -626,7 +646,16 @@ export default function SongsPage({
                   onChange={(event) => setAssetTitle(event.target.value)}
                   placeholder="Title (optional)"
                 />
-                <button className="button primary" onClick={uploadAsset} disabled={!assetFile || uploadingAsset}>
+                <button
+                  className="button primary"
+                  onClick={uploadAsset}
+                  disabled={!assetFile || uploadingAsset}
+                  title={
+                    assetFile
+                      ? "Upload this score, tab or lyrics file to the song"
+                      : "Choose a file before uploading"
+                  }
+                >
                   {uploadingAsset ? "Uploading…" : "Upload"}
                 </button>
               </div>
@@ -642,10 +671,20 @@ export default function SongsPage({
                       </span>
                     </div>
                     <div className="button-row">
-                      <a className="button ghost small" href={`/api/assets/${asset.id}/file`} target="_blank" rel="noreferrer">
+                      <a
+                        className="button ghost small"
+                        href={`/api/assets/${asset.id}/file`}
+                        target="_blank"
+                        rel="noreferrer"
+                        title={`Open “${asset.title}” in a new tab`}
+                      >
                         Open
                       </a>
-                      <button className="button ghost small danger-text" onClick={() => removeAsset(asset)}>
+                      <button
+                        className="button ghost small danger-text"
+                        onClick={() => removeAsset(asset)}
+                        title={`Remove “${asset.title}” from this song`}
+                      >
                         Remove
                       </button>
                     </div>
@@ -671,10 +710,20 @@ export default function SongsPage({
             </p>
           </div>
           <div className="button-row">
-            <button className="button" onClick={scanFolder} disabled={scanning}>
+            <button
+              className="button"
+              onClick={scanFolder}
+              disabled={scanning}
+              title="Scan the configured folder for importable song files"
+            >
               {scanning ? "Scanning…" : "Scan folder"}
             </button>
-            <button className="button primary" onClick={importAll} disabled={importing || !scan?.files.length}>
+            <button
+              className="button primary"
+              onClick={importAll}
+              disabled={importing || !scan?.files.length}
+              title="Import all scanned songs using the duplicate decisions"
+            >
               {importing ? "Importing…" : "Import all"}
             </button>
           </div>
@@ -701,7 +750,11 @@ export default function SongsPage({
               </div>
               <div className="button-row">
                 <span className="muted">{duplicateFiles.length}</span>
-                <button className="button ghost small" onClick={skipAllDuplicates}>
+                <button
+                  className="button ghost small"
+                  onClick={skipAllDuplicates}
+                  title="Skip every duplicate in this import"
+                >
                   Skip all
                 </button>
               </div>

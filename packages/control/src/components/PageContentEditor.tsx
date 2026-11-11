@@ -113,6 +113,7 @@ export function PageContentEditor({
                 type="button"
                 className="button ghost small danger-text"
                 onClick={() => removePage(index)}
+                title={`Remove page ${index + 1} from this item`}
               >
                 Remove page
               </button>

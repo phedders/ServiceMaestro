@@ -150,6 +150,7 @@ export default function MusiciansPage({
               key={setlist.id}
               className={`musician-song ${setlist.id === selectedSetlist ? "current" : ""}`}
               onClick={() => setSelectedSetlist(setlist.id)}
+              title={`Open set list “${setlist.name}”`}
             >
               <strong>{setlist.name}</strong>
               <span>
@@ -181,7 +182,11 @@ export default function MusiciansPage({
                   const isSelected = item.id === selectedItem;
                   return (
                     <article key={item.id} className={`musician-item ${isSelected ? "selected" : ""}`}>
-                      <button className="musician-item-head" onClick={() => selectItem(item)}>
+                      <button
+                        className="musician-item-head"
+                        onClick={() => selectItem(item)}
+                        title={`Show lyrics, scores and tabs for “${item.title}”`}
+                      >
                         <span className={`item-icon ${item.kind}`}>{item.kind === "song" ? "♫" : "T"}</span>
                         <span>
                           <strong>{item.title}</strong>
@@ -215,6 +220,7 @@ export default function MusiciansPage({
                                           key={asset.id}
                                           className={`button small ${asset.id === selectedAsset ? "primary" : "ghost"}`}
                                           onClick={() => setSelectedAsset(asset.id)}
+                                          title={`View ${asset.kind.replace("_", " ")} “${asset.title}”`}
                                         >
                                           {asset.kind.replace("_", " ")}
                                           {asset.key ? ` · ${asset.key}` : ""}

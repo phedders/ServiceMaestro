@@ -131,19 +131,36 @@ export default function DashboardPage({
         <div className="button-row">
           {editing ? (
             <>
-              <button className="button ghost" onClick={() => setEditing(false)}>
+              <button
+                className="button ghost"
+                onClick={() => setEditing(false)}
+                title="Discard unsaved dashboard layout changes"
+              >
                 Cancel
               </button>
-              <button className="button primary" onClick={save} disabled={saving}>
+              <button
+                className="button primary"
+                onClick={save}
+                disabled={saving}
+                title="Save this dashboard layout for your user"
+              >
                 {saving ? "Saving…" : "Save layout"}
               </button>
             </>
           ) : (
             <>
-              <button className="button ghost" onClick={reset}>
+              <button
+                className="button ghost"
+                onClick={reset}
+                title="Reset the dashboard layout to the default"
+              >
                 Reset
               </button>
-              <button className="button primary" onClick={() => setEditing(true)}>
+              <button
+                className="button primary"
+                onClick={() => setEditing(true)}
+                title="Enable dragging and resizing of dashboard widgets"
+              >
                 Customise
               </button>
             </>

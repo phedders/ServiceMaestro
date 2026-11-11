@@ -226,10 +226,18 @@ export default function SettingsPage({
             </p>
           </div>
           <div className="button-row">
-            <button className="button ghost" onClick={resetShortcuts}>
+            <button
+              className="button ghost"
+              onClick={resetShortcuts}
+              title="Restore the default keyboard shortcuts"
+            >
               Reset defaults
             </button>
-            <button className="button primary" onClick={saveShortcuts}>
+            <button
+              className="button primary"
+              onClick={saveShortcuts}
+              title="Save these keyboard shortcuts in this browser"
+            >
               Save shortcuts
             </button>
           </div>
@@ -324,6 +332,7 @@ export default function SettingsPage({
             className="button primary"
             onClick={importFont}
             disabled={importing || (!family.trim() && !cssUrl.trim())}
+            title="Download and cache the specified Google font for offline displays"
           >
             {importing ? "Importing…" : "Import font"}
           </button>
@@ -345,7 +354,11 @@ export default function SettingsPage({
               </div>
               <code>{font.family}</code>
               {font.source === "google" && (
-                <button className="button ghost small danger-text" onClick={() => removeFont(font)}>
+                <button
+                  className="button ghost small danger-text"
+                  onClick={() => removeFont(font)}
+                  title={`Remove the cached font “${font.label}”`}
+                >
                   Remove
                 </button>
               )}
@@ -364,7 +377,12 @@ export default function SettingsPage({
               in the database or exposed to the browser.
             </p>
           </div>
-          <button className="button" onClick={testChurchsuite} disabled={testing}>
+          <button
+            className="button"
+            onClick={testChurchsuite}
+            disabled={testing}
+            title="Test the configured ChurchSuite credentials and API access"
+          >
             {testing ? "Testing…" : "Test connection"}
           </button>
         </div>
@@ -407,10 +425,20 @@ export default function SettingsPage({
             </p>
           </div>
           <div className="button-row">
-            <button className="button ghost" onClick={syncGitNow} disabled={gitSyncing || !git?.enabled}>
+            <button
+              className="button ghost"
+              onClick={syncGitNow}
+              disabled={gitSyncing || !git?.enabled}
+              title="Pull the configured Git repositories and reload their data"
+            >
               {gitSyncing ? "Syncing…" : "Pull / sync now"}
             </button>
-            <button className="button" onClick={exportGitNow} disabled={gitExporting || !git?.enabled}>
+            <button
+              className="button"
+              onClick={exportGitNow}
+              disabled={gitExporting || !git?.enabled}
+              title="Write songs and set lists to Git and push to the remote"
+            >
               {gitExporting ? "Exporting…" : "Export & push"}
             </button>
           </div>
@@ -475,7 +503,12 @@ export default function SettingsPage({
                       <option value="merge">Pull and merge</option>
                     </select>
                   </label>
-                  <button className="button primary" onClick={saveGit} disabled={gitSaving}>
+                  <button
+                    className="button primary"
+                    onClick={saveGit}
+                    disabled={gitSaving}
+                    title="Save runtime Git automation settings"
+                  >
                     {gitSaving ? "Saving…" : "Save Git settings"}
                   </button>
                 </div>

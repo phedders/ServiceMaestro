@@ -116,7 +116,12 @@ export default function ChurchsuitePage({
               changes the live session.
             </p>
           </div>
-          <button className="button" onClick={loadPlans} disabled={loading}>
+          <button
+            className="button"
+            onClick={loadPlans}
+            disabled={loading}
+            title="Fetch ChurchSuite plans using the selected date range and status"
+          >
             {loading ? "Loading…" : "Reload plans"}
           </button>
         </div>
@@ -136,7 +141,12 @@ export default function ChurchsuitePage({
               <option value="draft">Draft</option>
             </select>
           </label>
-          <button className="button primary" onClick={loadPlans} disabled={loading}>
+          <button
+            className="button primary"
+            onClick={loadPlans}
+            disabled={loading}
+            title="Apply the selected date range and plan status"
+          >
             Apply
           </button>
         </div>
@@ -153,6 +163,7 @@ export default function ChurchsuitePage({
               key={plan.id}
               className={`churchsuite-plan ${plan.id === selectedPlan ? "current" : ""}`}
               onClick={() => openPlan(plan)}
+              title={`Review ChurchSuite plan “${plan.name}”`}
             >
               <strong>{plan.name}</strong>
               <span>
@@ -228,7 +239,12 @@ export default function ChurchsuitePage({
                     onChange={(event) => setImportTime(event.target.value)}
                   />
                 </label>
-                <button className="button primary" onClick={createSetlist} disabled={importing}>
+                <button
+                  className="button primary"
+                  onClick={createSetlist}
+                  disabled={importing}
+                  title="Create a draft set list from this plan without changing the live session"
+                >
                   {importing ? "Creating…" : "Create draft set list"}
                 </button>
               </div>
@@ -244,7 +260,11 @@ export default function ChurchsuitePage({
                     {report.itemCount} items · {report.songsMatched} songs matched ·{" "}
                     {report.placeholders} placeholders · {report.skipped} skipped
                   </span>
-                  <button className="button ghost small" onClick={onOpenSetlists}>
+                  <button
+                    className="button ghost small"
+                    onClick={onOpenSetlists}
+                    title="Open Set lists to review and edit the new draft"
+                  >
                     Open set lists
                   </button>
                 </div>

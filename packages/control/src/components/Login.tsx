@@ -61,7 +61,11 @@ export default function Login({ onLogin }: { onLogin: (user: PublicUser) => void
             />
           </label>
           {error && <div className="form-error">{error}</div>}
-          <button className="button primary full" disabled={busy}>
+          <button
+            className="button primary full"
+            disabled={busy}
+            title={busy ? "Signing in…" : "Sign in to Service Maestro"}
+          >
             {busy ? "Signing in…" : "Sign in"}
           </button>
           <p className="hint">
