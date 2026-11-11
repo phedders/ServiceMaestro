@@ -4,15 +4,17 @@ Immediate changes implemented on 2026-11-10.
 
 ## 1. Output roles and routes
 
-| Role | Route | Legacy alias | Chords |
+| Role | Canonical route | Aliases | Chords |
 | --- | --- | --- | --- |
-| Main / lower third | `/display/main` | `/obs-main` | hidden |
-| Two-thirds | `/display/two-thirds` (also `/display/two_thirds`) | `/obs-two-thirds` | hidden |
-| Full screen | `/display/full` | `/obs-mainfull` | hidden |
+| Lower-third / main (`twothirds`) | `/display/twothirds` | `/display/main`, `/display/lower`, `/obs-main`, `/obs-lower`, `/obs-twothirds` | hidden |
+| Centered two-thirds | `/display/two-thirds` | `/display/two_thirds`, `/obs-two-thirds` | hidden |
+| Full screen (`full`) | `/display/full` | `/display/fullscreen`, `/display/mainfull`, `/obs-mainfull`, `/obs-fullscreen` | hidden |
 | Stage monitor | `/display/stage` | `/obs-stage` | visible |
 | Chords view | `/display/chords` | `/obs-chords` | visible |
 
 All routes take the usual `?token=…` output token.
+
+Template lookup accepts the new aliases: `twothirds`/`lower` for the main role and `fullscreen`/`mainfull` for the full role. Existing `main`/`full` template filenames still work.
 
 ## 2. Templating
 
@@ -126,6 +128,7 @@ Scope:
 
 - Font, colour and size apply **only to main and two-thirds** (and `full`, which shares the two-thirds style).
 - **Stage and chords always keep their fixed styling**, regardless of the main/two-thirds config.
+- **Stage and chords show the current page at the top and all following pages of the current queue below it**, so musicians can see what is coming next. The content area scrolls if needed; main/two-thirds/full show only the current page.
 - Page splitting (max lines, max words, smart estimates) is shared by all outputs; `<!-- page -->` / `<!--- page --->` / `<hr class="page-break">` markers force additional breaks.
 - Settings persist in the database and are broadcast to outputs immediately.
 - The **Show** button reveals a blank screen. **Selecting a page** shows and fades it in; **selecting a set-list item** only queues its page list and leaves the current output unchanged.

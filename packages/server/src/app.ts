@@ -108,9 +108,13 @@ export async function buildApp(): Promise<{ app: FastifyInstance; io: Server }> 
 
   const displayPages: Record<string, string> = {
     main: "main.html",
-    full: "full.html",
+    lower: "main.html",
+    twothirds: "main.html",
     "two-thirds": "two-thirds.html",
     two_thirds: "two-thirds.html",
+    full: "full.html",
+    fullscreen: "full.html",
+    mainfull: "full.html",
     stage: "stage.html",
     chords: "chords.html",
   };
@@ -123,7 +127,10 @@ export async function buildApp(): Promise<{ app: FastifyInstance; io: Server }> 
   });
 
   app.get("/obs-main", async (_request, reply) => sendHtml(reply, path.join(DISPLAY_DIR, "main.html")));
+  app.get("/obs-lower", async (_request, reply) => sendHtml(reply, path.join(DISPLAY_DIR, "main.html")));
+  app.get("/obs-twothirds", async (_request, reply) => sendHtml(reply, path.join(DISPLAY_DIR, "main.html")));
   app.get("/obs-mainfull", async (_request, reply) => sendHtml(reply, path.join(DISPLAY_DIR, "full.html")));
+  app.get("/obs-fullscreen", async (_request, reply) => sendHtml(reply, path.join(DISPLAY_DIR, "full.html")));
   app.get("/obs-two-thirds", async (_request, reply) => sendHtml(reply, path.join(DISPLAY_DIR, "two-thirds.html")));
   app.get("/obs-stage", async (_request, reply) => sendHtml(reply, path.join(DISPLAY_DIR, "stage.html")));
   app.get("/obs-chords", async (_request, reply) => sendHtml(reply, path.join(DISPLAY_DIR, "chords.html")));

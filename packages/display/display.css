@@ -226,6 +226,22 @@ body.idle .sm-template {
   white-space: pre-wrap;
 }
 
+.sm-page-upcoming {
+  margin-top: 2.4vh;
+  padding-top: 1.8vh;
+  border-top: 1px solid rgba(255, 255, 255, 0.18);
+  opacity: 0.82;
+}
+
+.sm-page-label {
+  margin-bottom: 0.35em;
+  color: rgba(255, 255, 255, 0.48);
+  font-size: 0.55em;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
 .slide-image {
   display: flex;
   align-items: center;

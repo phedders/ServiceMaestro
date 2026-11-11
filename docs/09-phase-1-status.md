@@ -12,7 +12,7 @@ SM_ADMIN_PASSWORD='change-me' npm start
 ```
 
 - Login: seeded `admin` / `SM_ADMIN_PASSWORD`.
-- Displays: `/display/main`, `/display/full`, `/display/stage` (and `/obs-*` aliases), `?token=dev-output`.
+- Displays: `/display/twothirds`, `/display/full`, `/display/stage` and `/display/chords` (with `/display/main`, `/display/lower`, `/display/fullscreen`, `/display/mainfull` and `/obs-*` aliases), `?token=dev-output`.
 - Docker image builds and runs as UID 10001; health check passes.
 
 ## Implemented

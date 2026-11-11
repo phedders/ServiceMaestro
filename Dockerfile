@@ -26,9 +26,10 @@ COPY --from=build /app/packages/display ./packages/display
 ENV NODE_ENV=production \
     SM_HOST=0.0.0.0 \
     SM_PORT=8080 \
-    SM_DATA_DIR=/data
+    SM_DATA_DIR=/data \
+    SM_IMAGES_DIR=/library/images
 
-RUN mkdir -p /data && chown 10001:10001 /data
+RUN mkdir -p /data /library/images && chown 10001:10001 /data /library/images
 USER 10001:10001
 EXPOSE 8080
 VOLUME ["/data"]

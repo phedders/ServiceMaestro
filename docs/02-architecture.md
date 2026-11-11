@@ -236,9 +236,9 @@ Rules:
 | `/api/images`, `/api/images/upload`, `/api/scan` | Media + import | operator/admin |
 | `/api/live/*` | Commands (POST fallback) | operator |
 | `/media/...` | Images/thumbnails/fonts | output token or signed path |
-| `/display/main` | Lower-third / main lyric output | `?token=` or `?key=` |
-| `/display/two-thirds` | Two-thirds output | `?token=` |
-| `/display/full` | Full-screen output | `?token=` |
+| `/display/twothirds` | Lower-third / main lyric output (aliases `/display/main`, `/display/lower`, `/obs-main`) | `?token=` or `?key=` |
+| `/display/two-thirds` | Centered two-thirds output (also `/display/two_thirds`) | `?token=` |
+| `/display/full` | Full-screen output (aliases `/display/fullscreen`, `/display/mainfull`, `/obs-mainfull`) | `?token=` |
 | `/display/stage` | Stage monitor (chords, notes, next) | `?token=` |
 | `/display/chords` | Chords view | `?token=` |
 | `/display/image` | Image/slide output | `?token=` |
@@ -254,7 +254,7 @@ Git repository sync endpoints (`/api/git/...`) are designed in [11-git-data-sync
 Output URLs should accept stable, revocable per-output tokens (stored hashed), e.g.:
 
 ```
-http://lyrics.local/display/main?token=main-hall-7f3c...
+http://lyrics.local/display/twothirds?token=main-hall-7f3c...
 http://lyrics.local/display/stage?token=stage-monitor-...
 ```
 
@@ -265,7 +265,9 @@ Existing OBS Browser Sources must keep working without edits. The following rout
 | Legacy URL | Serves |
 | --- | --- |
 | `/obs-main` | `main` frontend (transparent lower-third / lyric area) |
+| `/obs-lower`, `/obs-twothirds` | Same lower-third/main frontend |
 | `/obs-mainfull` | `full` frontend (full-screen) |
+| `/obs-fullscreen` | Same full-screen frontend |
 | `/obs-stage` | `stage` frontend |
 | `/obs.css` | compatibility stylesheet URL (redirect to the versioned display CSS) |
 | `/obs-main.js` | compatibility client URL (redirect to the bundled display client) |

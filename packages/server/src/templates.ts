@@ -6,6 +6,14 @@ import { DISPLAY_DIR, GIT_REPOS, TEMPLATES_DIR } from "./config.js";
 const ROLES = ["main", "two_thirds", "full", "stage", "chords"] as const;
 type Role = (typeof ROLES)[number];
 
+const TEMPLATE_NAMES: Record<Role, string[]> = {
+  main: ["twothirds", "lower", "main"],
+  two_thirds: ["two_thirds"],
+  full: ["full", "fullscreen", "mainfull"],
+  stage: ["stage"],
+  chords: ["chords"],
+};
+
 const FALLBACK_HTML = (role: string) =>
   `<div class="sm-template sm-${role}"><div class="sm-content">{{content}}</div><div class="sm-footer">{{footer}}</div></div>`;
 
@@ -32,15 +40,17 @@ function directories(setlistId: string | null): string[] {
 
 function readTemplate(role: Role, setlistId: string | null): DisplayTemplate | null {
   for (const dir of directories(setlistId)) {
-    const htmlFile = path.join(dir, `${role}.html`);
-    if (!fs.existsSync(htmlFile)) continue;
-    try {
-      const html = fs.readFileSync(htmlFile, "utf8");
-      const cssFile = path.join(dir, `${role}.css`);
-      const css = fs.existsSync(cssFile) ? fs.readFileSync(cssFile, "utf8") : "";
-      return { html, css };
-    } catch {
-      // Try the next location.
+    for (const name of TEMPLATE_NAMES[role]) {
+      const htmlFile = path.join(dir, `${name}.html`);
+      if (!fs.existsSync(htmlFile)) continue;
+      try {
+        const html = fs.readFileSync(htmlFile, "utf8");
+        const cssFile = path.join(dir, `${name}.css`);
+        const css = fs.existsSync(cssFile) ? fs.readFileSync(cssFile, "utf8") : "";
+        return { html, css };
+      } catch {
+        // Try the next location/name.
+      }
     }
   }
   return null;

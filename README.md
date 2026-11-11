@@ -49,11 +49,12 @@ Or `npm run dev` runs both (server on 8080, control on 5173).
 
 ### Display outputs (OBS Browser Sources)
 
-| Output | New URL | Legacy alias |
+| Output | Canonical URL | Aliases |
 | --- | --- | --- |
-| Main / lower third | `/display/main?token=dev-output` | `/obs-main?token=dev-output` |
-| Full screen | `/display/full?token=dev-output` | `/obs-mainfull?token=dev-output` |
-| Stage monitor (chords) | `/display/stage?token=dev-output` | `/obs-stage?token=dev-output` |
+| Lower-third / main (`twothirds`) | `/display/twothirds?token=dev-output` | `/display/main`, `/display/lower`, `/obs-main`, `/obs-lower`, `/obs-twothirds` |
+| Full screen (`full`) | `/display/full?token=dev-output` | `/display/fullscreen`, `/display/mainfull`, `/obs-mainfull`, `/obs-fullscreen` |
+| Centered two-thirds | `/display/two-thirds?token=dev-output` | `/display/two_thirds`, `/obs-two-thirds` |
+| Stage monitor (chords) | `/display/stage?token=dev-output` | `/obs-stage` |
 
 The output token defaults to `dev-output`; set `SM_OUTPUT_TOKEN` in production. Displays receive a **full snapshot on connect**, so refreshing or reconnecting OBS never blanks the screen.
 
@@ -72,7 +73,7 @@ Open <http://localhost:8080/musicians> to see the read-only musician view. It de
 - **Set lists** — named, dated, with songs and text items; dates display in compact `YYYYMMDD` form and new set lists default to a `YYYYMMDD-` name prefix for sortable names. Reorder with arrows or a drag handle; click an item to preview and edit its title, lyrics/text, format, alignment, key, transpose, verse order and notes. The Add song panel searches titles, first lines, alternative titles and optionally the full lyrics/body. Song edits stay local to the set list by default, with an explicit **Save to song library** option and **Send to live session** when that set list is live.
 - **Live sessions** — a set list is snapshotted when the session starts, so editing the set list afterwards cannot change the live output. Sessions start **blank** until the operator shows the first page.
 - **Publish & apply** — publish a revision, then **apply after the current item** (safe during a service) or **apply now**; queued updates are shown to operators and persisted across restarts.
-- **Templated outputs** — main, two-thirds, full, stage and chords; templates come from the set-list repo, a templates folder/repo, or built-in defaults, with fade-in/out changes.
+- **Templated outputs** — main/twothirds, centered two-thirds, full, stage and chords; templates come from the set-list repo, a templates folder/repo, or built-in defaults, with fade-in/out changes. Stage and chords show the current page plus all following pages of the item, keeping the current page at the top.
 - **Display config** — Live-page panel for font, text colour, text size, max lines, max words and smart page splits; applies to main/two-thirds, while stage and chords keep their fixed style. Smart splits estimate 1080p coverage from font size and avoid long Bible-line overflow.
 - **Rich text items** — choose Markdown (default), plain text, HTML or RST in the editor; legacy `format:` headers are extracted into metadata. Text items also have a per-item **left/centre** alignment option. Pages can be authored with inline `<!-- page -->` markers or with separate page boxes in the editor; both serialize to the same page-break format. Page breaks and server-side sanitisation are supported.
 - **Settings page** — import Google Fonts by family name or CSS URL; files are cached in `/data/fonts` and served locally. ChurchSuite credential status and connection testing live here too. Configurable keyboard shortcuts cover hide/show, page navigation and set-list item navigation, and a global setting chooses whether page navigation stops at item boundaries or continues into the previous/next item.

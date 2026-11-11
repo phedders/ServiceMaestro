@@ -20,6 +20,15 @@ body[data-target="chords"] {
 .sm-chords .sm-content {
   font-size: clamp(1.7rem, 3.4vw, 4.4rem);
   line-height: 1.35;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  overflow-y: auto;
+  padding-right: 1.5vw;
+}
+
+.sm-chords .sm-page-upcoming {
+  font-size: 0.82em;
 }
 
 .sm-chords .sm-content .slide-inner {

@@ -241,7 +241,7 @@ LXC (without Incus) follows Option B: unprivileged container, `lxc.idmap`/subuid
 
 ## 7. Networking and OBS
 
-- Expose only `8080`. OBS Browser Sources point at `http://<host>:8080/display/main?token=…` (and legacy `/obs-main` aliases).
+- Expose only `8080`. OBS Browser Sources point at canonical URLs such as `http://<host>:8080/display/twothirds?token=…` and `/display/full?token=…`; `/display/main`, `/display/lower`, `/display/fullscreen`, `/display/mainfull` and `/obs-*` remain aliases.
 - WebSockets use normal HTTP upgrade; if a reverse proxy is added, enable upgrade headers and set generous read timeouts (long-lived output sockets).
 - TLS is optional and best terminated by Caddy/nginx/Traefik in front. Set `SM_PUBLIC_URL` and `SM_TRUST_PROXY=true` accordingly.
 - LAN-only deployments can skip TLS; output tokens still prevent casual access.

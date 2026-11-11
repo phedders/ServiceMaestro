@@ -42,8 +42,23 @@
   function compose(state, template) {
     const page = state.pages && state.pages[state.pageIndex];
     const pageNumber = page ? state.pageIndex + 1 : 0;
+    const livePages =
+      target === "stage" || target === "chords"
+        ? (state.pages || [])
+            .slice(state.pageIndex)
+            .map((item, offset) => {
+              const isCurrent = offset === 0;
+              const label = isCurrent
+                ? ""
+                : `<div class="sm-page-label">Page ${item.index + 1}</div>`;
+              return `<div class="sm-page ${isCurrent ? "sm-page-current" : "sm-page-upcoming"}">${label}${item.html}</div>`;
+            })
+            .join("")
+        : page
+          ? page.html
+          : "";
     const replacements = {
-      content: page ? page.html : "",
+      content: livePages,
       footer: escapeHtml(state.footer || ""),
       title: escapeHtml(state.title || ""),
       section: escapeHtml(page?.section || ""),
