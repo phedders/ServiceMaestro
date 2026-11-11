@@ -3,7 +3,7 @@ import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { db } from "./db.js";
 import { SONGS_DIR } from "./config.js";
-import { parseSongFile, type SongFilePreview } from "./importers/index.js";
+import { parseSongFile, type ImportedSong, type SongFilePreview } from "./importers/index.js";
 
 const MAX_BYTES = 2 * 1024 * 1024;
 const EXTENSIONS = new Set([".xml", ".txt", ".cho", ".chordpro", ".crd"]);
@@ -61,6 +61,8 @@ export function scanSongs(dir = SONGS_DIR): ScanReport {
         ...parsed,
         path: relative,
         bytes: Buffer.byteLength(content),
+        sourceMatch: findBySource(relative) ?? null,
+        duplicate: findBySource(relative) ? null : findDuplicate(parsed),
       });
     } catch (error) {
       errors.push({ path: relative, error: (error as Error).message });
@@ -73,37 +75,56 @@ export function scanSongs(dir = SONGS_DIR): ScanReport {
 export interface ImportReport {
   imported: number;
   updated: number;
+  replaced: number;
+  duplicated: number;
   skipped: Array<{ path: string; reason: string }>;
   errors: Array<{ path: string; error: string }>;
   songs: Array<{ id: string; title: string; path: string }>;
 }
 
-function findBySource(path: string): { id: string } | undefined {
-  return db.prepare("SELECT id FROM songs WHERE source_path = ?").get(path) as
-    | { id: string }
-    | undefined;
+export interface ImportDecision {
+  path: string;
+  action: "skip" | "replace" | "duplicate";
+  title?: string;
+  alternateTitles?: string | null;
 }
 
-function findDuplicate(preview: SongFilePreview): { id: string; title: string } | undefined {
+function findBySource(path: string): { songId: string; title: string } | null {
+  const row = db.prepare("SELECT id, title FROM songs WHERE source_path = ?").get(path) as
+    | { id: string; title: string }
+    | undefined;
+  return row ? { songId: row.id, title: row.title } : null;
+}
+
+function findDuplicate(
+  preview: ImportedSong,
+): { songId: string; title: string; reason: "ccli" | "title" } | null {
   if (preview.ccli) {
     const byCcli = db
       .prepare("SELECT id, title FROM songs WHERE ccli = ? LIMIT 1")
       .get(preview.ccli) as { id: string; title: string } | undefined;
-    if (byCcli) return byCcli;
+    if (byCcli) return { songId: byCcli.id, title: byCcli.title, reason: "ccli" };
   }
   const byTitle = db
     .prepare("SELECT id, title FROM songs WHERE lower(title) = lower(?) LIMIT 1")
     .get(preview.title) as { id: string; title: string } | undefined;
-  if (byTitle) return byTitle;
-  return undefined;
+  if (byTitle) return { songId: byTitle.id, title: byTitle.title, reason: "title" };
+  return null;
 }
 
-export function importSongs(paths?: string[], dir = SONGS_DIR): ImportReport {
+export function importSongs(
+  paths?: string[],
+  dir = SONGS_DIR,
+  decisions: ImportDecision[] = [],
+): ImportReport {
   const report = scanSongs(dir);
   const wanted = paths ? new Set(paths) : null;
+  const decisionsByPath = new Map(decisions.map((decision) => [decision.path, decision]));
   const reportResult: ImportReport = {
     imported: 0,
     updated: 0,
+    replaced: 0,
+    duplicated: 0,
     skipped: [],
     errors: [...report.errors],
     songs: [],
@@ -111,12 +132,12 @@ export function importSongs(paths?: string[], dir = SONGS_DIR): ImportReport {
 
   const insert = db.prepare(
     `INSERT INTO songs
-     (id, title, author, copyright, ccli, key, lyrics, source_format, source_path, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     (id, title, alternate_titles, author, copyright, ccli, key, lyrics, source_format, source_path, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   );
   const update = db.prepare(
-    `UPDATE songs SET title = ?, author = ?, copyright = ?, ccli = ?, key = ?, lyrics = ?,
-       source_format = ?, source_path = ?, updated_at = ?
+    `UPDATE songs SET title = ?, alternate_titles = COALESCE(?, alternate_titles), author = ?,
+       copyright = ?, ccli = ?, key = ?, lyrics = ?, source_format = ?, source_path = ?, updated_at = ?
      WHERE id = ?`,
   );
 
@@ -125,8 +146,14 @@ export function importSongs(paths?: string[], dir = SONGS_DIR): ImportReport {
     const existing = findBySource(preview.path);
     const now = new Date().toISOString();
     if (existing) {
+      const decision = decisionsByPath.get(preview.path);
+      if (decision?.action === "skip") {
+        reportResult.skipped.push({ path: preview.path, reason: "Skipped by import review" });
+        continue;
+      }
       update.run(
         preview.title,
+        preview.alternateTitles,
         preview.author,
         preview.copyright,
         preview.ccli,
@@ -135,19 +162,69 @@ export function importSongs(paths?: string[], dir = SONGS_DIR): ImportReport {
         preview.format,
         preview.path,
         now,
-        existing.id,
+        existing.songId,
       );
       reportResult.updated += 1;
-      reportResult.songs.push({ id: existing.id, title: preview.title, path: preview.path });
+      reportResult.songs.push({ id: existing.songId, title: preview.title, path: preview.path });
       continue;
     }
 
     const duplicate = findDuplicate(preview);
     if (duplicate) {
-      reportResult.skipped.push({
-        path: preview.path,
-        reason: `Duplicate of “${duplicate.title}” (same CCLI or title)`,
-      });
+      const decision = decisionsByPath.get(preview.path);
+      const action = decision?.action ?? "skip";
+      if (action === "skip") {
+        reportResult.skipped.push({
+          path: preview.path,
+          reason: `Duplicate of “${duplicate.title}” (same ${duplicate.reason === "ccli" ? "CCLI" : "title"}) — skipped`,
+        });
+        continue;
+      }
+      if (action === "replace") {
+        update.run(
+          preview.title,
+          preview.alternateTitles,
+          preview.author,
+          preview.copyright,
+          preview.ccli,
+          preview.key,
+          preview.lyrics,
+          preview.format,
+          preview.path,
+          now,
+          duplicate.songId,
+        );
+        reportResult.replaced += 1;
+        reportResult.songs.push({
+          id: duplicate.songId,
+          title: preview.title,
+          path: preview.path,
+        });
+        continue;
+      }
+
+      const id = randomUUID();
+      const title = decision?.title?.trim() || preview.title;
+      const alternateTitles =
+        decision?.alternateTitles !== undefined
+          ? decision.alternateTitles?.trim() || null
+          : preview.alternateTitles;
+      insert.run(
+        id,
+        title,
+        alternateTitles,
+        preview.author,
+        preview.copyright,
+        preview.ccli,
+        preview.key,
+        preview.lyrics,
+        preview.format,
+        preview.path,
+        now,
+        now,
+      );
+      reportResult.duplicated += 1;
+      reportResult.songs.push({ id, title, path: preview.path });
       continue;
     }
 
@@ -155,6 +232,7 @@ export function importSongs(paths?: string[], dir = SONGS_DIR): ImportReport {
     insert.run(
       id,
       preview.title,
+      preview.alternateTitles,
       preview.author,
       preview.copyright,
       preview.ccli,

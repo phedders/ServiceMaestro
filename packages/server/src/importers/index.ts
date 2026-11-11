@@ -3,6 +3,7 @@ export type ImportFormat = "openlp" | "chordpro" | "text";
 export interface ImportedSong {
   format: ImportFormat;
   title: string;
+  alternateTitles: string | null;
   author: string | null;
   copyright: string | null;
   ccli: string | null;
@@ -14,6 +15,15 @@ export interface ImportedSong {
 export interface SongFilePreview extends ImportedSong {
   path: string;
   bytes: number;
+  duplicate?: {
+    songId: string;
+    title: string;
+    reason: "ccli" | "title";
+  } | null;
+  sourceMatch?: {
+    songId: string;
+    title: string;
+  } | null;
 }
 
 const CHORD_DIRECTIVE = /^\s*\{([a-zA-Z0-9_-]+)\s*(?::\s*([^}]*))?\}\s*$/;
@@ -175,6 +185,7 @@ export function parseOpenLp(filename: string, content: string): ImportedSong {
   return {
     format: "openlp",
     title: first(titles) ?? baseTitle(filename),
+    alternateTitles: titles.length > 1 ? titles.slice(1).join(", ") : null,
     author: authors.length ? authors.join(", ") : null,
     copyright: first(copyrights),
     ccli: ccliMatch ? cleanText(ccliMatch[1]) || null : null,
@@ -355,6 +366,10 @@ export function parseChordPro(filename: string, content: string): ImportedSong {
   return {
     format: "chordpro",
     title: first(metadata.get("title")) ?? baseTitle(filename),
+    alternateTitles:
+      [...(metadata.get("alternate_title") ?? []), ...(metadata.get("alt_title") ?? [])]
+        .filter(Boolean)
+        .join(", ") || null,
     author,
     copyright: first(metadata.get("copyright")),
     ccli,
@@ -417,6 +432,7 @@ export function parsePlainText(filename: string, content: string): ImportedSong 
   return {
     format: "text",
     title: title || baseTitle(filename),
+    alternateTitles: null,
     author: null,
     copyright: null,
     ccli: null,

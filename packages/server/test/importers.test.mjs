@@ -56,6 +56,7 @@ test("imports OpenLyrics and follows verseOrder", () => {
   const song = parseSongFile("amazing.xml", OPENLP);
   assert.equal(song.format, "openlp");
   assert.equal(song.title, "Amazing Grace");
+  assert.equal(song.alternateTitles, "Amazing Grace (alternate)");
   assert.equal(song.author, "John Newton");
   assert.equal(song.copyright, "Public Domain");
   assert.match(song.lyrics, /\[Verse 1\]/);

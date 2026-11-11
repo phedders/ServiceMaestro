@@ -17,6 +17,7 @@ import type {
   SongAsset,
   SongImportReport,
   SongImportScan,
+  SongImportDecision,
   SongVerseOrder,
 } from "@wlm/shared";
 
@@ -139,10 +140,10 @@ export const api = {
   deleteAsset: (id: string) => request<{ ok: true }>(`/api/assets/${id}`, { method: "DELETE" }),
 
   scanImports: () => request<SongImportScan>("/api/import/scan"),
-  applyImports: (paths?: string[]) =>
+  applyImports: (decisions?: SongImportDecision[]) =>
     request<SongImportReport>("/api/import/apply", {
       method: "POST",
-      body: JSON.stringify(paths ? { paths } : {}),
+      body: JSON.stringify(decisions ? { decisions } : {}),
     }),
 
   setlists: () => request<{ setlists: SetlistSummary[] }>("/api/setlists"),

@@ -4,6 +4,7 @@ import type {
   SetlistSummary,
   Song,
   SongAsset,
+  SongImportDecision,
   SongImportReport,
   SongImportScan,
 } from "@wlm/shared";
@@ -40,6 +41,12 @@ export default function SongsPage({
   const [scanning, setScanning] = useState(false);
   const [importing, setImporting] = useState(false);
   const [importReport, setImportReport] = useState<SongImportReport | null>(null);
+  const [importDecisions, setImportDecisions] = useState<
+    Record<
+      string,
+      { action: "skip" | "replace" | "duplicate"; title: string; alternateTitles: string }
+    >
+  >({});
   const [assets, setAssets] = useState<SongAsset[]>([]);
   const [assetFile, setAssetFile] = useState<File | null>(null);
   const [assetKind, setAssetKind] = useState("score_pdf");
@@ -98,6 +105,22 @@ export default function SongsPage({
   }, [songs, search]);
 
   const selectedSong = songs.find((song) => song.id === selectedId) ?? null;
+  const duplicateFiles = (scan?.files ?? []).filter((file) => file.duplicate);
+
+  function updateImportDecision(
+    path: string,
+    patch: Partial<{ action: "skip" | "replace" | "duplicate"; title: string; alternateTitles: string }>,
+  ) {
+    setImportDecisions((current) => ({
+      ...current,
+      [path]: {
+        action: current[path]?.action ?? "skip",
+        title: current[path]?.title ?? "",
+        alternateTitles: current[path]?.alternateTitles ?? "",
+        ...patch,
+      },
+    }));
+  }
 
   async function addToSetlist() {
     if (!selectedId || !targetSetlist) return;
@@ -256,12 +279,30 @@ export default function SongsPage({
     }
   }
 
-  async function scanFolder() {    setScanning(true);
+  async function scanFolder() {
+    setScanning(true);
     setImportReport(null);
     try {
       const result = await api.scanImports();
       setScan(result);
-      notify(`Found ${result.files.length} importable files`);
+      setImportDecisions(
+        Object.fromEntries(
+          result.files
+            .filter((file) => file.duplicate)
+            .map((file) => [
+              file.path,
+              {
+                action: "skip" as const,
+                title: file.title,
+                alternateTitles: file.alternateTitles ?? "",
+              },
+            ]),
+        ),
+      );
+      const duplicates = result.files.filter((file) => file.duplicate).length;
+      notify(
+        `Found ${result.files.length} importable files${duplicates ? ` · ${duplicates} duplicate${duplicates === 1 ? "" : "s"} to review` : ""}`,
+      );
     } catch (error) {
       notify(error instanceof ApiError ? error.message : "Could not scan songs folder", "error");
     } finally {
@@ -272,10 +313,29 @@ export default function SongsPage({
   async function importAll() {
     setImporting(true);
     try {
-      const result = await api.applyImports();
+      const decisions: SongImportDecision[] = (scan?.files ?? [])
+        .filter((file) => file.duplicate)
+        .map((file) => {
+          const decision = importDecisions[file.path] ?? {
+            action: "skip" as const,
+            title: file.title,
+            alternateTitles: file.alternateTitles ?? "",
+          };
+          return decision.action === "duplicate"
+            ? {
+                path: file.path,
+                action: decision.action,
+                title: decision.title.trim() || file.title,
+                alternateTitles: decision.alternateTitles.trim() || null,
+              }
+            : { path: file.path, action: decision.action };
+        });
+      const result = await api.applyImports(decisions);
       setImportReport(result);
       await load();
-      notify(`Imported ${result.imported}, updated ${result.updated}`);
+      notify(
+        `Imported ${result.imported}, replaced ${result.replaced}, duplicated ${result.duplicated}, skipped ${result.skipped.length}`,
+      );
     } catch (error) {
       notify(error instanceof ApiError ? error.message : "Import failed", "error");
     } finally {
@@ -590,7 +650,8 @@ export default function SongsPage({
           <div>
             <h2>Import from folder</h2>
             <p className="muted">
-              Scans OpenLP XML, ChordPro and plain-text files. Duplicate CCLI/title entries are skipped.
+              Scans OpenLP XML, ChordPro and plain-text files. Duplicate CCLI/title matches are shown
+              for review; choose skip, replace or import as a separate song.
             </p>
           </div>
           <div className="button-row">
@@ -608,7 +669,80 @@ export default function SongsPage({
             {scan.files.length} files in <code>{scan.root}</code>
             {scan.errors.length ? ` · ${scan.errors.length} errors` : ""}
             {scan.skipped ? ` · ${scan.skipped} empty` : ""}
+            {duplicateFiles.length ? ` · ${duplicateFiles.length} duplicates to review` : ""}
           </p>
+        )}
+
+        {duplicateFiles.length > 0 && (
+          <div className="import-duplicates">
+            <div className="panel-heading">
+              <div>
+                <h3>Duplicate review</h3>
+                <p className="muted">
+                  The imported file matches an existing song by CCLI or title. Choose what to do
+                  before importing.
+                </p>
+              </div>
+              <span className="muted">{duplicateFiles.length}</span>
+            </div>
+            {duplicateFiles.map((file) => {
+              const decision = importDecisions[file.path] ?? {
+                action: "skip" as const,
+                title: file.title,
+                alternateTitles: file.alternateTitles ?? "",
+              };
+              return (
+                <div key={file.path} className="import-duplicate">
+                  <div className="import-duplicate-head">
+                    <div>
+                      <strong>{file.title}</strong>
+                      <span className="muted">
+                        matches “{file.duplicate?.title}” by{" "}
+                        {file.duplicate?.reason === "ccli" ? "CCLI" : "title"} · {file.path}
+                      </span>
+                    </div>
+                    <select
+                      value={decision.action}
+                      onChange={(event) =>
+                        updateImportDecision(file.path, {
+                          action: event.target.value as "skip" | "replace" | "duplicate",
+                        })
+                      }
+                    >
+                      <option value="skip">Skip</option>
+                      <option value="replace">Replace existing song</option>
+                      <option value="duplicate">Import as duplicate</option>
+                    </select>
+                  </div>
+                  {decision.action === "duplicate" && (
+                    <div className="import-duplicate-fields">
+                      <label>
+                        New title
+                        <input
+                          value={decision.title}
+                          onChange={(event) =>
+                            updateImportDecision(file.path, { title: event.target.value })
+                          }
+                        />
+                      </label>
+                      <label>
+                        Alternative titles
+                        <input
+                          value={decision.alternateTitles}
+                          onChange={(event) =>
+                            updateImportDecision(file.path, {
+                              alternateTitles: event.target.value,
+                            })
+                          }
+                          placeholder="Optional, comma or newline separated"
+                        />
+                      </label>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         )}
 
         {scan && scan.files.length > 0 && (
@@ -623,6 +757,11 @@ export default function SongsPage({
                     {file.path}
                   </span>
                 </div>
+                {file.duplicate && (
+                  <span className="import-duplicate-badge" title={`Matches “${file.duplicate.title}”`}>
+                    duplicate
+                  </span>
+                )}
                 {file.warnings.length > 0 && (
                   <span className="import-warning" title={file.warnings.join("\n")}>
                     {file.warnings.length} warning{file.warnings.length === 1 ? "" : "s"}
@@ -651,7 +790,8 @@ export default function SongsPage({
         {importReport && (
           <div className="import-report">
             <strong>
-              Imported {importReport.imported}, updated {importReport.updated}
+              Imported {importReport.imported}, updated {importReport.updated}, replaced{" "}
+              {importReport.replaced}, duplicated {importReport.duplicated}
             </strong>
             {importReport.skipped.length > 0 && (
               <details>

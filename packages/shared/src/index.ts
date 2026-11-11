@@ -208,12 +208,29 @@ export interface SongImportPreview {
   bytes: number;
   format: "openlp" | "chordpro" | "text";
   title: string;
+  alternateTitles: string | null;
   author: string | null;
   copyright: string | null;
   ccli: string | null;
   key: string | null;
   lyrics: string;
   warnings: string[];
+  duplicate: {
+    songId: string;
+    title: string;
+    reason: "ccli" | "title";
+  } | null;
+  sourceMatch: {
+    songId: string;
+    title: string;
+  } | null;
+}
+
+export interface SongImportDecision {
+  path: string;
+  action: "skip" | "replace" | "duplicate";
+  title?: string;
+  alternateTitles?: string | null;
 }
 
 export interface SongImportScan {
@@ -226,6 +243,8 @@ export interface SongImportScan {
 export interface SongImportReport {
   imported: number;
   updated: number;
+  replaced: number;
+  duplicated: number;
   skipped: Array<{ path: string; reason: string }>;
   errors: Array<{ path: string; error: string }>;
   songs: Array<{ id: string; title: string; path: string }>;
