@@ -106,6 +106,22 @@ export default function App() {
     };
   }, [user, standaloneMusicians]);
 
+  useEffect(() => {
+    const applyTitles = () => {
+      document.querySelectorAll<HTMLElement>("button, a.button, a.nav-link").forEach((element) => {
+        if (element.title) return;
+        const label =
+          element.getAttribute("aria-label") ??
+          element.innerText.replace(/\s+/g, " ").trim();
+        if (label) element.title = label;
+      });
+    };
+    applyTitles();
+    const observer = new MutationObserver(applyTitles);
+    observer.observe(document.body, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, []);
+
   const command = async (payload: Record<string, unknown>) => {
     try {
       const result = await api.command(payload);

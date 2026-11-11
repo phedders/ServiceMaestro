@@ -576,7 +576,7 @@ export default function SongsPage({
             Enable inline Markdown styling in song lyrics
             <small>
               Supports <code>**bold**</code>, <code>*italic*</code>, <code>~~strike~~</code> and{" "}
-              <code>==highlight==</code> on main/two-thirds. Stage and chords ignore the styling.
+              <code>==highlight==</code> on lower-third/centered two-thirds. Stage and chords ignore the styling.
             </small>
           </span>
         </label>
@@ -593,7 +593,7 @@ export default function SongsPage({
         <p className="hint">
           Put chords in square brackets before the syllable: <code>a[C]mazing</code>. Blank lines separate
           sections. A line like <code>[Verse 1]</code> becomes a section label. If Markdown styling is
-          enabled, tags are applied on main/two-thirds but ignored on stage/chords.
+          enabled, tags are applied on lower-third/centered two-thirds but ignored on stage/chords.
         </p>
 
         <div className="assets-panel">

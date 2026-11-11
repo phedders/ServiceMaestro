@@ -211,7 +211,7 @@ Layout (desktop):
 - **Section detection**: blank lines → stanzas; `[Verse 1]`/`CHORUS` recognised; manual split/merge.
 - **Chord tools**: detect chord lines, align to lyrics, chord palette, "remove chords", "show as Nashville".
 - **Arrangement builder**: drag section chips into a verse order; save multiple **named verse orders** on a song (for example “Short” and “Full”), then choose one when the song is added to a set list.
-- **Inline styling metadata**: songs can enable inline Markdown tags (`**bold**`, `*italic*`, `~~strike~~`, `==highlight==`) for main/two-thirds. Stage and chords ignore the styling.
+- **Inline styling metadata**: songs can enable inline Markdown tags (`**bold**`, `*italic*`, `~~strike~~`, `==highlight==`) for lower-third/centered two-thirds. Stage and chords ignore the styling.
 - **Page controls**: page-break markers, live thumbnail preview, warnings for overlong lines; max lines is configured on the Live page display config.
 - **Key controls**: original key detector + manual override, default key, preferred keys, transpose preview.
 - **Metadata panel**: title, alternate title, authors, copyright, CCLI, language, tags.

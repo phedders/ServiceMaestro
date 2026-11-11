@@ -7,7 +7,7 @@ const ROLES = ["main", "two_thirds", "full", "stage", "chords"] as const;
 type Role = (typeof ROLES)[number];
 
 const TEMPLATE_NAMES: Record<Role, string[]> = {
-  main: ["twothirds", "lower", "main"],
+  main: ["lowerthird", "twothirds", "lower", "main"],
   two_thirds: ["two_thirds"],
   full: ["full", "fullscreen", "mainfull"],
   stage: ["stage"],

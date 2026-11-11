@@ -293,16 +293,34 @@ function ItemRow({
           )}
         </button>
         <div className="setlist-item-actions">
-          <button className="button ghost small" disabled={first} onClick={() => onMove(-1)}>
+          <button
+            className="button ghost small"
+            disabled={first}
+            onClick={() => onMove(-1)}
+            title="Move this item up"
+          >
             ↑
           </button>
-          <button className="button ghost small" disabled={last} onClick={() => onMove(1)}>
+          <button
+            className="button ghost small"
+            disabled={last}
+            onClick={() => onMove(1)}
+            title="Move this item down"
+          >
             ↓
           </button>
-          <button className="button ghost small" onClick={toggleEditor}>
+          <button
+            className="button ghost small"
+            onClick={toggleEditor}
+            title={editing ? "Close the item editor" : "Edit this item"}
+          >
             {editing ? "Done" : "Edit"}
           </button>
-          <button className="button ghost small danger-text" onClick={onDelete}>
+          <button
+            className="button ghost small danger-text"
+            onClick={onDelete}
+            title="Remove this item from the set list"
+          >
             Remove
           </button>
         </div>
@@ -480,14 +498,24 @@ function ItemRow({
             </>
           )}
           <div className="setlist-item-edit-actions">
-            <button className="button ghost" onClick={closeEditor}>
+            <button className="button ghost" onClick={closeEditor} title="Discard changes and close the editor">
               Cancel
             </button>
-            <button className="button" onClick={saveLocal} disabled={saving}>
+            <button
+              className="button"
+              onClick={saveLocal}
+              disabled={saving}
+              title="Save changes only to this set list item"
+            >
               {saving ? "Saving…" : "Save local"}
             </button>
             {item.kind === "song" && item.songId && (
-              <button className="button primary" onClick={saveInventory} disabled={saving}>
+              <button
+                className="button primary"
+                onClick={saveInventory}
+                disabled={saving}
+                title="Save these song changes back to the shared song library"
+              >
                 {saving ? "Saving…" : "Save to song library"}
               </button>
             )}
@@ -818,6 +846,7 @@ export default function SetlistsPage({
                 setSelectedId(setlist.id);
                 loadDetail(setlist.id).catch(() => undefined);
               }}
+              title={`Edit set list “${setlist.name}”`}
             >
               <strong>{setlist.name}</strong>
               <span>
@@ -857,7 +886,11 @@ export default function SetlistsPage({
               <input type="time" value={newTime} onChange={(event) => setNewTime(event.target.value)} />
             </label>
           </div>
-          <button className="button primary full" onClick={createSetlist}>
+          <button
+            className="button primary full"
+            onClick={createSetlist}
+            title="Create a new draft set list with the entered name, date and time"
+          >
             Create
           </button>
         </div>
@@ -900,10 +933,19 @@ export default function SetlistsPage({
                 <span className="hint">Reference file — unmatched songs import as text placeholders.</span>
               )}
               <div className="button-row">
-                <button className="button ghost small" onClick={() => chooseImport(null)}>
+                <button
+                  className="button ghost small"
+                  onClick={() => chooseImport(null)}
+                  title="Cancel this import preview"
+                >
                   Cancel
                 </button>
-                <button className="button primary small" onClick={confirmImport} disabled={importing}>
+                <button
+                  className="button primary small"
+                  onClick={confirmImport}
+                  disabled={importing}
+                  title="Import this file as a new draft set list"
+                >
                   Import as new draft
                 </button>
               </div>
@@ -939,20 +981,39 @@ export default function SetlistsPage({
           <div className="panel-heading">
             <h2>{detail.name}</h2>
             <div className="button-row">
-              <button className="button ghost" onClick={publish} disabled={busy}>
+              <button
+                className="button ghost"
+                onClick={publish}
+                disabled={busy}
+                title="Publish a new revision of this set list without changing the live session"
+              >
                 Publish
               </button>
               {live.status !== "idle" && live.setlistId === detail.id ? (
                 <>
-                  <button className="button primary" onClick={() => apply("now")} disabled={busy}>
+                  <button
+                    className="button primary"
+                    onClick={() => apply("now")}
+                    disabled={busy}
+                    title="Replace the live session with this draft immediately"
+                  >
                     Send to live session
                   </button>
-                  <button className="button ghost" onClick={() => apply("after-current")} disabled={busy}>
+                  <button
+                    className="button ghost"
+                    onClick={() => apply("after-current")}
+                    disabled={busy}
+                    title="Queue this draft to apply automatically after the current live item"
+                  >
                     Queue after current
                   </button>
                 </>
               ) : (
-                <button className="button primary" onClick={start}>
+                <button
+                  className="button primary"
+                  onClick={start}
+                  title="Start a new live session using this set list"
+                >
                   Start live
                 </button>
               )}
@@ -997,7 +1058,11 @@ export default function SetlistsPage({
               Notes
               <input value={notes} onChange={(event) => setNotes(event.target.value)} />
             </label>
-            <button className="button ghost" onClick={saveMeta}>
+            <button
+              className="button ghost"
+              onClick={saveMeta}
+              title="Save the set-list name, date, time and notes"
+            >
               Save details
             </button>
           </div>
@@ -1100,7 +1165,12 @@ export default function SetlistsPage({
               {songQuery && !filteredSongs.length && (
                 <span className="hint">No songs match the selected search fields.</span>
               )}
-              <button className="button" onClick={addSong} disabled={!songToAdd}>
+              <button
+                className="button"
+                onClick={addSong}
+                disabled={!songToAdd}
+                title="Add the selected song to this set list"
+              >
                 Add to set list
               </button>
             </div>
@@ -1145,6 +1215,7 @@ export default function SetlistsPage({
                 className="button"
                 onClick={addImage}
                 disabled={!imageToAdd || uploadingImage}
+                title="Add the selected image as a slide in this set list"
               >
                 {uploadingImage ? "Uploading…" : "Add to set list"}
               </button>
@@ -1185,7 +1256,12 @@ export default function SetlistsPage({
                 A leading <code>format: markdown</code> header is moved into the format setting
                 automatically. Use <code>&lt;!-- page --&gt;</code> for a page break.
               </span>
-              <button className="button" onClick={addText} disabled={!textContent.trim()}>
+              <button
+                className="button"
+                onClick={addText}
+                disabled={!textContent.trim()}
+                title="Add these text pages as a new item in this set list"
+              >
                 Add to set list
               </button>
             </div>
@@ -1205,6 +1281,7 @@ export default function SetlistsPage({
                 await loadDetail(result.setlists[0].id);
               }
             }}
+            title="Delete this set list permanently"
           >
             Delete set list
           </button>

@@ -86,10 +86,20 @@ export function PageContentEditor({
   return (
     <div className="page-content-editor">
       <div className="page-content-toolbar">
-        <button type="button" className="button ghost small" onClick={insertPageMarker}>
+        <button
+          type="button"
+          className="button ghost small"
+          onClick={insertPageMarker}
+          title="Insert an inline page-break marker at the cursor"
+        >
           Insert page marker
         </button>
-        <button type="button" className="button small" onClick={addPage}>
+        <button
+          type="button"
+          className="button small"
+          onClick={addPage}
+          title="Add another text box for a separate page"
+        >
           + Add page box
         </button>
         <span className="hint">Both markers and page boxes create new pages.</span>

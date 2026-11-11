@@ -13,6 +13,7 @@ export function PageList({ live, onCommand }: { live: LiveState; onCommand: (pay
           key={page.index}
           className={`page-row ${page.index === currentPage ? "current" : ""}`}
           onClick={() => onCommand({ type: "goto", pageIndex: page.index })}
+          title={`Show page ${page.index + 1}`}
         >
           <span className="page-number">{page.index + 1}</span>
           <span className="page-text" dangerouslySetInnerHTML={{ __html: page.html }} />

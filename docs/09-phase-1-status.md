@@ -12,7 +12,7 @@ SM_ADMIN_PASSWORD='change-me' npm start
 ```
 
 - Login: seeded `admin` / `SM_ADMIN_PASSWORD`.
-- Displays: `/display/twothirds`, `/display/full`, `/display/stage` and `/display/chords` (with `/display/main`, `/display/lower`, `/display/fullscreen`, `/display/mainfull` and `/obs-*` aliases), `?token=dev-output`.
+- Displays: `/display/lowerthird`, `/display/full`, `/display/stage` and `/display/chords` (with `/display/twothirds`, `/display/main`, `/display/lower`, `/display/fullscreen`, `/display/mainfull` and `/obs-*` aliases), `?token=dev-output`.
 - Docker image builds and runs as UID 10001; health check passes.
 
 ## Implemented
@@ -26,7 +26,7 @@ SM_ADMIN_PASSWORD='change-me' npm start
 | Scores/tabs | Per-song asset upload (PDF, ChordPro, lyrics, image); authenticated file route; standalone `/musicians` service list with lyrics, notes and PDF.js viewer (page nav, zoom, fit-to-width) |
 | Images | Folder-tree browser for `SM_IMAGES_DIR`, global search, upload from Images page or set-list editor, image set-list items rendered on live outputs, safe output-token file serving |
 | Set lists | Named/dated services with compact `YYYYMMDD` dates and `YYYYMMDD-` default names; songs and text items; arrow/drag-handle reorder; inline preview then edit title, lyrics/text, format, alignment, key, transpose, verse order and notes; song edits local by default with **Save to song library**; **Send to live session** when the set list is live; published revisions |
-| Display config | Live-page font/colour/size/max-lines/max-words/smart-page-split panel; styles apply to main/two-thirds, stage/chords fixed; 1080p coverage estimate avoids overflow |
+| Display config | Live-page font/colour/size/max-lines/max-words/smart-page-split panel; styles apply to lower-third/centered two-thirds, stage/chords fixed; 1080p coverage estimate avoids overflow |
 | Fonts/settings | Settings page imports Google Fonts by family/URL; CSS and woff2 cached in `/data/fonts`; ChurchSuite credential status and connection test; Git repository status plus runtime auto-commit/auto-push/pull-interval/merge settings; configurable live keyboard shortcuts; global page-boundary navigation setting |
 | ChurchSuite | Planning API credentials and connection test; dedicated ChurchSuite page lists published/draft plans by date, previews service items, matches local songs by title/alternative title and creates draft set lists with text placeholders for unmatched service items |
 | Export/import | Reference JSON and self-contained ZIP bundles (songs/text/assets); preview then import as a new draft, with song matching by CCLI/title |

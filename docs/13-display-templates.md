@@ -6,7 +6,7 @@ Immediate changes implemented on 2026-11-10.
 
 | Role | Canonical route | Aliases | Chords |
 | --- | --- | --- | --- |
-| Lower-third / main (`twothirds`) | `/display/twothirds` | `/display/main`, `/display/lower`, `/obs-main`, `/obs-lower`, `/obs-twothirds` | hidden |
+| Lower-third / main (`lowerthird`) | `/display/lowerthird` | `/display/twothirds`, `/display/main`, `/display/lower`, `/obs-main`, `/obs-lower`, `/obs-lowerthird`, `/obs-twothirds` | hidden |
 | Centered two-thirds | `/display/two-thirds` | `/display/two_thirds`, `/obs-two-thirds` | hidden |
 | Full screen (`full`) | `/display/full` | `/display/fullscreen`, `/display/mainfull`, `/obs-mainfull`, `/obs-fullscreen` | hidden |
 | Stage monitor | `/display/stage` | `/obs-stage` | visible |
@@ -14,7 +14,7 @@ Immediate changes implemented on 2026-11-10.
 
 All routes take the usual `?token=…` output token.
 
-Template lookup accepts the new aliases: `twothirds`/`lower` for the main role and `fullscreen`/`mainfull` for the full role. Existing `main`/`full` template filenames still work.
+Template lookup accepts the new aliases: `lowerthird`/`twothirds`/`lower` for the main role and `fullscreen`/`mainfull` for the full role. Existing `main`/`full` template filenames still work.
 
 ## 2. Templating
 
@@ -126,9 +126,9 @@ A **Display config** panel on the Live page controls:
 
 Scope:
 
-- Font, colour and size apply **only to main and two-thirds** (and `full`, which shares the two-thirds style).
-- **Stage and chords always keep their fixed styling**, regardless of the main/two-thirds config.
-- **Stage and chords show the current page at the top and all following pages of the current queue below it**, so musicians can see what is coming next. The content area scrolls if needed; main/two-thirds/full show only the current page.
+- Font, colour and size apply **only to the lower-third and centered two-thirds** (and `full`, which shares the two-thirds style).
+- **Stage and chords always keep their fixed styling**, regardless of the lower-third/centered two-thirds config.
+- **Stage and chords show the current page at the top and all following pages of the current queue below it**, so musicians can see what is coming next. The content area scrolls if needed; lower-third/centered two-thirds/full show only the current page.
 - Page splitting (max lines, max words, smart estimates) is shared by all outputs; `<!-- page -->` / `<!--- page --->` / `<hr class="page-break">` markers force additional breaks.
 - Settings persist in the database and are broadcast to outputs immediately.
 - The **Show** button reveals a blank screen. **Selecting a page** shows and fades it in; **selecting a set-list item** only queues its page list and leaves the current output unchanged.
@@ -139,7 +139,7 @@ Songs can opt into **inline Markdown styling** metadata. Supported tags include 
 
 - Main/two-thirds (and full) render the styling.
 - Stage and chords **ignore** the styling, showing plain text.
-- SongSelect/SongPro split words like `can - not` or `sat - is - fied` are wrapped in `.lyric-split` spans. CSS hides those separators on main/two-thirds/full/stage (so the words join to `cannot` / `satisfied`) and keeps them visible in the chords view.
+- SongSelect/SongPro split words like `can - not` or `sat - is - fied` are wrapped in `.lyric-split` spans. CSS hides those separators on lower-third/centered two-thirds/full/stage (so the words join to `cannot` / `satisfied`) and keeps them visible in the chords view.
 
 ## 4.2 Imported Google Fonts
 

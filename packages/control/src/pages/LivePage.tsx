@@ -174,7 +174,12 @@ export default function LivePage({
               <option value="rehearsal">Rehearsal</option>
             </select>
           </label>
-          <button className="button primary" disabled={!selected || starting} onClick={start}>
+          <button
+            className="button primary"
+            disabled={!selected || starting}
+            onClick={start}
+            title="Start a live or rehearsal session with the selected set list"
+          >
             {starting ? "Starting…" : "Start session"}
           </button>
         </div>
@@ -217,7 +222,11 @@ export default function LivePage({
                 if (event.key === "Enter") onCommand({ type: "footer", text: footer });
               }}
             />
-            <button className="button ghost" onClick={() => onCommand({ type: "footer", text: footer })}>
+            <button
+              className="button ghost"
+              onClick={() => onCommand({ type: "footer", text: footer })}
+              title="Apply this footer text to the live outputs"
+            >
               Set
             </button>
           </div>
@@ -258,9 +267,14 @@ export default function LivePage({
         <div className="panel-heading">
           <div>
             <h2>Display config</h2>
-            <p className="muted">Applies to main and two-thirds. Stage and chords keep their fixed style.</p>
+            <p className="muted">Applies to the lower-third and centered two-thirds views. Stage and chords keep their fixed style.</p>
           </div>
-          <button className="button primary" onClick={saveConfig} disabled={configSaving}>
+          <button
+            className="button primary"
+            onClick={saveConfig}
+            disabled={configSaving}
+            title="Save and broadcast the display style/page-splitting settings"
+          >
             {configSaving ? "Saving…" : "Save display config"}
           </button>
         </div>

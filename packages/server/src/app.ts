@@ -108,6 +108,7 @@ export async function buildApp(): Promise<{ app: FastifyInstance; io: Server }> 
   const displayPages: Record<string, string> = {
     main: "main.html",
     lower: "main.html",
+    lowerthird: "main.html",
     twothirds: "main.html",
     "two-thirds": "two-thirds.html",
     two_thirds: "two-thirds.html",
@@ -127,6 +128,7 @@ export async function buildApp(): Promise<{ app: FastifyInstance; io: Server }> 
 
   app.get("/obs-main", async (_request, reply) => sendHtml(reply, path.join(DISPLAY_DIR, "main.html")));
   app.get("/obs-lower", async (_request, reply) => sendHtml(reply, path.join(DISPLAY_DIR, "main.html")));
+  app.get("/obs-lowerthird", async (_request, reply) => sendHtml(reply, path.join(DISPLAY_DIR, "main.html")));
   app.get("/obs-twothirds", async (_request, reply) => sendHtml(reply, path.join(DISPLAY_DIR, "main.html")));
   app.get("/obs-mainfull", async (_request, reply) => sendHtml(reply, path.join(DISPLAY_DIR, "full.html")));
   app.get("/obs-fullscreen", async (_request, reply) => sendHtml(reply, path.join(DISPLAY_DIR, "full.html")));
