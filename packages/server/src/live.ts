@@ -12,6 +12,7 @@ import { db } from "./db.js";
 import { buildPages, type RenderItem } from "./render.js";
 import { resolveTemplates } from "./templates.js";
 import { getDisplayConfig } from "./display-config.js";
+import { getAppSettings } from "./settings.js";
 
 interface SnapshotItem extends RenderItem {
   itemId: string | null;
@@ -462,6 +463,27 @@ class LiveService {
         break;
       case "page": {
         const delta = Number(command.delta ?? 0);
+        const settings = getAppSettings();
+        if (settings.pageNavigation === "next-item" && Math.abs(delta) === 1) {
+          const lastPage = Math.max(0, state.pageCount - 1);
+          if (delta > 0 && state.pageIndex >= lastPage) {
+            const nextItem = state.itemIndex + 1;
+            if (nextItem >= 0 && nextItem < this.active.items.length) {
+              this.setItem(nextItem);
+              state.blank = false;
+              break;
+            }
+          }
+          if (delta < 0 && state.pageIndex <= 0) {
+            const previousItem = state.itemIndex - 1;
+            if (previousItem >= 0 && previousItem < this.active.items.length) {
+              this.setItem(previousItem);
+              state.pageIndex = Math.max(0, state.pageCount - 1);
+              state.blank = false;
+              break;
+            }
+          }
+        }
         this.setPage(state.pageIndex + delta);
         break;
       }

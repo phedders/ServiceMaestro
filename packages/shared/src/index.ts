@@ -142,6 +142,10 @@ export interface FontOption {
   importedAt: string | null;
 }
 
+export interface AppSettings {
+  pageNavigation: "stop" | "next-item";
+}
+
 export interface LiveState {
   sessionId: string;
   setlistId: string | null;
@@ -390,6 +394,10 @@ export const fontImportSchema = z
   .refine((value) => Boolean(value.family || value.url), {
     message: "family or url is required",
   });
+
+export const appSettingsSchema = z.object({
+  pageNavigation: z.enum(["stop", "next-item"]).default("stop"),
+});
 
 export const dashboardLayoutSchema = z.object({  version: z.literal(1),
   layouts: z.object({

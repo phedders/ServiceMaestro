@@ -21,6 +21,7 @@ import { assetRoutes } from "./routes/assets.js";
 import { transferRoutes } from "./routes/transfer.js";
 import { fontRoutes } from "./routes/fonts.js";
 import { churchsuiteRoutes } from "./routes/churchsuite.js";
+import { settingsRoutes } from "./routes/settings.js";
 import {
   exportAllToGit,
   gitStatus,
@@ -88,6 +89,7 @@ export async function buildApp(): Promise<{ app: FastifyInstance; io: Server }> 
   await app.register(transferRoutes);
   await app.register(fontRoutes);
   await app.register(churchsuiteRoutes);
+  await app.register(settingsRoutes);
 
   app.get("/", async (_request, reply) => sendHtml(reply, path.join(CONTROL_DIST, "index.html")));
   app.get("/login", async (_request, reply) => sendHtml(reply, path.join(CONTROL_DIST, "index.html")));

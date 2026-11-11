@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { KeyboardEvent as ReactKeyboardEvent } from "react";
-import type { FontOption } from "@wlm/shared";
+import type { AppSettings, FontOption } from "@wlm/shared";
 import { api, ApiError } from "../api";
 import {
   DEFAULT_SHORTCUTS,
@@ -31,6 +31,8 @@ export default function ConfigPage({
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<string | null>(null);
   const [shortcuts, setShortcuts] = useState<KeyboardShortcuts>(loadKeyboardShortcuts);
+  const [settings, setSettings] = useState<AppSettings>({ pageNavigation: "stop" });
+  const [savingSettings, setSavingSettings] = useState(false);
 
   async function loadFonts() {
     setLoadingFonts(true);
@@ -49,6 +51,10 @@ export default function ConfigPage({
     api
       .churchsuiteStatus()
       .then((result) => setChurchsuite(result.status))
+      .catch(() => undefined);
+    api
+      .settings()
+      .then((result) => setSettings(result.settings))
       .catch(() => undefined);
   }, []);
 
@@ -130,6 +136,21 @@ export default function ConfigPage({
     notify("Keyboard shortcuts reset to defaults");
   }
 
+  async function updatePageNavigation(value: AppSettings["pageNavigation"]) {
+    const next = { ...settings, pageNavigation: value };
+    setSettings(next);
+    setSavingSettings(true);
+    try {
+      const result = await api.saveSettings(next);
+      setSettings(result.settings);
+      notify("Live navigation setting saved");
+    } catch (error) {
+      notify(error instanceof ApiError ? error.message : "Could not save live navigation", "error");
+    } finally {
+      setSavingSettings(false);
+    }
+  }
+
   return (
     <div className="config-page">
       <section className="panel">
@@ -173,6 +194,37 @@ export default function ConfigPage({
           Defaults: <code>B</code> hide/show, <code>←</code>/<code>→</code> pages,{" "}
           <code>↑</code>/<code>↓</code> set-list items. Press a field and then the desired key
           combination; Backspace or Delete clears it.
+        </p>
+      </section>
+
+      <section className="panel">
+        <div className="panel-heading">
+          <div>
+            <h2>Live navigation</h2>
+            <p className="muted">
+              Choose what happens when the previous/next page shortcut reaches the first or final
+              page of the current set-list item.
+            </p>
+          </div>
+          {savingSettings && <span className="muted">Saving…</span>}
+        </div>
+        <label>
+          At the first/final page
+          <select
+            value={settings.pageNavigation}
+            onChange={(event) =>
+              updatePageNavigation(event.target.value as AppSettings["pageNavigation"])
+            }
+            disabled={savingSettings}
+          >
+            <option value="stop">Stop at the page boundary (default)</option>
+            <option value="next-item">Continue to the previous/next set-list item</option>
+          </select>
+        </label>
+        <p className="hint">
+          “Continue” applies to the previous/next page keyboard shortcuts. Next at the final page
+          opens the next item’s first page; previous at the first page opens the previous item’s
+          last page. The setting is global for all operators.
         </p>
       </section>
 

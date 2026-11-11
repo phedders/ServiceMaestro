@@ -1,4 +1,5 @@
 import type {
+  AppSettings,
   BibleBook,
   BiblePassage,
   BibleTranslationInfo,
@@ -83,6 +84,13 @@ export const api = {
       body: JSON.stringify(payload),
     }),
   deleteFont: (id: string) => request<{ ok: true }>(`/api/fonts/${id}`, { method: "DELETE" }),
+
+  settings: () => request<{ settings: AppSettings }>("/api/settings"),
+  saveSettings: (settings: AppSettings) =>
+    request<{ settings: AppSettings }>("/api/settings", {
+      method: "PUT",
+      body: JSON.stringify(settings),
+    }),
 
   churchsuiteStatus: () =>
     request<{

@@ -124,6 +124,12 @@ db.exec(`
     created_at TEXT NOT NULL
   );
 
+  CREATE TABLE IF NOT EXISTS app_settings (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+
   CREATE TABLE IF NOT EXISTS song_verse_orders (
     id TEXT PRIMARY KEY,
     song_id TEXT NOT NULL REFERENCES songs(id) ON DELETE CASCADE,
@@ -187,6 +193,11 @@ db.prepare(
   1,
   new Date().toISOString(),
 );
+
+db.prepare(
+  `INSERT INTO app_settings (key, value, updated_at) VALUES ('page_navigation', 'stop', ?)
+   ON CONFLICT(key) DO NOTHING`,
+).run(new Date().toISOString());
 
 const admin = db.prepare("SELECT id FROM users WHERE role = 'admin' LIMIT 1").get() as
   | { id: string }

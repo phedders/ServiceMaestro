@@ -1,0 +1,22 @@
+import type { FastifyInstance } from "fastify";
+import { appSettingsSchema } from "@wlm/shared";
+import { requireAuth, requireRole } from "../auth.js";
+import { getAppSettings, saveAppSettings } from "../settings.js";
+
+export async function settingsRoutes(app: FastifyInstance): Promise<void> {
+  app.get("/api/settings", { preHandler: requireAuth }, async () => ({
+    settings: getAppSettings(),
+  }));
+
+  app.put(
+    "/api/settings",
+    { preHandler: [requireAuth, requireRole("admin", "editor")] },
+    async (request, reply) => {
+      const parsed = appSettingsSchema.safeParse(request.body);
+      if (!parsed.success) {
+        return reply.code(400).send({ error: "Invalid settings", issues: parsed.error.issues });
+      }
+      return { settings: saveAppSettings(parsed.data) };
+    },
+  );
+}
