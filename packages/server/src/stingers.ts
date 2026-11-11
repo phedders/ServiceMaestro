@@ -26,6 +26,12 @@ export const BUILTIN_STINGERS: Array<{
   { id: "stinger-diagonal-sweep", name: "Diagonal Sweep", kind: "svg", preset: "diagonal-sweep", durationMs: 1000 },
   { id: "stinger-liquid-morph", name: "Liquid Morph", kind: "svg", preset: "liquid-morph", durationMs: 1300 },
   { id: "stinger-glitch-mosaic", name: "Glitch Mosaic", kind: "svg", preset: "glitch-mosaic", durationMs: 900 },
+  { id: "stinger-prism-fold", name: "Prism Fold", kind: "svg", preset: "prism-fold", durationMs: 1050 },
+  { id: "stinger-neon-vortex", name: "Neon Vortex", kind: "svg", preset: "neon-vortex", durationMs: 1200 },
+  { id: "stinger-bubble-rise", name: "Bubble Rise", kind: "svg", preset: "bubble-rise", durationMs: 1250 },
+  { id: "stinger-pixel-cascade", name: "Pixel Cascade", kind: "svg", preset: "pixel-cascade", durationMs: 900 },
+  { id: "stinger-curtain-call", name: "Curtain Call", kind: "svg", preset: "curtain-call", durationMs: 1150 },
+  { id: "stinger-supernova", name: "Supernova", kind: "svg", preset: "supernova", durationMs: 950 },
 ];
 
 const KNOWN_PRESETS = new Map(BUILTIN_STINGERS.map((preset) => [preset.preset, preset]));
@@ -192,12 +198,217 @@ function glitchMosaic(durationMs: number): string {
   </svg>`;
 }
 
+function prismFold(durationMs: number): string {
+  const dur = durationStyle(durationMs);
+  return `<svg class="sm-stinger-fill" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+    <defs>
+      <linearGradient id="smStPrismL" x1="0" y1="0" x2="1" y2="0.7">
+        <stop offset="0" stop-color="#082f49"/>
+        <stop offset="0.55" stop-color="#0284c7"/>
+        <stop offset="1" stop-color="#67e8f9"/>
+      </linearGradient>
+      <linearGradient id="smStPrismR" x1="1" y1="0" x2="0" y2="0.7">
+        <stop offset="0" stop-color="#3b0764"/>
+        <stop offset="0.5" stop-color="#7c3aed"/>
+        <stop offset="1" stop-color="#f472b6"/>
+      </linearGradient>
+    </defs>
+    <g>
+      <animateTransform attributeName="transform" type="translate" values="-940 0;0 0;0 0;-940 0" keyTimes="0;0.43;0.60;1" dur="${dur}" repeatCount="indefinite"/>
+      <polygon points="0,0 980,0 840,900 0,900" fill="url(#smStPrismL)"/>
+      <polygon points="0,0 730,0 590,900 0,900" fill="#ffffff" opacity="0.07"/>
+      <path d="M180 0 L80 900 M360 0 L260 900 M540 0 L440 900" stroke="#ffffff" stroke-opacity="0.18" stroke-width="2"/>
+    </g>
+    <g>
+      <animateTransform attributeName="transform" type="translate" values="940 0;0 0;0 0;940 0" keyTimes="0;0.43;0.60;1" dur="${dur}" repeatCount="indefinite"/>
+      <polygon points="620,0 1600,0 1600,900 760,900" fill="url(#smStPrismR)"/>
+      <polygon points="870,0 1600,0 1600,900 1010,900" fill="#ffffff" opacity="0.07"/>
+      <path d="M1180 0 L1280 900 M1360 0 L1460 900 M1540 0 L1600 780" stroke="#ffffff" stroke-opacity="0.18" stroke-width="2"/>
+    </g>
+    <rect x="770" y="0" width="60" height="900" fill="#ffffff" opacity="0">
+      <animate attributeName="opacity" values="0;0.85;0.85;0" keyTimes="0;0.43;0.60;1" dur="${dur}" repeatCount="indefinite"/>
+    </rect>
+  </svg>`;
+}
+
+function neonVortex(durationMs: number): string {
+  const dur = durationStyle(durationMs);
+  const wedges = Array.from({ length: 24 }, (_, index) => {
+    const angle = (index / 24) * Math.PI * 2;
+    const half = Math.PI / 48;
+    const radius = 1180;
+    const x1 = 800 + Math.cos(angle - half) * radius;
+    const y1 = 450 + Math.sin(angle - half) * radius;
+    const x2 = 800 + Math.cos(angle + half) * radius;
+    const y2 = 450 + Math.sin(angle + half) * radius;
+    return `<polygon points="800,450 ${x1.toFixed(1)},${y1.toFixed(1)} ${x2.toFixed(1)},${y2.toFixed(1)}" fill="${index % 2 ? "#22d3ee" : "#a855f7"}" opacity="0.32"/>`;
+  }).join("");
+  return `<svg class="sm-stinger-fill" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+    <defs>
+      <radialGradient id="smStVortexCore" cx="0.5" cy="0.5" r="0.5">
+        <stop offset="0" stop-color="#67e8f9"/>
+        <stop offset="0.32" stop-color="#0e7490"/>
+        <stop offset="0.68" stop-color="#4c1d95"/>
+        <stop offset="1" stop-color="#020617"/>
+      </radialGradient>
+    </defs>
+    <circle cx="800" cy="450" r="0" fill="url(#smStVortexCore)">
+      <animate attributeName="r" values="0;1050;1050;0" keyTimes="0;0.43;0.60;1" dur="${dur}" repeatCount="indefinite"/>
+    </circle>
+    <g opacity="0">
+      <animate attributeName="opacity" values="0;0.9;0.9;0" keyTimes="0;0.43;0.60;1" dur="${dur}" repeatCount="indefinite"/>
+      <animateTransform attributeName="transform" type="rotate" values="0 800 450;360 800 450" dur="${dur}" repeatCount="indefinite"/>
+      ${wedges}
+      <circle cx="800" cy="450" r="430" fill="none" stroke="#e0f2fe" stroke-opacity="0.5" stroke-width="2" stroke-dasharray="8 22"/>
+      <circle cx="800" cy="450" r="660" fill="none" stroke="#67e8f9" stroke-opacity="0.28" stroke-width="2"/>
+    </g>
+    <circle cx="800" cy="450" r="0" fill="none" stroke="#ffffff" stroke-width="5" opacity="0">
+      <animate attributeName="r" values="0;760;760;0" keyTimes="0;0.43;0.60;1" dur="${dur}" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0;0.55;0.55;0" keyTimes="0;0.43;0.60;1" dur="${dur}" repeatCount="indefinite"/>
+    </circle>
+  </svg>`;
+}
+
+function bubbleRise(durationMs: number): string {
+  const dur = durationStyle(durationMs);
+  const colors = ["#0e7490", "#0284c7", "#0f766e", "#7c3aed", "#a21caf", "#db2777"];
+  const bubbles: string[] = [];
+  for (let row = 0; row < 6; row += 1) {
+    for (let col = 0; col < 10; col += 1) {
+      const index = row * 10 + col;
+      const x = 80 + col * 160;
+      const y = 80 + row * 160;
+      const radius = 120 + (index % 3) * 8;
+      bubbles.push(`<g>
+        <animateTransform attributeName="transform" type="translate" values="0 200;0 0;0 0;0 -220" keyTimes="0;0.43;0.60;1" dur="${dur}" repeatCount="indefinite"/>
+        <circle cx="${x}" cy="${y}" r="0" fill="${colors[index % colors.length]}" opacity="0.96">
+          <animate attributeName="r" values="0;${radius};${radius};0" keyTimes="0;0.43;0.60;1" dur="${dur}" repeatCount="indefinite"/>
+        </circle>
+        <circle cx="${x - radius * 0.28}" cy="${y - radius * 0.28}" r="0" fill="#ffffff" opacity="0.3">
+          <animate attributeName="r" values="0;${(radius * 0.18).toFixed(1)};${(radius * 0.18).toFixed(1)};0" keyTimes="0;0.43;0.60;1" dur="${dur}" repeatCount="indefinite"/>
+        </circle>
+      </g>`);
+    }
+  }
+  return `<svg class="sm-stinger-fill" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+    ${bubbles.join("")}
+  </svg>`;
+}
+
+function pixelCascade(durationMs: number): string {
+  const dur = durationStyle(durationMs);
+  const colors = ["#0f172a", "#0e7490", "#0369a1", "#4c1d95", "#7c3aed", "#9d174d", "#0f766e"];
+  const tiles: string[] = [];
+  const cols = 16;
+  const rows = 9;
+  const width = 1600 / cols;
+  const height = 900 / rows;
+  for (let row = 0; row < rows; row += 1) {
+    for (let col = 0; col < cols; col += 1) {
+      const start = (0.02 + ((col + row) / (cols + rows - 2)) * 0.2).toFixed(3);
+      const color = colors[(row * 3 + col) % colors.length];
+      tiles.push(
+        `<rect x="${col * width}" y="${row * height}" width="${width + 1}" height="${height + 1}" fill="${color}" opacity="0">
+          <animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;${start};0.42;0.60;1" dur="${dur}" repeatCount="indefinite"/>
+          <animateTransform attributeName="transform" type="translate" values="-60 -60;0 0;0 0;40 40" keyTimes="0;${start};0.60;1" dur="${dur}" repeatCount="indefinite"/>
+        </rect>`,
+      );
+    }
+  }
+  return `<svg class="sm-stinger-fill" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+    ${tiles.join("")}
+    <g fill="#ffffff" opacity="0">
+      <animate attributeName="opacity" values="0;0.9;0.9;0" keyTimes="0;0.42;0.60;1" dur="${dur}" repeatCount="indefinite"/>
+      <rect x="0" y="294" width="1600" height="8"/>
+      <rect x="0" y="594" width="1600" height="4"/>
+    </g>
+  </svg>`;
+}
+
+function curtainCall(durationMs: number): string {
+  const dur = durationStyle(durationMs);
+  return `<svg class="sm-stinger-fill" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+    <defs>
+      <linearGradient id="smStCurtainL" x1="0" y1="0" x2="1" y2="0.15">
+        <stop offset="0" stop-color="#27060f"/>
+        <stop offset="0.55" stop-color="#881337"/>
+        <stop offset="0.82" stop-color="#e11d48"/>
+        <stop offset="1" stop-color="#fda4af"/>
+      </linearGradient>
+      <linearGradient id="smStCurtainR" x1="1" y1="0" x2="0" y2="0.15">
+        <stop offset="0" stop-color="#27060f"/>
+        <stop offset="0.55" stop-color="#881337"/>
+        <stop offset="0.82" stop-color="#e11d48"/>
+        <stop offset="1" stop-color="#fda4af"/>
+      </linearGradient>
+    </defs>
+    <g>
+      <animateTransform attributeName="transform" type="translate" values="-860 0;0 0;0 0;-860 0" keyTimes="0;0.43;0.60;1" dur="${dur}" repeatCount="indefinite"/>
+      <rect x="0" y="0" width="840" height="900" fill="url(#smStCurtainL)"/>
+      <path d="M120 0 C190 220 150 520 230 900 M330 0 C280 260 360 600 300 900 M520 0 C590 300 520 620 610 900" fill="none" stroke="#ffffff" stroke-opacity="0.1" stroke-width="26"/>
+      <rect x="0" y="0" width="840" height="900" fill="url(#smStCurtainL)" opacity="0.28"/>
+    </g>
+    <g>
+      <animateTransform attributeName="transform" type="translate" values="860 0;0 0;0 0;860 0" keyTimes="0;0.43;0.60;1" dur="${dur}" repeatCount="indefinite"/>
+      <rect x="760" y="0" width="840" height="900" fill="url(#smStCurtainR)"/>
+      <path d="M1480 0 C1410 220 1450 520 1370 900 M1270 0 C1320 260 1240 600 1300 900 M1080 0 C1010 300 1080 620 990 900" fill="none" stroke="#ffffff" stroke-opacity="0.1" stroke-width="26"/>
+      <rect x="760" y="0" width="840" height="900" fill="url(#smStCurtainR)" opacity="0.28"/>
+    </g>
+    <rect x="786" y="0" width="28" height="900" fill="#facc15" opacity="0">
+      <animate attributeName="opacity" values="0;0.92;0.92;0" keyTimes="0;0.43;0.60;1" dur="${dur}" repeatCount="indefinite"/>
+    </rect>
+  </svg>`;
+}
+
+function supernova(durationMs: number): string {
+  const dur = durationStyle(durationMs);
+  const rays = Array.from({ length: 32 }, (_, index) => {
+    const angle = (index / 32) * Math.PI * 2;
+    const half = Math.PI / 64;
+    const radius = 1200;
+    const x1 = 800 + Math.cos(angle - half) * radius;
+    const y1 = 450 + Math.sin(angle - half) * radius;
+    const x2 = 800 + Math.cos(angle + half) * radius;
+    const y2 = 450 + Math.sin(angle + half) * radius;
+    return `<polygon points="800,450 ${x1.toFixed(1)},${y1.toFixed(1)} ${x2.toFixed(1)},${y2.toFixed(1)}" fill="${index % 2 ? "#fbbf24" : "#fb7185"}" opacity="0.34"/>`;
+  }).join("");
+  return `<svg class="sm-stinger-fill" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+    <defs>
+      <radialGradient id="smStNovaCore" cx="0.5" cy="0.5" r="0.5">
+        <stop offset="0" stop-color="#fffbeb"/>
+        <stop offset="0.22" stop-color="#fde047"/>
+        <stop offset="0.48" stop-color="#fb923c"/>
+        <stop offset="0.74" stop-color="#be123c"/>
+        <stop offset="1" stop-color="#3b0764"/>
+      </radialGradient>
+    </defs>
+    <circle cx="800" cy="450" r="0" fill="url(#smStNovaCore)">
+      <animate attributeName="r" values="0;1050;1050;0" keyTimes="0;0.43;0.60;1" dur="${dur}" repeatCount="indefinite"/>
+    </circle>
+    <g opacity="0">
+      <animate attributeName="opacity" values="0;0.95;0.95;0" keyTimes="0;0.42;0.60;1" dur="${dur}" repeatCount="indefinite"/>
+      <animateTransform attributeName="transform" type="rotate" values="-20 800 450;40 800 450" dur="${dur}" repeatCount="indefinite"/>
+      ${rays}
+    </g>
+    <circle cx="800" cy="450" r="0" fill="#ffffff" opacity="0">
+      <animate attributeName="r" values="0;250;250;0" keyTimes="0;0.43;0.60;1" dur="${dur}" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0;0.95;0.95;0" keyTimes="0;0.43;0.60;1" dur="${dur}" repeatCount="indefinite"/>
+    </circle>
+  </svg>`;
+}
+
 function renderPreset(preset: string, durationMs: number): string {
   if (preset === "iris-bloom") return irisBloom(durationMs);
   if (preset === "shutter-split") return shutterSplit(durationMs);
   if (preset === "diagonal-sweep") return diagonalSweep(durationMs);
   if (preset === "liquid-morph") return liquidMorph(durationMs);
   if (preset === "glitch-mosaic") return glitchMosaic(durationMs);
+  if (preset === "prism-fold") return prismFold(durationMs);
+  if (preset === "neon-vortex") return neonVortex(durationMs);
+  if (preset === "bubble-rise") return bubbleRise(durationMs);
+  if (preset === "pixel-cascade") return pixelCascade(durationMs);
+  if (preset === "curtain-call") return curtainCall(durationMs);
+  if (preset === "supernova") return supernova(durationMs);
   return `<svg class="sm-stinger-fill" viewBox="0 0 1600 900" aria-hidden="true"></svg>`;
 }
 
