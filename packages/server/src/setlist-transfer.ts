@@ -33,7 +33,7 @@ const songSchema = z.object({
 
 const itemSchema = z.object({
   position: z.number().int().min(0),
-  kind: z.enum(["song", "text", "image", "image_list"]),
+  kind: z.enum(["song", "text", "image", "image_list", "tarp"]),
   title: z.string(),
   songId: z.string().optional().nullable(),
   keyOverride: z.string().nullable().optional(),
@@ -187,7 +187,7 @@ export function buildSetlistExport(
   const rows = db
     .prepare("SELECT * FROM setlist_items WHERE setlist_id = ? ORDER BY position ASC, rowid ASC")
     .all(setlistId) as Array<{
-    kind: "song" | "text" | "image" | "image_list";
+    kind: "song" | "text" | "image" | "image_list" | "tarp";
     song_id: string | null;
     title: string;
     content: string | null;
@@ -262,7 +262,7 @@ export function buildSetlistExport(
         assetIds,
       };
     }
-    if (row.kind === "image" || row.kind === "image_list") {
+    if (row.kind === "image" || row.kind === "image_list" || row.kind === "tarp") {
       return {
         position: index,
         kind: row.kind,
@@ -480,7 +480,7 @@ export function importSetlistFile(
       randomUUID(),
       setlistId,
       item.position,
-      item.kind === "image" || item.kind === "image_list"
+      item.kind === "image" || item.kind === "image_list" || item.kind === "tarp"
         ? item.kind
         : songId
           ? "song"

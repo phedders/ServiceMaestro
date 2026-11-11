@@ -196,7 +196,13 @@ export default function MusiciansPage({
                         title={`Show lyrics, scores and tabs for “${item.title}”`}
                       >
                         <span className={`item-icon ${item.kind}`}>
-                          {item.kind === "song" ? "♫" : item.kind === "image_list" ? "▦" : "T"}
+                          {item.kind === "song"
+                            ? "♫"
+                            : item.kind === "image_list"
+                              ? "▦"
+                              : item.kind === "tarp"
+                                ? "✦"
+                                : "T"}
                         </span>
                         <span>
                           <strong>{item.title}</strong>
@@ -205,7 +211,9 @@ export default function MusiciansPage({
                               ? "Song"
                               : item.kind === "image_list"
                                 ? "Image list"
-                                : "Text"}
+                                : item.kind === "tarp"
+                                  ? "Tarp"
+                                  : "Text"}
                             {key ? ` · key ${key}` : ""}
                             {item.transpose ? ` · transpose ${item.transpose > 0 ? "+" : ""}${item.transpose}` : ""}
                             {songAssets.length ? ` · ${songAssets.length} file${songAssets.length === 1 ? "" : "s"}` : ""}
@@ -258,6 +266,8 @@ export default function MusiciansPage({
                               {parseImageListContent(item.content)?.images.length ?? 0} images in this
                               image list. View it on a display.
                             </p>
+                          ) : item.kind === "tarp" ? (
+                            <p className="muted">Tarp presentation. View it on a display.</p>
                           ) : (
                             <pre className="lyrics-view">{item.content}</pre>
                           )}

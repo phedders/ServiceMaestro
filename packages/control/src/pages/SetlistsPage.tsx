@@ -1,7 +1,12 @@
 import { useEffect, useState } from "react";
 import {
   parseImageListContent,
+  parseTarpItemContent,
   serializeImageListContent,
+  serializeTarpItemContent,
+  type BibleBook,
+  type BiblePassage,
+  type BibleTranslationInfo,
   type ImageAsset,
   type LiveState,
   type SetlistDetail,
@@ -11,6 +16,7 @@ import {
   type SetlistRevisionInfo,
   type SetlistSummary,
   type Song,
+  type TarpPresentationSummary,
   type TextFormat,
 } from "@sm/shared";
 import { api, ApiError } from "../api";
@@ -54,6 +60,7 @@ function itemKindLabel(kind: SetlistItem["kind"]): string {
   if (kind === "song") return "Song";
   if (kind === "image") return "Image";
   if (kind === "image_list") return "Image list";
+  if (kind === "tarp") return "Tarp";
   return "Text";
 }
 
@@ -61,6 +68,7 @@ function itemIcon(kind: SetlistItem["kind"]): string {
   if (kind === "song") return "♫";
   if (kind === "image") return "▣";
   if (kind === "image_list") return "▦";
+  if (kind === "tarp") return "✦";
   return "T";
 }
 
@@ -127,6 +135,7 @@ function ItemRow({
   item,
   song,
   images,
+  tarpPresentations,
   onUploadImage,
   first,
   last,
@@ -145,6 +154,7 @@ function ItemRow({
   item: SetlistItem;
   song: Song | undefined;
   images: ImageAsset[];
+  tarpPresentations: TarpPresentationSummary[];
   onUploadImage: (file: File) => Promise<ImageAsset>;
   first: boolean;
   last: boolean;
@@ -176,6 +186,11 @@ function ItemRow({
   const [listAutoplay, setListAutoplay] = useState(initialImageList?.autoplay ?? false);
   const [listLoop, setListLoop] = useState(initialImageList?.loop ?? true);
   const [listDelay, setListDelay] = useState(initialImageList?.delaySeconds ?? 6);
+  const initialTarp = parseTarpItemContent(item.content);
+  const [tarpPresentationId, setTarpPresentationId] = useState(initialTarp?.presentationId ?? "");
+  const [tarpAutoplay, setTarpAutoplay] = useState(initialTarp?.autoplay ?? false);
+  const [tarpLoop, setTarpLoop] = useState(initialTarp?.loop ?? true);
+  const [tarpDelay, setTarpDelay] = useState(initialTarp?.delaySeconds ?? 6);
   const [keyOverride, setKeyOverride] = useState(item.keyOverride ?? "");
   const [transpose, setTranspose] = useState(item.transpose);
   const [verseOrder, setVerseOrder] = useState(item.verseOrder ?? "");
@@ -196,6 +211,11 @@ function ItemRow({
     setListAutoplay(nextImageList?.autoplay ?? false);
     setListLoop(nextImageList?.loop ?? true);
     setListDelay(nextImageList?.delaySeconds ?? 6);
+    const nextTarp = parseTarpItemContent(item.content);
+    setTarpPresentationId(nextTarp?.presentationId ?? "");
+    setTarpAutoplay(nextTarp?.autoplay ?? false);
+    setTarpLoop(nextTarp?.loop ?? true);
+    setTarpDelay(nextTarp?.delaySeconds ?? 6);
     setContent(item.kind === "song" ? item.content ?? song?.lyrics ?? "" : next.content);
     setKeyOverride(item.keyOverride ?? "");
     setTranspose(item.transpose);
@@ -209,7 +229,9 @@ function ItemRow({
   const displayTitle = item.title || song?.title || "Untitled";
   const localSongEdit =
     item.kind === "song" && (item.content != null || (song != null && item.title !== song.title));
-  const preview = item.kind === "image_list" ? "" : previewLines(item, song);
+  const preview =
+    item.kind === "image_list" || item.kind === "tarp" ? "" : previewLines(item, song);
+  const tarpSummary = item.kind === "tarp" ? initialTarp : null;
   const imageListPreview = initialImageList;
   const listImages = imagesForFolder(images, listFolder);
 
@@ -224,6 +246,11 @@ function ItemRow({
     setListAutoplay(nextImageList?.autoplay ?? false);
     setListLoop(nextImageList?.loop ?? true);
     setListDelay(nextImageList?.delaySeconds ?? 6);
+    const nextTarp = parseTarpItemContent(item.content);
+    setTarpPresentationId(nextTarp?.presentationId ?? "");
+    setTarpAutoplay(nextTarp?.autoplay ?? false);
+    setTarpLoop(nextTarp?.loop ?? true);
+    setTarpDelay(nextTarp?.delaySeconds ?? 6);
     setContent(item.kind === "song" ? item.content ?? song?.lyrics ?? "" : next.content);
     setKeyOverride(item.keyOverride ?? "");
     setTranspose(item.transpose);
@@ -270,6 +297,22 @@ function ItemRow({
           delaySeconds: listDelay,
         }),
         imageFit,
+        notes: notes || null,
+      };
+    }
+    if (item.kind === "tarp") {
+      if (!tarpPresentationId) throw new Error("Choose a Tarp presentation");
+      return {
+        title:
+          title.trim() ||
+          tarpPresentations.find((presentation) => presentation.id === tarpPresentationId)?.name ||
+          "Tarp",
+        content: serializeTarpItemContent({
+          presentationId: tarpPresentationId,
+          autoplay: tarpAutoplay,
+          loop: tarpAutoplay ? tarpLoop : true,
+          delaySeconds: tarpDelay,
+        }),
         notes: notes || null,
       };
     }
@@ -386,9 +429,20 @@ function ItemRow({
                 : "Autoplay off · advance manually"}
             </span>
           )}
-          {!editing && preview && item.kind !== "image" && item.kind !== "image_list" && (
-            <span className="setlist-item-preview">{preview}</span>
+          {!editing && item.kind === "tarp" && tarpSummary && (
+            <span className="setlist-item-preview">
+              {tarpSummary.autoplay
+                ? `Autoplay every ${tarpSummary.delaySeconds}s${tarpSummary.loop ? " · looping" : ""}`
+                : "Autoplay off · advance manually"}
+            </span>
           )}
+          {!editing &&
+            preview &&
+            item.kind !== "image" &&
+            item.kind !== "image_list" &&
+            item.kind !== "tarp" && (
+              <span className="setlist-item-preview">{preview}</span>
+            )}
         </button>
         <div className="setlist-item-actions">
           <button
@@ -434,7 +488,9 @@ function ItemRow({
                   ? "Edit image"
                   : item.kind === "image_list"
                     ? "Edit image list"
-                    : "Edit text"}
+                    : item.kind === "tarp"
+                      ? "Edit Tarp item"
+                      : "Edit text"}
             </strong>
             {item.kind === "song" && (
               <span className="muted">
@@ -590,6 +646,78 @@ function ItemRow({
               <p className="hint">
                 {listImages.length} image{listImages.length === 1 ? "" : "s"} selected
                 {listImages.length === 0 ? " — choose a folder with images" : ""}.
+              </p>
+              <label>
+                Notes
+                <input
+                  value={notes}
+                  onChange={(event) => setNotes(event.target.value)}
+                  placeholder="Optional"
+                />
+              </label>
+            </>
+          )}
+          {item.kind === "tarp" && (
+            <>
+              <label>
+                Presentation
+                <select
+                  value={tarpPresentationId}
+                  onChange={(event) => {
+                    const id = event.target.value;
+                    setTarpPresentationId(id);
+                    if (!title.trim()) {
+                      const presentation = tarpPresentations.find((entry) => entry.id === id);
+                      if (presentation) setTitle(presentation.name);
+                    }
+                  }}
+                >
+                  <option value="">Choose a Tarp presentation…</option>
+                  {tarpPresentations.map((presentation) => (
+                    <option key={presentation.id} value={presentation.id}>
+                      {presentation.name} · {presentation.pageCount} page
+                      {presentation.pageCount === 1 ? "" : "s"}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <div className="image-list-options">
+                <label className="checkbox">
+                  <input
+                    type="checkbox"
+                    checked={tarpAutoplay}
+                    onChange={(event) => {
+                      setTarpAutoplay(event.target.checked);
+                      if (!event.target.checked) setTarpLoop(true);
+                    }}
+                  />
+                  Autoplay
+                </label>
+                <label className={`checkbox ${tarpAutoplay ? "" : "disabled"}`}>
+                  <input
+                    type="checkbox"
+                    checked={!tarpAutoplay || tarpLoop}
+                    disabled={!tarpAutoplay}
+                    onChange={(event) => setTarpLoop(event.target.checked)}
+                  />
+                  Loop
+                </label>
+                <label>
+                  Delay (seconds)
+                  <input
+                    type="number"
+                    min={1}
+                    max={300}
+                    value={tarpDelay}
+                    onChange={(event) =>
+                      setTarpDelay(Math.max(1, Math.min(300, Number(event.target.value) || 6)))
+                    }
+                  />
+                </label>
+              </div>
+              <p className="hint">
+                Tarp items use the referenced presentation&apos;s pages. Display rendering is coming
+                in the next Tarp output section.
               </p>
               <label>
                 Notes
@@ -763,6 +891,9 @@ export default function SetlistsPage({
   const [serviceTime, setServiceTime] = useState("");
   const [notes, setNotes] = useState("");
 
+  const [addKind, setAddKind] = useState<
+    "song" | "text" | "bible" | "image" | "image_list" | "tarp"
+  >("song");
   const [songToAdd, setSongToAdd] = useState("");
   const [imageToAdd, setImageToAdd] = useState("");
   const [imageTitle, setImageTitle] = useState("");
@@ -772,6 +903,21 @@ export default function SetlistsPage({
   const [imageListAutoplay, setImageListAutoplay] = useState(false);
   const [imageListLoop, setImageListLoop] = useState(true);
   const [imageListDelay, setImageListDelay] = useState(6);
+  const [tarpPresentations, setTarpPresentations] = useState<TarpPresentationSummary[]>([]);
+  const [tarpToAdd, setTarpToAdd] = useState("");
+  const [tarpTitle, setTarpTitle] = useState("");
+  const [tarpAutoplay, setTarpAutoplay] = useState(false);
+  const [tarpLoop, setTarpLoop] = useState(true);
+  const [tarpDelay, setTarpDelay] = useState(6);
+  const [bibleTranslations, setBibleTranslations] = useState<BibleTranslationInfo[]>([]);
+  const [bibleTranslation, setBibleTranslation] = useState("");
+  const [bibleBooks, setBibleBooks] = useState<BibleBook[]>([]);
+  const [bibleBook, setBibleBook] = useState(1);
+  const [bibleChapter, setBibleChapter] = useState(1);
+  const [biblePassage, setBiblePassage] = useState<BiblePassage | null>(null);
+  const [bibleFrom, setBibleFrom] = useState(1);
+  const [bibleTo, setBibleTo] = useState(1);
+  const [bibleIncludeReference, setBibleIncludeReference] = useState(true);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [songSearch, setSongSearch] = useState("");
   const [songSearchFields, setSongSearchFields] = useState({
@@ -815,7 +961,57 @@ export default function SetlistsPage({
     });
     api.songs().then((result) => setSongs(result.songs)).catch(() => undefined);
     api.images().then((result) => setImages(result.images)).catch(() => undefined);
+    api
+      .tarpPresentations()
+      .then((result) => setTarpPresentations(result.presentations))
+      .catch(() => undefined);
   }, []);
+
+  useEffect(() => {
+    if (addKind !== "bible" || bibleTranslations.length) return;
+    api
+      .bibleTranslations()
+      .then((result) => {
+        setBibleTranslations(result.translations);
+        if (result.translations[0]) setBibleTranslation(result.translations[0].code);
+        if (!result.translations.length) {
+          notify("No Bible translations found in the Bible folder", "error");
+        }
+      })
+      .catch((error) =>
+        notify(error instanceof ApiError ? error.message : "Could not load translations", "error"),
+      );
+  }, [addKind, bibleTranslations.length]);
+
+  useEffect(() => {
+    if (!bibleTranslation) return;
+    api
+      .bibleBooks(bibleTranslation)
+      .then((result) => {
+        setBibleBooks(result.books);
+        const first = result.books[0];
+        if (first) {
+          setBibleBook(first.number);
+          setBibleChapter(1);
+        }
+      })
+      .catch(() => undefined);
+  }, [bibleTranslation]);
+
+  useEffect(() => {
+    if (!bibleTranslation || !bibleBook || !bibleChapter) return;
+    setBiblePassage(null);
+    api
+      .bibleChapter(bibleTranslation, bibleBook, bibleChapter)
+      .then((result) => {
+        setBiblePassage(result.passage);
+        const first = result.passage.verses[0]?.number ?? 1;
+        const last = result.passage.verses.at(-1)?.number ?? first;
+        setBibleFrom(first);
+        setBibleTo(last);
+      })
+      .catch(() => undefined);
+  }, [bibleTranslation, bibleBook, bibleChapter]);
 
   async function uploadImage(file: File, folder = "setlists"): Promise<ImageAsset> {
     const result = await api.uploadImage(file, folder);
@@ -917,6 +1113,71 @@ export default function SetlistsPage({
     } catch (error) {
       notify(error instanceof ApiError ? error.message : "Could not add image list", "error");
     }
+  }
+
+  async function addTarp() {
+    if (!detail || !tarpToAdd) return;
+    const presentation = tarpPresentations.find((entry) => entry.id === tarpToAdd);
+    try {
+      const result = await api.addItem(detail.id, {
+        kind: "tarp",
+        title: tarpTitle.trim() || presentation?.name || "Tarp",
+        content: serializeTarpItemContent({
+          presentationId: tarpToAdd,
+          autoplay: tarpAutoplay,
+          loop: tarpAutoplay ? tarpLoop : true,
+          delaySeconds: tarpDelay,
+        }),
+      });
+      setDetail(result.setlist);
+      setTarpToAdd("");
+      setTarpTitle("");
+      setTarpAutoplay(false);
+      setTarpLoop(true);
+      setTarpDelay(6);
+      await loadList(detail.id);
+    } catch (error) {
+      notify(error instanceof ApiError ? error.message : "Could not add Tarp item", "error");
+    }
+  }
+
+  function bibleReference(): string {
+    if (!biblePassage) return "";
+    return `${biblePassage.bookName} ${biblePassage.chapter}:${bibleFrom}${
+      bibleTo !== bibleFrom ? `–${bibleTo}` : ""
+    } (${biblePassage.translationName})`;
+  }
+
+  async function addBible() {
+    if (!detail || !biblePassage) return;
+    const verses = biblePassage.verses.filter(
+      (verse) => verse.number >= bibleFrom && verse.number <= bibleTo,
+    );
+    if (!verses.length) return;
+    const reference = bibleReference();
+    const body = verses.map((verse) => verse.text).join("\n");
+    try {
+      const result = await api.addItem(detail.id, {
+        kind: "text",
+        title: reference || "Bible passage",
+        content: bibleIncludeReference ? `${reference}\n${body}` : body,
+        format: "text",
+      });
+      setDetail(result.setlist);
+      await loadList(detail.id);
+    } catch (error) {
+      notify(error instanceof ApiError ? error.message : "Could not add Bible passage", "error");
+    }
+  }
+
+  function addSelectedItem() {
+    if (!canAddSelected) return;
+    if (addKind === "song") void addSong();
+    else if (addKind === "text") void addText();
+    else if (addKind === "bible") void addBible();
+    else if (addKind === "image") void addImage();
+    else if (addKind === "image_list") void addImageList();
+    else void addTarp();
   }
 
   async function addText() {
@@ -1072,6 +1333,30 @@ export default function SetlistsPage({
   });
   const imageListFolderImages =
     imageListFolder === null ? [] : imagesForFolder(images, imageListFolder);
+  const bibleVerses =
+    biblePassage?.verses.filter(
+      (verse) => verse.number >= bibleFrom && verse.number <= bibleTo,
+    ) ?? [];
+  const addKindLabels: Record<typeof addKind, string> = {
+    song: "Add song",
+    text: "Add text",
+    bible: "Add Bible passage",
+    image: "Add image",
+    image_list: "Add image list",
+    tarp: "Add Tarp",
+  };
+  const canAddSelected =
+    addKind === "song"
+      ? Boolean(songToAdd)
+      : addKind === "text"
+        ? Boolean(textContent.trim())
+        : addKind === "bible"
+          ? bibleVerses.length > 0
+          : addKind === "image"
+            ? Boolean(imageToAdd) && !uploadingImage
+            : addKind === "image_list"
+              ? imageListFolderImages.length > 0
+              : Boolean(tarpToAdd);
 
   if (loading) return <div className="panel">Loading set lists…</div>;
 
@@ -1331,6 +1616,7 @@ export default function SetlistsPage({
                 item={item}
                 song={songs.find((song) => song.id === item.songId)}
                 images={images}
+                tarpPresentations={tarpPresentations}
                 onUploadImage={(file) => uploadImage(file)}
                 first={index === 0}
                 last={index === detail.items.length - 1}
@@ -1372,242 +1658,413 @@ export default function SetlistsPage({
                 notify={notify}
               />
             ))}
-            {!detail.items.length && <p className="muted">Add a song or text item below.</p>}
+            {!detail.items.length && <p className="muted">Add an item below.</p>}
           </div>
 
-          <div className="add-grid">
-            <div className="add-card">
-              <h3>Add song</h3>
-              <input
-                className="search"
-                value={songSearch}
-                onChange={(event) => setSongSearch(event.target.value)}
-                placeholder="Search songs…"
-              />
-              <div className="song-search-fields">
-                {(
-                  [
-                    ["title", "Titles"],
-                    ["firstLines", "First lines"],
-                    ["alternateTitles", "Alternative titles"],
-                    ["body", "Body / lyrics"],
-                  ] as const
-                ).map(([key, label]) => (
-                  <label key={key} className="checkbox">
+          <div className="add-item-block">
+            <div className="add-card add-item-card">
+              <div className="add-item-heading">
+                <h3>Add</h3>
+                <div className="add-kind-tabs" role="group" aria-label="Item type to add">
+                  {(
+                    [
+                      ["song", "Song"],
+                      ["text", "Text"],
+                      ["bible", "Bible passage"],
+                      ["image", "Image"],
+                      ["image_list", "Image list"],
+                      ["tarp", "Tarp"],
+                    ] as const
+                  ).map(([kind, label]) => (
+                    <button
+                      key={kind}
+                      type="button"
+                      className={`add-kind-tab ${addKind === kind ? "active" : ""}`}
+                      aria-pressed={addKind === kind}
+                      onClick={() => setAddKind(kind)}
+                      title={`Add ${/^[aeiou]/i.test(label) ? "an" : "a"} ${label.toLowerCase()} item`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {addKind === "song" && (
+                <>
+                  <input
+                    className="search"
+                    value={songSearch}
+                    onChange={(event) => setSongSearch(event.target.value)}
+                    placeholder="Search songs…"
+                  />
+                  <div className="song-search-fields">
+                    {(
+                      [
+                        ["title", "Titles"],
+                        ["firstLines", "First lines"],
+                        ["alternateTitles", "Alternative titles"],
+                        ["body", "Body / lyrics"],
+                      ] as const
+                    ).map(([key, label]) => (
+                      <label key={key} className="checkbox">
+                        <input
+                          type="checkbox"
+                          checked={songSearchFields[key]}
+                          onChange={(event) =>
+                            setSongSearchFields((current) => ({
+                              ...current,
+                              [key]: event.target.checked,
+                            }))
+                          }
+                        />
+                        {label}
+                      </label>
+                    ))}
+                  </div>
+                  <span className="hint">
+                    {songQuery
+                      ? `${filteredSongs.length} match${filteredSongs.length === 1 ? "" : "es"}`
+                      : `${songs.length} songs`}
+                  </span>
+                  <select value={songToAdd} onChange={(event) => setSongToAdd(event.target.value)}>
+                    <option value="">Choose a song…</option>
+                    {filteredSongs.map((song) => (
+                      <option key={song.id} value={song.id}>
+                        {song.title}
+                        {song.author ? ` — ${song.author}` : ""}
+                      </option>
+                    ))}
+                  </select>
+                  {songQuery && !filteredSongs.length && (
+                    <span className="hint">No songs match the selected search fields.</span>
+                  )}
+                </>
+              )}
+
+              {addKind === "text" && (
+                <>
+                  <input
+                    value={textTitle}
+                    onChange={(event) => setTextTitle(event.target.value)}
+                    placeholder="Title (optional)"
+                  />
+                  <select
+                    value={textFormat}
+                    onChange={(event) => setTextFormat(event.target.value as TextFormat)}
+                  >
+                    <option value="markdown">Markdown (default)</option>
+                    <option value="text">Plain text</option>
+                    <option value="html">HTML</option>
+                    <option value="rst">reStructuredText</option>
+                  </select>
+                  <select
+                    value={textAlign}
+                    onChange={(event) => setTextAlign(event.target.value as "left" | "center")}
+                  >
+                    <option value="left">Align left</option>
+                    <option value="center">Centre</option>
+                  </select>
+                  <div className="page-field">
+                    <span className="field-label">Text pages</span>
+                    <PageContentEditor
+                      value={textContent}
+                      onChange={setTextContent}
+                      rows={4}
+                      placeholder={"# Welcome\n\n**Please stand** as we begin."}
+                    />
+                  </div>
+                  <span className="hint">
+                    A leading <code>format: markdown</code> header is moved into the format setting
+                    automatically. Use <code>&lt;!-- page --&gt;</code> for a page break.
+                  </span>
+                </>
+              )}
+
+              {addKind === "bible" && (
+                <>
+                  <label>
+                    Translation
+                    <select
+                      value={bibleTranslation}
+                      onChange={(event) => setBibleTranslation(event.target.value)}
+                    >
+                      {!bibleTranslations.length && <option value="">No translations found</option>}
+                      {bibleTranslations.map((translation) => (
+                        <option key={translation.code} value={translation.code}>
+                          {translation.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <div className="inline-fields">
+                    <label>
+                      Book
+                      <select
+                        value={bibleBook}
+                        onChange={(event) => {
+                          setBibleBook(Number(event.target.value));
+                          setBibleChapter(1);
+                        }}
+                      >
+                        {bibleBooks.map((book) => (
+                          <option key={book.number} value={book.number}>
+                            {book.name}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label>
+                      Chapter
+                      <select
+                        value={bibleChapter}
+                        onChange={(event) => setBibleChapter(Number(event.target.value))}
+                      >
+                        {Array.from(
+                          {
+                            length:
+                              bibleBooks.find((book) => book.number === bibleBook)?.chapters ?? 0,
+                          },
+                          (_, index) => index + 1,
+                        ).map((chapter) => (
+                          <option key={chapter} value={chapter}>
+                            {chapter}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
+                  <div className="inline-fields">
+                    <label>
+                      From verse
+                      <select
+                        value={bibleFrom}
+                        onChange={(event) => setBibleFrom(Number(event.target.value))}
+                      >
+                        {(biblePassage?.verses ?? []).map((verse) => (
+                          <option key={verse.number} value={verse.number}>
+                            {verse.number}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label>
+                      To verse
+                      <select
+                        value={bibleTo}
+                        onChange={(event) => setBibleTo(Number(event.target.value))}
+                      >
+                        {(biblePassage?.verses ?? []).map((verse) => (
+                          <option key={verse.number} value={verse.number}>
+                            {verse.number}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
+                  <label className="checkbox">
                     <input
                       type="checkbox"
-                      checked={songSearchFields[key]}
-                      onChange={(event) =>
-                        setSongSearchFields((current) => ({ ...current, [key]: event.target.checked }))
-                      }
+                      checked={bibleIncludeReference}
+                      onChange={(event) => setBibleIncludeReference(event.target.checked)}
                     />
-                    {label}
+                    Include reference
                   </label>
-                ))}
-              </div>
-              <span className="hint">
-                {songQuery
-                  ? `${filteredSongs.length} match${filteredSongs.length === 1 ? "" : "es"}`
-                  : `${songs.length} songs`}
-              </span>
-              <select value={songToAdd} onChange={(event) => setSongToAdd(event.target.value)}>
-                <option value="">Choose a song…</option>
-                {filteredSongs.map((song) => (
-                  <option key={song.id} value={song.id}>
-                    {song.title}
-                    {song.author ? ` — ${song.author}` : ""}
-                  </option>
-                ))}
-              </select>
-              {songQuery && !filteredSongs.length && (
-                <span className="hint">No songs match the selected search fields.</span>
+                  <span className="hint">
+                    {bibleReference() || "Choose a translation, book, chapter and verse range."}
+                  </span>
+                </>
               )}
-              <button
-                className="button"
-                onClick={addSong}
-                disabled={!songToAdd}
-                title="Add the selected song to this set list"
-              >
-                Add to set list
-              </button>
-            </div>
-            <div className="add-card">
-              <h3>Add image</h3>
-              <select value={imageToAdd} onChange={(event) => setImageToAdd(event.target.value)}>
-                <option value="">Choose an image…</option>
-                {images.map((image) => (
-                  <option key={image.path} value={image.path}>
-                    {image.path}
-                  </option>
-                ))}
-              </select>
-              <input
-                type="file"
-                accept="image/png,image/jpeg,image/gif,image/webp,image/avif,image/svg+xml"
-                onChange={async (event) => {
-                  const file = event.target.files?.[0];
-                  if (!file) return;
-                  setUploadingImage(true);
-                  try {
-                    const uploaded = await uploadImage(file);
-                    setImageToAdd(uploaded.path);
-                    setImageTitle(uploaded.name);
-                    notify("Image uploaded");
-                  } catch (error) {
-                    notify(
-                      error instanceof ApiError ? error.message : "Could not upload image",
-                      "error",
-                    );
-                  } finally {
-                    setUploadingImage(false);
-                  }
-                }}
-              />
-              <input
-                value={imageTitle}
-                onChange={(event) => setImageTitle(event.target.value)}
-                placeholder="Title (optional)"
-              />
-              <select
-                value={imageFitAdd}
-                onChange={(event) =>
-                  setImageFitAdd(event.target.value as "scale" | "actual" | "crop" | "stretch")
-                }
-              >
-                <option value="scale">Scale to screen (default)</option>
-                <option value="actual">1:1 actual size</option>
-                <option value="crop">Crop to fill</option>
-                <option value="stretch">Stretch to fill</option>
-              </select>
-              <button
-                className="button"
-                onClick={addImage}
-                disabled={!imageToAdd || uploadingImage}
-                title="Add the selected image as a slide in this set list"
-              >
-                {uploadingImage ? "Uploading…" : "Add to set list"}
-              </button>
-            </div>
-            <div className="add-card">
-              <h3>Add image list</h3>
-              <select
-                value={imageListFolder === null ? "" : folderKey(imageListFolder)}
-                onChange={(event) => {
-                  if (!event.target.value) {
-                    setImageListFolder(null);
-                    return;
-                  }
-                  const folder = folderFromKey(event.target.value);
-                  setImageListFolder(folder);
-                  if (!imageListTitle.trim()) setImageListTitle(folderLabel(folder));
-                }}
-              >
-                <option value="">Choose a folder…</option>
-                {imageFolderOptions(images).map((folder) => (
-                  <option key={folderKey(folder)} value={folderKey(folder)}>
-                    {folderLabel(folder)}
-                  </option>
-                ))}
-              </select>
-              <input
-                value={imageListTitle}
-                onChange={(event) => setImageListTitle(event.target.value)}
-                placeholder="Title (optional)"
-              />
-              <div className="image-list-options">
-                <label className="checkbox">
+
+              {addKind === "image" && (
+                <>
+                  <select value={imageToAdd} onChange={(event) => setImageToAdd(event.target.value)}>
+                    <option value="">Choose an image…</option>
+                    {images.map((image) => (
+                      <option key={image.path} value={image.path}>
+                        {image.path}
+                      </option>
+                    ))}
+                  </select>
                   <input
-                    type="checkbox"
-                    checked={imageListAutoplay}
-                    onChange={(event) => {
-                      setImageListAutoplay(event.target.checked);
-                      if (!event.target.checked) setImageListLoop(true);
+                    type="file"
+                    accept="image/png,image/jpeg,image/gif,image/webp,image/avif,image/svg+xml"
+                    onChange={async (event) => {
+                      const file = event.target.files?.[0];
+                      if (!file) return;
+                      setUploadingImage(true);
+                      try {
+                        const uploaded = await uploadImage(file);
+                        setImageToAdd(uploaded.path);
+                        setImageTitle(uploaded.name);
+                        notify("Image uploaded");
+                      } catch (error) {
+                        notify(
+                          error instanceof ApiError ? error.message : "Could not upload image",
+                          "error",
+                        );
+                      } finally {
+                        setUploadingImage(false);
+                      }
                     }}
                   />
-                  Autoplay
-                </label>
-                <label className={`checkbox ${imageListAutoplay ? "" : "disabled"}`}>
                   <input
-                    type="checkbox"
-                    checked={!imageListAutoplay || imageListLoop}
-                    disabled={!imageListAutoplay}
-                    onChange={(event) => setImageListLoop(event.target.checked)}
+                    value={imageTitle}
+                    onChange={(event) => setImageTitle(event.target.value)}
+                    placeholder="Title (optional)"
                   />
-                  Loop
-                </label>
-                <label>
-                  Delay (seconds)
-                  <input
-                    type="number"
-                    min={1}
-                    max={300}
-                    value={imageListDelay}
+                  <select
+                    value={imageFitAdd}
                     onChange={(event) =>
-                      setImageListDelay(Math.max(1, Math.min(300, Number(event.target.value) || 6)))
+                      setImageFitAdd(event.target.value as "scale" | "actual" | "crop" | "stretch")
                     }
+                  >
+                    <option value="scale">Scale to screen (default)</option>
+                    <option value="actual">1:1 actual size</option>
+                    <option value="crop">Crop to fill</option>
+                    <option value="stretch">Stretch to fill</option>
+                  </select>
+                </>
+              )}
+
+              {addKind === "image_list" && (
+                <>
+                  <select
+                    value={imageListFolder === null ? "" : folderKey(imageListFolder)}
+                    onChange={(event) => {
+                      if (!event.target.value) {
+                        setImageListFolder(null);
+                        return;
+                      }
+                      const folder = folderFromKey(event.target.value);
+                      setImageListFolder(folder);
+                      if (!imageListTitle.trim()) setImageListTitle(folderLabel(folder));
+                    }}
+                  >
+                    <option value="">Choose a folder…</option>
+                    {imageFolderOptions(images).map((folder) => (
+                      <option key={folderKey(folder)} value={folderKey(folder)}>
+                        {folderLabel(folder)}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    value={imageListTitle}
+                    onChange={(event) => setImageListTitle(event.target.value)}
+                    placeholder="Title (optional)"
                   />
-                </label>
+                  <div className="image-list-options">
+                    <label className="checkbox">
+                      <input
+                        type="checkbox"
+                        checked={imageListAutoplay}
+                        onChange={(event) => {
+                          setImageListAutoplay(event.target.checked);
+                          if (!event.target.checked) setImageListLoop(true);
+                        }}
+                      />
+                      Autoplay
+                    </label>
+                    <label className={`checkbox ${imageListAutoplay ? "" : "disabled"}`}>
+                      <input
+                        type="checkbox"
+                        checked={!imageListAutoplay || imageListLoop}
+                        disabled={!imageListAutoplay}
+                        onChange={(event) => setImageListLoop(event.target.checked)}
+                      />
+                      Loop
+                    </label>
+                    <label>
+                      Delay (seconds)
+                      <input
+                        type="number"
+                        min={1}
+                        max={300}
+                        value={imageListDelay}
+                        onChange={(event) =>
+                          setImageListDelay(
+                            Math.max(1, Math.min(300, Number(event.target.value) || 6)),
+                          )
+                        }
+                      />
+                    </label>
+                  </div>
+                  <span className="hint">
+                    {imageListFolder === null
+                      ? "Choose a folder to create an image list."
+                      : `${imageListFolderImages.length} image${
+                          imageListFolderImages.length === 1 ? "" : "s"
+                        } in ${folderLabel(imageListFolder)}.`}
+                  </span>
+                </>
+              )}
+
+              {addKind === "tarp" && (
+                <>
+                  <select value={tarpToAdd} onChange={(event) => setTarpToAdd(event.target.value)}>
+                    <option value="">Choose a Tarp presentation…</option>
+                    {tarpPresentations.map((presentation) => (
+                      <option key={presentation.id} value={presentation.id}>
+                        {presentation.name} · {presentation.pageCount} page
+                        {presentation.pageCount === 1 ? "" : "s"}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    value={tarpTitle}
+                    onChange={(event) => setTarpTitle(event.target.value)}
+                    placeholder="Title (optional)"
+                  />
+                  <div className="image-list-options">
+                    <label className="checkbox">
+                      <input
+                        type="checkbox"
+                        checked={tarpAutoplay}
+                        onChange={(event) => {
+                          setTarpAutoplay(event.target.checked);
+                          if (!event.target.checked) setTarpLoop(true);
+                        }}
+                      />
+                      Autoplay
+                    </label>
+                    <label className={`checkbox ${tarpAutoplay ? "" : "disabled"}`}>
+                      <input
+                        type="checkbox"
+                        checked={!tarpAutoplay || tarpLoop}
+                        disabled={!tarpAutoplay}
+                        onChange={(event) => setTarpLoop(event.target.checked)}
+                      />
+                      Loop
+                    </label>
+                    <label>
+                      Delay (seconds)
+                      <input
+                        type="number"
+                        min={1}
+                        max={300}
+                        value={tarpDelay}
+                        onChange={(event) =>
+                          setTarpDelay(Math.max(1, Math.min(300, Number(event.target.value) || 6)))
+                        }
+                      />
+                    </label>
+                  </div>
+                  <span className="hint">
+                    Tarp display rendering is the next output section; the item can be added now.
+                  </span>
+                </>
+              )}
+
+              <div className="add-item-actions">
+                <button
+                  className="button primary"
+                  onClick={addSelectedItem}
+                  disabled={!canAddSelected}
+                  title={canAddSelected ? addKindLabels[addKind] : "Choose the item content first"}
+                >
+                  {addKindLabels[addKind]}
+                </button>
               </div>
-              <span className="hint">
-                {imageListFolder === null
-                  ? "Choose a folder to create an image list."
-                  : `${imageListFolderImages.length} image${
-                      imageListFolderImages.length === 1 ? "" : "s"
-                    } in ${folderLabel(imageListFolder)}.`}
-              </span>
-              <button
-                className="button"
-                onClick={addImageList}
-                disabled={!imageListFolderImages.length}
-                title="Convert the selected folder into a multiple-image set-list item"
-              >
-                Add image list
-              </button>
-            </div>
-            <div className="add-card">
-              <h3>Add text</h3>
-              <input
-                value={textTitle}
-                onChange={(event) => setTextTitle(event.target.value)}
-                placeholder="Title (optional)"
-              />
-              <select
-                value={textFormat}
-                onChange={(event) => setTextFormat(event.target.value as TextFormat)}
-              >
-                <option value="markdown">Markdown (default)</option>
-                <option value="text">Plain text</option>
-                <option value="html">HTML</option>
-                <option value="rst">reStructuredText</option>
-              </select>
-              <select
-                value={textAlign}
-                onChange={(event) => setTextAlign(event.target.value as "left" | "center")}
-              >
-                <option value="left">Align left</option>
-                <option value="center">Centre</option>
-              </select>
-              <div className="page-field">
-                <span className="field-label">Text pages</span>
-                <PageContentEditor
-                  value={textContent}
-                  onChange={setTextContent}
-                  rows={4}
-                  placeholder={"# Welcome\n\n**Please stand** as we begin."}
-                />
-              </div>
-              <span className="hint">
-                A leading <code>format: markdown</code> header is moved into the format setting
-                automatically. Use <code>&lt;!-- page --&gt;</code> for a page break.
-              </span>
-              <button
-                className="button"
-                onClick={addText}
-                disabled={!textContent.trim()}
-                title="Add these text pages as a new item in this set list"
-              >
-                Add to set list
-              </button>
             </div>
           </div>
 

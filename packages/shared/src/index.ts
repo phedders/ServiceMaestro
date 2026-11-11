@@ -37,7 +37,7 @@ export interface Song {
   updatedAt: string;
 }
 
-export type ItemKind = "song" | "text" | "image" | "image_list";
+export type ItemKind = "song" | "text" | "image" | "image_list" | "tarp";
 export type ImageFit = "scale" | "actual" | "crop" | "stretch";
 
 export interface ImageListContent {
@@ -75,6 +75,39 @@ export function serializeImageListContent(value: ImageListContent): string {
   return JSON.stringify({
     folder: value.folder,
     images: value.images,
+    autoplay: value.autoplay,
+    loop: value.loop,
+    delaySeconds: Math.max(1, Math.min(300, value.delaySeconds || 6)),
+  });
+}
+
+export interface TarpItemContent {
+  presentationId: string;
+  autoplay: boolean;
+  loop: boolean;
+  delaySeconds: number;
+}
+
+export function parseTarpItemContent(value: string | null | undefined): TarpItemContent | null {
+  if (!value) return null;
+  try {
+    const parsed = JSON.parse(value) as Partial<TarpItemContent>;
+    if (typeof parsed.presentationId !== "string" || !parsed.presentationId.trim()) return null;
+    const delay = Number(parsed.delaySeconds);
+    return {
+      presentationId: parsed.presentationId,
+      autoplay: parsed.autoplay === true,
+      loop: parsed.loop !== false,
+      delaySeconds: Number.isFinite(delay) ? Math.max(1, Math.min(300, delay)) : 6,
+    };
+  } catch {
+    return null;
+  }
+}
+
+export function serializeTarpItemContent(value: TarpItemContent): string {
+  return JSON.stringify({
+    presentationId: value.presentationId,
     autoplay: value.autoplay,
     loop: value.loop,
     delaySeconds: Math.max(1, Math.min(300, value.delaySeconds || 6)),
@@ -396,7 +429,7 @@ export interface LiveState {
   itemIndex: number;
   pageIndex: number;
   pageCount: number;
-  mode: "song" | "text" | "image" | "image_list" | "blank" | "idle";
+  mode: "song" | "text" | "image" | "image_list" | "tarp" | "blank" | "idle";
   title: string;
   blank: boolean;
   maxLines: number;
@@ -586,7 +619,7 @@ export const setlistInputSchema = z.object({
 });
 
 export const setlistItemInputSchema = z.object({
-  kind: z.enum(["song", "text", "image", "image_list"]),
+  kind: z.enum(["song", "text", "image", "image_list", "tarp"]),
   songId: z.string().optional().nullable(),
   title: z.string().trim().max(300).optional(),
   content: z.string().max(200_000).optional().nullable(),

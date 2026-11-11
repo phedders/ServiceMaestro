@@ -7,7 +7,7 @@ import { OUTPUT_TOKEN } from "./config.js";
 import { bareSectionLabel } from "./section-labels.js";
 
 export interface RenderItem {
-  kind: "song" | "text" | "image" | "image_list";
+  kind: "song" | "text" | "image" | "image_list" | "tarp";
   title: string;
   lyrics?: string | null;
   content?: string | null;
@@ -490,6 +490,11 @@ export function buildPages(
     smartPageSplits: options.smartPageSplits !== false,
     textScale: options.textScale ?? 1,
   };
+
+  if (item.kind === "tarp") {
+    // Tarp display rendering is the next Tarp implementation section.
+    return [];
+  }
 
   if (item.kind === "image" || item.kind === "image_list") {
     const fit =

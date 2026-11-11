@@ -321,7 +321,7 @@ function importSetlist(manifest: SetlistManifest): void {
       `git-item-${manifest.setlist.id}-${item.position}`,
       id,
       item.position,
-      item.kind === "image" || item.kind === "image_list"
+      item.kind === "image" || item.kind === "image_list" || item.kind === "tarp"
         ? item.kind
         : songId
           ? "song"

@@ -47,7 +47,9 @@ export function ItemList({ live, onCommand }: { live: LiveState; onCommand: (pay
                   ? "▣"
                   : item.kind === "image_list"
                     ? "▦"
-                    : "T"}
+                    : item.kind === "tarp"
+                      ? "✦"
+                      : "T"}
             </span>
             <span className="item-title">{item.title}</span>
             {item.notes && <span className="item-notes">{item.notes}</span>}

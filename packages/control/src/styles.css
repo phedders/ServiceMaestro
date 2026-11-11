@@ -1465,6 +1465,53 @@ body.resizing-live-queue {
   gap: 10px;
 }
 
+.add-item-block {
+  margin: 18px 0;
+}
+
+.add-item-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.add-kind-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.add-kind-tab {
+  padding: 7px 10px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.79rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.add-kind-tab:hover {
+  border-color: var(--border);
+  background: var(--panel-2);
+  color: var(--text);
+}
+
+.add-kind-tab.active {
+  border-color: rgba(76, 194, 255, 0.4);
+  background: var(--accent-soft);
+  color: #dff5ff;
+}
+
+.add-item-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
 .image-list-options {
   display: flex;
   flex-wrap: wrap;

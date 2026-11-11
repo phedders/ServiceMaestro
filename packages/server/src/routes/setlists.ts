@@ -2,6 +2,7 @@ import type { FastifyInstance, FastifyRequest } from "fastify";
 import { randomUUID } from "node:crypto";
 import {
   parseImageListContent,
+  parseTarpItemContent,
   reorderSchema,
   setlistInputSchema,
   setlistItemInputSchema,
@@ -30,7 +31,7 @@ interface SetlistRow {
 interface ItemRow {
   id: string;
   position: number;
-  kind: "song" | "text" | "image" | "image_list";
+  kind: "song" | "text" | "image" | "image_list" | "tarp";
   song_id: string | null;
   title: string;
   content: string | null;
@@ -219,6 +220,11 @@ export async function setlistRoutes(app: FastifyInstance): Promise<void> {
         } else {
           title = title || content.split("/").pop() || "Image";
         }
+      } else if (data.kind === "tarp") {
+        if (!content) return reply.code(400).send({ error: "content is required for Tarp items" });
+        const tarp = parseTarpItemContent(content);
+        if (!tarp) return reply.code(400).send({ error: "Invalid Tarp item" });
+        title = title || "Tarp";
       } else {
         if (!content) return reply.code(400).send({ error: "content is required for text items" });
         const extracted = extractTextFormat(content);
