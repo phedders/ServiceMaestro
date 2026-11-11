@@ -349,6 +349,13 @@ export const quickTextSchema = z.object({
   mode: z.enum(["direct", "setlist"]).default("direct"),
 });
 
+export const quickSongSchema = z.object({
+  songId: z.string().min(1),
+  keyOverride: z.string().trim().max(10).optional().nullable(),
+  transpose: z.number().int().min(-24).max(24).optional(),
+  verseOrder: z.string().trim().max(1000).optional().nullable(),
+});
+
 export const startSessionSchema = z.object({
   setlistId: z.string().min(1),
   status: z.enum(["live", "rehearsal"]).default("live"),

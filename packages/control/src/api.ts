@@ -229,6 +229,11 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ text, mode }),
     }),
+  quickSong: (songId: string) =>
+    request<{ state: LiveState }>("/api/live/quick-song", {
+      method: "POST",
+      body: JSON.stringify({ songId }),
+    }),
   stopLive: () => request<{ state: LiveState }>("/api/live/stop", { method: "POST" }),
   applyLive: (payload: { setlistId?: string; revisionId?: string; mode: "after-current" | "now" }) =>
     request<{ state: LiveState }>("/api/live/apply", {

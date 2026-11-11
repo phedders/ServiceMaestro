@@ -564,6 +564,44 @@ class LiveService {
     return this.getState();
   }
 
+  quickSong(
+    songId: string,
+    options: { keyOverride?: string | null; transpose?: number; verseOrder?: string | null } = {},
+  ): LiveState {
+    if (!this.active) return idleState();
+    const song = db.prepare("SELECT * FROM songs WHERE id = ?").get(songId) as
+      | (Song & { lyrics_markdown: number; verse_order: string | null })
+      | undefined;
+    if (!song) throw new Error("Song not found");
+    const record = this.active;
+    const item: SnapshotItem = {
+      kind: "song",
+      itemId: null,
+      songId: song.id,
+      title: song.title,
+      lyrics: song.lyrics,
+      lyricsMarkdown: Boolean(song.lyrics_markdown),
+      key: song.key,
+      keyOverride: options.keyOverride ?? null,
+      transpose: options.transpose ?? 0,
+      maxLines: record.state.maxLines,
+      verseOrder: options.verseOrder ?? song.verse_order,
+      notes: null,
+    };
+    record.transient = item;
+    record.state.mode = "song";
+    record.state.title = song.title;
+    record.state.itemIndex = -1;
+    record.state.pageIndex = 0;
+    record.state.blank = false;
+    this.renderCurrent();
+    record.state.version += 1;
+    record.state.updatedAt = now();
+    this.persist();
+    this.broadcast();
+    return this.getState();
+  }
+
   private setItem(index: number): void {
     if (!this.active) return;
     const { state, items } = this.active;

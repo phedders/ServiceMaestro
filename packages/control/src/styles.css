@@ -1345,6 +1345,31 @@ label {
   margin-bottom: 14px;
 }
 
+.song-use-panel {
+  border: 1px solid rgba(76, 194, 255, 0.28);
+  border-radius: 11px;
+  padding: 12px 14px;
+  background: var(--accent-soft);
+  margin-bottom: 14px;
+}
+
+.song-use-actions {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.song-use-actions > label {
+  flex: 1;
+  min-width: 260px;
+}
+
+.song-use-actions .button-row {
+  flex-wrap: wrap;
+}
+
 .verse-order-list {
   display: grid;
   gap: 6px;

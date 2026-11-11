@@ -1,6 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
-import type { Song, SongAsset, SongImportReport, SongImportScan } from "@wlm/shared";
+import type {
+  LiveState,
+  SetlistSummary,
+  Song,
+  SongAsset,
+  SongImportReport,
+  SongImportScan,
+} from "@wlm/shared";
 import { api, ApiError } from "../api";
+import { pickCurrentSetlist } from "../service-date";
 
 const EMPTY = {
   title: "",
@@ -15,8 +23,12 @@ const EMPTY = {
 };
 
 export default function SongsPage({
+  live,
+  onQuickSong,
   notify,
 }: {
+  live: LiveState;
+  onQuickSong: (songId: string) => Promise<void>;
   notify: (text: string, kind?: "info" | "error") => void;
 }) {
   const [songs, setSongs] = useState<Song[]>([]);
@@ -36,6 +48,10 @@ export default function SongsPage({
   const [uploadingAsset, setUploadingAsset] = useState(false);
   const [newOrderName, setNewOrderName] = useState("");
   const [newOrderText, setNewOrderText] = useState("");
+  const [setlists, setSetlists] = useState<SetlistSummary[]>([]);
+  const [targetSetlist, setTargetSetlist] = useState("");
+  const [addingToSetlist, setAddingToSetlist] = useState(false);
+  const [showingLive, setShowingLive] = useState(false);
 
   async function load() {
     const result = await api.songs();
@@ -44,6 +60,20 @@ export default function SongsPage({
 
   useEffect(() => {
     load().catch(() => notify("Could not load songs", "error"));
+  }, []);
+
+  useEffect(() => {
+    api
+      .setlists()
+      .then((result) => {
+        setSetlists(result.setlists);
+        const preferred =
+          (live.setlistId && result.setlists.find((setlist) => setlist.id === live.setlistId)?.id) ||
+          pickCurrentSetlist(result.setlists)?.id ||
+          "";
+        setTargetSetlist(preferred);
+      })
+      .catch(() => undefined);
   }, []);
 
   useEffect(() => {
@@ -68,6 +98,41 @@ export default function SongsPage({
   }, [songs, search]);
 
   const selectedSong = songs.find((song) => song.id === selectedId) ?? null;
+
+  async function addToSetlist() {
+    if (!selectedId || !targetSetlist) return;
+    setAddingToSetlist(true);
+    try {
+      await api.addItem(targetSetlist, { kind: "song", songId: selectedId });
+      const target = setlists.find((setlist) => setlist.id === targetSetlist);
+      notify(
+        target
+          ? `Added “${selectedSong?.title ?? form.title}” to “${target.name}”`
+          : "Song added to the current set list",
+      );
+      setSetlists((current) =>
+        current.map((setlist) =>
+          setlist.id === targetSetlist
+            ? { ...setlist, itemCount: setlist.itemCount + 1 }
+            : setlist,
+        ),
+      );
+    } catch (error) {
+      notify(error instanceof ApiError ? error.message : "Could not add song to set list", "error");
+    } finally {
+      setAddingToSetlist(false);
+    }
+  }
+
+  async function showInLive() {
+    if (!selectedId) return;
+    setShowingLive(true);
+    try {
+      await onQuickSong(selectedId);
+    } finally {
+      setShowingLive(false);
+    }
+  }
 
   async function addVerseOrder() {
     if (!selectedId || !newOrderName.trim() || !newOrderText.trim()) return;
@@ -311,6 +376,63 @@ export default function SongsPage({
               placeholder="e.g. V1 C V2 C B C"
             />
           </label>
+        </div>
+
+        <div className="song-use-panel">
+          <div className="panel-heading">
+            <div>
+              <h3>Use this song</h3>
+              <p className="muted">
+                Add the saved song to a set list, or show it immediately without changing the set list.
+              </p>
+            </div>
+          </div>
+          <div className="song-use-actions">
+            <label>
+              Current set list
+              <select
+                value={targetSetlist}
+                onChange={(event) => setTargetSetlist(event.target.value)}
+              >
+                {!setlists.length && <option value="">No set lists yet</option>}
+                {setlists.map((setlist) => (
+                  <option key={setlist.id} value={setlist.id}>
+                    {setlist.name} — {setlist.serviceDate}
+                    {setlist.serviceTime ? ` ${setlist.serviceTime}` : ""}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div className="button-row">
+              <button
+                className="button"
+                onClick={addToSetlist}
+                disabled={!selectedId || !targetSetlist || addingToSetlist}
+                title={!selectedId ? "Save the song first" : "Add this song to the selected set list"}
+              >
+                {addingToSetlist ? "Adding…" : "Add to current setlist"}
+              </button>
+              <button
+                className="button primary"
+                onClick={showInLive}
+                disabled={!selectedId || live.status === "idle" || showingLive}
+                title={
+                  live.status === "idle"
+                    ? "Start a live session first"
+                    : "Show this song immediately without changing the set list"
+                }
+              >
+                {showingLive ? "Showing…" : "Add to live session"}
+              </button>
+            </div>
+          </div>
+          <p className="hint">
+            {!selectedId
+              ? "Save the song first to add or display it."
+              : live.status === "idle"
+                ? "Start a live session to display the song immediately."
+                : "“Add to live session” displays the song now and is not saved to the set list."}
+          </p>
         </div>
 
         <div className="verse-orders-panel">

@@ -1,5 +1,11 @@
 import type { FastifyInstance } from "fastify";
-import { liveCommandSchema, liveApplySchema, quickTextSchema, startSessionSchema } from "@wlm/shared";
+import {
+  liveCommandSchema,
+  liveApplySchema,
+  quickSongSchema,
+  quickTextSchema,
+  startSessionSchema,
+} from "@wlm/shared";
 import { requireAuth, requireRole } from "../auth.js";
 import { live } from "../live.js";
 
@@ -39,6 +45,28 @@ export async function liveRoutes(app: FastifyInstance): Promise<void> {
       const parsed = quickTextSchema.safeParse(request.body);
       if (!parsed.success) return reply.code(400).send({ error: "Invalid text" });
       return { state: live.quickText(parsed.data.text) };
+    },
+  );
+
+  app.post(
+    "/api/live/quick-song",
+    { preHandler: [requireAuth, requireRole("admin", "operator", "editor")] },
+    async (request, reply) => {
+      const parsed = quickSongSchema.safeParse(request.body);
+      if (!parsed.success) {
+        return reply.code(400).send({ error: "Invalid song", issues: parsed.error.issues });
+      }
+      try {
+        return {
+          state: live.quickSong(parsed.data.songId, {
+            keyOverride: parsed.data.keyOverride,
+            transpose: parsed.data.transpose,
+            verseOrder: parsed.data.verseOrder,
+          }),
+        };
+      } catch (error) {
+        return reply.code(404).send({ error: (error as Error).message });
+      }
     },
   );
 

@@ -164,6 +164,16 @@ export default function App() {
     }
   };
 
+  const quickSong = async (songId: string) => {
+    try {
+      const result = await api.quickSong(songId);
+      setLive(result.state);
+      notify("Song displayed");
+    } catch (error) {
+      notify(error instanceof ApiError ? error.message : "Could not display song", "error");
+    }
+  };
+
   const stopLive = async () => {
     try {
       const result = await api.stopLive();
@@ -354,7 +364,7 @@ export default function App() {
             notify={notify}
           />
         )}
-        {page === "songs" && <SongsPage notify={notify} />}
+        {page === "songs" && <SongsPage live={live} onQuickSong={quickSong} notify={notify} />}
         {page === "bible" && <BiblePage live={live} onQuickText={quickText} notify={notify} />}
         {page === "config" && <ConfigPage notify={notify} />}
       </main>
