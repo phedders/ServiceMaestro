@@ -922,9 +922,11 @@ label {
   border-radius: 7px;
   display: grid;
   place-items: center;
-  background: rgba(76, 194, 255, 0.16);
-  color: var(--accent);
-  font-size: 0.72rem;
+  background: rgba(76, 194, 255, 0.2);
+  color: #8ddcff;
+  font-size: 1.4rem;
+  font-weight: 700;
+  line-height: 1;
   flex: 0 0 auto;
 }
 
