@@ -4,6 +4,8 @@ import { randomUUID } from "node:crypto";
 import { db } from "./db.js";
 import { SONGS_DIR } from "./config.js";
 import { parseSongFile, type ImportedSong, type SongFilePreview } from "./importers/index.js";
+import { getAppSettings } from "./settings.js";
+import { simplifySongPageIds } from "@sm/shared";
 
 const MAX_BYTES = 2 * 1024 * 1024;
 const EXTENSIONS = new Set([".xml", ".txt", ".cho", ".chordpro", ".crd"]);
@@ -116,6 +118,7 @@ export function importSongs(
   paths?: string[],
   dir = SONGS_DIR,
   decisions: ImportDecision[] = [],
+  options: { simplifyPageIds?: boolean } = {},
 ): ImportReport {
   const report = scanSongs(dir);
   const wanted = paths ? new Set(paths) : null;
@@ -141,8 +144,12 @@ export function importSongs(
      WHERE id = ?`,
   );
 
+  const pageIdShortcuts = getAppSettings().pageIdShortcuts;
   for (const preview of report.files) {
     if (wanted && !wanted.has(preview.path)) continue;
+    const lyrics = options.simplifyPageIds
+      ? simplifySongPageIds(preview.lyrics, null, pageIdShortcuts).lyrics
+      : preview.lyrics;
     const existing = findBySource(preview.path);
     const now = new Date().toISOString();
     if (existing) {
@@ -158,7 +165,7 @@ export function importSongs(
         preview.copyright,
         preview.ccli,
         preview.key,
-        preview.lyrics,
+        lyrics,
         preview.format,
         preview.path,
         now,
@@ -188,7 +195,7 @@ export function importSongs(
           preview.copyright,
           preview.ccli,
           preview.key,
-          preview.lyrics,
+          lyrics,
           preview.format,
           preview.path,
           now,
@@ -217,7 +224,7 @@ export function importSongs(
         preview.copyright,
         preview.ccli,
         preview.key,
-        preview.lyrics,
+        lyrics,
         preview.format,
         preview.path,
         now,
@@ -237,7 +244,7 @@ export function importSongs(
       preview.copyright,
       preview.ccli,
       preview.key,
-      preview.lyrics,
+      lyrics,
       preview.format,
       preview.path,
       now,

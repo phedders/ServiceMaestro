@@ -1,17 +1,23 @@
 import type { FastifyInstance } from "fastify";
 import { randomUUID } from "node:crypto";
 import {
+  simplifySongPageIds,
   songBulkDeleteSchema,
   songInputSchema,
+  songPageIdFixApplySchema,
+  songPageNameCandidates,
   songVerseOrderInputSchema,
   songVerseOrderPatchSchema,
   type Song,
+  type SongPageIdFixPreview,
+  type SongPageIdFixScan,
   type SongVerseOrder,
 } from "@sm/shared";
 import { db } from "../db.js";
 import { requireAuth, requireRole } from "../auth.js";
 import { saveSongToGit, deleteSongFromGit, deleteSongsFromGit } from "../git-store.js";
 import { addDefaultVerseTags } from "../lyrics.js";
+import { getAppSettings } from "../settings.js";
 import { findSongAlternatives } from "../song-matching.js";
 
 interface SongRow {
@@ -80,6 +86,40 @@ function mapSong(row: SongRow): Song {
   };
 }
 
+function pageIdFixScan(songIds?: string[]): SongPageIdFixScan {
+  const shortcuts = getAppSettings().pageIdShortcuts;
+  const rows = (songIds?.length
+    ? db
+        .prepare(
+          `SELECT id, title, lyrics, verse_order FROM songs
+           WHERE id IN (${songIds.map(() => "?").join(",")})`,
+        )
+        .all(...songIds)
+    : db.prepare("SELECT id, title, lyrics, verse_order FROM songs").all()) as Array<{
+    id: string;
+    title: string;
+    lyrics: string;
+    verse_order: string | null;
+  }>;
+  const songs: SongPageIdFixPreview[] = [];
+  let totalLabels = 0;
+  for (const row of rows) {
+    const simplified = simplifySongPageIds(row.lyrics, row.verse_order, shortcuts);
+    const verseOrderChanged = (simplified.verseOrder ?? null) !== (row.verse_order ?? null);
+    if (!simplified.changes.length && !verseOrderChanged) continue;
+    songs.push({
+      songId: row.id,
+      title: row.title,
+      changes: simplified.changes,
+      lyricsChanged: simplified.lyrics !== row.lyrics,
+      verseOrderChanged,
+    });
+    totalLabels += simplified.changes.length;
+  }
+  songs.sort((a, b) => a.title.localeCompare(b.title));
+  return { songs, totalSongs: songs.length, totalLabels };
+}
+
 export async function songRoutes(app: FastifyInstance): Promise<void> {
   app.get("/api/songs", { preHandler: requireAuth }, async (request) => {
     const query = (request.query as { q?: string }).q?.trim();
@@ -103,6 +143,72 @@ export async function songRoutes(app: FastifyInstance): Promise<void> {
     const songs = db.prepare("SELECT * FROM songs").all() as SongRow[];
     return { alternatives: findSongAlternatives(current, songs, query) };
   });
+
+  app.get("/api/songs/page-names", { preHandler: requireAuth }, async () => {
+    const rows = db.prepare("SELECT lyrics FROM songs").all() as Array<{ lyrics: string }>;
+    const names = new Map<string, string>();
+    for (const row of rows) {
+      for (const name of songPageNameCandidates(row.lyrics)) {
+        if (!names.has(name.toLowerCase())) names.set(name.toLowerCase(), name);
+      }
+    }
+    return {
+      names: [...names.values()].sort((a, b) => a.localeCompare(b)),
+    };
+  });
+
+  app.get(
+    "/api/songs/page-id-fixes",
+    { preHandler: [requireAuth, requireRole("admin", "editor")] },
+    async () => pageIdFixScan(),
+  );
+
+  app.post(
+    "/api/songs/page-id-fixes/apply",
+    { preHandler: [requireAuth, requireRole("admin", "editor")] },
+    async (request, reply) => {
+      const parsed = songPageIdFixApplySchema.safeParse(request.body ?? {});
+      if (!parsed.success) {
+        return reply.code(400).send({ error: "Invalid fix request", issues: parsed.error.issues });
+      }
+      const preview = pageIdFixScan(parsed.data.songIds);
+      const ids = new Set(preview.songs.map((song) => song.songId));
+      const rows = (ids.size
+        ? db
+            .prepare(
+              `SELECT id, lyrics, verse_order FROM songs
+               WHERE id IN (${[...ids].map(() => "?").join(",")})`,
+            )
+            .all(...ids)
+        : []) as Array<{ id: string; lyrics: string; verse_order: string | null }>;
+      const shortcuts = getAppSettings().pageIdShortcuts;
+      const now = new Date().toISOString();
+      const update = db.prepare(
+        "UPDATE songs SET lyrics = ?, verse_order = ?, updated_at = ? WHERE id = ?",
+      );
+      const updatedIds: string[] = [];
+      const transaction = db.transaction(() => {
+        for (const row of rows) {
+          const simplified = simplifySongPageIds(row.lyrics, row.verse_order, shortcuts);
+          if (
+            simplified.lyrics === row.lyrics &&
+            (simplified.verseOrder ?? null) === (row.verse_order ?? null)
+          ) {
+            continue;
+          }
+          update.run(simplified.lyrics, simplified.verseOrder, now, row.id);
+          updatedIds.push(row.id);
+        }
+      });
+      transaction();
+      for (const id of updatedIds) {
+        await saveSongToGit(id).catch((error) =>
+          request.log.warn({ err: error }, "git page id fix save failed"),
+        );
+      }
+      return { ok: true, updated: updatedIds.length, ids: updatedIds };
+    },
+  );
 
   app.get("/api/songs/:id", { preHandler: requireAuth }, async (request, reply) => {
     const row = db.prepare("SELECT * FROM songs WHERE id = ?").get((request.params as { id: string }).id) as

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { simplifySongPageIds } from "@sm/shared";
 import type {
   LiveState,
   SetlistSummary,
@@ -39,6 +40,9 @@ export default function SongsPage({
   const [selectMode, setSelectMode] = useState(false);
   const [selectedSongIds, setSelectedSongIds] = useState<Set<string>>(() => new Set());
   const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [simplifyPageIds, setSimplifyPageIds] = useState(false);
+  const [simplifyImportPageIds, setSimplifyImportPageIds] = useState(false);
+  const [pageIdShortcuts, setPageIdShortcuts] = useState<Record<string, string>>({});
   const [form, setForm] = useState({ ...EMPTY });
   const [saving, setSaving] = useState(false);
   const [scan, setScan] = useState<SongImportScan | null>(null);
@@ -84,6 +88,13 @@ export default function SongsPage({
           "";
         setTargetSetlist(preferred);
       })
+      .catch(() => undefined);
+  }, []);
+
+  useEffect(() => {
+    api
+      .settings()
+      .then((result) => setPageIdShortcuts(result.settings.pageIdShortcuts))
       .catch(() => undefined);
   }, []);
 
@@ -264,6 +275,7 @@ export default function SongsPage({
     setSelectedId(song.id);
     setNewOrderName("");
     setNewOrderText("");
+    setSimplifyPageIds(false);
     setForm({
       title: song.title,
       alternateTitles: song.alternateTitles ?? "",
@@ -281,6 +293,7 @@ export default function SongsPage({
     setSelectedId(null);
     setNewOrderName("");
     setNewOrderText("");
+    setSimplifyPageIds(false);
     setForm({ ...EMPTY });
   }
 
@@ -288,6 +301,9 @@ export default function SongsPage({
     if (!form.title.trim()) return;
     setSaving(true);
     try {
+      const pageIds = simplifyPageIds
+        ? simplifySongPageIds(form.lyrics, form.verseOrder, pageIdShortcuts)
+        : { lyrics: form.lyrics, verseOrder: form.verseOrder.trim() || null };
       const payload = {
         title: form.title.trim(),
         alternateTitles: form.alternateTitles.trim() || null,
@@ -295,16 +311,21 @@ export default function SongsPage({
         copyright: form.copyright.trim() || null,
         ccli: form.ccli.trim() || null,
         key: form.key.trim() || null,
-        verseOrder: form.verseOrder.trim() || null,
+        verseOrder: pageIds.verseOrder,
         lyricsMarkdown: form.lyricsMarkdown,
-        lyrics: form.lyrics,
+        lyrics: pageIds.lyrics,
       };
       const result = selectedId
         ? await api.updateSong(selectedId, payload)
         : await api.createSong(payload);
       await load();
       setSelectedId(result.song.id);
-      setForm((current) => ({ ...current, lyrics: result.song.lyrics }));
+      setForm((current) => ({
+        ...current,
+        lyrics: result.song.lyrics,
+        verseOrder: result.song.verseOrder ?? "",
+      }));
+      setSimplifyPageIds(false);
       notify(selectedId ? "Song saved" : "Song created");
     } catch (error) {
       notify(error instanceof ApiError ? error.message : "Could not save song", "error");
@@ -407,7 +428,7 @@ export default function SongsPage({
               }
             : { path: file.path, action: decision.action };
         });
-      const result = await api.applyImports(decisions);
+      const result = await api.applyImports(decisions, simplifyImportPageIds);
       setImportReport(result);
       await load();
       notify(
@@ -725,6 +746,21 @@ export default function SongsPage({
           </span>
         </label>
 
+        <label className="checkbox markdown-field">
+          <input
+            type="checkbox"
+            checked={simplifyPageIds}
+            onChange={(event) => setSimplifyPageIds(event.target.checked)}
+          />
+          <span>
+            Simplify page IDs when saving
+            <small>
+              Uses the mappings in Settings → Song page IDs; section labels become compact,
+              space-free IDs and collisions are made unique within this song.
+            </small>
+          </span>
+        </label>
+
         <div className="lyrics-field">
           <span className="field-label">Lyrics and chords</span>
           <PageContentEditor
@@ -852,6 +888,21 @@ export default function SongsPage({
             </button>
           </div>
         </div>
+
+        <label className="checkbox markdown-field">
+          <input
+            type="checkbox"
+            checked={simplifyImportPageIds}
+            onChange={(event) => setSimplifyImportPageIds(event.target.checked)}
+          />
+          <span>
+            Simplify page IDs
+            <small>
+              Convert section labels such as <code>[Verse 1]</code> to compact IDs from Settings →
+              Song page IDs. IDs are checked for uniqueness within each imported song.
+            </small>
+          </span>
+        </label>
 
         {scan && (
           <p className="hint">

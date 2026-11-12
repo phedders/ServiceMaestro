@@ -432,6 +432,7 @@ export interface AppSettings {
   pageNavigation: "stop" | "next-item";
   churchsuiteEmptyTypes: string[];
   defaultBibleTranslation: string | null;
+  pageIdShortcuts: Record<string, string>;
 }
 
 export interface GitSettings {
@@ -617,6 +618,156 @@ export interface DashboardLayout {
   widgets: Record<string, WidgetConfig>;
 }
 
+export interface SongPageIdChange {
+  from: string;
+  to: string;
+}
+
+export interface SimplifiedSongPageIds {
+  lyrics: string;
+  verseOrder: string | null;
+  changes: SongPageIdChange[];
+}
+
+export interface SongPageIdFixPreview {
+  songId: string;
+  title: string;
+  changes: SongPageIdChange[];
+  lyricsChanged: boolean;
+  verseOrderChanged: boolean;
+}
+
+export interface SongPageIdFixScan {
+  songs: SongPageIdFixPreview[];
+  totalSongs: number;
+  totalLabels: number;
+}
+
+function sectionPageId(value: string): { canonical: string; id: string } | null {
+  const cleaned = value
+    .trim()
+    .replace(/[:\-–—]+$/g, "")
+    .replace(/\s+/g, " ");
+  if (!cleaned) return null;
+
+  const patterns: Array<[RegExp, string, string]> = [
+    [/^verse(?:\s*(\d+[a-z]?))?$/i, "v", "verse"],
+    [/^chorus(?:\s*(\d+[a-z]?))?$/i, "c", "chorus"],
+    [/^pre[-\s]?chorus(?:\s*(\d+[a-z]?))?$/i, "pc", "prechorus"],
+    [/^bridge(?:\s*(\d+[a-z]?))?$/i, "b", "bridge"],
+    [/^intro(?:\s*(\d+[a-z]?))?$/i, "i", "intro"],
+    [/^outro(?:\s*(\d+[a-z]?))?$/i, "o", "outro"],
+    [/^ending(?:\s*(\d+[a-z]?))?$/i, "e", "ending"],
+    [/^tag(?:\s*(\d+[a-z]?))?$/i, "t", "tag"],
+    [/^turnaround(?:\s*(\d+[a-z]?))?$/i, "tr", "turnaround"],
+    [/^interlude(?:\s*(\d+[a-z]?))?$/i, "il", "interlude"],
+    [/^instrumental(?:\s*(\d+[a-z]?))?$/i, "ins", "instrumental"],
+    [/^refrain(?:\s*(\d+[a-z]?))?$/i, "r", "refrain"],
+  ];
+  for (const [pattern, prefix, canonicalPrefix] of patterns) {
+    const match = cleaned.match(pattern);
+    if (match) {
+      const suffix = (match[1] ?? "").toLowerCase();
+      return {
+        canonical: `${canonicalPrefix}${suffix}`,
+        id: `${prefix}${suffix}`,
+      };
+    }
+  }
+
+  // Labels without spaces are already compact page ids; leave them alone so
+  // lines such as [C] / [G] remain chord markers rather than section labels.
+  if (!cleaned.includes(" ")) return null;
+  const words = cleaned.toLowerCase().split(/\s+/).filter(Boolean);
+  const id =
+    words.length > 1
+      ? words.map((word) => word[0]).join("")
+      : cleaned.toLowerCase().replace(/[^a-z0-9]+/g, "").slice(0, 4);
+  return id ? { canonical: `custom:${id}`, id } : null;
+}
+
+function pageIdToken(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, "");
+}
+
+function cleanPageId(value: string): string {
+  return value.toLowerCase().replace(/\s+/g, "").replace(/[^a-z0-9_-]+/g, "");
+}
+
+export function suggestSongPageId(value: string): string | null {
+  return sectionPageId(value)?.id ?? null;
+}
+
+export function songPageNameCandidates(lyrics: string): string[] {
+  const seen = new Map<string, string>();
+  for (const match of lyrics.matchAll(/\[([^\]]+)\]/g)) {
+    const name = match[1].trim();
+    const key = name.toLowerCase();
+    if (!name || seen.has(key) || !sectionPageId(name)) continue;
+    seen.set(key, name);
+  }
+  return [...seen.values()];
+}
+
+export function simplifySongPageIds(
+  lyrics: string,
+  verseOrder?: string | null,
+  shortcuts: Record<string, string> = {},
+): SimplifiedSongPageIds {
+  const shortcutMap = new Map(
+    Object.entries(shortcuts).map(([name, id]) => [name.trim().toLowerCase(), id]),
+  );
+  const labels = [...lyrics.matchAll(/\[([^\]]+)\]/g)].map((match) => match[1]);
+  const originalToId = new Map<string, string>();
+  const canonicalToId = new Map<string, string>();
+  const tokenToId = new Map<string, string>();
+  const changes: SongPageIdChange[] = [];
+  const used = new Set<string>();
+
+  for (const label of labels) {
+    const originalKey = label.trim().toLowerCase();
+    if (!originalKey || originalToId.has(originalKey)) continue;
+    const info = sectionPageId(label);
+    const explicit = shortcutMap.get(originalKey);
+    if (!info && !explicit) continue;
+    const base = cleanPageId(explicit ?? info?.id ?? "section") || info?.id || "section";
+    const canonicalKey = explicit ? `explicit:${originalKey}` : info!.canonical;
+    let id = canonicalToId.get(canonicalKey);
+    if (!id) {
+      let candidate = base;
+      let suffix = 2;
+      while (used.has(candidate.toLowerCase())) {
+        candidate = `${base}_${suffix}`;
+        suffix += 1;
+      }
+      id = candidate;
+      used.add(candidate.toLowerCase());
+      canonicalToId.set(canonicalKey, id);
+    }
+    originalToId.set(originalKey, id);
+    if (label.trim() !== id) changes.push({ from: label.trim(), to: id });
+    tokenToId.set(pageIdToken(label), id);
+    if (info) tokenToId.set(pageIdToken(info.id), id);
+    tokenToId.set(pageIdToken(id), id);
+  }
+
+  const simplifiedLyrics = lyrics.replace(/\[([^\]]+)\]/g, (whole, label: string) => {
+    const id = originalToId.get(label.trim().toLowerCase());
+    return id ? `[${id}]` : whole;
+  });
+
+  const simplifiedOrder =
+    verseOrder == null
+      ? null
+      : verseOrder
+          .split(/(\s+)/)
+          .map((part) => (part.trim() ? tokenToId.get(pageIdToken(part)) ?? part : part))
+          .join("")
+          .trim() || null;
+
+  return { lyrics: simplifiedLyrics, verseOrder: simplifiedOrder, changes };
+}
+
 export interface SongImportPreview {
   path: string;
   bytes: number;
@@ -753,6 +904,10 @@ export const songInputSchema = z.object({
 
 export const songBulkDeleteSchema = z.object({
   ids: z.array(z.string().trim().min(1).max(100)).min(1).max(1000),
+});
+
+export const songPageIdFixApplySchema = z.object({
+  songIds: z.array(z.string().trim().min(1).max(100)).max(1000).optional(),
 });
 
 export const songVerseOrderInputSchema = z.object({
@@ -1030,6 +1185,7 @@ export const appSettingsSchema = z.object({
     .max(100)
     .default(DEFAULT_CHURCHSUITE_EMPTY_TYPES),
   defaultBibleTranslation: z.string().trim().max(40).nullable().default(null),
+  pageIdShortcuts: z.record(z.string().trim().min(1).max(120), z.string().trim().min(1).max(40)).default({}),
 });
 
 export const gitSettingsSchema = z.object({

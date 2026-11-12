@@ -6,6 +6,7 @@ const DEFAULTS: AppSettings = {
   pageNavigation: "stop",
   churchsuiteEmptyTypes: [...DEFAULT_CHURCHSUITE_EMPTY_TYPES],
   defaultBibleTranslation: null,
+  pageIdShortcuts: {},
 };
 
 const GIT_DEFAULTS: GitSettings = {
@@ -41,11 +42,34 @@ export function getAppSettings(): AppSettings {
     }
   }
   const defaultBibleTranslation = values.get("default_bible_translation")?.trim() || null;
+  let pageIdShortcuts: Record<string, string> = {};
+  const rawPageIdShortcuts = values.get("page_id_shortcuts");
+  if (rawPageIdShortcuts) {
+    try {
+      const parsed = JSON.parse(rawPageIdShortcuts) as unknown;
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        pageIdShortcuts = Object.fromEntries(
+          Object.entries(parsed as Record<string, unknown>)
+            .filter(
+              ([name, short]) =>
+                typeof name === "string" &&
+                typeof short === "string" &&
+                name.trim() &&
+                short.trim(),
+            )
+            .map(([name, short]) => [name.trim(), String(short).trim()]),
+        );
+      }
+    } catch {
+      // Ignore malformed configuration.
+    }
+  }
   return {
     pageNavigation:
       pageNavigation === "next-item" ? "next-item" : DEFAULTS.pageNavigation,
     churchsuiteEmptyTypes,
     defaultBibleTranslation,
+    pageIdShortcuts,
   };
 }
 
@@ -58,6 +82,7 @@ export function saveAppSettings(settings: AppSettings): AppSettings {
   write.run("page_navigation", settings.pageNavigation, now);
   write.run("churchsuite_empty_types", JSON.stringify(settings.churchsuiteEmptyTypes), now);
   write.run("default_bible_translation", settings.defaultBibleTranslation ?? "", now);
+  write.run("page_id_shortcuts", JSON.stringify(settings.pageIdShortcuts), now);
   return getAppSettings();
 }
 

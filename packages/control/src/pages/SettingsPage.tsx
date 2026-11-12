@@ -2,11 +2,13 @@ import { useEffect, useState } from "react";
 import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 import {
   DEFAULT_CHURCHSUITE_EMPTY_TYPES,
+  suggestSongPageId,
   type AppSettings,
   type BibleTranslationInfo,
   type FontOption,
   type GitSettings,
   type GitStatus,
+  type SongPageIdFixScan,
   type SongSelectWatchStatus,
 } from "@sm/shared";
 import { api, ApiError } from "../api";
@@ -44,10 +46,17 @@ export default function SettingsPage({
     pageNavigation: "stop",
     churchsuiteEmptyTypes: [...DEFAULT_CHURCHSUITE_EMPTY_TYPES],
     defaultBibleTranslation: null,
+    pageIdShortcuts: {},
   });
   const [bibleTranslations, setBibleTranslations] = useState<BibleTranslationInfo[]>([]);
   const [songselectWatch, setSongselectWatch] = useState<SongSelectWatchStatus | null>(null);
   const [scanningSongselect, setScanningSongselect] = useState(false);
+  const [pageNames, setPageNames] = useState<string[]>([]);
+  const [pageIdDraft, setPageIdDraft] = useState<Record<string, string>>({});
+  const [scanningPageIds, setScanningPageIds] = useState(false);
+  const [pageIdFixes, setPageIdFixes] = useState<SongPageIdFixScan | null>(null);
+  const [fixingPageIds, setFixingPageIds] = useState(false);
+  const [applyingPageIdFixes, setApplyingPageIdFixes] = useState(false);
   const [emptyType, setEmptyType] = useState("");
   const [savingSettings, setSavingSettings] = useState(false);
   const [git, setGit] = useState<GitStatus | null>(null);
@@ -85,6 +94,10 @@ export default function SettingsPage({
     api
       .songselectWatch()
       .then((result) => setSongselectWatch(result.status))
+      .catch(() => undefined);
+    api
+      .songPageNames()
+      .then((result) => setPageNames(result.names))
       .catch(() => undefined);
     api
       .gitStatus()
@@ -147,6 +160,115 @@ export default function SettingsPage({
       );
     } finally {
       setScanningSongselect(false);
+    }
+  }
+
+  function shortcutForPage(name: string): string {
+    const key = Object.keys(settings.pageIdShortcuts).find(
+      (candidate) => candidate.toLowerCase() === name.toLowerCase(),
+    );
+    return key ? settings.pageIdShortcuts[key] : "";
+  }
+
+  function pageIdValue(name: string): string {
+    if (Object.prototype.hasOwnProperty.call(pageIdDraft, name)) return pageIdDraft[name];
+    return shortcutForPage(name) || suggestSongPageId(name) || "";
+  }
+
+  async function scanPageNames(showNotice = true): Promise<string[] | null> {
+    setScanningPageIds(true);
+    setPageIdFixes(null);
+    try {
+      const result = await api.songPageNames();
+      setPageNames(result.names);
+      if (showNotice) notify(`Found ${result.names.length} distinct song page names`);
+      return result.names;
+    } catch (error) {
+      notify(
+        error instanceof ApiError ? error.message : "Could not scan song page names",
+        "error",
+      );
+      return null;
+    } finally {
+      setScanningPageIds(false);
+    }
+  }
+
+  function pageIdShortcutMap(names = pageNames): Record<string, string> {
+    const shortcuts = { ...settings.pageIdShortcuts };
+    for (const name of names) {
+      const cleaned = pageIdValue(name)
+        .trim()
+        .replace(/\s+/g, "")
+        .replace(/[^a-zA-Z0-9_-]/g, "");
+      if (cleaned) shortcuts[name] = cleaned;
+      else delete shortcuts[name];
+    }
+    return shortcuts;
+  }
+
+  async function savePageIdShortcuts(showNotice = true, names = pageNames): Promise<boolean> {
+    setSavingSettings(true);
+    try {
+      const result = await api.saveSettings({
+        ...settings,
+        pageIdShortcuts: pageIdShortcutMap(names),
+      });
+      setSettings(result.settings);
+      setPageIdDraft({});
+      if (showNotice) notify("Song page ID shortcuts saved");
+      return true;
+    } catch (error) {
+      notify(
+        error instanceof ApiError ? error.message : "Could not save page ID shortcuts",
+        "error",
+      );
+      return false;
+    } finally {
+      setSavingSettings(false);
+    }
+  }
+
+  async function scanPageIdFixes() {
+    setFixingPageIds(true);
+    setPageIdFixes(null);
+    try {
+      const names = await scanPageNames(false);
+      if (!names) return;
+      if (!(await savePageIdShortcuts(false, names))) return;
+      const result = await api.songPageIdFixes();
+      setPageIdFixes(result);
+      notify(
+        result.totalSongs
+          ? `${result.totalSongs} song${result.totalSongs === 1 ? "" : "s"} can be fixed`
+          : "No songs need page ID fixes",
+      );
+    } catch (error) {
+      notify(
+        error instanceof ApiError ? error.message : "Could not scan songs for page ID fixes",
+        "error",
+      );
+    } finally {
+      setFixingPageIds(false);
+    }
+  }
+
+  async function applyPageIdFixes() {
+    if (!pageIdFixes?.songs.length) return;
+    setApplyingPageIdFixes(true);
+    try {
+      const result = await api.applySongPageIdFixes(
+        pageIdFixes.songs.map((song) => song.songId),
+      );
+      setPageIdFixes(null);
+      notify(`Updated page IDs in ${result.updated} songs`);
+    } catch (error) {
+      notify(
+        error instanceof ApiError ? error.message : "Could not apply page ID fixes",
+        "error",
+      );
+    } finally {
+      setApplyingPageIdFixes(false);
     }
   }
 
@@ -429,6 +551,131 @@ export default function SettingsPage({
           If the selected version is unavailable, the first translation found in the Bible folder is
           used instead.
         </p>
+      </section>
+
+      <section className="panel">
+        <div className="panel-heading">
+          <div>
+            <h2>Song page IDs</h2>
+            <p className="muted">
+              Scan the song library for section names such as “Verse 1” or “Opening Prayer”, then
+              choose the compact ID used by the <strong>Simplify page IDs</strong> option. IDs never
+              contain spaces; duplicate IDs get a numeric suffix within each song.
+            </p>
+          </div>
+          <div className="button-row">
+            <button
+              className="button"
+              onClick={() => void scanPageNames()}
+              disabled={scanningPageIds}
+              title="Scan all songs for distinct section/page names"
+            >
+              {scanningPageIds ? "Scanning…" : "Scan song database"}
+            </button>
+            <button
+              className="button primary"
+              onClick={scanPageIdFixes}
+              disabled={fixingPageIds || scanningPageIds || savingSettings}
+              title="Scan the song database, save the conversion table, and offer fixes for long or spaced page names"
+            >
+              {fixingPageIds ? "Scanning songs…" : "Fix songs"}
+            </button>
+            <button
+              className="button ghost"
+              onClick={() => void savePageIdShortcuts()}
+              disabled={savingSettings || !pageNames.length}
+              title="Save the short ID for each page name without changing any songs"
+            >
+              Save page IDs
+            </button>
+          </div>
+        </div>
+        {pageNames.length ? (
+          <div className="page-id-table-wrap">
+            <table className="page-id-table">
+              <thead>
+                <tr>
+                  <th>Page name in songs</th>
+                  <th>Short page ID</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pageNames.map((name) => (
+                  <tr key={name}>
+                    <td>{name}</td>
+                    <td>
+                      <input
+                        value={pageIdValue(name)}
+                        onChange={(event) => {
+                          setPageIdFixes(null);
+                          setPageIdDraft((current) => ({
+                            ...current,
+                            [name]: event.target.value,
+                          }));
+                        }}
+                        placeholder={suggestSongPageId(name) ?? "short-id"}
+                        title={`Short ID for “${name}”`}
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="muted">Scan the song database to list page names.</p>
+        )}
+
+        {pageIdFixes && (
+          <div className="page-id-fix-preview">
+            <div className="panel-heading">
+              <div>
+                <h3>Songs needing page ID fixes</h3>
+                <p className="muted">
+                  {pageIdFixes.totalSongs} songs · {pageIdFixes.totalLabels} page names to change
+                </p>
+              </div>
+              <div className="button-row">
+                <button
+                  className="button primary"
+                  onClick={applyPageIdFixes}
+                  disabled={!pageIdFixes.totalSongs || applyingPageIdFixes}
+                  title="Apply these page ID changes to the selected songs"
+                >
+                  {applyingPageIdFixes
+                    ? "Fixing…"
+                    : `Apply fixes to ${pageIdFixes.totalSongs} song${
+                        pageIdFixes.totalSongs === 1 ? "" : "s"
+                      }`}
+                </button>
+                <button
+                  className="button ghost"
+                  onClick={() => setPageIdFixes(null)}
+                  disabled={applyingPageIdFixes}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+            {pageIdFixes.songs.length ? (
+              <div className="page-id-fix-list">
+                {pageIdFixes.songs.map((song) => (
+                  <div key={song.songId} className="page-id-fix-row">
+                    <strong>{song.title}</strong>
+                    <span>
+                      {song.changes
+                        .map((change) => `${change.from} → ${change.to}`)
+                        .join(" · ")}
+                      {song.verseOrderChanged ? " · verse order" : ""}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="muted">No song labels need changing with this conversion table.</p>
+            )}
+          </div>
+        )}
       </section>
 
       <section className="panel">

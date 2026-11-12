@@ -17,6 +17,7 @@ const applySchema = z.object({
     )
     .max(2000)
     .optional(),
+  simplifyPageIds: z.boolean().optional(),
 });
 
 const parseSchema = z.object({
@@ -46,7 +47,12 @@ export async function importRoutes(app: FastifyInstance): Promise<void> {
         return reply.code(400).send({ error: "Invalid import request", issues: parsed.error.issues });
       }
       try {
-        return importSongs(parsed.data.paths, undefined, parsed.data.decisions);
+        return importSongs(
+          parsed.data.paths,
+          undefined,
+          parsed.data.decisions,
+          { simplifyPageIds: parsed.data.simplifyPageIds },
+        );
       } catch (error) {
         return reply.code(400).send({ error: (error as Error).message });
       }

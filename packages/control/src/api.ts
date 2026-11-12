@@ -31,6 +31,7 @@ import type {
   SongImportReport,
   SongImportScan,
   SongImportDecision,
+  SongPageIdFixScan,
   SongSelectWatchReport,
   SongSelectWatchStatus,
   SongVerseOrder,
@@ -95,6 +96,13 @@ export const api = {
     request<{ ok: true; deleted: number; ids: string[] }>("/api/songs/bulk-delete", {
       method: "POST",
       body: JSON.stringify({ ids }),
+    }),
+  songPageNames: () => request<{ names: string[] }>("/api/songs/page-names"),
+  songPageIdFixes: () => request<SongPageIdFixScan>("/api/songs/page-id-fixes"),
+  applySongPageIdFixes: (songIds?: string[]) =>
+    request<{ ok: true; updated: number; ids: string[] }>("/api/songs/page-id-fixes/apply", {
+      method: "POST",
+      body: JSON.stringify(songIds ? { songIds } : {}),
     }),
 
   images: (q = "") =>
@@ -239,10 +247,13 @@ export const api = {
   deleteAsset: (id: string) => request<{ ok: true }>(`/api/assets/${id}`, { method: "DELETE" }),
 
   scanImports: () => request<SongImportScan>("/api/import/scan"),
-  applyImports: (decisions?: SongImportDecision[]) =>
+  applyImports: (decisions?: SongImportDecision[], simplifyPageIds = false) =>
     request<SongImportReport>("/api/import/apply", {
       method: "POST",
-      body: JSON.stringify(decisions ? { decisions } : {}),
+      body: JSON.stringify({
+        ...(decisions ? { decisions } : {}),
+        ...(simplifyPageIds ? { simplifyPageIds: true } : {}),
+      }),
     }),
 
   setlists: () => request<{ setlists: SetlistSummary[] }>("/api/setlists"),

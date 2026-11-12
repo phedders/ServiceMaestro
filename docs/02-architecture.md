@@ -217,6 +217,7 @@ Rules:
 | `/` | Control SPA | session cookie |
 | `/login`, `/logout` | Auth | — |
 | `/api/songs`, `/api/songs/:id`, `/api/songs/:id/versions`, `/api/songs/:id/preview` | Song library, versions, arrangements, render preview | editor |
+| `/api/songs/page-names`, `/api/songs/page-id-fixes` | Scan section names and preview/apply compact page-ID conversions | editor/admin |
 | `/api/providers/*` | SongSelect/provider status, search, assets, download jobs | editor/admin |
 | `/api/songs/:id/assets`, `/api/assets/:id/file` | ChordPro/PDF/tab assets and signed file access | editor/musician |
 | `/api/musicians/services`, `/api/musicians/services/:id` | Musician service view and score readiness | musician |
