@@ -1,6 +1,6 @@
 import type { FontOption } from "@sm/shared";
 
-const SAMPLE = "Aa Bb 123";
+const SAMPLE = "Abc Bcd Oo 1230";
 
 export function FontSelect({
   value,
