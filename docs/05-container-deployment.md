@@ -93,6 +93,9 @@ Environment-first, with optional file values and `_FILE` secret support:
 | `SM_SONGS_DIR` | `/library/songs` | Song sources |
 | `SM_BIBLE_DIR` | `/library/bible` | Bible SQLite files |
 | `SM_IMAGES_DIR` | `/library/images` | Images and uploads |
+| `SM_SONGSELECT_WATCH_DIR` | `/data/imports/songselect` | Watched folder for CCLI SongSelect downloader `.txt` files |
+| `SM_SONGSELECT_WATCH_ENABLED` | `true` | Enable background watched-folder imports |
+| `SM_SONGSELECT_WATCH_INTERVAL` | `10` | Watched-folder poll interval in seconds |
 | `SM_CONFIG_FILE` | `/config/config.json` | Optional structured config |
 | `SM_TZ` | `Europe/London` | Service dates/times and logs |
 | `SM_SESSION_SECRET` / `_FILE` | generated at first start | Cookie signing |

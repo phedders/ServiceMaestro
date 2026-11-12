@@ -2,7 +2,7 @@
 
 Design for pulling song resources from CCLI SongSelect into the library and presenting ChordPro, PDF scores and guitar tabs to musicians.
 
-> Implementation status: ChordPro import, per-song asset uploads (PDF/ChordPro/lyrics/image), authenticated asset serving and the musician PDF viewer are implemented. SongSelect provider integration itself remains opt-in/not built, per the constraints below.
+> Implementation status: ChordPro import, per-song asset uploads (PDF/ChordPro/lyrics/image), authenticated asset serving and the musician PDF viewer are implemented. A watched-folder import is implemented for CCLI SongSelect downloader output; automated SongSelect search/download itself remains opt-in/not built, per the constraints below.
 
 > **Important constraint (researched 2026-11):** CCLI has **retired the SongSelect API Partner Program and is not accepting new partners**; ChordPro downloads are reported to be available **directly on songselect.ccli.com** (Premium), not through the partner API, and the terms of use govern automated access. This design therefore treats SongSelect as a **pluggable provider** and defaults to **authorized/manual import**; no scraping or paywall bypass is part of the design. A church must use its own SongSelect subscription and comply with CCLI's terms.
 
@@ -88,6 +88,17 @@ Capabilities drive the UI: if a provider cannot return ChordPro, the button is h
 5. **Deduplicate** — match existing songs by CCLI number, provider id, then title+authors; offer "attach assets to existing song" vs "import as new version".
 6. **Report** — imported/attached/skipped, missing assets, license warnings. Failed downloads are retryable.
 7. If no provider is configured, the same import dialog accepts **files from disk** (the compliant fallback).
+
+### Watched folder fallback (implemented)
+
+Service Maestro can watch a local folder for CCLI SongSelect downloader `.txt` output:
+
+- Default folder: `/data/imports/songselect` (`SM_SONGSELECT_WATCH_DIR`).
+- The watcher scans every `SM_SONGSELECT_WATCH_INTERVAL` seconds (default 10).
+- It strips CCLI legal/metadata lines, expands inline `[Verse 1] first line` labels into proper section headings, removes `//`/divider lines, and imports the song.
+- It tracks each file and SHA-256 in `songselect_watch_files`, updates songs when a re-download changes the same file, and skips title/CCLI duplicates.
+- Settings → **SongSelect drop folder** shows the path, watcher status, pending files and recent results, with **Scan now** and **Force rescan** actions.
+- This keeps credentials and the CCLI browser session outside Service Maestro.
 
 Jobs are persisted in SQLite with progress, retries and rate limiting. No Redis required.
 

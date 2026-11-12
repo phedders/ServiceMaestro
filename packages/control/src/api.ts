@@ -31,6 +31,8 @@ import type {
   SongImportReport,
   SongImportScan,
   SongImportDecision,
+  SongSelectWatchReport,
+  SongSelectWatchStatus,
   SongVerseOrder,
   TarpPage,
   TarpPageInput,
@@ -180,6 +182,13 @@ export const api = {
       };
     }>(`/api/integrations/churchsuite/plans?${params.toString()}`);
   },
+  songselectWatch: () =>
+    request<{ status: SongSelectWatchStatus }>("/api/integrations/songselect/watch"),
+  scanSongselectWatch: (force = false) =>
+    request<{ report: SongSelectWatchReport; status: SongSelectWatchStatus }>(
+      "/api/integrations/songselect/watch/scan",
+      { method: "POST", body: JSON.stringify({ force }) },
+    ),
   churchsuitePlanPreview: (id: number) =>
     request<{ preview: ChurchSuitePlanPreview }>(
       `/api/integrations/churchsuite/plans/${id}/preview`,

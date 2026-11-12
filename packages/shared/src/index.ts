@@ -530,6 +530,35 @@ export interface ChurchSuiteImportReport {
   skipped: number;
 }
 
+export interface SongSelectWatchFile {
+  path: string;
+  status: "imported" | "updated" | "skipped" | "error";
+  message: string | null;
+  songId: string | null;
+  songTitle: string | null;
+  processedAt: string;
+}
+
+export interface SongSelectWatchStatus {
+  enabled: boolean;
+  directory: string;
+  intervalSeconds: number;
+  running: boolean;
+  lastScanAt: string | null;
+  lastError: string | null;
+  pendingFiles: number;
+  recent: SongSelectWatchFile[];
+}
+
+export interface SongSelectWatchReport {
+  scanned: number;
+  imported: number;
+  updated: number;
+  skipped: number;
+  errors: number;
+  files: SongSelectWatchFile[];
+}
+
 export interface LiveState {
   sessionId: string;
   setlistId: string | null;

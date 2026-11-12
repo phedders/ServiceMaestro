@@ -2702,6 +2702,60 @@ body.resizing-live-queue {
   gap: 10px;
 }
 
+.config-kv .span-2 {
+  grid-column: 1 / -1;
+}
+
+.songselect-watch-list {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.songselect-watch-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel-2);
+}
+
+.songselect-watch-row > div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.songselect-watch-row .muted {
+  font-size: 0.68rem;
+  overflow-wrap: anywhere;
+}
+
+.songselect-watch-row time {
+  color: var(--muted);
+  font-size: 0.68rem;
+  white-space: nowrap;
+}
+
+.badge.imported,
+.badge.updated {
+  background: rgba(74, 222, 128, 0.14);
+  color: #86efac;
+}
+
+.badge.skipped {
+  background: rgba(251, 191, 36, 0.14);
+  color: #fcd34d;
+}
+
+.badge.error {
+  background: rgba(255, 107, 107, 0.16);
+  color: #ffb2b2;
+}
+
 .git-settings-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr)) minmax(160px, 0.8fr) minmax(220px, 1fr) auto;

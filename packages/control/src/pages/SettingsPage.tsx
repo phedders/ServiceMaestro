@@ -7,6 +7,7 @@ import {
   type FontOption,
   type GitSettings,
   type GitStatus,
+  type SongSelectWatchStatus,
 } from "@sm/shared";
 import { api, ApiError } from "../api";
 import { compactDateTime } from "../service-date";
@@ -45,6 +46,8 @@ export default function SettingsPage({
     defaultBibleTranslation: null,
   });
   const [bibleTranslations, setBibleTranslations] = useState<BibleTranslationInfo[]>([]);
+  const [songselectWatch, setSongselectWatch] = useState<SongSelectWatchStatus | null>(null);
+  const [scanningSongselect, setScanningSongselect] = useState(false);
   const [emptyType, setEmptyType] = useState("");
   const [savingSettings, setSavingSettings] = useState(false);
   const [git, setGit] = useState<GitStatus | null>(null);
@@ -78,6 +81,10 @@ export default function SettingsPage({
     api
       .bibleTranslations()
       .then((result) => setBibleTranslations(result.translations))
+      .catch(() => undefined);
+    api
+      .songselectWatch()
+      .then((result) => setSongselectWatch(result.status))
       .catch(() => undefined);
     api
       .gitStatus()
@@ -120,6 +127,26 @@ export default function SettingsPage({
       notify("Font removed");
     } catch (error) {
       notify(error instanceof ApiError ? error.message : "Could not remove font", "error");
+    }
+  }
+
+  async function scanSongselectWatch(force = false) {
+    setScanningSongselect(true);
+    try {
+      const result = await api.scanSongselectWatch(force);
+      setSongselectWatch(result.status);
+      notify(
+        result.report
+          ? `SongSelect folder: ${result.report.imported} imported, ${result.report.updated} updated, ${result.report.skipped} skipped`
+          : "SongSelect folder scan started",
+      );
+    } catch (error) {
+      notify(
+        error instanceof ApiError ? error.message : "Could not scan the SongSelect folder",
+        "error",
+      );
+    } finally {
+      setScanningSongselect(false);
     }
   }
 
@@ -401,6 +428,100 @@ export default function SettingsPage({
         <p className="hint">
           If the selected version is unavailable, the first translation found in the Bible folder is
           used instead.
+        </p>
+      </section>
+
+      <section className="panel">
+        <div className="panel-heading">
+          <div>
+            <h2>SongSelect drop folder</h2>
+            <p className="muted">
+              Point the CCLI downloader’s output folder here. New text files are imported into the
+              song library automatically and recorded in the list below.
+            </p>
+          </div>
+          <div className="button-row">
+            <button
+              className="button primary"
+              onClick={() => scanSongselectWatch(false)}
+              disabled={scanningSongselect}
+              title="Scan the SongSelect drop folder for new files"
+            >
+              {scanningSongselect ? "Scanning…" : "Scan now"}
+            </button>
+            <button
+              className="button ghost"
+              onClick={() => scanSongselectWatch(true)}
+              disabled={scanningSongselect}
+              title="Re-process every file, including previously skipped or errored files"
+            >
+              Force rescan
+            </button>
+          </div>
+        </div>
+        {songselectWatch ? (
+          <>
+            <div className="config-kv">
+              <div className="span-2">
+                <span>Drop directory</span>
+                <code>{songselectWatch.directory}</code>
+              </div>
+              <div>
+                <span>Watcher</span>
+                <strong>
+                  {songselectWatch.enabled
+                    ? `On · every ${songselectWatch.intervalSeconds}s`
+                    : "Disabled"}
+                </strong>
+              </div>
+              <div>
+                <span>Last scan</span>
+                <strong>
+                  {songselectWatch.lastScanAt
+                    ? compactDateTime(songselectWatch.lastScanAt)
+                    : "Not yet"}
+                </strong>
+              </div>
+              <div>
+                <span>Unseen files</span>
+                <strong>{songselectWatch.pendingFiles}</strong>
+              </div>
+              <div>
+                <span>Recently processed</span>
+                <strong>{songselectWatch.recent.length}</strong>
+              </div>
+            </div>
+            {songselectWatch.lastError && (
+              <p className="banner error">{songselectWatch.lastError}</p>
+            )}
+            {songselectWatch.recent.length > 0 && (
+              <div className="songselect-watch-list">
+                {songselectWatch.recent.map((file) => (
+                  <div key={`${file.path}-${file.processedAt}`} className="songselect-watch-row">
+                    <span className={`badge ${file.status}`}>{file.status}</span>
+                    <div>
+                      <strong>{file.songTitle || file.path.split("/").pop()}</strong>
+                      <span className="muted">
+                        {file.path}
+                        {file.message ? ` · ${file.message}` : ""}
+                      </span>
+                    </div>
+                    <time>{compactDateTime(file.processedAt)}</time>
+                  </div>
+                ))}
+              </div>
+            )}
+            {songselectWatch.recent.length === 0 && (
+              <p className="muted">No files have been processed yet.</p>
+            )}
+          </>
+        ) : (
+          <p className="muted">Could not read the SongSelect watcher status.</p>
+        )}
+        <p className="hint">
+          The folder is scanned automatically every few seconds. Files stay in place; re-downloading
+          the same filename updates its song. A file that matches an existing song title or CCLI
+          number is skipped until you use <strong>Force rescan</strong>.
         </p>
       </section>
 

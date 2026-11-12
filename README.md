@@ -110,6 +110,9 @@ Listener ports are set with `SM_PORT` and `SM_DISPLAY_PORT`; both are read at st
 | `SM_SONGS_DIR` | `samples/` (local) | Source directory scanned for OpenLP/ChordPro/text imports |
 | `SM_BIBLE_DIR` | `samples/bible/` (local) | SQLite/JSON Bible translations |
 | `SM_IMAGES_DIR` | `library/images/` (local) / `/library/images` (container) | Image library for backgrounds and slides |
+| `SM_SONGSELECT_WATCH_DIR` | `/data/imports/songselect` | Watched CCLI SongSelect download folder |
+| `SM_SONGSELECT_WATCH_ENABLED` | `true` | Enable the background SongSelect folder watcher |
+| `SM_SONGSELECT_WATCH_INTERVAL` | `10` | Seconds between watched-folder scans |
 | `SM_ADMIN_PASSWORD` | `admin` | Password for the seeded admin |
 | `SM_OUTPUT_TOKEN` | `dev-output` | Token required by display sockets |
 | `SM_LOG_LEVEL` | `info` | Fastify log level |

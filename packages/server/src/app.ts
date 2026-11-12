@@ -29,6 +29,7 @@ import { imageRoutes } from "./routes/images.js";
 import { tarpRoutes } from "./routes/tarp.js";
 import { backgroundRoutes } from "./routes/backgrounds.js";
 import { stingerRoutes } from "./routes/stingers.js";
+import { songSelectRoutes } from "./routes/songselect.js";
 import {
   configureGitAutoSync,
   exportAllToGit,
@@ -75,6 +76,7 @@ export async function buildApp(): Promise<{
   await app.register(tarpRoutes);
   await app.register(backgroundRoutes);
   await app.register(stingerRoutes);
+  await app.register(songSelectRoutes);
 
   app.get("/", async (_request, reply) => sendHtmlFile(reply, path.join(CONTROL_DIST, "index.html")));
   app.get("/login", async (_request, reply) => sendHtmlFile(reply, path.join(CONTROL_DIST, "index.html")));

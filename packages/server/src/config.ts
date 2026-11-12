@@ -90,6 +90,14 @@ export const FONTS_DIR = path.resolve(process.env.SM_FONTS_DIR ?? path.join(DATA
 export const IMAGES_DIR = path.resolve(
   process.env.SM_IMAGES_DIR ?? path.join(packageRoot, "../../library/images"),
 );
+export const SONGSELECT_WATCH_DIR = path.resolve(
+  process.env.SM_SONGSELECT_WATCH_DIR ?? path.join(DATA_DIR, "imports", "songselect"),
+);
+export const SONGSELECT_WATCH_ENABLED = boolEnv("SM_SONGSELECT_WATCH_ENABLED", true);
+export const SONGSELECT_WATCH_INTERVAL = Math.max(
+  2,
+  Math.min(3600, Number(process.env.SM_SONGSELECT_WATCH_INTERVAL ?? 10) || 10),
+);
 export const TEMPLATES_DIR = path.resolve(process.env.SM_TEMPLATES_DIR ?? path.join(DATA_DIR, "templates"));
 export const OUTPUT_TOKEN = process.env.SM_OUTPUT_TOKEN ?? "dev-output";
 export const ADMIN_PASSWORD = process.env.SM_ADMIN_PASSWORD ?? "admin";

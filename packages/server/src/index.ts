@@ -3,6 +3,7 @@ import { DISPLAY_PORT, HOST, PORT } from "./config.js";
 import { buildDisplayApp } from "./display-app.js";
 import { startHeartbeat } from "./heartbeat.js";
 import { shutdownGit } from "./git-store.js";
+import { startSongSelectWatcher } from "./songselect-watch.js";
 
 if (PORT === DISPLAY_PORT) {
   console.error("[sm] SM_PORT and SM_DISPLAY_PORT must be different ports");
@@ -16,6 +17,7 @@ const stopHeartbeats = [
   startHeartbeat(outputIo),
   startHeartbeat(display.io),
 ];
+const stopSongSelectWatcher = startSongSelectWatcher();
 
 try {
   await app.listen({ host: HOST, port: PORT });
@@ -33,6 +35,7 @@ async function shutdown(signal: string): Promise<void> {
   closing = true;
   app.log.info(`${signal} received, shutting down`);
   shutdownGit();
+  stopSongSelectWatcher();
   stopHeartbeats.forEach((stop) => stop());
   io.close();
   outputIo.close();

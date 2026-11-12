@@ -142,6 +142,17 @@ db.exec(`
     updated_at TEXT NOT NULL
   );
 
+  CREATE TABLE IF NOT EXISTS songselect_watch_files (
+    path TEXT PRIMARY KEY,
+    sha256 TEXT NOT NULL,
+    status TEXT NOT NULL,
+    song_id TEXT,
+    message TEXT,
+    processed_at TEXT NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_songselect_watch_processed
+    ON songselect_watch_files(processed_at DESC);
+
   CREATE TABLE IF NOT EXISTS backgrounds (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,

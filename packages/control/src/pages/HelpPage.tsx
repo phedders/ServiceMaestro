@@ -412,6 +412,23 @@ export default function HelpPage({ onOpenSettings }: { onOpenSettings: () => voi
               </li>
             </ul>
           </article>
+          <article className="help-card">
+            <h3>SongSelect drop folder</h3>
+            <ul className="help-list">
+              <li>
+                Point the CCLI SongSelect downloader output folder at the path shown under{" "}
+                <strong>Settings → SongSelect drop folder</strong>.
+              </li>
+              <li>
+                New <code>.txt</code> downloads are imported automatically; the panel shows recent
+                imports, updates, skips and errors.
+              </li>
+              <li>
+                Re-downloading the same filename updates its song. Matching titles or CCLI numbers are
+                skipped unless you use <strong>Force rescan</strong>.
+              </li>
+            </ul>
+          </article>
         </div>
       </section>
 
