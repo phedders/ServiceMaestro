@@ -162,7 +162,10 @@ export function applySharedSettings(shared: SharedSettings): void {
 
 export function localDownloadedFonts(): SharedFontOption[] {
   const rows = db
-    .prepare("SELECT id, label, family, source_url, created_at FROM fonts ORDER BY label COLLATE NOCASE")
+    .prepare(
+      `SELECT id, label, family, source_url, created_at FROM fonts
+       WHERE source_url IS NOT NULL ORDER BY label COLLATE NOCASE`,
+    )
     .all() as SharedFontRow[];
   return rows.map((row) => ({
     id: row.id,

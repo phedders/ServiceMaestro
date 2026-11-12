@@ -894,6 +894,7 @@ export default function SettingsPage({
           <div className="font-heading-actions">
             <span className="muted">
               {fonts.filter((font) => font.source === "google").length} downloaded ·{" "}
+              {fonts.filter((font) => font.source === "local").length} local ·{" "}
               {sharedFonts.length} shared
               {missingFonts.length ? ` · ${missingFonts.length} missing` : ""}
             </span>
@@ -938,9 +939,10 @@ export default function SettingsPage({
         </div>
         <p className="hint">
           Only <code>fonts.googleapis.com</code> CSS URLs are accepted. The import downloads the
-          actual font files, so displays keep working without internet access. Team settings and
-          downloaded Google font names are shared through <code>settings/shared.json</code> in the
-          set lists repository.
+          actual font files, so displays keep working without internet access. Font files placed
+          directly in <code>/data/fonts</code> are detected automatically and listed as local. Team
+          settings and downloaded Google font names are shared through{" "}
+          <code>settings/shared.json</code> in the set lists repository.
         </p>
 
         <div className="font-list">
@@ -966,7 +968,11 @@ export default function SettingsPage({
               <div>
                 <strong>{font.label}</strong>
                 <span className="muted">
-                  {font.source === "google" ? "Google Fonts · cached" : "Built in"}
+                  {font.source === "google"
+                    ? "Google Fonts · cached"
+                    : font.source === "local"
+                      ? "Local file · detected"
+                      : "Built in"}
                   {font.importedAt ? ` · ${compactDateTime(font.importedAt)}` : ""}
                 </span>
               </div>

@@ -106,7 +106,7 @@ Environment-first, with optional file values and `_FILE` secret support:
 | `SM_MAX_ASSET_MB` | `100` | Per-file cap for PDFs/tabs/ChordPro |
 | `SM_OUTPUT_LEGACY_TOKEN` / `_FILE` | unset | Optional token-free legacy `/obs-*` access (disabled by default) |
 | `SM_MAX_IMPORT_MB` | `200` | Set list/media import cap |
-| `SM_FONTS_DIR` | `/data/fonts` | Cached Google Fonts CSS/woff2 files |
+| `SM_FONTS_DIR` | `/data/fonts` | Cached Google Fonts plus detected local font files |
 | `SM_CHURCHSUITE_CLIENT_ID` / `_FILE` | unset | ChurchSuite API user client id |
 | `SM_CHURCHSUITE_CLIENT_SECRET` / `_FILE` | unset | ChurchSuite API user secret |
 | `SM_CHURCHSUITE_SCOPES` | `planning.read` | Requested ChurchSuite scopes |

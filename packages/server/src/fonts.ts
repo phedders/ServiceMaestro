@@ -57,6 +57,43 @@ interface FontRow {
   created_at: string;
 }
 
+interface LocalFontFile {
+  relativePath: string;
+  label: string;
+  weight: number;
+  style: "normal" | "italic";
+  format: string;
+}
+
+const LOCAL_FONT_EXTENSIONS = new Map([
+  [".ttf", "truetype"],
+  [".otf", "opentype"],
+  [".woff", "woff"],
+  [".woff2", "woff2"],
+]);
+const FONT_WEIGHT_TOKENS = new Set([
+  "thin",
+  "hairline",
+  "extralight",
+  "ultralight",
+  "light",
+  "regular",
+  "normal",
+  "book",
+  "medium",
+  "semibold",
+  "demibold",
+  "bold",
+  "extrabold",
+  "ultrabold",
+  "black",
+  "heavy",
+  "italic",
+  "oblique",
+  "variable",
+  "vf",
+]);
+
 fs.mkdirSync(FONTS_DIR, { recursive: true });
 
 function slug(value: string): string {
@@ -67,18 +104,152 @@ function slug(value: string): string {
     .slice(0, 80) || "font";
 }
 
+function localFontWeight(name: string): number {
+  const value = name.toLowerCase();
+  if (/(thin|hairline)/.test(value)) return 100;
+  if (/(extralight|ultralight)/.test(value)) return 200;
+  if (/light/.test(value)) return 300;
+  if (/(medium)/.test(value)) return 500;
+  if (/(semibold|demibold)/.test(value)) return 600;
+  if (/(extrabold|ultrabold)/.test(value)) return 800;
+  if (/(black|heavy)/.test(value)) return 900;
+  if (/bold/.test(value)) return 700;
+  return 400;
+}
+
+function localFontLabel(filename: string): string {
+  const stem = path.basename(filename, path.extname(filename));
+  const expanded = stem
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/([A-Za-z])(\d)/g, "$1 $2")
+    .replace(/[-_.\s]+/g, " ")
+    .trim();
+  const tokens = expanded.split(/\s+/).filter(Boolean);
+  while (tokens.length > 1 && FONT_WEIGHT_TOKENS.has(tokens[tokens.length - 1].toLowerCase())) {
+    tokens.pop();
+  }
+  return tokens.join(" ").trim() || stem || "Local font";
+}
+
+function walkLocalFonts(
+  current: string,
+  relative: string,
+  files: LocalFontFile[],
+  depth = 0,
+): void {
+  if (depth > 5) return;
+  for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
+    if (entry.name.startsWith(".")) continue;
+    if (entry.isSymbolicLink()) continue;
+    const full = path.join(current, entry.name);
+    const rel = relative ? path.join(relative, entry.name) : entry.name;
+    if (entry.isDirectory()) {
+      // Google downloads and generated local CSS live in these directories.
+      const generatedGoogle =
+        entry.name.startsWith("google-") && fs.existsSync(path.join(full, "fonts.css"));
+      if (generatedGoogle || entry.name === "_local") continue;
+      walkLocalFonts(full, rel, files, depth + 1);
+      continue;
+    }
+    if (!entry.isFile()) continue;
+    const format = LOCAL_FONT_EXTENSIONS.get(path.extname(entry.name).toLowerCase());
+    if (!format) continue;
+    const lower = entry.name.toLowerCase();
+    files.push({
+      relativePath: rel,
+      label: localFontLabel(entry.name),
+      weight: localFontWeight(lower),
+      style: /(italic|oblique)/.test(lower) ? "italic" : "normal",
+      format,
+    });
+  }
+}
+
+function localFontCss(files: LocalFontFile[]): string {
+  return files
+    .map((file) => {
+      const url = file.relativePath
+        .split(path.sep)
+        .map((part) => encodeURIComponent(part))
+        .join("/");
+      const family = file.label.replace(/"/g, '\\"');
+      return `@font-face {\n  font-family: "${family}";\n  src: url("/display/fonts/${url}") format("${file.format}");\n  font-style: ${file.style};\n  font-weight: ${file.weight};\n}`;
+    })
+    .join("\n\n");
+}
+
+function syncLocalFonts(): void {
+  const files: LocalFontFile[] = [];
+  walkLocalFonts(FONTS_DIR, "", files);
+
+  const groups = new Map<string, { label: string; files: LocalFontFile[] }>();
+  for (const file of files) {
+    const key = file.label.toLowerCase();
+    const group = groups.get(key);
+    if (group) group.files.push(file);
+    else groups.set(key, { label: file.label, files: [file] });
+  }
+
+  const existing = db
+    .prepare("SELECT * FROM fonts WHERE source_url IS NULL")
+    .all() as FontRow[];
+  const existingById = new Map(existing.map((row) => [row.id, row]));
+  const keep = new Set<string>();
+  let changed = false;
+  const now = new Date().toISOString();
+
+  for (const [key, group] of groups) {
+    const id = `local-${slug(key)}`;
+    keep.add(id);
+    const cssPath = path.join("_local", id, "fonts.css");
+    const cssFile = path.join(FONTS_DIR, cssPath);
+    const css = localFontCss(group.files);
+    fs.mkdirSync(path.dirname(cssFile), { recursive: true });
+    if (!fs.existsSync(cssFile) || fs.readFileSync(cssFile, "utf8") !== css) {
+      fs.writeFileSync(cssFile, css);
+      changed = true;
+    }
+    const family = `"${group.label.replace(/"/g, '\\"')}", system-ui, sans-serif`;
+    const current = existingById.get(id);
+    if (
+      !current ||
+      current.label !== group.label ||
+      current.family !== family ||
+      current.css_path !== cssPath
+    ) {
+      db.prepare(
+        `INSERT INTO fonts (id, label, family, source_url, css_path, created_at)
+         VALUES (?, ?, ?, NULL, ?, ?)
+         ON CONFLICT(id) DO UPDATE SET label = excluded.label, family = excluded.family,
+           source_url = NULL, css_path = excluded.css_path`,
+      ).run(id, group.label, family, cssPath, current?.created_at ?? now);
+      changed = true;
+    }
+  }
+
+  for (const row of existing) {
+    if (keep.has(row.id)) continue;
+    db.prepare("DELETE FROM fonts WHERE id = ?").run(row.id);
+    fs.rmSync(path.join(FONTS_DIR, "_local", row.id), { recursive: true, force: true });
+    changed = true;
+  }
+
+  if (changed) refreshAllFontsCss();
+}
+
 function mapRow(row: FontRow): FontOption {
   return {
     id: row.id,
     label: row.label,
     family: row.family,
-    source: "google",
+    source: row.source_url ? "google" : "local",
     cssUrl: row.source_url,
     importedAt: row.created_at,
   };
 }
 
 export function listFonts(): FontOption[] {
+  syncLocalFonts();
   const rows = db.prepare("SELECT * FROM fonts ORDER BY label COLLATE NOCASE").all() as FontRow[];
   return [...BUILTIN_FONTS, ...rows.map(mapRow)];
 }
@@ -87,7 +258,7 @@ export function refreshAllFontsCss(): void {
   fs.mkdirSync(FONTS_DIR, { recursive: true });
   const rows = db.prepare("SELECT * FROM fonts ORDER BY label COLLATE NOCASE").all() as FontRow[];
   const chunks: string[] = [
-    "/* Service Maestro — imported Google Fonts. Generated automatically. */",
+    "/* Service Maestro — imported and detected local fonts. Generated automatically. */",
   ];
   for (const row of rows) {
     const file = path.join(FONTS_DIR, row.css_path);
@@ -188,11 +359,12 @@ export async function importGoogleFont(input: { family?: string; url?: string })
 
 export function deleteFont(id: string): boolean {
   const row = db.prepare("SELECT * FROM fonts WHERE id = ?").get(id) as FontRow | undefined;
-  if (!row) return false;
+  if (!row || !row.source_url) return false;
   db.prepare("DELETE FROM fonts WHERE id = ?").run(id);
   fs.rmSync(path.join(FONTS_DIR, id), { recursive: true, force: true });
   refreshAllFontsCss();
   return true;
 }
 
+syncLocalFonts();
 refreshAllFontsCss();

@@ -24,7 +24,8 @@ export function FontSelect({
           title={`${font.label} · ${SAMPLE}`}
         >
           {font.label}
-          {font.source === "google" ? " (Google)" : ""} — {SAMPLE}
+          {font.source === "google" ? " (Google)" : font.source === "local" ? " (Local)" : ""} —{" "}
+          {SAMPLE}
         </option>
       ))}
       {!known && (

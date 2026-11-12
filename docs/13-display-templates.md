@@ -151,6 +151,8 @@ Songs can opt into **inline Markdown styling** metadata. Supported tags include 
 
 The Settings page imports a family name or a `https://fonts.googleapis.com/css2?...` URL. The server downloads the CSS and woff2 files into `/data/fonts`, rewrites the URLs to `/display/fonts/<id>/…`, and serves a concatenated `/display/fonts/all.css`. Displays and the control preview therefore work offline after import, and all font requests stay inside the read-only `/display/*` tree.
 
+Font files placed directly in `/data/fonts` (`.ttf`, `.otf`, `.woff`, `.woff2`, including normal subfolders) are detected automatically, grouped by family/weight/style inferred from the filenames, and registered as local fonts. Their generated `@font-face` rules are included in `all.css`; removing the files removes their local entries on the next scan. Local fonts are not added to the shared Google Fonts list.
+
 Downloaded font names, families and original Google Fonts URLs are recorded in `settings/shared.json` in the **set lists repository**, together with team-wide app settings, display styling and the global background palette. Other instances that pull that repository apply those shared settings and show shared fonts that are not cached locally with a **Missing** highlight, a per-font **Download** button, and a bulk **Download missing** action. The shared font list is merged with the local cache, so removing a local font does not erase it from the team’s shared list.
 
 ## 5. Blank on session start

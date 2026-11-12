@@ -415,7 +415,7 @@ export interface FontOption {
   id: string;
   label: string;
   family: string;
-  source: "built-in" | "google";
+  source: "built-in" | "google" | "local";
   cssUrl: string | null;
   importedAt: string | null;
 }
