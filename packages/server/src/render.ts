@@ -1,6 +1,7 @@
 import {
   SMART_WRAP_MODULES,
   parseImageListContent,
+  suggestSongPageId,
   type LivePage,
   type SmartWrapModule,
 } from "@sm/shared";
@@ -9,7 +10,7 @@ import rst2html from "rst2html";
 import sanitizeHtml from "sanitize-html";
 import { parse as parseYaml } from "yaml";
 import { OUTPUT_TOKEN } from "./config.js";
-import { bareSectionLabel } from "./section-labels.js";
+import { bareSectionLabel, bracketedSectionLabel } from "./section-labels.js";
 
 export interface RenderItem {
   kind: "song" | "text" | "image" | "image_list" | "tarp";
@@ -95,7 +96,7 @@ function parseSong(lyrics: string): Block[] {
   for (const raw of rawLines) {
     const line = raw.replace(/\s+$/, "");
     const bracketed = line.match(/^\s*\[([^\]]+)\]\s*$/);
-    const bracketedSection = bracketed ? bareSectionLabel(bracketed[1]) : null;
+    const bracketedSection = bracketed ? bracketedSectionLabel(bracketed[1]) : null;
     if (bracketedSection) {
       flush();
       pendingSection = bracketedSection;
@@ -384,6 +385,8 @@ function sectionAliases(label: string): string[] {
     aliases.add("int");
     aliases.add("instrumental");
   }
+  const compact = suggestSongPageId(label);
+  if (compact) aliases.add(normalize(compact));
   return [...aliases];
 }
 
@@ -391,22 +394,29 @@ function orderBlocks(blocks: Block[], verseOrder: string | null | undefined): Bl
   const tokens = (verseOrder ?? "").split(/\s+/).filter(Boolean);
   if (!tokens.length) return blocks;
 
-  const exact = new Map<string, Block>();
-  const alias = new Map<string, Block>();
+  const exact = new Map<string, Block[]>();
+  const alias = new Map<string, Block[]>();
+  const addTo = (map: Map<string, Block[]>, key: string, block: Block) => {
+    const list = map.get(key) ?? [];
+    if (!list.includes(block)) list.push(block);
+    map.set(key, list);
+  };
   for (const block of blocks) {
     if (!block.section) continue;
-    exact.set(normalize(block.section), block);
-    for (const key of sectionAliases(block.section)) {
-      if (!alias.has(key)) alias.set(key, block);
-    }
+    addTo(exact, normalize(block.section), block);
+    for (const key of sectionAliases(block.section)) addTo(alias, key, block);
   }
 
   const ordered: Block[] = [];
   const used = new Set<Block>();
   for (const token of tokens) {
     const normalized = normalize(token);
-    const block = exact.get(normalized) ?? alias.get(normalized);
-    if (!block) continue;
+    const candidates = exact.get(normalized) ?? alias.get(normalized);
+    if (!candidates?.length) continue;
+    // Prefer an unused copy when the same label occurs more than once. Falling
+    // back to the first copy keeps repeated sections working when the lyrics
+    // contain a single block for that label.
+    const block = candidates.find((candidate) => !used.has(candidate)) ?? candidates[0];
     ordered.push(block);
     used.add(block);
   }

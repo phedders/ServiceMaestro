@@ -1031,18 +1031,36 @@ function sectionPageId(value: string): { canonical: string; id: string } | null 
     .replace(/\s+/g, " ");
   if (!cleaned) return null;
 
+  // Compact page IDs are lowercase. Keeping this check case-sensitive means
+  // [C], [B] and [E] continue to be treated as chords rather than sections.
+  const compactSingle: Record<string, string> = {
+    v: "verse",
+    c: "chorus",
+    b: "bridge",
+    i: "intro",
+    o: "outro",
+    e: "ending",
+    t: "tag",
+    r: "refrain",
+    p: "prechorus",
+  };
+  if (compactSingle[cleaned]) return { canonical: compactSingle[cleaned], id: cleaned };
+
   const patterns: Array<[RegExp, string, string]> = [
     [/^verse(?:\s*(\d+[a-z]?))?$/i, "v", "verse"],
+    [/^v(\d+[a-z]?)$/i, "v", "verse"],
     [/^chorus(?:\s*(\d+[a-z]?))?$/i, "c", "chorus"],
+    [/^c(\d+[a-z]?)$/i, "c", "chorus"],
     [/^(?:pre[-\s]?chorus|pc)(?:\s*(\d+[a-z]?))?$/i, "pc", "prechorus"],
     [/^bridge(?:\s*(\d+[a-z]?))?$/i, "b", "bridge"],
+    [/^b(\d+[a-z]?)$/i, "b", "bridge"],
     [/^intro(?:\s*(\d+[a-z]?))?$/i, "i", "intro"],
     [/^outro(?:\s*(\d+[a-z]?))?$/i, "o", "outro"],
     [/^ending(?:\s*(\d+[a-z]?))?$/i, "e", "ending"],
     [/^tag(?:\s*(\d+[a-z]?))?$/i, "t", "tag"],
     [/^(?:turnaround|turn|tr)(?:\s*(\d+[a-z]?))?$/i, "tr", "turnaround"],
     [/^(?:interlude|il)(?:\s*(\d+[a-z]?))?$/i, "il", "interlude"],
-    [/^(?:instrumental|ins|inst|instr)(?:\s*(\d+[a-z]?))?$/i, "ins", "instrumental"],
+    [/^(?:instrumental|ins|inst|instr|int)(?:\s*(\d+[a-z]?))?$/i, "ins", "instrumental"],
     [/^refrain(?:\s*(\d+[a-z]?))?$/i, "r", "refrain"],
   ];
   for (const [pattern, prefix, canonicalPrefix] of patterns) {
@@ -1088,6 +1106,22 @@ export function songPageNameCandidates(lyrics: string): string[] {
     seen.set(key, name);
   }
   return [...seen.values()];
+}
+
+/**
+ * Lists recognised page labels in source order, using compact page IDs.
+ * Repeats are preserved so a generated verse order can mirror the song's page
+ * sequence.
+ */
+export function songPageOrder(lyrics: string): string {
+  const tokens: string[] = [];
+  for (const line of lyrics.replace(/\r\n?/g, "\n").split("\n")) {
+    const match = line.match(/^\s*\[([^\]]+)\]\s*$/);
+    if (!match) continue;
+    const page = sectionPageId(match[1]);
+    if (page) tokens.push(page.id);
+  }
+  return tokens.join(" ");
 }
 
 export function simplifySongPageIds(

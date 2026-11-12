@@ -7,6 +7,7 @@ import {
   parseTarpItemContent,
   serializeImageListContent,
   serializeTarpItemContent,
+  songPageOrder,
   type BackgroundAsset,
   type BibleBook,
   type BibleLayout,
@@ -83,6 +84,13 @@ function itemIcon(kind: SetlistItem["kind"]): string {
   if (kind === "image_list") return "▦";
   if (kind === "tarp") return "✦";
   return "T";
+}
+
+function defaultItemVerseOrder(item: SetlistItem, song: Song | undefined): string {
+  if (item.kind !== "song") return "";
+  if (item.verseOrder?.trim()) return item.verseOrder;
+  if (song?.verseOrder?.trim()) return "";
+  return songPageOrder(item.content ?? song?.lyrics ?? "");
 }
 
 function previewLines(item: SetlistItem, song: Song | undefined): string {
@@ -234,7 +242,7 @@ function ItemRow({
   const [tarpDelay, setTarpDelay] = useState(initialTarp?.delaySeconds ?? 6);
   const [keyOverride, setKeyOverride] = useState(item.keyOverride ?? "");
   const [transpose, setTranspose] = useState(item.transpose);
-  const [verseOrder, setVerseOrder] = useState(item.verseOrder ?? "");
+  const [verseOrder, setVerseOrder] = useState(() => defaultItemVerseOrder(item, song));
   const [verseOrderId, setVerseOrderId] = useState(
     song?.verseOrders.find((entry) => entry.order === item.verseOrder)?.id ?? "",
   );
@@ -268,7 +276,7 @@ function ItemRow({
     setContent(item.kind === "song" ? item.content ?? song?.lyrics ?? "" : next.content);
     setKeyOverride(item.keyOverride ?? "");
     setTranspose(item.transpose);
-    setVerseOrder(item.verseOrder ?? "");
+    setVerseOrder(defaultItemVerseOrder(item, song));
     setVerseOrderId(
       song?.verseOrders.find((entry) => entry.order === item.verseOrder)?.id ?? "",
     );
@@ -276,6 +284,12 @@ function ItemRow({
   }, [item, song]);
 
   const displayTitle = item.title || song?.title || "Untitled";
+  const generatedVerseOrder =
+    item.kind === "song" &&
+    !item.verseOrder?.trim() &&
+    !song?.verseOrder?.trim() &&
+    !verseOrderId &&
+    Boolean(verseOrder);
   const localSongEdit =
     item.kind === "song" && (item.content != null || (song != null && item.title !== song.title));
   const preview =
@@ -306,7 +320,7 @@ function ItemRow({
     setContent(item.kind === "song" ? item.content ?? song?.lyrics ?? "" : next.content);
     setKeyOverride(item.keyOverride ?? "");
     setTranspose(item.transpose);
-    setVerseOrder(item.verseOrder ?? "");
+    setVerseOrder(defaultItemVerseOrder(item, song));
     setVerseOrderId(
       song?.verseOrders.find((entry) => entry.order === item.verseOrder)?.id ?? "",
     );
@@ -1060,6 +1074,11 @@ function ItemRow({
                   setVerseOrderId("");
                 }}
                 placeholder="auto"
+                title={
+                  generatedVerseOrder
+                    ? "Generated from the song's pages in source order. Edit to reorder; saving keeps this order for this set-list item."
+                    : undefined
+                }
               />
             </label>
             <label className="grow">

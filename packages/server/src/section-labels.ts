@@ -6,7 +6,14 @@ const NAMED_SECTION = new RegExp(
 );
 
 const SHORT_SECTION =
-  /^(?:[vcb]\s*\d+[a-z]?|(?:pc|tr|il|ins|inst|instr|int)(?:\s*\d+[a-z]?)?)$/i;
+  /^(?:[vcb]\s*\d+[a-z]?|(?:pc|tr|turn|il|ins|inst|instr|int)(?:\s*\d+[a-z]?)?)$/i;
+
+function cleanLabel(value: string): string {
+  return value
+    .trim()
+    .replace(/\s*[:.\-]\s*$/, "")
+    .replace(/\s+/g, " ");
+}
 
 /**
  * Recognises a bare section heading written on its own line, for example
@@ -15,10 +22,20 @@ const SHORT_SECTION =
  * words.
  */
 export function bareSectionLabel(value: string): string | null {
-  const cleaned = value
-    .trim()
-    .replace(/\s*[:.\-]\s*$/, "")
-    .replace(/\s+/g, " ");
+  const cleaned = cleanLabel(value);
   if (!cleaned) return null;
   return NAMED_SECTION.test(cleaned) || SHORT_SECTION.test(cleaned) ? cleaned : null;
+}
+
+/**
+ * Recognises a section heading inside square brackets, for example "[Verse 1]"
+ * or the compact page IDs produced by Settings such as "[c]", "[i]" and "[t]".
+ * Compact single-letter IDs are deliberately lowercase-only so "[C]" and
+ * "[B]" remain chord markers.
+ */
+export function bracketedSectionLabel(value: string): string | null {
+  const cleaned = cleanLabel(value);
+  if (!cleaned) return null;
+  if (/^[vcbioetrp]$/.test(cleaned)) return cleaned;
+  return bareSectionLabel(cleaned);
 }

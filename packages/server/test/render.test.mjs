@@ -116,6 +116,50 @@ test("honours verse order and repeats sections", () => {
   assert.match(pages[2].html, /Chorus/);
 });
 
+test("uses each duplicate section once when a verse order repeats its label", () => {
+  const pages = buildPages({
+    kind: "song",
+    title: "Duplicate sections",
+    lyrics:
+      "[Chorus]\nfirst chorus\n\n[Verse 1]\nverse line\n\n[Chorus]\nsecond chorus",
+    verseOrder: "C V1 C",
+    transpose: 0,
+    maxLines: 4,
+  });
+  assert.equal(pages.length, 3);
+  assert.match(pages[0].html, /first chorus/);
+  assert.match(pages[1].html, /verse line/);
+  assert.match(pages[2].html, /second chorus/);
+});
+
+test("renders compact single-letter page IDs and generated verse orders", () => {
+  const pages = buildPages({
+    kind: "song",
+    title: "Compact pages",
+    lyrics: "[v1]\nverse one\n\n[c]\nchorus line\n\n[i]\nintro line",
+    verseOrder: "i v1 c",
+    transpose: 0,
+    maxLines: 4,
+  });
+  assert.equal(pages.length, 3);
+  assert.match(pages[0].html, /section-label">i</);
+  assert.match(pages[1].html, /section-label">v1</);
+  assert.match(pages[2].html, /section-label">c</);
+  assert.doesNotMatch(pages[0].html, /class="line">\[i\]</);
+});
+
+test("keeps uppercase single-letter chords out of section labels", () => {
+  const pages = buildPages({
+    kind: "song",
+    title: "Chords",
+    lyrics: "[C]\nline one\n\n[B]\nline two",
+    transpose: 0,
+    maxLines: 4,
+  });
+  assert.doesNotMatch(pages[0].html, /section-label/);
+  assert.match(pages[0].html, /class="chord"/);
+});
+
 test("renders markdown text items and strips scripts", () => {
   const pages = buildPages({
     kind: "text",

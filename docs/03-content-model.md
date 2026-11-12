@@ -159,6 +159,7 @@ Disallowed: `script`, `style`, `iframe`, `object`, `link`, event handlers, inlin
 - **Default arrangement**: the ordered list of sections (`v1 c1 v2 c1 v3 c1 e1`).
 - **Alternative arrangements** are named presets ("Full", "Short", "Acoustic", "Communion") with their own order and page breaks.
 - A **set list item** picks an arrangement and may override the verse order for that item only.
+- If neither the item nor the song has a verse order, the item editor pre-fills it from the recognised page labels in source order. Editing and saving keeps the result as an item-only override; the song library is unchanged.
 - **Pagination**:
   - automatic: `max_lines` from the **screen display config** (Live page), with `<!-- page -->` / page-break markers as explicit guides;
   - explicit breaks: `---` on its own line, or a per-section break marker in the editor;
