@@ -5136,6 +5136,29 @@ body.resizing-live-queue {
   width: min(1040px, 96vw);
 }
 
+.dedupe-diff-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.song-edit-modal {
+  width: min(1040px, 96vw);
+}
+
+.song-edit-modal .meta-grid {
+  margin-bottom: 10px;
+}
+
+.song-edit-modal .markdown-field {
+  margin: 10px 0;
+}
+
+.song-edit-modal .lyrics-field {
+  margin-top: 12px;
+}
+
 @media (max-width: 800px) {
   .dedupe-heading,
   .dedupe-song {

@@ -8,6 +8,7 @@ import {
 } from "@sm/shared";
 import { api, ApiError } from "../api";
 import { DiffIcon, EyeIcon } from "../components/Icons";
+import { SongEditDialog } from "../components/SongEditDialog";
 import { SongLyricsDialog } from "../components/SongLyricsDialog";
 import { diffLyrics } from "../song-diff";
 
@@ -137,6 +138,8 @@ function DuplicateDiffDialog({
   busy,
   onPrefer,
   onMarkDifferent,
+  onEditReference,
+  onEditCandidate,
   onClose,
 }: {
   reference: SongDuplicateCandidate;
@@ -145,6 +148,8 @@ function DuplicateDiffDialog({
   busy: boolean;
   onPrefer: () => void;
   onMarkDifferent: () => void;
+  onEditReference: () => void;
+  onEditCandidate: () => void;
   onClose: () => void;
 }) {
   const [withoutChords, setWithoutChords] = useState(false);
@@ -244,8 +249,34 @@ function DuplicateDiffDialog({
             <thead>
               <tr>
                 <th></th>
-                <th>Reference</th>
-                <th>Compared version</th>
+                <th>
+                  <span className="dedupe-diff-heading">
+                    <span>Reference</span>
+                    <button
+                      type="button"
+                      className="button ghost small"
+                      onClick={onEditReference}
+                      disabled={busy}
+                      title={`Edit “${reference.title}”`}
+                    >
+                      Edit
+                    </button>
+                  </span>
+                </th>
+                <th>
+                  <span className="dedupe-diff-heading">
+                    <span>Compared version</span>
+                    <button
+                      type="button"
+                      className="button ghost small"
+                      onClick={onEditCandidate}
+                      disabled={busy}
+                      title={`Edit “${candidate.title}”`}
+                    >
+                      Edit
+                    </button>
+                  </span>
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -300,6 +331,7 @@ export default function DeDupePage({
     action: "prefer" | "delete" | "different";
   } | null>(null);
   const [lyricsSong, setLyricsSong] = useState<SongDuplicateCandidate | null>(null);
+  const [editingSongId, setEditingSongId] = useState<string | null>(null);
   const [comparison, setComparison] = useState<{
     group: SongDuplicateGroup;
     reference: SongDuplicateCandidate;
@@ -515,6 +547,14 @@ export default function DeDupePage({
                           </button>
                           <button
                             type="button"
+                            className="button ghost small"
+                            onClick={() => setEditingSongId(song.id)}
+                            title={`Edit “${song.title}” metadata and lyrics`}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            type="button"
                             className={`button small ${preferred ? "ghost" : "primary"}`}
                             onClick={() => void prefer(group, song)}
                             disabled={preferred || working !== null}
@@ -566,7 +606,26 @@ export default function DeDupePage({
           busy={working !== null}
           onPrefer={() => void preferFromDialog()}
           onMarkDifferent={() => void markDifferentFromDialog()}
+          onEditReference={() => {
+            setComparison(null);
+            setEditingSongId(comparison.reference.id);
+          }}
+          onEditCandidate={() => {
+            setComparison(null);
+            setEditingSongId(comparison.candidate.id);
+          }}
           onClose={() => setComparison(null)}
+        />
+      )}
+      {editingSongId && (
+        <SongEditDialog
+          songId={editingSongId}
+          notify={notify}
+          onClose={() => setEditingSongId(null)}
+          onSaved={() => {
+            setEditingSongId(null);
+            void loadDuplicates();
+          }}
         />
       )}
     </div>
