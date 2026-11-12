@@ -1240,6 +1240,51 @@ body.resizing-live-queue {
   color: var(--muted);
 }
 
+.song-list-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: -4px 0 8px;
+}
+
+.song-list-actions .checkbox {
+  min-height: 32px;
+}
+
+.song-list-actions .checkbox input {
+  width: auto;
+}
+
+.song-row.song-select-row {
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  cursor: pointer;
+  color: var(--text);
+}
+
+.song-row.song-select-row > input[type="checkbox"] {
+  width: auto;
+  margin: 0;
+}
+
+.song-row.song-select-row.selected {
+  border-color: rgba(255, 107, 107, 0.4);
+  background: rgba(255, 107, 107, 0.08);
+}
+
+.song-row .song-row-content {
+  display: grid;
+  gap: 3px;
+  color: inherit;
+  font-size: inherit;
+}
+
+.song-row .song-row-content > span {
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
 .new-setlist {
   border-top: 1px solid var(--border);
   padding-top: 16px;

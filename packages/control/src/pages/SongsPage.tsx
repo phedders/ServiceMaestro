@@ -36,6 +36,9 @@ export default function SongsPage({
   const [songs, setSongs] = useState<Song[]>([]);
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedSongIds, setSelectedSongIds] = useState<Set<string>>(() => new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
   const [form, setForm] = useState({ ...EMPTY });
   const [saving, setSaving] = useState(false);
   const [scan, setScan] = useState<SongImportScan | null>(null);
@@ -107,6 +110,62 @@ export default function SongsPage({
 
   const selectedSong = songs.find((song) => song.id === selectedId) ?? null;
   const duplicateFiles = (scan?.files ?? []).filter((file) => file.duplicate);
+  const visibleSongIds = filtered.map((song) => song.id);
+  const allVisibleSelected =
+    visibleSongIds.length > 0 && visibleSongIds.every((id) => selectedSongIds.has(id));
+
+  function toggleSongSelection(id: string) {
+    setSelectedSongIds((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAllVisible() {
+    setSelectedSongIds((current) => {
+      const next = new Set(current);
+      if (allVisibleSelected) {
+        for (const id of visibleSongIds) next.delete(id);
+      } else {
+        for (const id of visibleSongIds) next.add(id);
+      }
+      return next;
+    });
+  }
+
+  function cancelSelection() {
+    setSelectMode(false);
+    setSelectedSongIds(new Set());
+  }
+
+  async function deleteSelectedSongs() {
+    if (!selectedSongIds.size) return;
+    const ids = [...selectedSongIds];
+    if (
+      !confirm(
+        `Delete ${ids.length} song${ids.length === 1 ? "" : "s"} from the shared song library? Set-list links to these songs will be cleared.`,
+      )
+    ) {
+      return;
+    }
+    setBulkDeleting(true);
+    try {
+      const result = await api.deleteSongs(ids);
+      if (selectedId && selectedSongIds.has(selectedId)) newSong();
+      setSelectMode(false);
+      setSelectedSongIds(new Set());
+      await load();
+      notify(
+        `${result.deleted} song${result.deleted === 1 ? "" : "s"} deleted`,
+      );
+    } catch (error) {
+      notify(error instanceof ApiError ? error.message : "Could not delete songs", "error");
+    } finally {
+      setBulkDeleting(false);
+    }
+  }
 
   function updateImportDecision(
     path: string,
@@ -381,22 +440,85 @@ export default function SongsPage({
           onChange={(event) => setSearch(event.target.value)}
           placeholder="Search title, alternative titles, author or lyrics…"
         />
-        <div className="song-list" data-key-list>
-          {filtered.map((song) => (
+        <div className="song-list-actions">
+          {!selectMode ? (
             <button
-              key={song.id}
-              data-key-list-item
-              className={`song-row ${song.id === selectedId ? "current" : ""}`}
-              onClick={() => select(song)}
-              title={`Edit “${song.title}”`}
+              className="button ghost small"
+              onClick={() => setSelectMode(true)}
+              disabled={!songs.length}
+              title="Select multiple songs to delete"
             >
-              <strong>{song.title}</strong>
-              <span>
-                {song.author || "Unknown author"}
-                {song.key ? ` · ${song.key}` : ""}
-              </span>
+              Select
             </button>
-          ))}
+          ) : (
+            <>
+              <label className="checkbox">
+                <input
+                  type="checkbox"
+                  checked={allVisibleSelected}
+                  disabled={!visibleSongIds.length}
+                  onChange={toggleSelectAllVisible}
+                />
+                Select all shown
+              </label>
+              <span className="muted">
+                {selectedSongIds.size} selected
+              </span>
+              <button
+                className="button small danger"
+                onClick={deleteSelectedSongs}
+                disabled={!selectedSongIds.size || bulkDeleting}
+                title="Delete all selected songs from the shared library"
+              >
+                {bulkDeleting ? "Deleting…" : "Delete selected"}
+              </button>
+              <button className="button ghost small" onClick={cancelSelection}>
+                Cancel
+              </button>
+            </>
+          )}
+        </div>
+        <div className="song-list" data-key-list>
+          {filtered.map((song) =>
+            selectMode ? (
+              <label
+                key={song.id}
+                data-key-list-item
+                className={`song-row song-select-row ${
+                  selectedSongIds.has(song.id) ? "selected" : ""
+                } ${song.id === selectedId ? "current" : ""}`}
+                title={`Select “${song.title}” for mass deletion`}
+              >
+                <input
+                  type="checkbox"
+                  checked={selectedSongIds.has(song.id)}
+                  onChange={() => toggleSongSelection(song.id)}
+                  aria-label={`Select ${song.title}`}
+                />
+                <span className="song-row-content">
+                  <strong>{song.title}</strong>
+                  <span>
+                    {song.author || "Unknown author"}
+                    {song.key ? ` · ${song.key}` : ""}
+                  </span>
+                </span>
+              </label>
+            ) : (
+              <button
+                key={song.id}
+                data-key-list-item
+                className={`song-row ${song.id === selectedId ? "current" : ""}`}
+                onClick={() => select(song)}
+                title={`Edit “${song.title}”`}
+              >
+                <strong>{song.title}</strong>
+                <span>
+                  {song.author || "Unknown author"}
+                  {song.key ? ` · ${song.key}` : ""}
+                </span>
+              </button>
+            ),
+          )}
           {!filtered.length && <p className="muted">No songs found.</p>}
         </div>
       </aside>

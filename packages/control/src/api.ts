@@ -91,6 +91,11 @@ export const api = {
   updateSong: (id: string, payload: Partial<Song>) =>
     request<{ song: Song }>(`/api/songs/${id}`, { method: "PATCH", body: JSON.stringify(payload) }),
   deleteSong: (id: string) => request<{ ok: true }>(`/api/songs/${id}`, { method: "DELETE" }),
+  deleteSongs: (ids: string[]) =>
+    request<{ ok: true; deleted: number; ids: string[] }>("/api/songs/bulk-delete", {
+      method: "POST",
+      body: JSON.stringify({ ids }),
+    }),
 
   images: (q = "") =>
     request<{ root: string; images: ImageAsset[] }>(

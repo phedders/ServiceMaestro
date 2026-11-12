@@ -311,6 +311,10 @@ export default function HelpPage({ onOpenSettings }: { onOpenSettings: () => voi
               <li>
                 Attach scores, tabs, ChordPro files or lyric sheets for the read-only musicians view.
               </li>
+              <li>
+                Use <strong>Select</strong> above the library list to select multiple songs, choose
+                all shown results, and delete them together.
+              </li>
             </ul>
           </article>
           <article className="help-card">

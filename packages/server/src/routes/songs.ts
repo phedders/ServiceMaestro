@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { randomUUID } from "node:crypto";
 import {
+  songBulkDeleteSchema,
   songInputSchema,
   songVerseOrderInputSchema,
   songVerseOrderPatchSchema,
@@ -9,7 +10,7 @@ import {
 } from "@sm/shared";
 import { db } from "../db.js";
 import { requireAuth, requireRole } from "../auth.js";
-import { saveSongToGit, deleteSongFromGit } from "../git-store.js";
+import { saveSongToGit, deleteSongFromGit, deleteSongsFromGit } from "../git-store.js";
 import { addDefaultVerseTags } from "../lyrics.js";
 import { findSongAlternatives } from "../song-matching.js";
 
@@ -258,6 +259,31 @@ export async function songRoutes(app: FastifyInstance): Promise<void> {
         request.log.warn({ err: error }, "git save failed"),
       );
       return { ok: true };
+    },
+  );
+
+  app.post(
+    "/api/songs/bulk-delete",
+    { preHandler: [requireAuth, requireRole("admin", "editor")] },
+    async (request, reply) => {
+      const parsed = songBulkDeleteSchema.safeParse(request.body);
+      if (!parsed.success) {
+        return reply.code(400).send({ error: "Invalid song selection", issues: parsed.error.issues });
+      }
+      const ids = [...new Set(parsed.data.ids)];
+      const remove = db.prepare("DELETE FROM songs WHERE id = ?");
+      const removeTx = db.transaction(() => {
+        const removed: string[] = [];
+        for (const id of ids) {
+          if (remove.run(id).changes) removed.push(id);
+        }
+        return removed;
+      });
+      const removed = removeTx();
+      await deleteSongsFromGit(removed).catch((error) =>
+        request.log.warn({ err: error }, "git bulk song delete failed"),
+      );
+      return { ok: true, deleted: removed.length, ids: removed };
     },
   );
 

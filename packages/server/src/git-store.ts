@@ -652,6 +652,23 @@ export async function deleteSongFromGit(id: string): Promise<void> {
   await serial(() => deleteSong(runtime, id));
 }
 
+export async function deleteSongsFromGit(ids: string[]): Promise<void> {
+  if (!GIT_ENABLED || !getGitSettings().autoSave || !ids.length) return;
+  const runtime = runtimes.get("songs");
+  if (!runtime) return;
+  await serial(async () => {
+    let removed = 0;
+    for (const id of ids) {
+      const file = path.join(runtime.config.path, "songs", `${id}.json`);
+      if (fs.existsSync(file)) {
+        fs.unlinkSync(file);
+        removed += 1;
+      }
+    }
+    if (removed) await commit(runtime, `songs: delete ${removed}`);
+  });
+}
+
 export async function saveSetlistToGit(id: string): Promise<void> {
   if (!GIT_ENABLED || !getGitSettings().autoSave) return;
   const runtime = runtimes.get("setlists");

@@ -751,6 +751,10 @@ export const songInputSchema = z.object({
   lyricsMarkdown: z.boolean().optional(),
 });
 
+export const songBulkDeleteSchema = z.object({
+  ids: z.array(z.string().trim().min(1).max(100)).min(1).max(1000),
+});
+
 export const songVerseOrderInputSchema = z.object({
   name: z.string().trim().min(1).max(80),
   order: z.string().trim().min(1).max(1000),
