@@ -3,7 +3,7 @@
 A self-hosted server application for running church service visuals: manage song lyrics, set lists and dynamic text, then drive them onto **separate HTTP frontends** that OBS (or any browser) can use as sources.
 
 > **Status: Phase 1 walking skeleton is implemented and runnable.**
-> Live sessions, set lists, songs, Bible, quick text and OBS-ready outputs work end-to-end. The grid dashboard page is temporarily hidden while its live-control semantics are reworked. Importers, multi-user layout co-editing and the SongSelect provider are designed but not yet built.
+> Live sessions, set lists, songs, Bible, quick text and OBS-ready outputs work end-to-end. The grid dashboard page is temporarily hidden while its live-control semantics are reworked. Importers, multi-user layout co-editing and the site-scraping download framework are designed but not yet fully built.
 >
 > Design documents:
 >
@@ -12,7 +12,7 @@ A self-hosted server application for running church service visuals: manage song
 > - [Content model](docs/03-content-model.md)
 > - [Sample files](docs/04-sample-files.md)
 > - [Container deployment](docs/05-container-deployment.md)
-> - [SongSelect, scores and tabs](docs/06-songselect-and-scores.md)
+> - [Song resources, scores and tabs](docs/06-songselect-and-scores.md)
 > - [Bible source formats](docs/07-bible-sources.md)
 > - [Dashboard layout editor](docs/08-dashboard-layout-editor.md)
 > - [Phase 1 status](docs/09-phase-1-status.md) — what is implemented and what is next.
@@ -72,6 +72,7 @@ Open <https://localhost:8080/musicians> to see the read-only musician view. It d
 - **Songs** — create/edit lyrics with inline chords (`A[C]mazing`), section labels (`[Verse 1]`), key, author, alternative titles, CCLI and copyright; optional inline Markdown styling; multiple named verse orders. Untagged lyrics receive sequential `[V1]`, `[V2]`, … labels split on blank lines when created or imported. **Simplify page IDs** on import or save converts spaced/long section names into unique compact IDs such as `[Verse 1]` → `[v1]`, using the conversion table in Settings. The song editor has **Add to current setlist** and **Add to live session** actions. The library has a multi-select mode for deleting songs in bulk, with a select-all-shown option and Git-safe batch deletion.
 - **DeDupe** — **Menu → DeDupe** scans the song library for songs with matching titles, CCLI numbers or identical lyrics. Each version has a full-lyrics eye preview and a line-level difference view against the reference version, marks versions that contain embedded chords, and estimates when two versions would be identical once chord symbols and section labels are ignored. The comparison popup can hide chords to show the actual lyric differences, and each version reports the number of lines that differ without chords plus a word-level estimate that ignores different word or line splits. Mark one version as **Preferred** (used as a tie-breaker by song matching and ChurchSuite imports), mark two versions as **Different songs** so they stop appearing as duplicates, or delete duplicate songs. The preferred and different-song choices are available from the comparison popup and are saved in the song metadata and Git files. Each version and both sides of the comparison popup also have an **Edit** action that opens a quick song editor for metadata and lyric changes.
 - **Library import** — scan a folder for OpenLP/OpenLyrics XML, ChordPro and plain-text files; preview titles/formats/warnings, then import. Duplicate CCLI/title matches are detected during the scan and can be **skipped**, **replaced**, or imported as a **duplicate** with an edited title/alternative titles. OpenLP `verseOrder` and ChordPro `{comment: …}` sections are honoured; bare headings such as `Verse 2` or `Chorus:` are also recognised as section labels. SongSelect legal footers and bar markers are removed.
+- **Site scraper credentials** — each user can save encrypted personal credentials for SongSelect song downloads in **Settings → My account**. Server-level fallback credentials can be supplied under `songScraping` in `config.yaml`. A personal credential set overrides the server fallback, and secrets are never returned to the browser. The scraper framework is designed to download SongPro, lead-sheet, chord and lyric files; site adapters are added separately.
 - **Scores and tabs for musicians** — upload PDFs, ChordPro, lyrics or images to a song; the standalone `/musicians` view lists upcoming/current services, opens a service read-only and renders lyrics plus PDFs with a bundled PDF.js viewer (page navigation, zoom, fit-to-width), text and image assets. It never changes the live session.
 - **Images** — browse `SM_IMAGES_DIR` (default `library/images`) in a folder tree with a global search, upload images from the Images page or a set list, and add image items to set lists for output. Each image also has a **LIVE** button that displays it immediately on every output without changing the set list or live queue. Image items support scale-to-screen (default), 1:1, crop and stretch. A folder can be converted into a **multiple images** set-list item, with optional autoplay, a configurable delay (default 6 seconds) and **Single**, **Loop** or **Bounce** playback. Bounce runs forwards through every page, then backwards, and repeats. On the lower-third output images always keep their aspect ratio, sit in a bottom-anchored area, and are limited by a configurable maximum height (default 30% of the viewport) reduced by configurable padding (default 48px).
 - **Backgrounds** — global background library in the **Menu**, with uploaded images/animated images plus built-in CSS and SVG animations ranging from subtle to wild. Each background can use its own palette or the global background colour theme. Set lists can choose a background, text/song items can override it, and Tarp pages can use them in either view.
@@ -121,11 +122,17 @@ The control interface is HTTPS by default. If a forward proxy terminates TLS and
 | `SM_SONGS_DIR` | `samples/` (local) | Source directory scanned for OpenLP/ChordPro/text imports |
 | `SM_BIBLE_DIR` | `samples/bible/` (local) | SQLite/JSON Bible translations |
 | `SM_IMAGES_DIR` | `library/images/` (local) / `/library/images` (container) | Image library for backgrounds and slides |
-| `SM_SONGSELECT_WATCH_DIR` | `/data/imports/songselect` | Watched CCLI SongSelect download folder |
-| `SM_SONGSELECT_WATCH_ENABLED` | `true` | Enable the background SongSelect folder watcher |
+| `SM_SONGSELECT_WATCH_DIR` | `/data/imports/songselect` | Watched SongSelect download folder |
+| `SM_SONGSELECT_WATCH_ENABLED` | `true` | Enable the background SongSelect drop-folder watcher |
 | `SM_SONGSELECT_WATCH_INTERVAL` | `10` | Seconds between watched-folder scans |
 | `SM_ADMIN_PASSWORD` | `admin` | Password for the seeded admin |
 | `SM_OUTPUT_TOKEN` | `dev-output` | Token required by display sockets |
+| `SM_SECRET_KEY` | generated `data/secret.key` | Master key for encrypted site credentials |
+| `SM_SONG_SCRAPING_PROVIDER` | `songselect` | Site scraping provider id |
+| `SM_SONG_SCRAPING_BASE_URL` | `https://songselect.ccli.com` | Download-site base URL |
+| `SM_SONG_SCRAPING_USERNAME` | unset | Optional server-level fallback username |
+| `SM_SONG_SCRAPING_PASSWORD` | unset | Optional server-level fallback password |
+| `SM_SONG_SCRAPING_COOKIE` | unset | Optional server-level fallback session cookie |
 | `SM_LOG_LEVEL` | `info` | Fastify log level |
 | `SM_SECURE_COOKIES` | `true` | Marks session cookies Secure; set to `0` only for special proxy setups |
 | `SM_SSL_ENABLED` | `true` | Serve control over HTTPS; set `false` only behind a TLS-terminating forward proxy |
@@ -196,7 +203,7 @@ Not yet implemented:
 - Song versions/arrangements beyond the single lyrics field and verse-order override.
 - Dynamic text themes and the full theme editor.
 - Dashboard widget palette/publish and Yjs co-editing.
-- SongSelect provider, CCLI reporting and backups/scan jobs.
+- Site scraper adapters, CCLI reporting and backups/scan jobs.
 - User/role management beyond the seeded admin; output tokens are currently a single shared token.
 
 The next step is Git asset persistence/conflict handling or the theme editor. See the [architecture phases](docs/02-architecture.md#14-phased-delivery).

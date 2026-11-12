@@ -43,6 +43,7 @@ interface FileServerConfig {
   dataDir?: unknown;
   adminPassword?: unknown;
   outputToken?: unknown;
+  secretKey?: unknown;
   sessionDays?: unknown;
   secureCookies?: unknown;
   logLevel?: unknown;
@@ -62,6 +63,14 @@ interface FilePathsConfig {
 interface FileSongSelectConfig {
   watchEnabled?: unknown;
   watchIntervalSeconds?: unknown;
+}
+
+interface FileSongScrapingConfig {
+  provider?: unknown;
+  baseUrl?: unknown;
+  username?: unknown;
+  password?: unknown;
+  cookie?: unknown;
 }
 
 interface FileChurchSuiteConfig {
@@ -108,6 +117,7 @@ interface FileConfig {
   server?: FileServerConfig;
   paths?: FilePathsConfig;
   songselect?: FileSongSelectConfig;
+  songScraping?: FileSongScrapingConfig;
   churchsuite?: FileChurchSuiteConfig;
   ssl?: FileSslConfig;
   webauthn?: FileWebAuthnConfig;
@@ -163,6 +173,7 @@ const fileConfig = loadConfigFile();
 const serverConfig = fileConfig.server ?? {};
 const pathsConfig = fileConfig.paths ?? {};
 const songselectConfig = fileConfig.songselect ?? {};
+const songScrapingConfig = fileConfig.songScraping ?? {};
 const churchsuiteConfig = fileConfig.churchsuite ?? {};
 const sslConfig = fileConfig.ssl ?? {};
 const webauthnConfig = fileConfig.webauthn ?? {};
@@ -364,11 +375,34 @@ export const SONGSELECT_WATCH_INTERVAL = Math.max(
     ),
   ),
 );
+export const SONG_SCRAPING_PROVIDER = optionString(
+  "SM_SONG_SCRAPING_PROVIDER",
+  songScrapingConfig.provider,
+  "songselect",
+);
+export const SONG_SCRAPING_BASE_URL = optionString(
+  "SM_SONG_SCRAPING_BASE_URL",
+  songScrapingConfig.baseUrl,
+  "https://songselect.ccli.com",
+);
+export const SONG_SCRAPING_USERNAME = secretOption(
+  "SM_SONG_SCRAPING_USERNAME",
+  songScrapingConfig.username,
+);
+export const SONG_SCRAPING_PASSWORD = secretOption(
+  "SM_SONG_SCRAPING_PASSWORD",
+  songScrapingConfig.password,
+);
+export const SONG_SCRAPING_COOKIE = secretOption(
+  "SM_SONG_SCRAPING_COOKIE",
+  songScrapingConfig.cookie,
+);
 export const TEMPLATES_DIR = path.resolve(
   optionString("SM_TEMPLATES_DIR", pathsConfig.templates, path.join(DATA_DIR, "templates")),
 );
 export const OUTPUT_TOKEN = secretOption("SM_OUTPUT_TOKEN", serverConfig.outputToken, "dev-output");
 export const ADMIN_PASSWORD = secretOption("SM_ADMIN_PASSWORD", serverConfig.adminPassword, "admin");
+export const SECRET_KEY = secretOption("SM_SECRET_KEY", serverConfig.secretKey, "");
 export const SESSION_DAYS = optionNumber("SM_SESSION_DAYS", serverConfig.sessionDays, 7);
 export const COOKIE_NAME = "sm_session";
 

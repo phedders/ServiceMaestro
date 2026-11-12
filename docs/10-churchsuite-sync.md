@@ -181,7 +181,7 @@ Select upcoming plans
 
 For each ChurchSuite song item (arrangement):
 
-1. **Existing external mapping** — `provider=songselect/churchsuite`, arrangement/song ID. Reuse.
+1. **Existing external mapping** — ChurchSuite arrangement/song ID. Reuse.
 2. **CCLI number** — strongest automatic signal.
 3. **Normalised title + artist** — exact after removing punctuation, case, key suffixes, “(live)”, “OHK”, etc.
 4. **Normalised title only** — suggest, do not auto-link.

@@ -1,19 +1,19 @@
 # Architecture: Service Maestro
 
-Status: **design agreed; Phase 1 walking skeleton implemented, plus sample-backed importers, Bible adapters, song assets, standalone musician view, set-list publish/apply-to-live, verse order, export/import and local Git persistence** (see [09-phase-1-status.md](09-phase-1-status.md)) — Node.js + TypeScript, Fastify/Socket.IO, SQLite, React control UI (grid dashboard temporarily hidden), and vanilla display outputs. Old OBS URLs are aliased. OpenLP, ChordPro, plain-text, Bible and first score/text samples have arrived; additional PDF-score and guitar-tab samples are still pending. Content authoring is detailed in [03-content-model.md](03-content-model.md); SongSelect/scores in [06-songselect-and-scores.md](06-songselect-and-scores.md); Bible schemas in [07-bible-sources.md](07-bible-sources.md); ChurchSuite sync in [10-churchsuite-sync.md](10-churchsuite-sync.md); Git-backed shared data in [11-git-data-sync.md](11-git-data-sync.md); the dashboard layout editor in [08-dashboard-layout-editor.md](08-dashboard-layout-editor.md); container packaging in [05-container-deployment.md](05-container-deployment.md). Based on [01-node-red-analysis.md](01-node-red-analysis.md).
+Status: **design agreed; Phase 1 walking skeleton implemented, plus sample-backed importers, Bible adapters, song assets, standalone musician view, set-list publish/apply-to-live, verse order, export/import and local Git persistence** (see [09-phase-1-status.md](09-phase-1-status.md)) — Node.js + TypeScript, Fastify/Socket.IO, SQLite, React control UI (grid dashboard temporarily hidden), and vanilla display outputs. Old OBS URLs are aliased. OpenLP, ChordPro, plain-text, Bible and first score/text samples have arrived; additional PDF-score and guitar-tab samples are still pending. Content authoring is detailed in [03-content-model.md](03-content-model.md); song resources/scores in [06-songselect-and-scores.md](06-songselect-and-scores.md); Bible schemas in [07-bible-sources.md](07-bible-sources.md); ChurchSuite sync in [10-churchsuite-sync.md](10-churchsuite-sync.md); Git-backed shared data in [11-git-data-sync.md](11-git-data-sync.md); the dashboard layout editor in [08-dashboard-layout-editor.md](08-dashboard-layout-editor.md); container packaging in [05-container-deployment.md](05-container-deployment.md). Based on [01-node-red-analysis.md](01-node-red-analysis.md).
 
 ## 1. Goals
 
 Build a self-hosted server application that:
 
 - manages a **library of songs** imported from local directories in multiple formats: OpenLP-style XML, ChordPro and plain text;
-- optionally searches authorized **CCLI SongSelect** accounts and imports ChordPro, PDF scores and guitar tabs (see [06-songselect-and-scores.md](06-songselect-and-scores.md));
+- optionally downloads ChordPro, PDF scores and guitar tabs through the site scraping framework using authorised account credentials (see [06-songselect-and-scores.md](06-songselect-and-scores.md));
 - serves **scores, ChordPro and guitar tabs** to a dedicated musician UI;
 - serves Bible passages from **SQLite database files** (one or more translations);
 - manages **images/slides** from local directories;
 - lets **multiple operators** build and drive a service (set lists, live lyrics, Bible, text, images) from one web frontend;
 - renders the live output on **separate, independent HTTP frontends** designed to be loaded as OBS Browser Sources (main, full-screen, stage), with optional extra outputs;
-- keeps displays correct through refreshes/reconnects, and works on a LAN without internet access when external providers are disabled.
+- keeps displays correct through refreshes/reconnects, and works on a LAN without internet access when site downloads are disabled.
 
 Non-goals (v1): replacing the ChurchSuite planning service, DMX/lighting desk control, audio mixing, camera/alarm control. The architecture leaves hooks for OBS scene control and media/lighting cues later.
 
@@ -44,7 +44,7 @@ Non-goals (v1): replacing the ChurchSuite planning service, DMX/lighting desk co
 | Display frontends | Plain HTML/CSS/vanilla JS bundled by Vite (separate entries) | Tiny, OBS-friendly, no framework or CDN. |
 | Realtime | **Socket.IO** for `/control`; raw WebSocket or plain JSON for `/output/*` | Rooms + presence for operators; minimal for outputs. |
 | Auth | `argon2` password hashes, signed session cookie (HttpOnly), output tokens | Local users, no external IdP. |
-| SongSelect / scores | Provider adapters, encrypted credentials, `pdfjs-dist` viewer, signed asset URLs | Authorized imports only; see [06-songselect-and-scores.md](06-songselect-and-scores.md). |
+| Songs / scores | Site download adapters, encrypted credentials, `pdfjs-dist` viewer, signed asset URLs | Authorised downloads only; see [06-songselect-and-scores.md](06-songselect-and-scores.md). |
 | Validation | Zod schemas shared via `packages/shared` | One schema for REST + WS. |
 | Tests | Vitest (unit/integration), Playwright (control → output) | Covers parsers, state, sync. |
 | Packaging | Docker image + compose; or systemd + `node dist/server.js` | Single process, mounted data volumes. |
@@ -91,7 +91,7 @@ The authoritative schema is in [03-content-model.md §6](03-content-model.md#6-d
 | Set lists | `setlists`, `setlist_revisions`, `setlist_items`, `service_sessions`, `live_state` | Named/dated definitions, immutable revisions, pinned live sessions, playback state |
 | Songs | `songs`, `song_versions`, `song_sections`, `song_arrangements` | Library head, immutable versions, structured lyrics/chords, named arrangements |
 | Scores/assets | `song_assets`, `asset_jobs` | ChordPro, PDF scores, guitar tabs; checksums and signed access |
-| Integrations | `provider_accounts`, `external_songs`, `song_external_refs`, `usage_events` | Encrypted credentials, external ids, CCLI usage reporting |
+| Integrations | `site_credentials`, `song_assets`, `songselect_watch_files` | Encrypted site credentials, downloaded files, drop-folder state |
 | ChurchSuite | `integration_accounts`, `external_plans`, `external_plan_links`, `sync_runs` | Planning import, song mappings and re-sync state (see [10](10-churchsuite-sync.md)) |
 | Git sync | `repo_state` + `repo`/`repo_path`/`content_hash` on songs/setlists | File-backed shared repositories and index state (see [11](11-git-data-sync.md)) |
 | Dynamic text | `text_items`, `text_item_versions` | Reusable presentation text with sanitized HTML and page breaks |
@@ -130,7 +130,7 @@ Pipeline:
 4. Upsert by `source_path`: skip unchanged hashes; a changed source file creates a new immutable version on the library head, while set lists pinned to older versions remain untouched. Conflicts with in-app edits are reported, never overwritten silently.
 5. A **preview/dry-run** mode and a "Scan now" admin action; optional `fs.watch` with debounce.
 6. Manual songs (`source_format = manual`) have no source path and are never overwritten by a scan.
-7. **Provider imports** (SongSelect/manual upload) enter the same pipeline: ChordPro is parsed into a version; PDF scores and guitar tabs are attached as licensed assets rather than parsed. Provider access, licensing and failure handling are specified in [06-songselect-and-scores.md](06-songselect-and-scores.md).
+7. **Site downloads** and manual upload enter the same pipeline: ChordPro is parsed into a version; PDF scores and guitar tabs are attached as licensed assets rather than parsed. Credential handling, site access, licensing and failure handling are specified in [06-songselect-and-scores.md](06-songselect-and-scores.md).
 
 Plain-text example:
 
@@ -218,7 +218,7 @@ Rules:
 | `/login`, `/logout` | Auth | — |
 | `/api/songs`, `/api/songs/:id`, `/api/songs/:id/versions`, `/api/songs/:id/preview` | Song library, versions, arrangements, render preview | editor |
 | `/api/songs/page-names`, `/api/songs/page-id-fixes` | Scan section names and preview/apply compact page-ID conversions | editor/admin |
-| `/api/providers/*` | SongSelect/provider status, search, assets, download jobs | editor/admin |
+| `/api/site-scraping/*` | Per-user credential status and site download framework | authenticated users |
 | `/api/songs/:id/assets`, `/api/assets/:id/file` | ChordPro/PDF/tab assets and signed file access | editor/musician |
 | `/api/musicians/services`, `/api/musicians/services/:id` | Musician service view and score readiness | musician |
 | `/api/usage/report` | CCLI usage export | admin |
@@ -353,7 +353,7 @@ No arbitrary HTML/CSS from operators. Content is sanitized at import/render time
 - Path safety: resolve media paths against the configured root; reject traversal and symlinks outside the root.
 - Bible DBs opened read-only; app DB backed up before migrations.
 - Rate limits on login and scan endpoints; audit log of live commands (who/what/when).
-- **Provider credentials** (SongSelect) are AES-256-GCM encrypted with a master key, never logged, revocable; no shared accounts; automated access only where CCLI authorizes it.
+- **Site credentials** are AES-256-GCM encrypted with a master key, never logged and revocable; personal credentials override the server fallback; no shared accounts.
 - **Licensed assets** (ChordPro/PDF/tabs) require authentication, use signed short-lived URLs, and are never exposed via public static paths; CCLI usage is recorded for reporting.
 - **Dashboard layouts** are schema-validated JSON containing only registered widget types; no arbitrary HTML/JS. WebSocket layout edits require session auth and dashboard permissions.
 - Optional reverse-proxy TLS (Caddy/nginx) in deployment docs.
@@ -362,7 +362,7 @@ No arbitrary HTML/CSS from operators. Content is sanitized at import/render time
 
 - Unit: parsers (OpenLP/ChordPro/text), chord detection, transposition, page splitting, Bible schema detection, theme token rendering.
 - Integration: state machine transitions, snapshot-on-connect, set list revision pinning, apply-to-live, import idempotency, export/import round-trip.
-- ChordPro/PDF/tab: parser fixtures, asset checksum/access control, viewer smoke tests, provider failure/backoff, license gating.
+- ChordPro/PDF/tab: parser fixtures, asset checksum/access control, viewer smoke tests, site-adapter failure/backoff, license gating.
 - Dashboard layout: schema validation/permissions, drag/resize/save, breakpoint fallbacks, keyboard access, two-client Yjs convergence and reconnect.
 - E2E: operator advances slides → `/display/main` and `/display/stage` show the same page; refresh output mid-service recovers; edit a draft while live without changing the output.
 - CI: typecheck, lint, tests, multi-arch image build, smoke test in Docker and Podman.
@@ -398,10 +398,10 @@ No arbitrary HTML/CSS from operators. Content is sanitized at import/render time
 - Output tokens/presence/lag, role permissions, audit log, scheduled backups.
 - Optional: OBS WebSocket integration (scene/transition), QLC+ cue hooks, ChurchSuite plan links.
 
-**Phase 6 — SongSelect integration (opt-in)**
-- Provider adapters and encrypted credentials.
-- Partner API if the church has credentials; otherwise manual import as the supported path.
-- Any assisted/session flow only after CCLI confirms it is permitted; CCLI usage reporting/export.
+**Phase 6 — Site scraping downloads (opt-in)**
+- Site download adapters, encrypted per-user credentials and the optional server credential fallback.
+- Site adapters are opt-in; manual import and the drop folder remain the supported fallback.
+- Downloads remain user-initiated and subject to the site subscription and terms; CCLI usage reporting/export remains a separate concern.
 - See [06-songselect-and-scores.md](06-songselect-and-scores.md).
 
 **Phase 7 — ChurchSuite planning sync (opt-in)**
@@ -429,21 +429,21 @@ Resolved:
 3. **Content model** — set lists are the unit of work; named/dated, revisioned, editable without touching live; versioned songs/text/themes; detailed in [03-content-model.md](03-content-model.md).
 4. **Set list export/import** — reference JSON plus self-contained bundle with media, preview/conflict handling, never touching live; defined in [03-content-model.md §12](03-content-model.md#12-set-list-export--import).
 5. **Container target** — single process, single writable volume, one port; runs on Docker, Podman (rootless), Incus and LXC; detailed in [05-container-deployment.md](05-container-deployment.md).
-6. **Song resources** — provider abstraction with manual import as the guaranteed path; ChordPro parsing, PDF score and guitar-tab assets, and a dedicated musician UI; SongSelect access only where CCLI permits it. Detailed in [06-songselect-and-scores.md](06-songselect-and-scores.md).
+6. **Song resources** — site download framework with manual import and the drop folder as the guaranteed path; ChordPro parsing, PDF score and guitar-tab assets, and a dedicated musician UI. Detailed in [06-songselect-and-scores.md](06-songselect-and-scores.md).
 7. **Dashboard layout editor** — open-source, self-hosted: `react-grid-layout` + `@dnd-kit/core` for the grid, Yjs + y-websocket for collaborative editing; no cloud services. Detailed in [08-dashboard-layout-editor.md](08-dashboard-layout-editor.md).
 
 Outstanding (sample files tracked in [04-sample-files.md](04-sample-files.md)):
 
 1. **Sample songs** — real OpenLP, ChordPro and plain-text files are present; more score/tab examples are welcome.
 2. **Bible licensing** — the schema is known from the samples; confirm the translations are licensed for local display/storage.
-3. **SongSelect access** — existing partner/API credentials, website-only subscription, or both? Has CCLI confirmed any assisted retrieval is permitted?
-4. **Score assets** — which PDF types/keys, and are guitar tabs expected from SongSelect, another licensed provider, or manual upload?
+3. **SongSelect access** — do you have an authorised account, and do your subscription terms permit the requested downloads?
+4. **Score assets** — which PDF types/keys, and are guitar tabs expected from SongSelect, another licensed download site, or manual upload?
 5. **Authentication** — local user accounts (default assumption), one shared operator password, or SSO via reverse proxy?
 6. **Musician access** — named account with `musician` role, shared service link, or both; view-only vs print/download?
 7. **Visual design** — reproduce the current look (ClearSans/Oxygen, vw sizes, transparent main) or start fresh with themes?
 8. **Live apply semantics** — confirm `after-current` as the default and `now` as an explicit override.
 9. **Export scope** — revision-level only in v1, or also full history/archive and CSV/print?
-10. **Container specifics** — Incus OCI mode vs system container; writable image uploads; TLS via proxy; outbound access for providers.
+10. **Container specifics** — Incus OCI mode vs system container; writable image uploads; TLS via proxy; outbound access for site adapters.
 11. **Dashboard editor** — personal + shared layouts, whether simultaneous co-editing is needed at launch, which widgets each role may add, and whether pages are user-editable.
 
-Implementation can start now; only additional score/tab fixtures and provider access details are outstanding.
+Implementation can start now; only additional score/tab fixtures and site-adapter details are outstanding.

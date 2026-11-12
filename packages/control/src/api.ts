@@ -39,6 +39,8 @@ import type {
   SetlistImportReport,
   SetlistRevisionInfo,
   SetlistSummary,
+  SiteCredentialInput,
+  SiteScraperProviderSummary,
   Song,
   SongAlternative,
   SongDuplicateGroup,
@@ -320,6 +322,18 @@ export const api = {
   },
   songselectWatch: () =>
     request<{ status: SongSelectWatchStatus }>("/api/integrations/songselect/watch"),
+  siteScrapingProviders: () =>
+    request<{ providers: SiteScraperProviderSummary[] }>("/api/site-scraping/providers"),
+  saveSiteCredentials: (providerId: string, input: SiteCredentialInput) =>
+    request<{ provider: SiteScraperProviderSummary }>(
+      `/api/site-scraping/providers/${encodeURIComponent(providerId)}/credentials`,
+      { method: "PUT", body: JSON.stringify(input) },
+    ),
+  deleteSiteCredentials: (providerId: string) =>
+    request<{ ok: true }>(
+      `/api/site-scraping/providers/${encodeURIComponent(providerId)}/credentials`,
+      { method: "DELETE" },
+    ),
   scanSongselectWatch: (force = false) =>
     request<{ report: SongSelectWatchReport; status: SongSelectWatchStatus }>(
       "/api/integrations/songselect/watch/scan",

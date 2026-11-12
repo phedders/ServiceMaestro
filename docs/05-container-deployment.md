@@ -103,16 +103,19 @@ Environment-first, with optional file values and `_FILE` secret support:
 | `SM_SONGS_DIR` | `/library/songs` | Song sources |
 | `SM_BIBLE_DIR` | `/library/bible` | Bible SQLite files |
 | `SM_IMAGES_DIR` | `/library/images` | Images and uploads |
-| `SM_SONGSELECT_WATCH_DIR` | `/data/imports/songselect` | Watched folder for CCLI SongSelect downloader `.txt` files |
-| `SM_SONGSELECT_WATCH_ENABLED` | `true` | Enable background watched-folder imports |
+| `SM_SONGSELECT_WATCH_DIR` | `/data/imports/songselect` | SongSelect drop folder for lyrics/text downloads |
+| `SM_SONGSELECT_WATCH_ENABLED` | `true` | Enable background drop-folder imports |
 | `SM_SONGSELECT_WATCH_INTERVAL` | `10` | Watched-folder poll interval in seconds |
 | `SM_CONFIG_FILE` | auto-discovered | Optional YAML/JSON config; environment variables override file values |
 | `SM_TZ` | `Europe/London` | Service dates/times and logs |
 | `SM_SESSION_SECRET` / `_FILE` | generated at first start | Cookie signing |
-| `SM_SECRET_KEY` / `_FILE` | generated at first start | Master key for encrypted provider credentials (SongSelect) |
-| `SM_PROVIDERS_ENABLED` | `false` | Enable external song providers; each provider still needs credentials |
-| `SM_OFFLINE` | `false` | Disable all outbound provider calls while keeping cached assets |
-| `HTTPS_PROXY`, `NO_PROXY` | unset | Egress proxy for provider access |
+| `SM_SECRET_KEY` / `_FILE` | generated at first start | Master key for encrypted site credentials |
+| `SM_SONG_SCRAPING_PROVIDER` | `songselect` | Site scraping provider id |
+| `SM_SONG_SCRAPING_BASE_URL` | `https://songselect.ccli.com` | Base URL for the download site |
+| `SM_SONG_SCRAPING_USERNAME` / `_FILE` | unset | Optional server-level fallback username |
+| `SM_SONG_SCRAPING_PASSWORD` / `_FILE` | unset | Optional server-level fallback password |
+| `SM_SONG_SCRAPING_COOKIE` / `_FILE` | unset | Optional server-level fallback session cookie |
+| `HTTPS_PROXY`, `NO_PROXY` | unset | Egress proxy for site downloads |
 | `SM_MAX_ASSET_MB` | `100` | Per-file cap for PDFs/tabs/ChordPro |
 | `SM_OUTPUT_LEGACY_TOKEN` / `_FILE` | unset | Optional token-free legacy `/obs-*` access (disabled by default) |
 | `SM_MAX_IMPORT_MB` | `200` | Set list/media import cap |
@@ -283,8 +286,8 @@ LXC (without Incus) follows Option B: unprivileged container, `lxc.idmap`/subuid
 - TLS is optional and best terminated by Caddy/nginx/Traefik in front. Set `SM_PUBLIC_URL` and `SM_TRUST_PROXY=true` accordingly.
 - LAN-only deployments can skip TLS; output tokens still prevent casual access.
 - No mDNS/discovery is required; outputs are plain URLs.
-- **Outbound HTTPS is optional** and only needed for SongSelect/providers: allow egress to CCLI/SongSelect through `HTTPS_PROXY`/`NO_PROXY`, or keep `SM_OFFLINE=true` with manual imports and cached assets. Search/download endpoints are user-initiated; no background crawling.
-- OBS never talks to providers directly; it only reaches the app on the LAN.
+- **Outbound HTTPS is optional** and only needed when a site scraping adapter is enabled: allow egress to the download site through `HTTPS_PROXY`/`NO_PROXY`, or use manual imports and the drop folder offline. Downloads are user-initiated; no background crawling.
+- OBS never talks to download sites directly; it only reaches the app on the LAN.
 
 ## 8. Resource sizing
 
@@ -305,14 +308,14 @@ LXC (without Incus) follows Option B: unprivileged container, `lxc.idmap`/subuid
 - **Database:** `sqlite3 /data/app.sqlite "VACUUM INTO '/backups/app-$(date +%F).sqlite'"` (online, consistent).
 - **Media/assets:** snapshot `/library/images` and `/data/assets`; deduplicated by hash where possible.
 - **Set lists:** scheduled `sm backup --all` producing reference JSON + bundles (see content model §12).
-- **Secrets:** back up `SM_SECRET_KEY` separately (without it, encrypted SongSelect credentials cannot be restored).
+- **Secrets:** back up `SM_SECRET_KEY` (or `data/secret.key`) separately; without it, encrypted site credentials cannot be restored.
 - **Before migrations:** automatic DB copy to `/backups/pre-migrate-<version>.sqlite`; migrations run under a lock at startup.
 - **Restore:** stop container → restore DB/media/assets → start; `/healthz` verifies schema version and directories.
 - Volumes are the unit of restore; container image is replaceable.
 
 ## 10. Health and observability
 
-- `GET /healthz` — process up, DB readable/writable, app schema current, library dirs present, Bible DBs openable, asset store writable; returns JSON detail but no secrets. Provider status is reported from configuration/cache only, without outbound calls.
+- `GET /healthz` — process up, DB readable/writable, app schema current, library dirs present, Bible DBs openable, asset store writable; returns JSON detail but no secrets. Site credential status is reported from configuration/database only, without outbound calls.
 - `GET /readyz` — ready to serve displays (migrations complete).
 - Optional `GET /metrics` (Prometheus text) for sessions, outputs connected, request latency, import jobs.
 - Logs: structured JSON to stdout; include request id, user, live command audit, scan/import results.
@@ -325,7 +328,7 @@ LXC (without Incus) follows Option B: unprivileged container, `lxc.idmap`/subuid
 - `/config` and library source dirs mounted read-only where possible.
 - Secrets via `_FILE`/runtime secrets, not baked into the image.
 - Imported archives are untrusted: size/entry caps, path traversal checks, sanitized HTML, decoded image validation.
-- Provider credentials are encrypted with a master key from a secret, never logged, and revocable; licensed score/tab assets are served only to authenticated roles through signed URLs.
+- Site credentials are encrypted with a master key, never logged and revocable; licensed score/tab assets are served only to authenticated roles through signed URLs.
 - Session cookies `HttpOnly`/`SameSite`/`Secure` behind TLS; output tokens hashed at rest.
 - Keep the base image and Node patched; rebuild monthly and on CVEs.
 - Optional: run behind a reverse proxy with request limits and TLS; keep the control port private and expose only the read-only `/display/*` listener to wider audiences.
@@ -369,6 +372,6 @@ Still open:
 1. **Incus mode** — does the target Incus version support OCI application containers, or should we standardise on the system-container path?
 2. **Image uploads** — should `/library/images` be writable (operator uploads) or read-only (curated on host)?
 3. **TLS** — terminate in a reverse proxy (recommended) or add optional built-in TLS?
-4. **Provider egress** — is outbound HTTPS to SongSelect allowed on this network, and should it be proxied/allow-listed or kept offline with manual imports?
+4. **Site download egress** — is outbound HTTPS to the SongSelect website allowed on this network, and should it be proxied/allow-listed or kept offline with manual imports?
 5. **Asset retention** — quota and retention for licensed PDFs/tabs, and whether assets are removed when a subscription lapses.
-6. **Secret backup** — where to store the provider master key and who is responsible for restoring it?
+6. **Secret backup** — where to store the site-credential master key and who is responsible for restoring it?

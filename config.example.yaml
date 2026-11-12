@@ -18,6 +18,9 @@ server:
   dataDir: /data
   adminPassword: change-me
   outputToken: dev-output
+  # Master key for encrypted site credentials. Leave blank to generate and
+  # persist /data/secret.key, then include that file in backups.
+  secretKey:
   sessionDays: 7
   secureCookies: true
   logLevel: info
@@ -46,6 +49,15 @@ paths:
 songselect:
   watchEnabled: true
   watchIntervalSeconds: 10
+
+# Optional server-level fallback credentials for the site scraping framework.
+# Individual users can save their own encrypted credentials in Settings.
+songScraping:
+  provider: songselect
+  baseUrl: https://songselect.ccli.com
+  username:
+  password:
+  cookie:
 
 webauthn:
   rpName: Service Maestro

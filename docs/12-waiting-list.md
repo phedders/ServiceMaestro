@@ -5,7 +5,7 @@ Items deliberately parked while other implementation continues.
 | Item | Status | What is needed |
 | --- | --- | --- |
 | **ChurchSuite planning sync** | Designed, not implemented | Working ChurchSuite credentials. The supplied identifier/secret returned `400 unauthorized_client` for client credentials; need an API-enabled user secret or an authorization-code OAuth App with redirect/consent. See [10-churchsuite-sync.md](10-churchsuite-sync.md). |
-| **SongSelect provider** | Designed, not implemented | CCLI retired the partner API and is not accepting new partners. Need existing partner credentials or confirmation that an assisted flow is permitted; otherwise manual import is the supported path. See [06-songselect-and-scores.md](06-songselect-and-scores.md). |
+| **SongSelect download adapter** | Credentials framework implemented; site adapter not started | Need an authorised account, confirmation that the subscription terms permit the requested downloads, and the site flow details. Manual import and the drop folder remain supported. See [06-songselect-and-scores.md](06-songselect-and-scores.md). |
 | **Real guitar-tab samples** | Waiting | The current `songselect-tabs` sample is a lead sheet, not tablature. Need text/ASCII, PDF or image tab examples to validate the tab viewer. |
 | **Git-backed shared data** | Local foundation implemented | Local-only repos, auto-save/commit default on, optional remote pull/push, startup import/export. Song assets in Git and conflict UI remain. See [11-git-data-sync.md](11-git-data-sync.md). |
 | **Immutable song versions/arrangements** | Not started | Final shape of arrangements/versions and migration from the single lyrics field. |

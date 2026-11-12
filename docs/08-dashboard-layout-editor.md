@@ -92,7 +92,7 @@ Initial registry:
 | `bible` | Translation/book/chapter/verse | passage preview |
 | `notes` | Item notes | per-item |
 | `transport` | Next/prev/blank/fade/transpose | permission-aware |
-| `song-search` | Library + SongSelect search | provider status |
+| `song-search` | Library search and site-download status | download status |
 | `outputs` | Output presence/lag | read-only |
 | `musician-readiness` | Missing scores/tabs | read-only |
 | `clock` / `service-info` | Service date/time | read-only |

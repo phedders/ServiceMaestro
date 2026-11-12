@@ -95,7 +95,7 @@ Each revision stores a full ordered item list (not a diff). Diffs are computed f
 
 ### 3.1 Input and canonical form
 
-The editor accepts **text with optional embedded HTML** and **embedded chords**. Input can be typed, pasted, imported from OpenLP/ChordPro files, or fetched through an authorized SongSelect provider; the original source is preserved alongside the normalized version. On save, the server normalizes it to a structured document:
+The editor accepts **text with optional embedded HTML** and **embedded chords**. Input can be typed, pasted, imported from OpenLP/ChordPro files, or fetched through the site scraping download framework; the original source is preserved alongside the normalized version. On save, the server normalizes it to a structured document:
 
 ```jsonc
 {
@@ -233,8 +233,8 @@ Rules:
 
 - Assets are attached to a song (optionally a song version), immutable by checksum, and never parsed as trusted HTML.
 - A set list item pins the asset(s) available for that service/key; the musician UI shows the score for the current key, falling back to transposed ChordPro with a warning.
-- Assets are licensed content: encrypted provider credentials, authenticated access, signed URLs, audit trail and CCLI usage reporting.
-- External search/download is always through a provider adapter; manual upload is the guaranteed path when no authorized provider exists.
+- Assets are licensed content: encrypted site credentials, authenticated access, signed URLs, audit trail and CCLI usage reporting.
+- External search/download is always through a site download adapter; manual upload and the drop folder are the guaranteed paths when no site is configured.
 
 Full design: [06-songselect-and-scores.md](06-songselect-and-scores.md).
 
@@ -453,7 +453,7 @@ live_state (
 );
 ```
 
-Score/tab assets and provider tables (`song_assets`, `asset_jobs`, `provider_accounts`, `external_songs`, `song_external_refs`, `usage_events`) are defined in [06-songselect-and-scores.md §7](06-songselect-and-scores.md#7-data-model-additions). Assets are immutable by checksum and referenced from set list items by id.
+Score/tab assets, encrypted site credentials and drop-folder state (`song_assets`, `site_credentials`, `songselect_watch_files`) are defined in [06-songselect-and-scores.md §7](06-songselect-and-scores.md#7-data-model-additions). Assets are immutable by checksum and referenced from set list items by id.
 
 ## 7. API sketch
 
@@ -497,19 +497,20 @@ POST   /api/themes/:id/preview
 POST   /api/themes/import                      JSON, validated
 ```
 
-Scores and providers:
+Scores and site downloads:
 
 ```
 GET    /api/songs/:id/assets                   ChordPro, PDFs, tabs (by kind/key)
 POST   /api/songs/:id/assets                   manual upload / paste
-GET    /api/providers/:id/search               authorized SongSelect search
-POST   /api/providers/:id/assets/:asset/download
+GET    /api/site-scraping/providers            credential status for this user
+PUT    /api/site-scraping/providers/:id/credentials
+DELETE /api/site-scraping/providers/:id/credentials
 GET    /api/assets/:id/file                    authenticated, signed, range-capable
 GET    /api/musicians/services/:id             service + score readiness
 GET    /musicians                              standalone read-only musician view
 ```
 
-Provider access, licensing and failure handling are in [06-songselect-and-scores.md](06-songselect-and-scores.md).
+Credential handling, site adapters, licensing and failure handling are in [06-songselect-and-scores.md](06-songselect-and-scores.md).
 
 Concurrency everywhere: `If-Match` on head/revision numbers; `409` with a diff payload. Set list export/import endpoints and file formats are defined in §12.
 
@@ -522,7 +523,7 @@ Library
   Themes         theme list + token/module editor + CSS (admin)
   Images
   Bible
-  Providers      SongSelect/session status (authorized integrations only)
+  Downloads      site scraping credential status and download framework
 
 Musicians
   Services       standalone /musicians: current/next set lists, items, lyrics, scores and tabs; read-only
@@ -537,12 +538,12 @@ Live (Control)
   Read-only live set list; no structural editing here
 
 Admin
-  Users/roles, outputs/tokens, import/scan, provider credentials, settings
+  Users/roles, outputs/tokens, import/scan, site credentials, settings
 ```
 
 Roles:
 
-- `admin` — users, themes, provider credentials, settings, scans.
+- `admin` — users, themes, site credentials, settings, scans.
 - `editor` — library songs/text/themes, assets and set list drafts.
 - `operator` — start/stop session, apply to live, drive playback, quick text.
 - `musician` — view the service set list, scores, ChordPro and tabs for their role.
@@ -565,7 +566,7 @@ Roles:
 - **Scores/tabs** are licensed assets: immutable, checksummed, authenticated, signed-URL access, and pinned in revisions; they are never served publicly or embedded in congregation output.
 - **Key-specific assets**: if a score/tab is unavailable for the selected key, show the available keys and fall back to transposed ChordPro with a warning; never silently show a different key.
 - **Guitar tabs**: chord symbols may be transposed; tablature fret numbers are never transposed, and the UI states why.
-- **Provider failure** (expired session, retired API, rate limit, offline) never removes cached assets; it disables only new searches/downloads.
+- **Site download failure** (expired session, changed site, rate limit, offline) never removes cached assets; it disables only new searches/downloads.
 
 ## 10. Revised delivery phases
 
@@ -576,7 +577,7 @@ Roles:
 3. **Dynamic text + themes** — text editor, page breaks, modular themes, theme versions, previews; self-contained bundle export/import.
 4. **Bible + images** — SQLite adapters and reference UI; image scan/serve/output; bundle media.
 5. **Production polish** — roles, presence, audit, backups, compatibility aliases.
-6. **SongSelect integration (opt-in)** — authorized provider adapter, encrypted credentials, CCLI reporting; manual import remains the supported fallback. See [06-songselect-and-scores.md](06-songselect-and-scores.md).
+6. **Site scraping downloads (opt-in)** — encrypted per-user credentials, optional server credentials, site adapters and asset ingestion; manual import and the drop folder remain the supported fallback. See [06-songselect-and-scores.md](06-songselect-and-scores.md).
 
 ## 11. Open decisions
 
@@ -586,10 +587,10 @@ Roles:
 4. **Theme CSS** — allow scoped admin CSS (recommended) or restrict to tokens/modules only.
 5. **Authentication** — local accounts (default), shared operator password, or SSO.
 6. **Export scope** — is revision-level export enough, or must "all revisions / archive" and CSV/print be in v1?
-7. **SongSelect access** — partner/API credentials, website-only subscription, or both; has CCLI confirmed any assisted retrieval is permitted?
-8. **Score assets** — which PDF types/keys, and are guitar tabs expected from SongSelect, another licensed provider, or manual upload?
+7. **SongSelect access** — do you have an authorised account, and do your subscription terms permit the requested downloads?
+8. **Score assets** — which PDF types/keys, and are guitar tabs expected from SongSelect, another licensed download site, or manual upload?
 9. **Musician access** — named `musician` accounts, a shared service link, or both; view-only or print/download?
-10. **Licensing/reporting** — CCLI usage export only, or automated reporting where an authorized API exists; asset retention after a subscription lapses?
+10. **Licensing/reporting** — CCLI usage export only, or automated reporting once a supported mechanism is confirmed; asset retention after a subscription lapses?
 
 ## 12. Set list export / import
 

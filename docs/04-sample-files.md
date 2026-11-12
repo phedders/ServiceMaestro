@@ -74,9 +74,9 @@ Still useful:
 
 - Actual **guitar tabs** in the formats you use: text/ASCII, PDF or image; note capo/key metadata.
 - Additional score types/keys if you use them (chord chart, full score, different key).
-- Say whether scores/tabs are downloaded from SongSelect, another licensed provider, or produced/uploaded by the team.
+- Say whether scores/tabs are downloaded from SongSelect, another licensed download site, or produced/uploaded by the team.
 - Note whether musicians should be able to **print/download** or view only.
-- Confirm your SongSelect subscription tier and whether you have (or could get) API/partner access. **Do not put account passwords in the samples folder** — we will design an encrypted connection flow.
+- Confirm you have an authorised SongSelect account and that your subscription/terms permit the files you need. **Do not put account passwords or cookies in the samples folder** — enter them in **Settings → My account → Song site credentials**, where they are encrypted.
 - Include your CCLI licence/copyright details if usage reporting is required.
 
 ## 3. Bible — SQLite
@@ -113,7 +113,7 @@ sqlite3 NIV2011.db "SELECT * FROM <verses-table> LIMIT 20;" > sample-rows.txt
 - **Export scope:** revision-level export enough for v1, or also full history/archive and CSV/print?
 - **Live apply:** confirm "apply after the current item" as the default, with "apply now" as an explicit override.
 - **Integration scope for v1:** lyrics/Bible/images only, or also OBS scene/transition and QLC+ lighting cues?
-- **SongSelect:** partner/API credentials, website-only subscription, or both; has CCLI confirmed any assisted retrieval is permitted?
+- **SongSelect:** do you have an authorised account, and do your subscription terms permit the requested downloads? No special access is required beyond an authorised account; credentials are entered per user or supplied as a server-level fallback.
 - **Musician access:** named accounts/roles, shared service link, or both; view-only or print/download?
 
 ## What we will do with the samples

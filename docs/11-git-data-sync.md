@@ -85,7 +85,7 @@ so another server can highlight fonts it is missing and download one or all of t
 from Settings.
 
 Server-specific configuration stays local: ports, data paths, credentials, output
-tokens, SongSelect watched-folder state and Git repository settings are not shared.
+site scraping credentials, SongSelect watched-folder state and Git repository settings are not shared.
 
 `<setlist-id>.json`:
 

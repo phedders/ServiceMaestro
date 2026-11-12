@@ -72,6 +72,28 @@ export interface PasskeySummary {
   lastUsedAt: string | null;
 }
 
+export type SongResourceKind = "songpro" | "lead" | "chord" | "lyrics";
+export type SiteCredentialSource = "user" | "server";
+
+export interface SiteScraperProviderSummary {
+  id: string;
+  label: string;
+  description: string;
+  baseUrl: string;
+  artifactKinds: SongResourceKind[];
+  userConfigured: boolean;
+  userUsername: string | null;
+  userUpdatedAt: string | null;
+  serverConfigured: boolean;
+  activeSource: SiteCredentialSource | null;
+}
+
+export interface SiteCredentialInput {
+  username?: string;
+  password?: string;
+  cookie?: string;
+}
+
 export interface ActivityEntry {
   id: string;
   userId: string | null;
@@ -1241,6 +1263,12 @@ export const passkeyLoginVerifySchema = z.object({
 export const passkeyRegistrationVerifySchema = z.object({
   response: z.unknown(),
   name: z.string().trim().max(80).optional(),
+});
+
+export const siteCredentialInputSchema = z.object({
+  username: z.string().trim().max(200).optional(),
+  password: z.string().max(500).optional(),
+  cookie: z.string().max(8000).optional(),
 });
 
 export const songInputSchema = z.object({

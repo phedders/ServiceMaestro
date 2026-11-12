@@ -42,6 +42,16 @@ db.exec(`
   );
   CREATE INDEX IF NOT EXISTS idx_passkeys_user ON passkeys(user_id);
 
+  CREATE TABLE IF NOT EXISTS site_credentials (
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    provider TEXT NOT NULL,
+    username TEXT,
+    secret_encrypted TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    PRIMARY KEY (user_id, provider)
+  );
+
   CREATE TABLE IF NOT EXISTS activity_log (
     id TEXT PRIMARY KEY,
     user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
