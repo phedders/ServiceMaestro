@@ -1,7 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { zipSync } from "fflate";
 import { siteCredentialInputSchema, siteScraperDownloadSchema } from "@sm/shared";
-import { requireAuth } from "../auth.js";
+import { requireAuth, requirePermission } from "../auth.js";
 import {
   deleteSiteCredentials,
   downloadSiteSong,
@@ -9,6 +9,7 @@ import {
   saveSiteCredentials,
   searchSiteSongs,
 } from "../site-scraping.js";
+import { importSiteSong } from "../site-scraping-import.js";
 
 export async function siteScrapingRoutes(app: FastifyInstance): Promise<void> {
   app.get("/api/site-scraping/providers", { preHandler: requireAuth }, async (request) => {
@@ -70,6 +71,83 @@ export async function siteScrapingRoutes(app: FastifyInstance): Promise<void> {
       } catch (error) {
         return reply.code(400).send({
           error: error instanceof Error ? error.message : "Could not search the song site",
+        });
+      }
+    },
+  );
+
+  app.post(
+    "/api/site-scraping/providers/:provider/lyrics",
+    { preHandler: requireAuth },
+    async (request, reply) => {
+      const providerId = (request.params as { provider: string }).provider;
+      const provider = listSiteScraperProviders(request.user!.id).find(
+        (entry) => entry.id === providerId,
+      );
+      if (!provider) return reply.code(404).send({ error: "Unknown site scraper provider" });
+      const parsed = siteScraperDownloadSchema.safeParse(request.body ?? {});
+      if (!parsed.success) {
+        return reply.code(400).send({ error: "Invalid song lookup", issues: parsed.error.issues });
+      }
+      const data = parsed.data;
+      try {
+        const files = await downloadSiteSong(
+          request.user!.id,
+          providerId,
+          {
+            provider: providerId,
+            songNumber: data.songNumber,
+            slug: data.slug,
+            title: data.title,
+            authors: data.authors ?? [],
+            availableKinds: data.availableKinds ?? [],
+          },
+          ["lyrics"],
+        );
+        const lyrics = files.find((file) => file.kind === "lyrics");
+        if (!lyrics) return reply.code(404).send({ error: "No lyrics available for this song" });
+        return { lyrics: lyrics.data.toString("utf8") };
+      } catch (error) {
+        return reply.code(400).send({
+          error: error instanceof Error ? error.message : "Could not load song lyrics",
+        });
+      }
+    },
+  );
+
+  app.post(
+    "/api/site-scraping/providers/:provider/import",
+    { preHandler: [requireAuth, requirePermission("songs")] },
+    async (request, reply) => {
+      const providerId = (request.params as { provider: string }).provider;
+      const provider = listSiteScraperProviders(request.user!.id).find(
+        (entry) => entry.id === providerId,
+      );
+      if (!provider) return reply.code(404).send({ error: "Unknown site scraper provider" });
+      const parsed = siteScraperDownloadSchema.safeParse(request.body ?? {});
+      if (!parsed.success) {
+        return reply.code(400).send({ error: "Invalid song import", issues: parsed.error.issues });
+      }
+      const data = parsed.data;
+      try {
+        const result = await importSiteSong(
+          request.user!.id,
+          providerId,
+          {
+            provider: providerId,
+            songNumber: data.songNumber,
+            slug: data.slug,
+            title: data.title,
+            authors: data.authors ?? [],
+            availableKinds: data.availableKinds ?? [],
+          },
+          data.kinds ?? [],
+          request.user?.id ?? null,
+        );
+        return result;
+      } catch (error) {
+        return reply.code(400).send({
+          error: error instanceof Error ? error.message : "Could not import the song",
         });
       }
     },

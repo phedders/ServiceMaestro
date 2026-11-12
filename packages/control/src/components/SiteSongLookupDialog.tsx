@@ -5,6 +5,8 @@ import type {
   SongResourceKind,
 } from "@sm/shared";
 import { api, ApiError } from "../api";
+import { EyeIcon } from "./Icons";
+import { SongLyricsDialog } from "./SongLyricsDialog";
 import { downloadBlob, SITE_KIND_LABELS } from "../site-download";
 
 export function SiteSongLookupDialog({
@@ -22,6 +24,14 @@ export function SiteSongLookupDialog({
   const [results, setResults] = useState<SiteScraperSearchResult[]>([]);
   const [searching, setSearching] = useState(false);
   const [downloading, setDownloading] = useState<string | null>(null);
+  const [importing, setImporting] = useState<string | null>(null);
+  const [lyricsLoadingId, setLyricsLoadingId] = useState<string | null>(null);
+  const [lyricsPreview, setLyricsPreview] = useState<{
+    title: string;
+    author: string | null;
+    ccli: string | null;
+    lyrics: string;
+  } | null>(null);
   const [searched, setSearched] = useState(false);
 
   useEffect(() => {
@@ -50,6 +60,23 @@ export function SiteSongLookupDialog({
     }
   }
 
+  async function previewLyrics(song: SiteScraperSearchResult) {
+    setLyricsLoadingId(song.songNumber);
+    try {
+      const result = await api.siteScraperLyrics(provider.id, song);
+      setLyricsPreview({
+        title: song.title,
+        author: song.authors.join(", ") || null,
+        ccli: song.songNumber,
+        lyrics: result.lyrics,
+      });
+    } catch (error) {
+      notify(error instanceof ApiError ? error.message : "Could not load the lyrics", "error");
+    } finally {
+      setLyricsLoadingId(null);
+    }
+  }
+
   async function download(song: SiteScraperSearchResult, kinds: SongResourceKind[]) {
     const key = `${song.songNumber}:${kinds.join(",")}`;
     setDownloading(key);
@@ -64,7 +91,24 @@ export function SiteSongLookupDialog({
     }
   }
 
+  async function importAll(song: SiteScraperSearchResult) {
+    setImporting(song.songNumber);
+    try {
+      const result = await api.siteScraperImport(provider.id, song, song.availableKinds);
+      notify(
+        result.created
+          ? `Imported “${result.song.title}” with ${result.files.length} file${result.files.length === 1 ? "" : "s"}`
+          : `Updated “${result.song.title}” with ${result.files.length} file${result.files.length === 1 ? "" : "s"}`,
+      );
+    } catch (error) {
+      notify(error instanceof ApiError ? error.message : "Could not import the song", "error");
+    } finally {
+      setImporting(null);
+    }
+  }
+
   return (
+    <>
     <div
       className="alt-backdrop"
       onMouseDown={(event) => {
@@ -120,12 +164,21 @@ export function SiteSongLookupDialog({
                   </span>
                 </div>
                 <div className="button-row">
+                  <button
+                    className="button ghost small icon-button"
+                    onClick={() => void previewLyrics(song)}
+                    disabled={lyricsLoadingId !== null}
+                    title={`Preview lyrics for “${song.title}”`}
+                    aria-label={`Preview lyrics for ${song.title}`}
+                  >
+                    {lyricsLoadingId === song.songNumber ? "…" : <EyeIcon />}
+                  </button>
                   {song.availableKinds.map((kind) => (
                     <button
                       key={kind}
                       className="button ghost small"
                       onClick={() => void download(song, [kind])}
-                      disabled={downloading !== null}
+                      disabled={downloading !== null || importing !== null}
                       title={`Download ${SITE_KIND_LABELS[kind]} for “${song.title}”`}
                     >
                       {downloading === `${song.songNumber}:${kind}`
@@ -135,14 +188,24 @@ export function SiteSongLookupDialog({
                   ))}
                   {allKinds.length > 1 && (
                     <button
-                      className="button primary small"
+                      className="button ghost small"
                       onClick={() => void download(song, allKinds)}
-                      disabled={downloading !== null}
+                      disabled={downloading !== null || importing !== null}
                       title={`Download all available files for “${song.title}” as a ZIP`}
                     >
                       {downloading === `${song.songNumber}:${allKinds.join(",")}`
                         ? "Downloading…"
                         : "All files"}
+                    </button>
+                  )}
+                  {allKinds.length > 0 && (
+                    <button
+                      className="button primary small"
+                      onClick={() => void importAll(song)}
+                      disabled={downloading !== null || importing !== null}
+                      title={`Import all available files for “${song.title}” into Service Maestro`}
+                    >
+                      {importing === song.songNumber ? "Importing…" : "Import all"}
                     </button>
                   )}
                 </div>
@@ -153,9 +216,12 @@ export function SiteSongLookupDialog({
 
         <p className="hint">
           For SongSelect, <strong>ChordPro</strong> is the chord download; lead and vocal files are
-          PDFs. Files are downloaded to this computer; import them into the song library afterwards.
+          PDFs. <strong>Import all</strong> saves the files to the song library; they appear in the
+          musician view when the song is used in a set list.
         </p>
       </div>
     </div>
+    <SongLyricsDialog song={lyricsPreview} onClose={() => setLyricsPreview(null)} />
+    </>
   );
 }

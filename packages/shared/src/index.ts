@@ -103,6 +103,21 @@ export interface SiteScraperSearchResult {
   availableKinds: SongResourceKind[];
 }
 
+export interface SiteScraperImportResult {
+  song: {
+    id: string;
+    title: string;
+    ccli: string | null;
+  };
+  created: boolean;
+  files: Array<{
+    kind: SongResourceKind;
+    filename: string;
+    bytes: number;
+  }>;
+  assets: number;
+}
+
 export interface ActivityEntry {
   id: string;
   userId: string | null;

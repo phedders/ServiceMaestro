@@ -181,7 +181,7 @@ Adapters should:
 - remove personal credentials and fall back to the server set;
 - see the artifact kinds supported by the provider.
 
-**Songs → Song site downloads** searches the configured site and offers **Lyrics**, **ChordPro**, **Lead PDF**, **Vocal PDF** and **All files**. Downloads are saved through the browser. Administrators do not see other users' passwords or cookies.
+**Songs → Song site downloads** searches the configured site and offers an eye-button lyric preview plus **Lyrics**, **ChordPro**, **Lead PDF**, **Vocal PDF**, **All files** and **Import all**. Downloads are saved through the browser. **Import all** creates or updates the local song by CCLI number, attaches the ChordPro/lyrics/PDF files as song assets and saves the song so the files appear in the musician view whenever the song is used in a set list. Administrators do not see other users' passwords or cookies.
 
 ## 3. SongSelect drop folder
 

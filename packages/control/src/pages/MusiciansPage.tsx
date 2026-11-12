@@ -244,7 +244,7 @@ export default function MusiciansPage({
                                           onClick={() => setSelectedAsset(asset.id)}
                                           title={`View ${asset.kind.replace("_", " ")} “${asset.title}”`}
                                         >
-                                          {asset.kind.replace("_", " ")}
+                                          {asset.title || asset.kind.replace("_", " ")}
                                           {asset.key ? ` · ${asset.key}` : ""}
                                         </button>
                                       ))}

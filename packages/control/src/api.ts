@@ -40,6 +40,7 @@ import type {
   SetlistRevisionInfo,
   SetlistSummary,
   SiteCredentialInput,
+  SiteScraperImportResult,
   SiteScraperProviderSummary,
   SiteScraperSearchResult,
   Song,
@@ -377,6 +378,39 @@ export const api = {
       filename: match?.[1] ?? `${song.title}.zip`,
     };
   },
+  siteScraperLyrics: (providerId: string, song: SiteScraperSearchResult) =>
+    request<{ lyrics: string }>(
+      `/api/site-scraping/providers/${encodeURIComponent(providerId)}/lyrics`,
+      {
+        method: "POST",
+        body: JSON.stringify({
+          songNumber: song.songNumber,
+          slug: song.slug,
+          title: song.title,
+          authors: song.authors,
+          availableKinds: song.availableKinds,
+        }),
+      },
+    ),
+  siteScraperImport: (
+    providerId: string,
+    song: SiteScraperSearchResult,
+    kinds: string[] = [],
+  ) =>
+    request<SiteScraperImportResult>(
+      `/api/site-scraping/providers/${encodeURIComponent(providerId)}/import`,
+      {
+        method: "POST",
+        body: JSON.stringify({
+          songNumber: song.songNumber,
+          slug: song.slug,
+          title: song.title,
+          authors: song.authors,
+          availableKinds: song.availableKinds,
+          kinds,
+        }),
+      },
+    ),
   scanSongselectWatch: (force = false) =>
     request<{ report: SongSelectWatchReport; status: SongSelectWatchStatus }>(
       "/api/integrations/songselect/watch/scan",

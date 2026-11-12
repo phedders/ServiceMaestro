@@ -5,12 +5,16 @@ import type {
   SongResourceKind,
 } from "@sm/shared";
 import { api, ApiError } from "../api";
+import { EyeIcon } from "./Icons";
+import { SongLyricsDialog } from "./SongLyricsDialog";
 import { downloadBlob, SITE_KIND_LABELS as KIND_LABELS } from "../site-download";
 
 export function SiteSongDownloadPanel({
   notify,
+  onImported,
 }: {
   notify: (text: string, kind?: "info" | "error") => void;
+  onImported?: () => void;
 }) {
   const [providers, setProviders] = useState<SiteScraperProviderSummary[]>([]);
   const [providerId, setProviderId] = useState("");
@@ -18,6 +22,14 @@ export function SiteSongDownloadPanel({
   const [results, setResults] = useState<SiteScraperSearchResult[]>([]);
   const [searching, setSearching] = useState(false);
   const [downloading, setDownloading] = useState<string | null>(null);
+  const [importing, setImporting] = useState<string | null>(null);
+  const [lyricsLoadingId, setLyricsLoadingId] = useState<string | null>(null);
+  const [lyricsPreview, setLyricsPreview] = useState<{
+    title: string;
+    author: string | null;
+    ccli: string | null;
+    lyrics: string;
+  } | null>(null);
 
   const provider = providers.find((entry) => entry.id === providerId) ?? providers[0] ?? null;
 
@@ -45,6 +57,24 @@ export function SiteSongDownloadPanel({
     }
   }
 
+  async function previewLyrics(song: SiteScraperSearchResult) {
+    if (!provider) return;
+    setLyricsLoadingId(song.songNumber);
+    try {
+      const result = await api.siteScraperLyrics(provider.id, song);
+      setLyricsPreview({
+        title: song.title,
+        author: song.authors.join(", ") || null,
+        ccli: song.songNumber,
+        lyrics: result.lyrics,
+      });
+    } catch (error) {
+      notify(error instanceof ApiError ? error.message : "Could not load the lyrics", "error");
+    } finally {
+      setLyricsLoadingId(null);
+    }
+  }
+
   async function download(song: SiteScraperSearchResult, kinds: SongResourceKind[]) {
     if (!provider) return;
     const key = `${song.songNumber}:${kinds.join(",")}`;
@@ -57,6 +87,24 @@ export function SiteSongDownloadPanel({
       notify(error instanceof ApiError ? error.message : "Could not download the files", "error");
     } finally {
       setDownloading(null);
+    }
+  }
+
+  async function importAll(song: SiteScraperSearchResult) {
+    if (!provider) return;
+    setImporting(song.songNumber);
+    try {
+      const result = await api.siteScraperImport(provider.id, song, song.availableKinds);
+      notify(
+        result.created
+          ? `Imported “${result.song.title}” with ${result.files.length} file${result.files.length === 1 ? "" : "s"}`
+          : `Updated “${result.song.title}” with ${result.files.length} file${result.files.length === 1 ? "" : "s"}`,
+      );
+      onImported?.();
+    } catch (error) {
+      notify(error instanceof ApiError ? error.message : "Could not import the song", "error");
+    } finally {
+      setImporting(null);
     }
   }
 
@@ -75,7 +123,7 @@ export function SiteSongDownloadPanel({
         <div>
           <h2>Song site downloads</h2>
           <p className="muted">
-            Search {provider.label} and download lyrics, ChordPro, lead-sheet and vocal files.
+            Search {provider.label} and download lyrics, ChordPro, lead-sheet and vocal files. Import all attaches them to the local song.
           </p>
         </div>
         <span className={`badge ${provider.activeSource ? "imported" : "error"}`}>{sourceLabel}</span>
@@ -121,12 +169,21 @@ export function SiteSongDownloadPanel({
                       </span>
                     </div>
                     <div className="button-row">
+                      <button
+                        className="button ghost small icon-button"
+                        onClick={() => void previewLyrics(song)}
+                        disabled={lyricsLoadingId !== null}
+                        title={`Preview lyrics for “${song.title}”`}
+                        aria-label={`Preview lyrics for ${song.title}`}
+                      >
+                        {lyricsLoadingId === song.songNumber ? "…" : <EyeIcon />}
+                      </button>
                       {song.availableKinds.map((kind) => (
                         <button
                           key={kind}
                           className="button ghost small"
                           onClick={() => void download(song, [kind])}
-                          disabled={downloading !== null}
+                          disabled={downloading !== null || importing !== null}
                           title={`Download ${KIND_LABELS[kind]} for “${song.title}”`}
                         >
                           {downloading === `${song.songNumber}:${kind}` ? "Downloading…" : KIND_LABELS[kind]}
@@ -134,14 +191,24 @@ export function SiteSongDownloadPanel({
                       ))}
                       {allKinds.length > 1 && (
                         <button
-                          className="button primary small"
+                          className="button ghost small"
                           onClick={() => void download(song, allKinds)}
-                          disabled={downloading !== null}
+                          disabled={downloading !== null || importing !== null}
                           title={`Download all available files for “${song.title}” as a ZIP`}
                         >
                           {downloading === `${song.songNumber}:${allKinds.join(",")}`
                             ? "Downloading…"
                             : "All files"}
+                        </button>
+                      )}
+                      {allKinds.length > 0 && (
+                        <button
+                          className="button primary small"
+                          onClick={() => void importAll(song)}
+                          disabled={downloading !== null || importing !== null}
+                          title={`Import all available files for “${song.title}” into Service Maestro`}
+                        >
+                          {importing === song.songNumber ? "Importing…" : "Import all"}
                         </button>
                       )}
                     </div>
@@ -158,6 +225,8 @@ export function SiteSongDownloadPanel({
           )}
         </>
       )}
+
+      <SongLyricsDialog song={lyricsPreview} onClose={() => setLyricsPreview(null)} />
     </section>
   );
 }

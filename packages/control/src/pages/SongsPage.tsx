@@ -1059,7 +1059,7 @@ export default function SongsPage({
         )}
       </section>
 
-      <SiteSongDownloadPanel notify={notify} />
+      <SiteSongDownloadPanel notify={notify} onImported={() => void load()} />
     </div>
   );
 }
