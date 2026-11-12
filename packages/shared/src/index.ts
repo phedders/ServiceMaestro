@@ -198,6 +198,88 @@ export function songKeyWithoutChords(lyrics: string): string {
     .replace(/[^a-z0-9]+/g, "");
 }
 
+interface SongWord {
+  word: string;
+  line: number;
+}
+
+function songWordsWithoutChords(lyrics: string): SongWord[] {
+  const words: SongWord[] = [];
+  const lines = songLyricsWithoutChords(lyrics).split("\n");
+  for (const [line, value] of lines.entries()) {
+    const normalized = value
+      .normalize("NFKD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/\s+-\s+/g, "")
+      .replace(/['’]/g, "")
+      .toLowerCase();
+    for (const match of normalized.matchAll(/[a-z0-9]+/g)) {
+      words.push({ word: match[0], line });
+    }
+  }
+  return words;
+}
+
+/**
+ * Estimate how many lyric lines differ once chord symbols, section labels,
+ * word splits ("can - not") and line breaks are ignored.
+ */
+export function songLinesDifferingApartFromSplits(
+  reference: string,
+  candidate: string,
+): number {
+  const a = songWordsWithoutChords(reference);
+  const b = songWordsWithoutChords(candidate);
+  if (!a.length && !b.length) return 0;
+  const width = b.length + 1;
+  const table = new Uint32Array((a.length + 1) * width);
+  for (let i = a.length - 1; i >= 0; i -= 1) {
+    for (let j = b.length - 1; j >= 0; j -= 1) {
+      table[i * width + j] =
+        a[i].word === b[j].word
+          ? table[(i + 1) * width + j + 1] + 1
+          : Math.max(table[(i + 1) * width + j], table[i * width + j + 1]);
+    }
+  }
+
+  const hunks: Array<{ reference: Set<number>; candidate: Set<number> }> = [];
+  let current = { reference: new Set<number>(), candidate: new Set<number>() };
+  const flush = () => {
+    if (current.reference.size || current.candidate.size) hunks.push(current);
+    current = { reference: new Set<number>(), candidate: new Set<number>() };
+  };
+
+  let i = 0;
+  let j = 0;
+  while (i < a.length && j < b.length) {
+    if (a[i].word === b[j].word) {
+      flush();
+      i += 1;
+      j += 1;
+    } else if (table[(i + 1) * width + j] >= table[i * width + j + 1]) {
+      current.reference.add(a[i].line);
+      i += 1;
+    } else {
+      current.candidate.add(b[j].line);
+      j += 1;
+    }
+  }
+  while (i < a.length) {
+    current.reference.add(a[i].line);
+    i += 1;
+  }
+  while (j < b.length) {
+    current.candidate.add(b[j].line);
+    j += 1;
+  }
+  flush();
+
+  return hunks.reduce(
+    (total, hunk) => total + Math.max(hunk.reference.size, hunk.candidate.size),
+    0,
+  );
+}
+
 export type ItemKind = "song" | "text" | "image" | "image_list" | "tarp";
 export type ImageFit = "scale" | "actual" | "crop" | "stretch";
 

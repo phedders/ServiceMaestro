@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   songHasChords,
+  songLinesDifferingApartFromSplits,
   songLyricsWithoutChords,
   type SongDuplicateCandidate,
   type SongDuplicateGroup,
@@ -45,11 +46,16 @@ function compareSongs(reference: SongDuplicateCandidate, candidate: SongDuplicat
   const changedLinesWithoutChords = diffWithoutChords.filter(
     (line) => line.type !== "same",
   ).length;
+  const changedLinesApartFromSplits = songLinesDifferingApartFromSplits(
+    reference.lyrics,
+    candidate.lyrics,
+  );
   return {
     metadata,
     changedFields,
     changedLines,
     changedLinesWithoutChords,
+    changedLinesApartFromSplits,
     diff,
     diffWithoutChords,
     referenceHasChords: songHasChords(reference.lyrics),
@@ -61,11 +67,13 @@ function DifferenceSummary({
   changedFields,
   changedLines,
   changedLinesWithoutChords,
+  changedLinesApartFromSplits,
   onShowDiff,
 }: {
   changedFields: string[];
   changedLines: number;
   changedLinesWithoutChords: number;
+  changedLinesApartFromSplits: number;
   onShowDiff?: () => void;
 }) {
   return (
@@ -110,6 +118,14 @@ function DifferenceSummary({
         {changedLinesWithoutChords} line
         {changedLinesWithoutChords === 1 ? " differs" : "s differ"} without chords
       </span>
+      <span
+        className={`dedupe-diff-chip splits ${changedLinesApartFromSplits === 0 ? "same" : ""}`}
+        title="Word-level estimate ignoring chord symbols, section labels, word splits and line breaks"
+      >
+        {changedLinesApartFromSplits} line
+        {changedLinesApartFromSplits === 1 ? " differs" : "s differ"} apart from word/line
+        splits
+      </span>
     </span>
   );
 }
@@ -138,6 +154,7 @@ function DuplicateDiffDialog({
     changedFields,
     changedLines,
     changedLinesWithoutChords,
+    changedLinesApartFromSplits,
     diff,
     diffWithoutChords,
     referenceHasChords,
@@ -185,6 +202,7 @@ function DuplicateDiffDialog({
           changedFields={changedFields}
           changedLines={changedLines}
           changedLinesWithoutChords={changedLinesWithoutChords}
+          changedLinesApartFromSplits={changedLinesApartFromSplits}
         />
         <p className="hint dedupe-diff-mode-note">
           {withoutChords
@@ -382,6 +400,9 @@ export default function DeDupePage({
                               changedFields={comparison.changedFields}
                               changedLines={comparison.changedLines}
                               changedLinesWithoutChords={comparison.changedLinesWithoutChords}
+                              changedLinesApartFromSplits={
+                                comparison.changedLinesApartFromSplits
+                              }
                               onShowDiff={() => setComparison({ reference, candidate: song })}
                             />
                           ) : (

@@ -4,6 +4,7 @@ import {
   isSongChordToken,
   songHasChords,
   songKeyWithoutChords,
+  songLinesDifferingApartFromSplits,
   songLyricsWithoutChords,
 } from "@sm/shared";
 
@@ -35,4 +36,30 @@ test("compares lyric text with chords and section labels removed", () => {
   const different = "[Verse 1]\nAmazing grace how sweet the sound\nThat saved a soul like me";
   assert.notEqual(songKeyWithoutChords(plain), songKeyWithoutChords(different));
   assert.notEqual(songKeyWithoutChords(""), songKeyWithoutChords(chords));
+});
+
+test("estimates line differences without counting word or line splits", () => {
+  const reference =
+    "[Verse 1]\nAmazing grace how sweet the sound\nThat saved a wretch like me";
+  const rewrapped =
+    "[Verse 1]\nAmazing grace how sweet\nThe sound that saved a wretch\nlike me";
+  const splitWords =
+    "[Verse 1]\nA[C]mazing grace how sweet the sound\nThat saved a wretch like me";
+  const different =
+    "[Verse 1]\nAmazing grace how sweet the sound\nThat saved a soul like me";
+
+  assert.equal(songLinesDifferingApartFromSplits(reference, rewrapped), 0);
+  assert.equal(songLinesDifferingApartFromSplits(reference, splitWords), 0);
+  assert.equal(
+    songLinesDifferingApartFromSplits(
+      "[Verse 1]\nI can - not believe it",
+      "[Verse 1]\nI cannot believe it",
+    ),
+    0,
+  );
+  assert.equal(songLinesDifferingApartFromSplits(reference, different), 1);
+  assert.equal(
+    songLinesDifferingApartFromSplits(reference, `${reference}\nAnd grace will lead me home`),
+    1,
+  );
 });

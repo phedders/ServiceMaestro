@@ -5073,6 +5073,12 @@ body.resizing-live-queue {
   color: #c4b5fd;
 }
 
+.dedupe-diff-chip.splits {
+  border-color: rgba(45, 212, 191, 0.32);
+  background: rgba(45, 212, 191, 0.14);
+  color: #5eead4;
+}
+
 .dedupe-diff-chip.same {
   border-color: rgba(74, 222, 128, 0.32);
   background: rgba(74, 222, 128, 0.14);
