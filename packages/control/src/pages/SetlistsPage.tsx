@@ -33,7 +33,7 @@ import { api, ApiError } from "../api";
 import { BibleLayoutButtons } from "../components/BibleLayoutButtons";
 import { IsoDateInput } from "../components/IsoDateInput";
 import { PageContentEditor } from "../components/PageContentEditor";
-import { ReadOnlyFieldset } from "../page-access";
+import { ReadOnlyFieldset, usePageAccess } from "../page-access";
 import { compactDate, compactDateTime, defaultSetlistName } from "../service-date";
 import { useSessionState } from "../session-state";
 import { loadActiveSiteProvider, updateSongFromSite as checkAndUpdateSongFromSite } from "../site-update";
@@ -1278,6 +1278,7 @@ export default function SetlistsPage({
   onStarted: (state: LiveState) => void;
   notify: (text: string, kind?: "info" | "error") => void;
 }) {
+  const { canWrite } = usePageAccess();
   const [setlists, setSetlists] = useState<SetlistSummary[]>([]);
   const [selectedId, setSelectedId] = useSessionState<string | null>(
     "setlists:selected",
@@ -1765,6 +1766,7 @@ export default function SetlistsPage({
   }
 
   async function chooseImport(file: File | null) {
+    if (!canWrite) return;
     setImportFile(file);
     setImportReport(null);
     setImportPreview(null);
@@ -1782,7 +1784,7 @@ export default function SetlistsPage({
   }
 
   async function confirmImport() {
-    if (!importFile) return;
+    if (!importFile || !canWrite) return;
     setImporting(true);
     try {
       const result = await api.importSetlist(importFile);
@@ -1990,18 +1992,24 @@ export default function SetlistsPage({
               </a>
             </div>
           )}
-          <label
-            className="button ghost full file-button"
-            title="Choose a JSON or ZIP set-list file to preview before importing"
-          >
-            {importing ? "Reading…" : "Import set list file"}
-            <input
-              type="file"
-              accept=".json,.zip,.sm-setlist.json,.sm-bundle.zip"
-              hidden
-              onChange={(event) => chooseImport(event.target.files?.[0] ?? null)}
-            />
-          </label>
+          <ReadOnlyFieldset>
+            <label
+              className="button ghost full file-button"
+              title={
+                canWrite
+                  ? "Choose a JSON or ZIP set-list file to preview before importing"
+                  : "Read-only access to set lists"
+              }
+            >
+              {importing ? "Reading…" : "Import set list file"}
+              <input
+                type="file"
+                accept=".json,.zip,.sm-setlist.json,.sm-bundle.zip"
+                hidden
+                onChange={(event) => chooseImport(event.target.files?.[0] ?? null)}
+              />
+            </label>
+          </ReadOnlyFieldset>
 
           {importPreview && (
             <div className="import-preview-card">
@@ -2029,8 +2037,12 @@ export default function SetlistsPage({
                 <button
                   className="button primary small"
                   onClick={confirmImport}
-                  disabled={importing}
-                  title="Import this file as a new draft set list"
+                  disabled={!canWrite || importing}
+                  title={
+                    canWrite
+                      ? "Import this file as a new draft set list"
+                      : "Read-only access to set lists"
+                  }
                 >
                   Import as new draft
                 </button>
