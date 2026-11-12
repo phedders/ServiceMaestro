@@ -59,10 +59,6 @@ function readTemplate(role: Role, setlistId: string | null): DisplayTemplate | n
 export function resolveTemplate(role: Role, setlistId: string | null): DisplayTemplate {
   const direct = readTemplate(role, setlistId);
   if (direct) return direct;
-  if (role === "full") {
-    const twoThirds = readTemplate("two_thirds", setlistId);
-    if (twoThirds) return twoThirds;
-  }
   return { html: FALLBACK_HTML(role), css: FALLBACK_CSS };
 }
 

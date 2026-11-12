@@ -60,7 +60,6 @@
     const templates = state.templates || {};
     return (
       templates[target] ||
-      (target === "full" ? templates.two_thirds : null) ||
       templates.main || {
         html: '<div class="sm-template"><div class="sm-content">{{content}}</div><div class="sm-footer">{{footer}}</div></div>',
         css: "",

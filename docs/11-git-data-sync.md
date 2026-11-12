@@ -140,7 +140,7 @@ templates/
   two_thirds.html / two_thirds.css
   stage.html / stage.css
   chords.html / chords.css
-  full.html / full.css          # optional; falls back to two_thirds
+  full.html / full.css          # whole-screen template; uses built-in fallback if absent
 ```
 
 Placeholders available inside the HTML:
@@ -157,7 +157,7 @@ Lookup order:
 4. **templates repo** (`/data/repos/templates/templates/…` or its root)
 5. built-in templates shipped with the display package
 
-The first HTML found wins; CSS is read from the same directory. `full` falls back to `two_thirds`. The default templates fade content changes in and out; custom templates should keep the `.sm-template` class for the transition.
+The first HTML found wins; CSS is read from the same directory. `full` uses its own whole-screen template rather than reusing `two_thirds`. The default templates fade content changes in and out; custom templates should keep the `.sm-template` class for the transition.
 
 ### Bibles repository
 

@@ -1,5 +1,4 @@
-body[data-target="two_thirds"],
-body[data-target="full"] {
+body[data-target="two_thirds"] {
   background: #000;
 }
 
@@ -16,11 +15,6 @@ body[data-target="full"] {
   line-height: 1.2;
   color: var(--sm-text-color, #ffffff);
   font-family: var(--sm-font-family, inherit);
-}
-
-/* The full-screen output reuses the two-thirds template with tighter lines. */
-body[data-target="full"] .sm-two-thirds .sm-content {
-  line-height: 0.9;
 }
 
 .sm-two-thirds .sm-content .slide-inner {

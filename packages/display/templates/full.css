@@ -1,0 +1,84 @@
+body[data-target="full"] {
+  background: #000;
+}
+
+.sm-full {
+  width: 100vw;
+  height: 100vh;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 2vh 2vw;
+  box-sizing: border-box;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.4vh;
+  text-align: center;
+  overflow: hidden;
+}
+
+.sm-full .sm-content {
+  width: 100%;
+  max-width: none;
+  font-size: calc(clamp(2.8rem, 5.4vw, 6.6rem) * var(--sm-text-scale, 1));
+  line-height: 0.92;
+  color: var(--sm-text-color, #ffffff);
+  font-family: var(--sm-font-family, inherit);
+}
+
+.sm-full .sm-content .slide-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3em;
+}
+
+.sm-full .line {
+  white-space: pre-wrap;
+}
+
+.sm-full .chord,
+.sm-full .section-label {
+  display: none;
+}
+
+.sm-full .sm-footer {
+  flex: 0 0 auto;
+  margin-top: 0;
+  font-size: clamp(0.7rem, 1.05vw, 1.2rem);
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.sm-full .text-html h1,
+.sm-full .text-html h2,
+.sm-full .text-html h3 {
+  margin: 0 0 0.4em;
+}
+
+.sm-full .line strong {
+  font-weight: 800;
+}
+
+.sm-full .line em {
+  font-style: italic;
+}
+
+.sm-full .line mark {
+  background: #ffe08a;
+  color: #111820;
+  border-radius: 0.08em;
+  padding: 0 0.08em;
+}
+
+.sm-full .line code {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 0.82em;
+  background: rgba(255, 255, 255, 0.14);
+  border-radius: 0.15em;
+  padding: 0 0.2em;
+}

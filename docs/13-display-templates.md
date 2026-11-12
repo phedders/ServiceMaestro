@@ -30,7 +30,7 @@ Templates are HTML + CSS pairs. The server resolves them per output role and sen
 4. **templates repo**: `<path>/templates/<role>.html` or `<path>/<role>.html`
 5. built-in templates in `packages/display/templates`
 
-The first HTML file found wins; CSS is read from the same directory. `full` falls back to `two_thirds` if no `full` template exists.
+The first HTML file found wins; CSS is read from the same directory. `full` uses its own whole-screen template and no longer reuses the two-thirds template.
 
 ### Files
 
