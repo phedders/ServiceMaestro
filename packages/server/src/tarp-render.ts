@@ -30,6 +30,11 @@ function backgroundStyle(background: TarpBackground | null): string {
   return `background-image:url('${imageUrl(background.path)}');background-size:cover;background-position:center;`;
 }
 
+function backgroundKey(view: TarpView, theme: TarpTheme | null): string {
+  if (view.backgroundId) return `library:${view.backgroundId}`;
+  return JSON.stringify(view.background ?? theme?.background ?? null);
+}
+
 function markdownHtml(content: string): string {
   const html = marked.parse(content, { async: false }) as string;
   return sanitizeHtml(html, {
@@ -93,14 +98,15 @@ function renderObject(
   if (!object.visible) return "";
   const place = object[viewKey];
   const style = placementStyle(place, view, theme);
+  const attrs = `data-tarp-object-id="${escapeHtml(object.id)}" data-tarp-animations="${escapeHtml(JSON.stringify(place.animations))}"`;
   if (object.kind === "text") {
-    return `<div class="tarp-object tarp-object-text" style="${style}">${escapeHtml(object.content)}</div>`;
+    return `<div class="tarp-object tarp-object-text" ${attrs} style="${style}">${escapeHtml(object.content)}</div>`;
   }
   if (object.kind === "markdown") {
-    return `<div class="tarp-object tarp-object-markdown" style="${style}">${markdownHtml(object.content)}</div>`;
+    return `<div class="tarp-object tarp-object-markdown" ${attrs} style="${style}">${markdownHtml(object.content)}</div>`;
   }
   if (!object.content.trim()) return "";
-  return `<div class="tarp-object tarp-object-image" style="${style}"><img src="${escapeHtml(imageUrl(object.content))}" alt="" style="object-fit:${place.fit};" /></div>`;
+  return `<div class="tarp-object tarp-object-image" ${attrs} style="${style}"><img src="${escapeHtml(imageUrl(object.content))}" alt="" style="object-fit:${place.fit};" /></div>`;
 }
 
 function renderView(
@@ -124,17 +130,26 @@ export function renderTarpPages(presentationId: string): LivePage[] {
   return presentation.pages.map((page: TarpPage, index) => {
     const theme = getTarpTheme(page.themeId ?? presentation.themeId ?? "");
     const aspect = presentation.aspect === "16:10" ? 1.6 : 16 / 9;
+    const transition = page.transition ?? {
+      type: "fade" as const,
+      durationMs: 500,
+      easing: "ease",
+      objectMode: "animate" as const,
+    };
     return {
       index,
       section: page.name,
-      html: `<div class="tarp-page-root">
+      html: `<div class="tarp-page-root"
+        data-tarp-object-mode="${transition.objectMode}"
+        data-tarp-duration="${transition.durationMs}"
+        data-tarp-easing="${escapeHtml(transition.easing)}">
         <div class="tarp-normal-layer">
-          <div class="tarp-canvas tarp-canvas-normal" style="--tarp-ratio:${aspect};--tarp-accent:${escapeHtml(theme?.accentColor ?? "#63c7ff")}">
+          <div class="tarp-canvas tarp-canvas-normal" data-tarp-bg="${escapeHtml(backgroundKey(page.normal, theme))}" style="--tarp-ratio:${aspect};--tarp-accent:${escapeHtml(theme?.accentColor ?? "#63c7ff")}">
             ${renderView(page.normal, theme, "normal")}
           </div>
         </div>
         <div class="tarp-lowerthird-layer">
-          <div class="tarp-canvas tarp-canvas-lowerthird" style="--tarp-accent:${escapeHtml(theme?.accentColor ?? "#63c7ff")}">
+          <div class="tarp-canvas tarp-canvas-lowerthird" data-tarp-bg="${escapeHtml(backgroundKey(page.lowerthird, theme))}" style="--tarp-accent:${escapeHtml(theme?.accentColor ?? "#63c7ff")}">
             ${renderView(page.lowerthird, theme, "lowerthird")}
           </div>
         </div>

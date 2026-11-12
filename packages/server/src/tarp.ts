@@ -115,6 +115,7 @@ function mapTheme(row: ThemeRow): TarpTheme {
 }
 
 function mapPage(row: PageRow): TarpPage {
+  const transition = parseJson<TarpPageTransition | null>(row.transition_json, null);
   return {
     id: row.id,
     presentationId: row.presentation_id,
@@ -122,7 +123,9 @@ function mapPage(row: PageRow): TarpPage {
     name: row.name,
     themeId: row.theme_id,
     startFromPrevious: Boolean(row.start_from_previous),
-    transition: parseJson<TarpPageTransition | null>(row.transition_json, null),
+    transition: transition
+      ? { ...transition, objectMode: transition.objectMode === "migrate" ? "migrate" : "animate" }
+      : null,
     normal: normalizeView(parseJson<TarpView>(row.normal_json, emptyView())),
     lowerthird: normalizeView(parseJson<TarpView>(row.lowerthird_json, emptyView())),
     createdAt: row.created_at,

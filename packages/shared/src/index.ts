@@ -369,6 +369,7 @@ export interface TarpPageTransition {
   type: "cut" | "fade" | "move";
   durationMs: number;
   easing: string;
+  objectMode: "animate" | "migrate";
 }
 
 export interface TarpPage {
@@ -929,6 +930,7 @@ export const tarpPageTransitionSchema = z.object({
   type: z.enum(["cut", "fade", "move"]).default("fade"),
   durationMs: z.number().int().min(0).max(10_000).default(500),
   easing: z.string().trim().max(80).default("ease"),
+  objectMode: z.enum(["animate", "migrate"]).default("animate"),
 });
 
 export const tarpPageInputSchema = z.object({

@@ -163,6 +163,18 @@ export default function TarpPageEditor({
     (item) => item.id === (draft.themeId ?? presentation.themeId),
   );
   const selectedObject = draft[view].objects.find((object) => object.id === selectedObjectId);
+  const pageTransition = draft.transition ?? {
+    type: "fade" as const,
+    durationMs: 500,
+    easing: "ease",
+    objectMode: "animate" as const,
+  };
+
+  function updateTransition(patch: Partial<typeof pageTransition>) {
+    const next = clone(draft);
+    next.transition = { ...pageTransition, ...patch };
+    updateDraft(next);
+  }
 
   function updateDraft(next: TarpPage) {
     setDraft(next);
@@ -473,6 +485,35 @@ export default function TarpPageEditor({
             ))}
           </select>
         </label>
+        <label>
+          Object transition
+          <select
+            value={pageTransition.objectMode}
+            onChange={(event) =>
+              updateTransition({
+                objectMode: event.target.value as "animate" | "migrate",
+              })
+            }
+          >
+            <option value="animate">Animate objects</option>
+            <option value="migrate">Migrate matching objects</option>
+          </select>
+        </label>
+        <label>
+          Transition duration (ms)
+          <input
+            type="number"
+            min={0}
+            max={10000}
+            step={50}
+            value={pageTransition.durationMs}
+            onChange={(event) =>
+              updateTransition({
+                durationMs: Math.max(0, Math.min(10000, Number(event.target.value) || 0)),
+              })
+            }
+          />
+        </label>
         <label className="checkbox">
           <input
             type="checkbox"
@@ -781,6 +822,85 @@ export default function TarpPageEditor({
                   <option value="cover">Cover</option>
                 </select>
               </label>
+            )}
+            <label>
+              Entrance animation
+              <select
+                value={selectedObject[view].animations[0]?.type ?? ""}
+                onChange={(event) => {
+                  const type = event.target.value as
+                    | TarpObjectPlacement["animations"][number]["type"]
+                    | "";
+                  const existing = selectedObject[view].animations[0];
+                  updatePlacement(view, selectedObject.id, {
+                    animations: type
+                      ? [
+                          existing
+                            ? { ...existing, type }
+                            : {
+                                id: newId(),
+                                type,
+                                delayMs: 0,
+                                durationMs: 600,
+                                easing: "ease",
+                              },
+                        ]
+                      : [],
+                  });
+                }}
+              >
+                <option value="">None</option>
+                <option value="fade-in">Fade in</option>
+                <option value="slide-in">Slide in</option>
+                <option value="move">Move</option>
+                <option value="scale">Scale</option>
+                <option value="rotate">Rotate</option>
+                <option value="fade-out">Fade out</option>
+              </select>
+            </label>
+            {selectedObject[view].animations[0] && (
+              <>
+                <label>
+                  Animation delay (ms)
+                  <input
+                    type="number"
+                    min={0}
+                    max={600000}
+                    step={50}
+                    value={selectedObject[view].animations[0].delayMs}
+                    onChange={(event) =>
+                      updatePlacement(view, selectedObject.id, {
+                        animations: [
+                          {
+                            ...selectedObject[view].animations[0],
+                            delayMs: Math.max(0, Number(event.target.value) || 0),
+                          },
+                        ],
+                      })
+                    }
+                  />
+                </label>
+                <label>
+                  Animation duration (ms)
+                  <input
+                    type="number"
+                    min={0}
+                    max={600000}
+                    step={50}
+                    value={selectedObject[view].animations[0].durationMs}
+                    onChange={(event) =>
+                      updatePlacement(view, selectedObject.id, {
+                        animations: [
+                          {
+                            ...selectedObject[view].animations[0],
+                            durationMs: Math.max(0, Number(event.target.value) || 0),
+                          },
+                        ],
+                      })
+                    }
+                  />
+                </label>
+              </>
             )}
           </div>
         </div>

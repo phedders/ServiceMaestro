@@ -147,11 +147,190 @@
     }, duration);
   }
 
-  function swapHtml(html) {
+  function tarpLayerSelector() {
+    return target === "main" ? ".tarp-lowerthird-layer" : ".tarp-normal-layer";
+  }
+
+  function tarpTransform(base, value) {
+    return base && base !== "none" ? `${value} ${base}` : value;
+  }
+
+  function applyTarpAnimations(element) {
+    let animations = [];
+    try {
+      animations = JSON.parse(element.dataset.tarpAnimations || "[]");
+    } catch {
+      animations = [];
+    }
+    if (!Array.isArray(animations)) return;
+    const naturalOpacity = getComputedStyle(element).opacity;
+    const baseTransform = element.style.transform || "none";
+    for (const animation of animations) {
+      const duration = Math.max(0, Number(animation?.durationMs) || 0);
+      if (!duration) continue;
+      const options = {
+        delay: Math.max(0, Number(animation?.delayMs) || 0),
+        duration,
+        easing: animation?.easing || "ease",
+        fill: "both",
+      };
+      if (animation.type === "fade-in") {
+        element.animate([{ opacity: 0 }, { opacity: naturalOpacity }], options);
+      } else if (animation.type === "fade-out") {
+        element.animate([{ opacity: naturalOpacity }, { opacity: 0 }], options);
+      } else if (animation.type === "slide-in") {
+        element.animate(
+          [
+            { transform: tarpTransform(baseTransform, "translateY(8%)") },
+            { transform: baseTransform },
+          ],
+          options,
+        );
+      } else if (animation.type === "move") {
+        element.animate(
+          [
+            { transform: tarpTransform(baseTransform, "translateX(-6%)") },
+            { transform: baseTransform },
+          ],
+          options,
+        );
+      } else if (animation.type === "scale") {
+        element.animate(
+          [
+            { transform: tarpTransform(baseTransform, "scale(0.82)") },
+            { transform: baseTransform },
+          ],
+          options,
+        );
+      } else if (animation.type === "rotate") {
+        element.animate(
+          [
+            { transform: tarpTransform(baseTransform, "rotate(-10deg)") },
+            { transform: baseTransform },
+          ],
+          options,
+        );
+      }
+    }
+  }
+
+  function swapTarpRoot(nextTemplate, animate) {
+    const oldTarp = root.querySelector(".tarp-page-root");
+    const newTarp = nextTemplate.querySelector(".tarp-page-root");
+    if (!oldTarp || !newTarp) return false;
+    const selector = tarpLayerSelector();
+    const oldCanvas = oldTarp.querySelector(`${selector} .tarp-canvas`);
+    const newCanvas = newTarp.querySelector(`${selector} .tarp-canvas`);
+    if (!oldCanvas || !newCanvas) return false;
+
+    const oldObjects = new Map();
+    if (animate) {
+      const canvasRect = oldCanvas.getBoundingClientRect();
+      oldCanvas.querySelectorAll("[data-tarp-object-id]").forEach((element) => {
+        const rect = element.getBoundingClientRect();
+        oldObjects.set(element.dataset.tarpObjectId, {
+          x: rect.left - canvasRect.left,
+          y: rect.top - canvasRect.top,
+          width: rect.width,
+          height: rect.height,
+          opacity: Number(getComputedStyle(element).opacity),
+        });
+      });
+    }
+
+    // Keep an unchanged Tarp background node alive across the swap so CSS/SVG
+    // animations do not restart and the background never fades.
+    const oldBackground = oldCanvas.querySelector(":scope > .tarp-background");
+    const newBackground = newCanvas.querySelector(":scope > .tarp-background");
+    if (
+      oldBackground &&
+      newBackground &&
+      oldCanvas.dataset.tarpBg === newCanvas.dataset.tarpBg
+    ) {
+      newBackground.replaceWith(oldBackground);
+    }
+
+    const newObjects = Array.from(newCanvas.querySelectorAll("[data-tarp-object-id]"));
+    for (const element of newObjects) element.style.visibility = "hidden";
+    root.replaceChildren(nextTemplate);
+    if (!animate) {
+      for (const element of newObjects) element.style.visibility = "";
+      return true;
+    }
+
+    const mode = newTarp.dataset.tarpObjectMode || "animate";
+    const duration = Math.max(1, Number(newTarp.dataset.tarpDuration) || 500);
+    const easing = newTarp.dataset.tarpEasing || "ease";
+    const newCanvasRect = newCanvas.getBoundingClientRect();
+
+    for (const element of newObjects) {
+      const naturalOpacity = element.style.opacity || "1";
+      const baseTransform = element.style.transform || "none";
+      const naturalTransformOrigin = element.style.transformOrigin;
+      const old = oldObjects.get(element.dataset.tarpObjectId);
+      element.style.visibility = "";
+      if (mode === "migrate" && old) {
+        const rect = element.getBoundingClientRect();
+        const dx = old.x - (rect.left - newCanvasRect.left);
+        const dy = old.y - (rect.top - newCanvasRect.top);
+        const sx = rect.width > 0 ? old.width / rect.width : 1;
+        const sy = rect.height > 0 ? old.height / rect.height : 1;
+        const initial = tarpTransform(
+          baseTransform,
+          `translate(${dx}px, ${dy}px) scale(${sx}, ${sy})`,
+        );
+        element.style.transformOrigin = "top left";
+        element.style.transform = initial;
+        element.style.opacity = String(old.opacity);
+        const animation = element.animate(
+          [
+            { transform: initial, opacity: old.opacity },
+            { transform: baseTransform, opacity: Number(naturalOpacity) },
+          ],
+          { duration, easing, fill: "both" },
+        );
+        animation.onfinish = () => {
+          animation.cancel();
+          element.style.transform = baseTransform;
+          element.style.transformOrigin = naturalTransformOrigin;
+          element.style.opacity = naturalOpacity;
+        };
+      } else if (mode === "migrate") {
+        const initial = tarpTransform(baseTransform, "scale(0.96)");
+        element.style.transform = initial;
+        element.style.opacity = "0";
+        const animation = element.animate(
+          [
+            { transform: initial, opacity: 0 },
+            { transform: baseTransform, opacity: Number(naturalOpacity) },
+          ],
+          { duration, easing, fill: "both" },
+        );
+        animation.onfinish = () => {
+          animation.cancel();
+          element.style.transform = baseTransform;
+          element.style.opacity = naturalOpacity;
+        };
+      } else {
+        applyTarpAnimations(element);
+      }
+    }
+    return true;
+  }
+
+  function swapHtml(html, animateTarp = false) {
+    const parsed = document.createElement("template");
+    parsed.innerHTML = html;
+    const nextTemplate = parsed.content.firstElementChild;
+    if (
+      nextTemplate?.classList.contains("sm-template") &&
+      root.querySelector(".tarp-page-root") &&
+      nextTemplate.querySelector(".tarp-page-root") &&
+      swapTarpRoot(nextTemplate, animateTarp)
+    ) {
+      return;
+    }
     if (target === "main" && root.firstElementChild?.classList.contains("sm-template")) {
-      const parsed = document.createElement("template");
-      parsed.innerHTML = html;
-      const nextTemplate = parsed.content.firstElementChild;
       const currentTemplate = root.firstElementChild;
       const currentPanel = currentTemplate.querySelector(".sm-lowerthird-panel");
       const nextPanel = nextTemplate?.querySelector(".sm-lowerthird-panel");
@@ -198,6 +377,11 @@
     document.body.classList.toggle("mode-tarp", state.mode === "tarp");
     const pageKey = currentPageKey(state);
     const pageChanged = Boolean(pageKey && displayedPageKey && pageKey !== displayedPageKey);
+    const tarpPageChange = Boolean(
+      pageChanged &&
+        page?.html?.includes("tarp-page-root") &&
+        root.querySelector(".tarp-page-root"),
+    );
     const stinger =
       (target === "full" || target === "two_thirds") && !blank && page ? page.stinger : null;
     const backgroundHtml = target === "main" ? "" : state.background?.render || "";
@@ -262,7 +446,7 @@
         style.textContent = template.css;
         lastCss = template.css;
       }
-      swapHtml(html);
+      swapHtml(html, tarpPageChange);
       lastHtml = html;
       displayedPageKey = pageKey;
       // Paint the new text at zero opacity before fading back in.
@@ -275,6 +459,10 @@
 
     if (pageChanged && stinger && root.innerHTML) {
       playStinger(stinger, pageKey, commit);
+      return;
+    }
+    if (tarpPageChange) {
+      commit();
       return;
     }
 
