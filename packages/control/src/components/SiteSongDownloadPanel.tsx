@@ -123,7 +123,7 @@ export function SiteSongDownloadPanel({
         <div>
           <h2>Song site downloads</h2>
           <p className="muted">
-            Search {provider.label} and download lyrics, ChordPro, lead-sheet and vocal files. Import all attaches them to the local song.
+            Search {provider.label} and download lyrics, ChordPro, lead-sheet and vocal files. Import into Service Maestro attaches them to the local song.
           </p>
         </div>
         <span className={`badge ${provider.activeSource ? "imported" : "error"}`}>{sourceLabel}</span>
@@ -186,7 +186,7 @@ export function SiteSongDownloadPanel({
                           disabled={downloading !== null || importing !== null}
                           title={`Download ${KIND_LABELS[kind]} for “${song.title}”`}
                         >
-                          {downloading === `${song.songNumber}:${kind}` ? "Downloading…" : KIND_LABELS[kind]}
+                          {downloading === `${song.songNumber}:${kind}` ? "Downloading…" : `Download ${KIND_LABELS[kind]}`}
                         </button>
                       ))}
                       {allKinds.length > 1 && (
@@ -198,7 +198,7 @@ export function SiteSongDownloadPanel({
                         >
                           {downloading === `${song.songNumber}:${allKinds.join(",")}`
                             ? "Downloading…"
-                            : "All files"}
+                            : "Download all to computer"}
                         </button>
                       )}
                       {allKinds.length > 0 && (
@@ -208,7 +208,7 @@ export function SiteSongDownloadPanel({
                           disabled={downloading !== null || importing !== null}
                           title={`Import all available files for “${song.title}” into Service Maestro`}
                         >
-                          {importing === song.songNumber ? "Importing…" : "Import all"}
+                          {importing === song.songNumber ? "Importing…" : "Import into Service Maestro"}
                         </button>
                       )}
                     </div>

@@ -183,7 +183,7 @@ export function SiteSongLookupDialog({
                     >
                       {downloading === `${song.songNumber}:${kind}`
                         ? "Downloading…"
-                        : SITE_KIND_LABELS[kind]}
+                        : `Download ${SITE_KIND_LABELS[kind]}`}
                     </button>
                   ))}
                   {allKinds.length > 1 && (
@@ -195,7 +195,7 @@ export function SiteSongLookupDialog({
                     >
                       {downloading === `${song.songNumber}:${allKinds.join(",")}`
                         ? "Downloading…"
-                        : "All files"}
+                        : "Download all to computer"}
                     </button>
                   )}
                   {allKinds.length > 0 && (
@@ -205,7 +205,7 @@ export function SiteSongLookupDialog({
                       disabled={downloading !== null || importing !== null}
                       title={`Import all available files for “${song.title}” into Service Maestro`}
                     >
-                      {importing === song.songNumber ? "Importing…" : "Import all"}
+                      {importing === song.songNumber ? "Importing…" : "Import into Service Maestro"}
                     </button>
                   )}
                 </div>
@@ -216,8 +216,8 @@ export function SiteSongLookupDialog({
 
         <p className="hint">
           For SongSelect, <strong>ChordPro</strong> is the chord download; lead and vocal files are
-          PDFs. <strong>Import all</strong> saves the files to the song library; they appear in the
-          musician view when the song is used in a set list.
+          PDFs. <strong>Import into Service Maestro</strong> saves the files to the song library; they
+          appear in the musician view when the song is used in a set list.
         </p>
       </div>
     </div>
