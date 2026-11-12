@@ -63,6 +63,7 @@ function certificateStatus(
   return {
     source,
     selfSigned,
+    hasLocalCa: fs.existsSync(path.join(SSL_DIR, "ca.crt")),
     sslDir: SSL_DIR,
     certFile,
     keyFile,

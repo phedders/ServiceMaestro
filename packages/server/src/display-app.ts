@@ -3,7 +3,15 @@ import path from "node:path";
 import Fastify, { type FastifyInstance } from "fastify";
 import fastifyStatic from "@fastify/static";
 import { Server } from "socket.io";
-import { CONTROL_DIST, COOKIE_NAME, DISPLAY_DIR, FONTS_DIR, LOG_LEVEL, OUTPUT_TOKEN } from "./config.js";
+import {
+  CONTROL_DIST,
+  COOKIE_NAME,
+  DISPLAY_DIR,
+  FONTS_DIR,
+  LOG_LEVEL,
+  OUTPUT_TOKEN,
+  SSL_DIR,
+} from "./config.js";
 import { parseCookies, userForToken } from "./auth.js";
 import { imageMime, resolveImage } from "./images.js";
 import { live } from "./live.js";
@@ -60,6 +68,18 @@ export async function registerDisplayRoutes(
   app.get("/display/favicon.ico", async (_request, reply) =>
     reply.redirect("/display/icon.svg"),
   );
+
+  app.get("/display/ca.crt", async (_request, reply) => {
+    const file = path.join(SSL_DIR, "ca.crt");
+    if (!fs.existsSync(file)) {
+      return reply.code(404).send({ error: "Local CA certificate not available" });
+    }
+    return reply
+      .type("application/x-x509-ca-cert")
+      .header("content-disposition", 'attachment; filename="service-maestro-ca.crt"')
+      .header("cache-control", "public, max-age=86400")
+      .send(fs.readFileSync(file));
+  });
 
   app.get("/display/images/file", async (request, reply) => {
     const query = request.query as { path?: string; token?: string };

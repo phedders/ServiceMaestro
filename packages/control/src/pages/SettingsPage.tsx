@@ -680,6 +680,16 @@ export default function SettingsPage({
                 <code>{sslStatus.sslDir}</code>, or set <code>SM_SSL_CERT_FILE</code> and{" "}
                 <code>SM_SSL_KEY_FILE</code>. Restart the server after replacing certificates.
               </p>
+              {sslStatus.hasLocalCa && (
+                <p className="hint">
+                  Devices must trust the local CA before passkeys can be registered.{" "}
+                  <a className="button ghost small" href="/api/ssl/ca.crt" download>
+                    Download local CA
+                  </a>{" "}
+                  and install it on each device. On the local network it can also be downloaded from{" "}
+                  <code>/display/ca.crt</code> on the display port.
+                </p>
+              )}
             </>
           ) : (
             <p className="muted">Loading certificate status…</p>

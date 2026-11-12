@@ -764,6 +764,7 @@ export interface ControlTlsReport {
 export interface ControlTlsStatus {
   source: "generated" | "provided";
   selfSigned: boolean;
+  hasLocalCa: boolean;
   sslDir: string;
   certFile: string;
   keyFile: string;

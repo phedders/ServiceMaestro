@@ -13,6 +13,7 @@ import {
   GIT_ENABLED,
   LOG_LEVEL,
   OUTPUT_TOKEN,
+  SSL_DIR,
   SSL_ENABLED,
 } from "./config.js";
 import { parseCookies, requireAuth, requirePermission, userForToken } from "./auth.js";
@@ -136,6 +137,16 @@ export async function buildApp(
     enabled: SSL_ENABLED,
     status: getControlTlsStatus(),
   }));
+
+  app.get("/api/ssl/ca.crt", { preHandler: requireAuth }, async (_request, reply) => {
+    const file = path.join(SSL_DIR, "ca.crt");
+    if (!fs.existsSync(file)) {
+      return reply.code(404).send({ error: "Local CA certificate not available" });
+    }
+    reply.header("content-type", "application/x-x509-ca-cert");
+    reply.header("content-disposition", 'attachment; filename="service-maestro-ca.crt"');
+    return reply.send(fs.readFileSync(file));
+  });
 
   app.get("/api/display/views", { preHandler: requireAuth }, async () => {
     const token = encodeURIComponent(OUTPUT_TOKEN);
