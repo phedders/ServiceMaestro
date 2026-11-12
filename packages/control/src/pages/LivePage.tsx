@@ -17,6 +17,7 @@ import { api, ApiError } from "../api";
 import { SlidePreview } from "../components/SlidePreview";
 import { Transport } from "../components/Transport";
 import { ItemList, PageList } from "../components/LivePanels";
+import { FontSelect } from "../components/FontSelect";
 import { QuickText } from "../components/QuickText";
 import { compactDate } from "../service-date";
 
@@ -441,20 +442,12 @@ export default function LivePage({
         <div className="display-config-grid">
           <label>
             Global font
-            <select
+            <FontSelect
               value={displayConfig.fontFamily}
-              onChange={(event) => setDisplayConfig({ ...displayConfig, fontFamily: event.target.value })}
-            >
-              {fonts.map((font) => (
-                <option key={font.id} value={font.family}>
-                  {font.label}
-                  {font.source === "google" ? " (Google)" : ""}
-                </option>
-              ))}
-              {!fonts.some((font) => font.family === displayConfig.fontFamily) && (
-                <option value={displayConfig.fontFamily}>Custom / imported</option>
-              )}
-            </select>
+              fonts={fonts}
+              onChange={(fontFamily) => setDisplayConfig({ ...displayConfig, fontFamily })}
+              title="Choose the global display font"
+            />
           </label>
           <label>
             Text colour
@@ -479,25 +472,14 @@ export default function LivePage({
           </label>
           <label>
             Lower-third font
-            <select
+            <FontSelect
               value={displayConfig.lowerThirdFontFamily}
-              onChange={(event) =>
-                setDisplayConfig({
-                  ...displayConfig,
-                  lowerThirdFontFamily: event.target.value,
-                })
+              fonts={fonts}
+              onChange={(lowerThirdFontFamily) =>
+                setDisplayConfig({ ...displayConfig, lowerThirdFontFamily })
               }
-            >
-              {fonts.map((font) => (
-                <option key={font.id} value={font.family}>
-                  {font.label}
-                  {font.source === "google" ? " (Google)" : ""}
-                </option>
-              ))}
-              {!fonts.some((font) => font.family === displayConfig.lowerThirdFontFamily) && (
-                <option value={displayConfig.lowerThirdFontFamily}>Custom / imported</option>
-              )}
-            </select>
+              title="Choose the lower-third display font"
+            />
           </label>
           <label>
             Lower-third text size · {Math.round(displayConfig.lowerThirdTextScale * 100)}%
