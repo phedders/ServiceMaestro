@@ -1,4 +1,4 @@
-import type { FastifyInstance } from "fastify";
+import type { FastifyInstance, FastifyRequest } from "fastify";
 import {
   tarpPageInputSchema,
   tarpPresentationInputSchema,
@@ -22,6 +22,13 @@ import {
   updateTarpPresentation,
   updateTarpTheme,
 } from "../tarp.js";
+import { saveTarpLibraryToGit } from "../git-store.js";
+
+async function persistTarp(request: FastifyRequest): Promise<void> {
+  await saveTarpLibraryToGit().catch((error) =>
+    request.log.warn({ err: error }, "git Tarp library save failed"),
+  );
+}
 
 export async function tarpRoutes(app: FastifyInstance): Promise<void> {
   app.get("/api/tarp/themes", { preHandler: requireAuth }, async () => ({
@@ -36,7 +43,9 @@ export async function tarpRoutes(app: FastifyInstance): Promise<void> {
       if (!parsed.success) {
         return reply.code(400).send({ error: "Invalid Tarp theme", issues: parsed.error.issues });
       }
-      return reply.code(201).send({ theme: createTarpTheme(parsed.data) });
+      const theme = createTarpTheme(parsed.data);
+      await persistTarp(request);
+      return reply.code(201).send({ theme });
     },
   );
 
@@ -50,6 +59,7 @@ export async function tarpRoutes(app: FastifyInstance): Promise<void> {
       }
       const theme = updateTarpTheme((request.params as { id: string }).id, parsed.data);
       if (!theme) return reply.code(404).send({ error: "Tarp theme not found" });
+      await persistTarp(request);
       return { theme };
     },
   );
@@ -61,6 +71,7 @@ export async function tarpRoutes(app: FastifyInstance): Promise<void> {
       if (!deleteTarpTheme((request.params as { id: string }).id)) {
         return reply.code(404).send({ error: "Tarp theme not found" });
       }
+      await persistTarp(request);
       return { ok: true };
     },
   );
@@ -77,7 +88,9 @@ export async function tarpRoutes(app: FastifyInstance): Promise<void> {
       if (!parsed.success) {
         return reply.code(400).send({ error: "Invalid Tarp presentation", issues: parsed.error.issues });
       }
-      return reply.code(201).send({ presentation: createTarpPresentation(parsed.data) });
+      const presentation = createTarpPresentation(parsed.data);
+      await persistTarp(request);
+      return reply.code(201).send({ presentation });
     },
   );
 
@@ -100,6 +113,7 @@ export async function tarpRoutes(app: FastifyInstance): Promise<void> {
         parsed.data,
       );
       if (!presentation) return reply.code(404).send({ error: "Tarp presentation not found" });
+      await persistTarp(request);
       return { presentation };
     },
   );
@@ -111,6 +125,7 @@ export async function tarpRoutes(app: FastifyInstance): Promise<void> {
       if (!deleteTarpPresentation((request.params as { id: string }).id)) {
         return reply.code(404).send({ error: "Tarp presentation not found" });
       }
+      await persistTarp(request);
       return { ok: true };
     },
   );
@@ -125,6 +140,7 @@ export async function tarpRoutes(app: FastifyInstance): Promise<void> {
         body?.fromPageId ?? null,
       );
       if (!presentation) return reply.code(404).send({ error: "Tarp presentation not found" });
+      await persistTarp(request);
       return reply.code(201).send({ presentation });
     },
   );
@@ -139,6 +155,7 @@ export async function tarpRoutes(app: FastifyInstance): Promise<void> {
       }
       const page = updateTarpPage((request.params as { id: string }).id, parsed.data);
       if (!page) return reply.code(404).send({ error: "Tarp page not found" });
+      await persistTarp(request);
       return { page };
     },
   );
@@ -150,6 +167,7 @@ export async function tarpRoutes(app: FastifyInstance): Promise<void> {
       if (!deleteTarpPage((request.params as { id: string }).id)) {
         return reply.code(404).send({ error: "Tarp page not found" });
       }
+      await persistTarp(request);
       return { ok: true };
     },
   );
@@ -167,6 +185,7 @@ export async function tarpRoutes(app: FastifyInstance): Promise<void> {
         parsed.data.pageIds,
       );
       if (!presentation) return reply.code(404).send({ error: "Tarp presentation not found" });
+      await persistTarp(request);
       return { presentation };
     },
   );

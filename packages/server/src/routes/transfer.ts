@@ -5,7 +5,7 @@ import {
   importSetlistFile,
   previewSetlistImport,
 } from "../setlist-transfer.js";
-import { saveSetlistToGit } from "../git-store.js";
+import { saveSetlistToGit, saveTarpLibraryToGit } from "../git-store.js";
 
 export async function transferRoutes(app: FastifyInstance): Promise<void> {
   app.get("/api/setlists/:id/export", { preHandler: requireAuth }, async (request, reply) => {
@@ -48,6 +48,9 @@ export async function transferRoutes(app: FastifyInstance): Promise<void> {
         const report = importSetlistFile(buffer, file.filename, request.user?.id ?? null);
         await saveSetlistToGit(report.setlistId).catch((error) =>
           request.log.warn({ err: error }, "git import save failed"),
+        );
+        await saveTarpLibraryToGit().catch((error) =>
+          request.log.warn({ err: error }, "git Tarp import save failed"),
         );
         return reply.code(201).send({ report });
       } catch (error) {

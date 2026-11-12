@@ -14,6 +14,12 @@ import { getGitSettings } from "./settings.js";
 import { buildSetlistExport, parseSetlistFile, type SetlistManifest } from "./setlist-transfer.js";
 import { reloadBibleCatalog, setBibleDir } from "./bible.js";
 import { addDefaultVerseTags } from "./lyrics.js";
+import {
+  exportTarpBundle,
+  importTarpBundle,
+  tarpPresentationFile,
+  tarpThemeFile,
+} from "./tarp-export.js";
 
 interface RepoRuntime {
   config: GitRepoConfig;
@@ -248,6 +254,7 @@ function findSong(item: SetlistManifest["items"][number]): { id: string } | null
 }
 
 function importSetlist(manifest: SetlistManifest): void {
+  if (manifest.tarp) importTarpBundle(manifest.tarp);
   const id = manifest.setlist.id ?? `git-${Date.now()}`;
   const existing = db.prepare("SELECT id FROM setlists WHERE id = ?").get(id);
   const now = new Date().toISOString();
@@ -441,6 +448,65 @@ function importSetlistsFromRepo(runtime: RepoRuntime): number {
   return count;
 }
 
+function importTarpFromRepo(runtime: RepoRuntime): number {
+  const themeDir = path.join(runtime.config.path, "tarp", "themes");
+  const presentationDir = path.join(runtime.config.path, "tarp", "presentations");
+  const themes: unknown[] = [];
+  const presentations: unknown[] = [];
+  for (const [dir, target] of [
+    [themeDir, themes],
+    [presentationDir, presentations],
+  ] as const) {
+    if (!fs.existsSync(dir)) continue;
+    for (const name of fs.readdirSync(dir)) {
+      if (!name.endsWith(".json")) continue;
+      try {
+        target.push(JSON.parse(fs.readFileSync(path.join(dir, name), "utf8")));
+      } catch {
+        // Ignore malformed files; they remain in the repository.
+      }
+    }
+  }
+  if (!themes.length && !presentations.length) return 0;
+  importTarpBundle({ themes, presentations });
+  return themes.length + presentations.length;
+}
+
+async function exportAllTarp(runtime: RepoRuntime): Promise<void> {
+  const bundle = exportTarpBundle();
+  const themeDir = path.join(runtime.config.path, "tarp", "themes");
+  const presentationDir = path.join(runtime.config.path, "tarp", "presentations");
+  fs.mkdirSync(themeDir, { recursive: true });
+  fs.mkdirSync(presentationDir, { recursive: true });
+
+  const themeFiles = new Set((bundle.themes ?? []).map((theme) => `${theme.id}.json`));
+  const presentationFiles = new Set(
+    (bundle.presentations ?? []).map((presentation) => `${presentation.id}.json`),
+  );
+  for (const name of fs.readdirSync(themeDir)) {
+    if (name.endsWith(".json") && !themeFiles.has(name)) fs.unlinkSync(path.join(themeDir, name));
+  }
+  for (const name of fs.readdirSync(presentationDir)) {
+    if (name.endsWith(".json") && !presentationFiles.has(name)) {
+      fs.unlinkSync(path.join(presentationDir, name));
+    }
+  }
+
+  for (const theme of bundle.themes ?? []) {
+    writeAtomically(path.join(themeDir, `${theme.id}.json`), tarpThemeFile(theme));
+  }
+  for (const presentation of bundle.presentations ?? []) {
+    writeAtomically(
+      path.join(presentationDir, `${presentation.id}.json`),
+      tarpPresentationFile(presentation),
+    );
+  }
+  await commit(
+    runtime,
+    `tarp: export ${bundle.presentations?.length ?? 0} presentations`,
+  );
+}
+
 async function pullRuntime(runtime: RepoRuntime): Promise<void> {
   if (!runtime.config.remote) return;
   try {
@@ -472,7 +538,10 @@ export async function syncGitFromRemotes(): Promise<void> {
   const songs = runtimes.get("songs");
   const setlists = runtimes.get("setlists");
   if (songs) importSongsFromRepo(songs);
-  if (setlists) importSetlistsFromRepo(setlists);
+  if (setlists) {
+    importTarpFromRepo(setlists);
+    importSetlistsFromRepo(setlists);
+  }
   const bibles = runtimes.get("bibles");
   if (bibles) {
     const hasFiles =
@@ -516,10 +585,12 @@ export async function initializeGitStorage(): Promise<void> {
             else await exportAllSongs(runtime);
           }
           if (config.name === "setlists") {
+            importTarpFromRepo(runtime);
             const dir = path.join(config.path, "setlists");
             const hasFiles = fs.existsSync(dir) && fs.readdirSync(dir).some((name) => name.endsWith(".json"));
             if (hasFiles) importSetlistsFromRepo(runtime);
             else await exportAllSetlists(runtime);
+            await exportAllTarp(runtime);
           }
           if (config.name === "bibles") {
             const hasFiles =
@@ -608,11 +679,19 @@ export async function deleteSetlistFromGit(id: string): Promise<void> {
   });
 }
 
+export async function saveTarpLibraryToGit(): Promise<void> {
+  if (!GIT_ENABLED || !getGitSettings().autoSave) return;
+  const runtime = runtimes.get("setlists");
+  if (!runtime) return;
+  await serial(() => exportAllTarp(runtime));
+}
+
 export async function exportAllToGit(): Promise<void> {
   const songs = runtimes.get("songs");
   const setlists = runtimes.get("setlists");
   if (songs) await serial(() => exportAllSongs(songs));
   if (setlists) await serial(() => exportAllSetlists(setlists));
+  if (setlists) await serial(() => exportAllTarp(setlists));
 }
 
 export async function pushGit(): Promise<void> {

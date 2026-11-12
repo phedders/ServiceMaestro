@@ -8,9 +8,11 @@ import type {
   SetlistImportReport,
   SongAssetKind,
 } from "@sm/shared";
+import { parseTarpItemContent } from "@sm/shared";
 import { db } from "./db.js";
 import { getAsset, listAssets, saveAsset } from "./assets.js";
 import { addDefaultVerseTags } from "./lyrics.js";
+import { exportTarpBundle, importTarpBundle, tarpBundleSchema } from "./tarp-export.js";
 
 const FORMAT = "sm.setlist";
 const FORMAT_VERSION = 1;
@@ -82,6 +84,7 @@ const manifestSchema = z.object({
   }),
   items: z.array(itemSchema).max(1000),
   assets: z.array(assetSchema).max(1000).optional(),
+  tarp: tarpBundleSchema.optional(),
 });
 
 export type SetlistManifest = z.infer<typeof manifestSchema>;
@@ -334,6 +337,17 @@ export function buildSetlistExport(
     };
   });
 
+  const tarpPresentationIds = [
+    ...new Set(
+      rows
+        .filter((row) => row.kind === "tarp")
+        .map((row) => parseTarpItemContent(row.content)?.presentationId)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
+  const tarp =
+    tarpPresentationIds.length > 0 ? exportTarpBundle(tarpPresentationIds) : undefined;
+
   const manifest: SetlistManifest = {
     format: FORMAT,
     formatVersion: FORMAT_VERSION,
@@ -351,6 +365,7 @@ export function buildSetlistExport(
     },
     items,
     assets: assets.length ? assets : undefined,
+    tarp: tarp && (tarp.presentations?.length || tarp.themes?.length) ? tarp : undefined,
   };
 
   const base = `${safeName(setlist.name)}-${setlist.service_date.replace(/-/g, "")}`;
@@ -438,6 +453,7 @@ export function importSetlistFile(
   userId: string | null,
 ): SetlistImportReport {
   const { manifest, files } = parseSetlistFile(buffer, filename);
+  if (manifest.tarp) importTarpBundle(manifest.tarp);
   const nameExists = db
     .prepare("SELECT id FROM setlists WHERE lower(name) = lower(?) LIMIT 1")
     .get(manifest.setlist.name);
