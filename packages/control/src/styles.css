@@ -1112,6 +1112,32 @@ body.resizing-live-queue {
   white-space: pre-wrap;
 }
 
+/* Page lists show image pages as small thumbnails. Without this, image-list
+   pages render at their natural size and push the queue out of shape. */
+.page-text .slide-image {
+  display: block;
+  width: 160px;
+  max-width: 100%;
+  height: 90px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #05080d;
+  overflow: hidden;
+}
+
+.page-text .slide-image img,
+.page-text .slide-image.fit-actual img,
+.page-text .slide-image.fit-crop img,
+.page-text .slide-image.fit-stretch img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  object-fit: contain;
+}
+
 .page-text .chord,
 .item-row .chord {
   display: none;
