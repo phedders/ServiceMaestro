@@ -72,7 +72,7 @@ export interface PasskeySummary {
   lastUsedAt: string | null;
 }
 
-export type SongResourceKind = "songpro" | "lead" | "chord" | "lyrics";
+export type SongResourceKind = "songpro" | "chord" | "lead" | "vocal" | "lyrics";
 export type SiteCredentialSource = "user" | "server";
 
 export interface SiteScraperProviderSummary {
@@ -92,6 +92,15 @@ export interface SiteCredentialInput {
   username?: string;
   password?: string;
   cookie?: string;
+}
+
+export interface SiteScraperSearchResult {
+  provider: string;
+  songNumber: string;
+  slug: string;
+  title: string;
+  authors: string[];
+  availableKinds: SongResourceKind[];
 }
 
 export interface ActivityEntry {
@@ -1269,6 +1278,17 @@ export const siteCredentialInputSchema = z.object({
   username: z.string().trim().max(200).optional(),
   password: z.string().max(500).optional(),
   cookie: z.string().max(8000).optional(),
+});
+
+export const siteScraperDownloadSchema = z.object({
+  songNumber: z.string().trim().min(1).max(50),
+  slug: z.string().trim().min(1).max(300),
+  title: z.string().trim().min(1).max(300),
+  authors: z.array(z.string().max(200)).max(30).optional(),
+  availableKinds: z
+    .array(z.enum(["songpro", "chord", "lead", "vocal", "lyrics"]))
+    .optional(),
+  kinds: z.array(z.enum(["songpro", "chord", "lead", "vocal", "lyrics"])).optional(),
 });
 
 export const songInputSchema = z.object({

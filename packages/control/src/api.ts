@@ -41,6 +41,7 @@ import type {
   SetlistSummary,
   SiteCredentialInput,
   SiteScraperProviderSummary,
+  SiteScraperSearchResult,
   Song,
   SongAlternative,
   SongDuplicateGroup,
@@ -334,6 +335,48 @@ export const api = {
       `/api/site-scraping/providers/${encodeURIComponent(providerId)}/credentials`,
       { method: "DELETE" },
     ),
+  siteScraperSearch: (providerId: string, query: string) =>
+    request<{ results: SiteScraperSearchResult[] }>(
+      `/api/site-scraping/providers/${encodeURIComponent(providerId)}/search?q=${encodeURIComponent(query)}`,
+    ),
+  siteScraperDownload: async (
+    providerId: string,
+    song: SiteScraperSearchResult,
+    kinds: string[] = [],
+  ): Promise<{ blob: Blob; filename: string }> => {
+    const response = await fetch(
+      `/api/site-scraping/providers/${encodeURIComponent(providerId)}/download`,
+      {
+        method: "POST",
+        credentials: "include",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          songNumber: song.songNumber,
+          slug: song.slug,
+          title: song.title,
+          authors: song.authors,
+          availableKinds: song.availableKinds,
+          kinds,
+        }),
+      },
+    );
+    if (!response.ok) {
+      const text = await response.text();
+      let data: { error?: string } | null = null;
+      try {
+        data = text ? (JSON.parse(text) as { error?: string }) : null;
+      } catch {
+        // Keep the status text when the body is not JSON.
+      }
+      throw new ApiError(response.status, data?.error ?? response.statusText);
+    }
+    const disposition = response.headers.get("content-disposition") ?? "";
+    const match = disposition.match(/filename="?([^";]+)"?/i);
+    return {
+      blob: await response.blob(),
+      filename: match?.[1] ?? `${song.title}.zip`,
+    };
+  },
   scanSongselectWatch: (force = false) =>
     request<{ report: SongSelectWatchReport; status: SongSelectWatchStatus }>(
       "/api/integrations/songselect/watch/scan",

@@ -1944,6 +1944,50 @@ body.resizing-live-queue {
   align-items: end;
 }
 
+.site-song-download-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.site-song-results {
+  display: grid;
+  gap: 8px;
+  max-height: 460px;
+  overflow: auto;
+}
+
+.site-song-result {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--panel-2);
+}
+
+.site-song-result-main {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.site-song-result .button-row {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+@media (max-width: 900px) {
+  .site-song-result {
+    flex-direction: column;
+  }
+
+  .site-song-result .button-row {
+    justify-content: flex-start;
+  }
+}
+
 .passkey-list {
   display: grid;
   gap: 6px;

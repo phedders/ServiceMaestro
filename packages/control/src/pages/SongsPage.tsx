@@ -11,6 +11,7 @@ import type {
 } from "@sm/shared";
 import { api, ApiError } from "../api";
 import { PageContentEditor } from "../components/PageContentEditor";
+import { SiteSongDownloadPanel } from "../components/SiteSongDownloadPanel";
 import { compactDate, pickCurrentSetlist } from "../service-date";
 
 const EMPTY = {
@@ -1057,6 +1058,8 @@ export default function SongsPage({
           </div>
         )}
       </section>
+
+      <SiteSongDownloadPanel notify={notify} />
     </div>
   );
 }

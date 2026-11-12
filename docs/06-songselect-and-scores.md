@@ -2,7 +2,7 @@
 
 Design for bringing SongPro, lead-sheet, chord, lyric and score files into the song library, and for presenting ChordPro, PDF scores and guitar tabs to musicians.
 
-> Implementation status: ChordPro import, per-song asset uploads (PDF/ChordPro/lyrics/image), authenticated asset serving, the musician PDF viewer and the SongSelect drop-folder watcher are implemented. Encrypted per-user site credentials and the site-scraping adapter interface are implemented. Site-specific download adapters are not implemented yet.
+> Implementation status: ChordPro import, per-song asset uploads (PDF/ChordPro/lyrics/image), authenticated asset serving, the musician PDF viewer and the SongSelect drop-folder watcher are implemented. Encrypted per-user site credentials are implemented. The SongSelect adapter is implemented and verified live for search, lyrics, ChordPro, lead-sheet PDF and vocal-sheet PDF downloads. Other site adapters are not implemented yet.
 
 ## 1. Scope and constraints
 
@@ -21,8 +21,9 @@ The framework separates credentials, provider metadata and site-specific downloa
 | Kind | Purpose |
 | --- | --- |
 | `songpro` | SongPro / SongPro-style source file |
+| `chord` | ChordPro download |
 | `lead` | Lead sheet PDF |
-| `chord` | Chord chart or ChordPro file |
+| `vocal` | Vocal sheet PDF |
 | `lyrics` | Lyrics text file |
 
 ### Credentials
@@ -32,7 +33,7 @@ Credentials are resolved in this order:
 1. **Per-user credentials** saved by the signed-in Service Maestro user.
 2. **Server-level fallback credentials** from the main config file or environment.
 
-Personal credentials override the server fallback. They are encrypted with AES-256-GCM before being written to SQLite and are never returned to the browser. Usernames may be shown back to their owner for identification; passwords and session cookies are write-only.
+Personal credentials override the server fallback. They are encrypted with AES-256-GCM before being written to SQLite and are never returned to the browser. Usernames may be shown back to their owner for identification; passwords and session cookies are write-only. SongSelect uses CCLI’s central login with a browser challenge, so the working adapter uses a signed-in session cookie rather than replaying the password.
 
 The encryption key comes from `SM_SECRET_KEY`. If it is omitted, Service Maestro generates `secret.key` in the data directory with owner-only permissions. Back up that file with the rest of the data volume; losing it makes saved site credentials unreadable.
 
@@ -68,19 +69,17 @@ A site adapter receives resolved credentials and a request, then returns downloa
 ```ts
 interface SiteScraperAdapter {
   id: string;
-  scrape(input: {
-    credentials: {
-      source: "user" | "server";
-      username: string;
-      password: string;
-      cookie: string;
-      baseUrl: string;
-    };
+  search(input: {
+    credentials: SiteScraperCredentials;
     query: string;
-    kinds: Array<"songpro" | "lead" | "chord" | "lyrics">;
+  }): Promise<SiteScraperSearchResult[]>;
+  download(input: {
+    credentials: SiteScraperCredentials;
+    song: SiteScraperSearchResult;
+    kinds: Array<"songpro" | "chord" | "lead" | "vocal" | "lyrics">;
   }): Promise<
     Array<{
-      kind: "songpro" | "lead" | "chord" | "lyrics";
+      kind: "songpro" | "chord" | "lead" | "vocal" | "lyrics";
       filename: string;
       mime: string;
       data: Buffer;
@@ -89,6 +88,27 @@ interface SiteScraperAdapter {
   >;
 }
 ```
+
+### SongSelect adapter (implemented and verified)
+
+The adapter uses the signed-in session cookie and these confirmed endpoints:
+
+```text
+GET  /api/user/GetProfileDetails
+POST /api/GetSongSearchResults
+GET  /api/GetSongDetails?songNumber=…&slug=…
+GET  /api/GetSongChordPro?songNumber=…&key=…&style=Standard&columns=1
+GET  /api/GetSongLeadPdf?songNumber=…&transposeKey=…&…&renderer=pipeline
+GET  /api/GetSongVocalPdf?songNumber=…&transposeKey=…&…&renderer=pipeline
+```
+
+Confirmed output formats:
+
+- Lyrics → UTF-8 `.txt` generated from the song-details payload.
+- Chords → the **Download ChordPro** content (`.cho`), not the chord PDF.
+- Lead → PDF.
+- Vocal → PDF.
+- Multiple selected kinds are bundled as a ZIP.
 
 Adapters should:
 
@@ -108,7 +128,7 @@ Adapters should:
 - remove personal credentials and fall back to the server set;
 - see the artifact kinds supported by the provider.
 
-Administrators do not see other users' passwords or cookies.
+**Songs → Song site downloads** searches the configured site and offers **Lyrics**, **ChordPro**, **Lead PDF**, **Vocal PDF** and **All files**. Downloads are saved through the browser. Administrators do not see other users' passwords or cookies.
 
 ## 3. SongSelect drop folder
 
