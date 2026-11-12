@@ -14,11 +14,13 @@ import type {
   SmartWrapModule,
 } from "@sm/shared";
 import { api, ApiError } from "../api";
+import { ScaledPreviewFrame } from "../components/ScaledPreviewFrame";
 import { SlidePreview } from "../components/SlidePreview";
 import { Transport } from "../components/Transport";
 import { ItemList, PageList } from "../components/LivePanels";
 import { FontSelect } from "../components/FontSelect";
 import { QuickText } from "../components/QuickText";
+import { findPreviewScreen, loadPreviewScreenId } from "../preview-screen";
 import { compactDate } from "../service-date";
 
 const FALLBACK_FONTS: FontOption[] = [
@@ -128,6 +130,8 @@ export default function LivePage({
   );
   const [configSaving, setConfigSaving] = useState(false);
   const [previewView, setPreviewView] = useState("full");
+  const [previewScreenId] = useState(loadPreviewScreenId);
+  const previewScreen = findPreviewScreen(previewScreenId);
   const [queueHeight, setQueueHeight] = useState(initialQueueHeight);
   const queueResizeRef = useRef<{ startY: number; startHeight: number } | null>(null);
 
@@ -307,6 +311,12 @@ export default function LivePage({
           <div className="preview-heading-title">
             <h2>Preview</h2>
             <span className={`badge ${live.status}`}>{live.status}</span>
+            <span
+              className="muted preview-screen-size"
+              title="This preview emulates the selected screen size and aspect ratio"
+            >
+              {previewScreen.width} × {previewScreen.height}
+            </span>
           </div>
           <div className="preview-view-switcher" role="group" aria-label="Preview view">
             {PREVIEW_VIEWS.map((view) => {
@@ -327,15 +337,14 @@ export default function LivePage({
           </div>
         </div>
         {previewLink ? (
-          <div className="preview-frame">
-            <iframe
-              key={previewLink.id}
-              src={previewLink.url}
-              title={`${previewLabel} live preview`}
-              loading="eager"
-            />
+          <ScaledPreviewFrame
+            key={previewLink.id}
+            src={previewLink.url}
+            title={`${previewLabel} live preview`}
+            screen={previewScreen}
+          >
             {live.blank && <div className="slide-blanked">BLANK</div>}
-          </div>
+          </ScaledPreviewFrame>
         ) : (
           <SlidePreview live={live} />
         )}

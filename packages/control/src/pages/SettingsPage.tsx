@@ -18,6 +18,12 @@ import {
 import { api, ApiError } from "../api";
 import { AccountPanel } from "../components/AccountPanel";
 import { BrandingPanel } from "../components/BrandingPanel";
+import {
+  PREVIEW_SCREENS,
+  loadPreviewScreenId,
+  savePreviewScreenId,
+  type PreviewScreenId,
+} from "../preview-screen";
 import { compactDateTime } from "../service-date";
 import {
   DEFAULT_SHORTCUTS,
@@ -54,6 +60,7 @@ export default function SettingsPage({
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<string | null>(null);
   const [shortcuts, setShortcuts] = useState<KeyboardShortcuts>(loadKeyboardShortcuts);
+  const [previewScreenId, setPreviewScreenId] = useState<PreviewScreenId>(loadPreviewScreenId);
   const [settings, setSettings] = useState<AppSettings>({
     pageNavigation: "stop",
     churchsuiteEmptyTypes: [...DEFAULT_CHURCHSUITE_EMPTY_TYPES],
@@ -760,6 +767,40 @@ export default function SettingsPage({
           “Continue” applies to the previous/next page keyboard shortcuts. Next at the final page
           opens the next item’s first page; previous at the first page opens the previous item’s
           last page. The setting is global for all operators.
+        </p>
+      </section>
+
+      <section className="panel">
+        <div className="panel-heading">
+          <div>
+            <h2>Live preview screen</h2>
+            <p className="muted">
+              Choose the screen size and aspect ratio emulated by the live preview on this control
+              device.
+            </p>
+          </div>
+        </div>
+        <label>
+          Emulated screen
+          <select
+            value={previewScreenId}
+            onChange={(event) => {
+              const next = event.target.value as PreviewScreenId;
+              setPreviewScreenId(next);
+              savePreviewScreenId(next);
+            }}
+          >
+            {PREVIEW_SCREENS.map((screen) => (
+              <option key={screen.id} value={screen.id}>
+                {screen.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <p className="hint">
+          The preview renders at this virtual resolution and is scaled down to fit the control
+          panel. This makes font sizes and 16:9/16:10 layout match the real output screen. It only
+          affects this browser and does not change the displays or shared settings.
         </p>
       </section>
 
