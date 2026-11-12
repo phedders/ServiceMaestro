@@ -1327,28 +1327,6 @@ body.resizing-live-queue {
   color: var(--muted);
 }
 
-.song-row-wrap {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.song-row-wrap .song-row {
-  flex: 1;
-  min-width: 0;
-}
-
-.song-row-actions {
-  display: flex;
-  flex: 0 0 auto;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.song-row-actions .button {
-  white-space: nowrap;
-}
-
 .song-list-actions {
   display: flex;
   align-items: center;
@@ -4332,6 +4310,12 @@ body.resizing-live-queue {
 .badge.image {
   background: rgba(255, 107, 107, 0.14);
   color: #ffb2b2;
+}
+
+.song-fix-page-names {
+  display: flex;
+  width: fit-content;
+  margin: 4px 0 0;
 }
 
 .lyrics-field textarea {

@@ -567,42 +567,19 @@ export default function SongsPage({
                 </span>
               </label>
             ) : (
-              <div key={song.id} className="song-row-wrap">
-                <button
-                  data-key-list-item
-                  className={`song-row ${song.id === selectedId ? "current" : ""}`}
-                  onClick={() => select(song)}
-                  title={`Edit “${song.title}”`}
-                >
-                  <strong>{song.title}</strong>
-                  <span>
-                    {song.author || "Unknown author"}
-                    {song.key ? ` · ${song.key}` : ""}
-                  </span>
-                </button>
-                <div className="song-row-actions">
-                  {siteProvider && (
-                    <button
-                      type="button"
-                      className="button ghost small"
-                      onClick={() => void updateFromSite(song)}
-                      disabled={siteUpdatingId !== null}
-                      title={`Update from ${siteProvider.label} — check for missing files or changes`}
-                    >
-                      {siteUpdatingId === song.id ? "Checking…" : "Update"}
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    className="button ghost small"
-                    onClick={() => void fixPageNames(song)}
-                    disabled={fixingPageNameId !== null}
-                    title="Fix page names using the current page-ID shortcuts"
-                  >
-                    {fixingPageNameId === song.id ? "Fixing…" : "Fix page names"}
-                  </button>
-                </div>
-              </div>
+              <button
+                key={song.id}
+                data-key-list-item
+                className={`song-row ${song.id === selectedId ? "current" : ""}`}
+                onClick={() => select(song)}
+                title={`Edit “${song.title}”`}
+              >
+                <strong>{song.title}</strong>
+                <span>
+                  {song.author || "Unknown author"}
+                  {song.key ? ` · ${song.key}` : ""}
+                </span>
+              </button>
             ),
           )}
           {!filtered.length && <p className="muted">No songs found.</p>}
@@ -613,6 +590,16 @@ export default function SongsPage({
         <div className="panel-heading">
           <h2>{selectedId ? "Edit song" : "New song"}</h2>
           <div className="button-row">
+            {selectedId && siteProvider && selectedSong && (
+              <button
+                className="button ghost"
+                onClick={() => void updateFromSite(selectedSong)}
+                disabled={siteUpdatingId !== null}
+                title={`Update from ${siteProvider.label} — check for missing files or changes`}
+              >
+                {siteUpdatingId === selectedSong.id ? "Checking…" : "Update from SongSelect"}
+              </button>
+            )}
             {selectedId && (
               <button
                 className="button ghost danger-text"
@@ -836,6 +823,17 @@ export default function SongsPage({
 
         <div className="lyrics-field">
           <span className="field-label">Lyrics and chords</span>
+          {selectedSong && (
+            <button
+              type="button"
+              className="button ghost small song-fix-page-names"
+              onClick={() => void fixPageNames(selectedSong)}
+              disabled={fixingPageNameId !== null}
+              title="Fix page names using the current page-ID shortcuts"
+            >
+              {fixingPageNameId === selectedSong.id ? "Fixing…" : "Fix page names"}
+            </button>
+          )}
           <PageContentEditor
             value={form.lyrics}
             onChange={(lyrics) => setForm({ ...form, lyrics })}
