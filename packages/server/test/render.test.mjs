@@ -65,6 +65,20 @@ test("treats bare verse headings as section labels", () => {
   assert.doesNotMatch(pages[1].html, /class="line">Verse 2:</);
 });
 
+test("recognises compact turnaround labels with chord-only pages", () => {
+  const pages = buildPages({
+    kind: "song",
+    title: "Turnaround",
+    lyrics: "[Verse 1]\nline\n\n[tr]\n[Ab] [Db/F] [Ab/Eb] [Ab] [Db2]",
+    transpose: 0,
+    maxLines: 8,
+  });
+  assert.equal(pages.length, 2);
+  assert.match(pages[1].html, /section-label">tr</);
+  assert.doesNotMatch(pages[1].html, /class="line">\[tr\]</);
+  assert.match(pages[1].html, /class="chord"/);
+});
+
 test("empty text items have no pages", () => {
   const pages = buildPages({
     kind: "text",

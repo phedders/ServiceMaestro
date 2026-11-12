@@ -36,3 +36,9 @@ test("scans distinct page names from song lyrics", () => {
   );
   assert.deepEqual(names, ["Verse 1", "Chorus", "Opening Prayer"]);
 });
+
+test("recognises compact turnaround page IDs", () => {
+  const lyrics = "[tr]\n[Ab] [Db/F] [Ab/Eb] [Ab] [Db2]";
+  assert.equal(simplifySongPageIds(lyrics).lyrics, lyrics);
+  assert.deepEqual(songPageNameCandidates(lyrics), ["tr"]);
+});

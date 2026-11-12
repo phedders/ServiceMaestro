@@ -374,7 +374,10 @@ function sectionAliases(label: string): string[] {
     aliases.add("p");
   }
   if (key === "i" || key === "intro") aliases.add("intro");
-  if (key === "t" || key === "turnaround") aliases.add("turnaround");
+  if (key === "t" || key === "tr" || key === "turnaround" || key === "turn") {
+    aliases.add("turnaround");
+    aliases.add("tr");
+  }
   if (key === "e" || key === "ending" || key === "end") aliases.add("ending");
   if (key === "o" || key === "outro") aliases.add("outro");
   if (["int", "instr", "inst", "instrumental"].includes(key)) {

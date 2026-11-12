@@ -5,7 +5,8 @@ const NAMED_SECTION = new RegExp(
   "i",
 );
 
-const SHORT_SECTION = /^(?:[vcb]\s*\d+[a-z]?|pc|int|inst|instr)$/i;
+const SHORT_SECTION =
+  /^(?:[vcb]\s*\d+[a-z]?|(?:pc|tr|il|ins|inst|instr|int)(?:\s*\d+[a-z]?)?)$/i;
 
 /**
  * Recognises a bare section heading written on its own line, for example

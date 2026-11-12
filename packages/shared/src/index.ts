@@ -1022,15 +1022,15 @@ function sectionPageId(value: string): { canonical: string; id: string } | null 
   const patterns: Array<[RegExp, string, string]> = [
     [/^verse(?:\s*(\d+[a-z]?))?$/i, "v", "verse"],
     [/^chorus(?:\s*(\d+[a-z]?))?$/i, "c", "chorus"],
-    [/^pre[-\s]?chorus(?:\s*(\d+[a-z]?))?$/i, "pc", "prechorus"],
+    [/^(?:pre[-\s]?chorus|pc)(?:\s*(\d+[a-z]?))?$/i, "pc", "prechorus"],
     [/^bridge(?:\s*(\d+[a-z]?))?$/i, "b", "bridge"],
     [/^intro(?:\s*(\d+[a-z]?))?$/i, "i", "intro"],
     [/^outro(?:\s*(\d+[a-z]?))?$/i, "o", "outro"],
     [/^ending(?:\s*(\d+[a-z]?))?$/i, "e", "ending"],
     [/^tag(?:\s*(\d+[a-z]?))?$/i, "t", "tag"],
-    [/^turnaround(?:\s*(\d+[a-z]?))?$/i, "tr", "turnaround"],
-    [/^interlude(?:\s*(\d+[a-z]?))?$/i, "il", "interlude"],
-    [/^instrumental(?:\s*(\d+[a-z]?))?$/i, "ins", "instrumental"],
+    [/^(?:turnaround|turn|tr)(?:\s*(\d+[a-z]?))?$/i, "tr", "turnaround"],
+    [/^(?:interlude|il)(?:\s*(\d+[a-z]?))?$/i, "il", "interlude"],
+    [/^(?:instrumental|ins|inst|instr)(?:\s*(\d+[a-z]?))?$/i, "ins", "instrumental"],
     [/^refrain(?:\s*(\d+[a-z]?))?$/i, "r", "refrain"],
   ];
   for (const [pattern, prefix, canonicalPrefix] of patterns) {
