@@ -1,8 +1,9 @@
 import { randomBytes, randomUUID } from "node:crypto";
 import type { FastifyReply, FastifyRequest } from "fastify";
-import type { PublicUser, Role } from "@sm/shared";
+import type { PermissionModule, PublicUser, Role } from "@sm/shared";
 import { COOKIE_NAME, SECURE_COOKIES, SESSION_DAYS } from "./config.js";
 import { db } from "./db.js";
+import { getUserById, hasPermission, mapUser } from "./users.js";
 
 declare module "fastify" {
   interface FastifyRequest {
@@ -11,10 +12,7 @@ declare module "fastify" {
 }
 
 interface SessionRow {
-  token: string;
   user_id: string;
-  username: string;
-  role: Role;
   expires_at: string;
 }
 
@@ -48,18 +46,15 @@ export function destroySession(token: string): void {
 export function userForToken(token: string | undefined): PublicUser | null {
   if (!token) return null;
   const row = db
-    .prepare(
-      `SELECT s.token, s.user_id, s.expires_at, u.username, u.role
-       FROM sessions s JOIN users u ON u.id = s.user_id
-       WHERE s.token = ?`,
-    )
+    .prepare("SELECT user_id, expires_at FROM sessions WHERE token = ?")
     .get(token) as SessionRow | undefined;
   if (!row) return null;
   if (new Date(row.expires_at).getTime() < Date.now()) {
     db.prepare("DELETE FROM sessions WHERE token = ?").run(token);
     return null;
   }
-  return { id: row.user_id, username: row.username, role: row.role };
+  const user = getUserById(row.user_id);
+  return user ? mapUser(user) : null;
 }
 
 export function userForRequest(request: FastifyRequest): PublicUser | null {
@@ -86,6 +81,26 @@ export function requireRole(...roles: Role[]) {
       await reply.code(403).send({ error: "Forbidden" });
     }
   };
+}
+
+export function requirePermission(module: PermissionModule) {
+  return async (request: FastifyRequest, reply: FastifyReply): Promise<void> => {
+    if (!request.user) {
+      await reply.code(401).send({ error: "Unauthorized" });
+      return;
+    }
+    if (!hasPermission(request.user, module)) {
+      await reply.code(403).send({ error: `No write access to ${module}` });
+    }
+  };
+}
+
+export function deleteUserSessions(userId: string, exceptToken?: string): void {
+  if (exceptToken) {
+    db.prepare("DELETE FROM sessions WHERE user_id = ? AND token <> ?").run(userId, exceptToken);
+  } else {
+    db.prepare("DELETE FROM sessions WHERE user_id = ?").run(userId);
+  }
 }
 
 export function makeSessionCookie(token: string): {

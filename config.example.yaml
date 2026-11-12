@@ -47,6 +47,13 @@ songselect:
   watchEnabled: true
   watchIntervalSeconds: 10
 
+webauthn:
+  rpName: Service Maestro
+  # Browser-facing RP ID and origin. Leave blank to derive them from the
+  # incoming request; set both explicitly behind a forward proxy.
+  rpId:
+  origin:
+
 churchsuite:
   clientId:
   clientSecret:

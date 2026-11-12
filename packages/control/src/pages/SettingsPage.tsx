@@ -9,11 +9,14 @@ import {
   type FontOption,
   type GitSettings,
   type GitStatus,
+  type PublicUser,
   type SharedFontOption,
   type SongPageIdFixScan,
   type SongSelectWatchStatus,
 } from "@sm/shared";
 import { api, ApiError } from "../api";
+import { AccountPanel } from "../components/AccountPanel";
+import { UsersPanel } from "../components/UsersPanel";
 import { compactDateTime } from "../service-date";
 import {
   DEFAULT_SHORTCUTS,
@@ -25,8 +28,10 @@ import {
 } from "../keyboard";
 
 export default function SettingsPage({
+  user,
   notify,
 }: {
+  user: PublicUser;
   notify: (text: string, kind?: "info" | "error") => void;
 }) {
   const [fonts, setFonts] = useState<FontOption[]>([]);
@@ -502,6 +507,9 @@ export default function SettingsPage({
         the set lists repository. Keyboard shortcuts, credentials, SongSelect state and Git settings
         stay local to this server.
       </p>
+
+      <AccountPanel user={user} notify={notify} />
+      {user.role === "admin" && <UsersPanel currentUser={user} notify={notify} />}
 
       {sslEnabled !== null && (
         <section

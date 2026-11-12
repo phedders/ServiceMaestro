@@ -94,6 +94,9 @@ Environment-first, with optional file values and `_FILE` secret support:
 | `SM_SSL_CERT_FILE` | `cert.pem` | Trusted certificate/full-chain path |
 | `SM_SSL_KEY_FILE` | `key.pem` | Private key path |
 | `SM_SSL_HOSTS` | unset | Extra comma-separated DNS names/IPs for generated certificates |
+| `SM_WEBAUTHN_RP_NAME` | `Service Maestro` | Passkey relying-party display name |
+| `SM_WEBAUTHN_RP_ID` | derived | Passkey RP ID; set explicitly for a proxy/domain |
+| `SM_WEBAUTHN_ORIGIN` | derived | Browser-facing HTTPS origin for passkeys |
 | `SM_DATA_DIR` | `/data` | Writable state |
 | `SM_SONGS_DIR` | `/library/songs` | Song sources |
 | `SM_BIBLE_DIR` | `/library/bible` | Bible SQLite files |

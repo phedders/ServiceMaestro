@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { requireAuth, requireRole } from "../auth.js";
+import { requireAuth, requirePermission } from "../auth.js";
 import { importSongs, scanSongs } from "../importer.js";
 import { parseSongFile } from "../importers/index.js";
 
@@ -28,7 +28,7 @@ const parseSchema = z.object({
 export async function importRoutes(app: FastifyInstance): Promise<void> {
   app.get(
     "/api/import/scan",
-    { preHandler: [requireAuth, requireRole("admin", "editor")] },
+    { preHandler: [requireAuth, requirePermission("songs")] },
     async (_request, reply) => {
       try {
         return scanSongs();
@@ -40,7 +40,7 @@ export async function importRoutes(app: FastifyInstance): Promise<void> {
 
   app.post(
     "/api/import/apply",
-    { preHandler: [requireAuth, requireRole("admin", "editor")] },
+    { preHandler: [requireAuth, requirePermission("songs")] },
     async (request, reply) => {
       const parsed = applySchema.safeParse(request.body ?? {});
       if (!parsed.success) {
@@ -61,7 +61,7 @@ export async function importRoutes(app: FastifyInstance): Promise<void> {
 
   app.post(
     "/api/import/parse",
-    { preHandler: [requireAuth, requireRole("admin", "editor")] },
+    { preHandler: [requireAuth, requirePermission("songs")] },
     async (request, reply) => {
       const parsed = parseSchema.safeParse(request.body);
       if (!parsed.success) {

@@ -18,6 +18,7 @@ db.exec(`
     username TEXT NOT NULL UNIQUE,
     password_hash TEXT NOT NULL,
     role TEXT NOT NULL DEFAULT 'operator',
+    permissions_json TEXT,
     created_at TEXT NOT NULL
   );
 
@@ -27,6 +28,19 @@ db.exec(`
     created_at TEXT NOT NULL,
     expires_at TEXT NOT NULL
   );
+
+  CREATE TABLE IF NOT EXISTS passkeys (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    credential_id TEXT NOT NULL UNIQUE,
+    public_key BLOB NOT NULL,
+    counter INTEGER NOT NULL DEFAULT 0,
+    transports TEXT,
+    name TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    last_used_at TEXT
+  );
+  CREATE INDEX IF NOT EXISTS idx_passkeys_user ON passkeys(user_id);
 
   CREATE TABLE IF NOT EXISTS songs (
     id TEXT PRIMARY KEY,
@@ -248,6 +262,7 @@ function ensureColumn(table: string, column: string, definition: string): void {
   }
 }
 
+ensureColumn("users", "permissions_json", "TEXT");
 ensureColumn("songs", "source_format", "TEXT");
 ensureColumn("songs", "source_path", "TEXT");
 ensureColumn("songs", "verse_order", "TEXT");

@@ -2,10 +2,74 @@ import { z } from "zod";
 
 export type Role = "admin" | "editor" | "operator" | "musician" | "viewer";
 
+export const MODULE_PERMISSIONS = [
+  { id: "songs", label: "Songs", description: "Song library, lyrics, imports and score assets" },
+  { id: "setlists", label: "Set lists", description: "Set lists, items, publishing and service plans" },
+  { id: "bible", label: "Bible", description: "Reload Bible translations and Bible settings" },
+  { id: "images", label: "Images", description: "Upload and delete images" },
+  { id: "tarp", label: "Tarp", description: "Tarp themes and presentations" },
+  { id: "backgrounds", label: "Backgrounds", description: "Background library and global palette" },
+  { id: "stingers", label: "Stingers", description: "Transition stinger library" },
+  { id: "live", label: "Live control", description: "Control outputs, live sessions and quick text" },
+  { id: "churchsuite", label: "ChurchSuite", description: "Import ChurchSuite plans as set lists" },
+  { id: "settings", label: "Settings", description: "Display, fonts, Git and shared team settings" },
+] as const;
+
+export type PermissionModule = (typeof MODULE_PERMISSIONS)[number]["id"];
+export type ModulePermissions = Record<PermissionModule, boolean>;
+
+export const ALL_MODULE_PERMISSIONS: PermissionModule[] = MODULE_PERMISSIONS.map(
+  (module) => module.id,
+);
+
+export function emptyModulePermissions(): ModulePermissions {
+  return Object.fromEntries(
+    ALL_MODULE_PERMISSIONS.map((module) => [module, false]),
+  ) as ModulePermissions;
+}
+
+export function defaultPermissionsForRole(role: Role): ModulePermissions {
+  const permissions = emptyModulePermissions();
+  if (role === "admin") {
+    for (const module of ALL_MODULE_PERMISSIONS) permissions[module] = true;
+    return permissions;
+  }
+  if (role === "editor") {
+    for (const module of ALL_MODULE_PERMISSIONS) {
+      if (module !== "settings") permissions[module] = true;
+    }
+    return permissions;
+  }
+  if (role === "operator") {
+    permissions.setlists = true;
+    permissions.images = true;
+    permissions.live = true;
+    return permissions;
+  }
+  return permissions;
+}
+
 export interface PublicUser {
   id: string;
   username: string;
   role: Role;
+  permissions: ModulePermissions;
+}
+
+export interface UserManagementEntry {
+  id: string;
+  username: string;
+  role: Role;
+  permissions: ModulePermissions;
+  passkeyCount: number;
+  createdAt: string;
+}
+
+export interface PasskeySummary {
+  id: string;
+  name: string;
+  createdAt: string;
+  lastUsedAt: string | null;
 }
 
 export type TextFormat = "text" | "markdown" | "html" | "rst";
@@ -930,9 +994,47 @@ export interface ImageAsset {
 /* Validation schemas                                                  */
 /* ------------------------------------------------------------------ */
 
+export const ROLES = ["admin", "editor", "operator", "musician", "viewer"] as const;
+
 export const loginSchema = z.object({
   username: z.string().min(1).max(80),
   password: z.string().min(1).max(200),
+});
+
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1).max(200),
+  newPassword: z.string().min(8).max(200),
+});
+
+export const userCreateSchema = z.object({
+  username: z.string().trim().min(2).max(80),
+  password: z.string().min(8).max(200),
+  role: z.enum(ROLES),
+  permissions: z.record(z.boolean()).optional(),
+});
+
+export const userUpdateSchema = z.object({
+  username: z.string().trim().min(2).max(80).optional(),
+  role: z.enum(ROLES).optional(),
+  permissions: z.record(z.boolean()).optional(),
+});
+
+export const userPasswordResetSchema = z.object({
+  password: z.string().min(8).max(200),
+});
+
+export const passkeyLoginOptionsSchema = z.object({
+  username: z.string().trim().min(1).max(80),
+});
+
+export const passkeyLoginVerifySchema = z.object({
+  username: z.string().trim().min(1).max(80),
+  response: z.unknown(),
+});
+
+export const passkeyRegistrationVerifySchema = z.object({
+  response: z.unknown(),
+  name: z.string().trim().max(80).optional(),
 });
 
 export const songInputSchema = z.object({

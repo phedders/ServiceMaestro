@@ -1,5 +1,5 @@
 import type { FastifyInstance } from "fastify";
-import { requireAuth, requireRole } from "../auth.js";
+import { requireAuth, requirePermission } from "../auth.js";
 import { deleteImage, listImages, saveImage } from "../images.js";
 
 function fieldValue(fields: Record<string, unknown>, name: string): string | undefined {
@@ -16,7 +16,7 @@ export async function imageRoutes(app: FastifyInstance): Promise<void> {
 
   app.post(
     "/api/images",
-    { preHandler: [requireAuth, requireRole("admin", "editor", "operator")] },
+    { preHandler: [requireAuth, requirePermission("images")] },
     async (request, reply) => {
       const file = await request.file({ limits: { fileSize: 25 * 1024 * 1024, files: 1 } });
       if (!file) return reply.code(400).send({ error: "No image uploaded" });
@@ -37,7 +37,7 @@ export async function imageRoutes(app: FastifyInstance): Promise<void> {
 
   app.delete(
     "/api/images",
-    { preHandler: [requireAuth, requireRole("admin", "editor", "operator")] },
+    { preHandler: [requireAuth, requirePermission("images")] },
     async (request, reply) => {
       const relative = (request.query as { path?: string }).path;
       if (!relative || !deleteImage(relative)) {

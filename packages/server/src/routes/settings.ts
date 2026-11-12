@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { appSettingsSchema } from "@sm/shared";
-import { requireAuth, requireRole } from "../auth.js";
+import { requireAuth, requirePermission } from "../auth.js";
 import { getAppSettings, saveAppSettings } from "../settings.js";
 import { saveSharedSettingsToGit } from "../git-store.js";
 
@@ -11,7 +11,7 @@ export async function settingsRoutes(app: FastifyInstance): Promise<void> {
 
   app.put(
     "/api/settings",
-    { preHandler: [requireAuth, requireRole("admin", "editor")] },
+    { preHandler: [requireAuth, requirePermission("settings")] },
     async (request, reply) => {
       const parsed = appSettingsSchema.safeParse(request.body);
       if (!parsed.success) {

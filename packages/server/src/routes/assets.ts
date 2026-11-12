@@ -2,7 +2,7 @@ import fs from "node:fs";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import type { SongAssetKind } from "@sm/shared";
-import { requireAuth, requireRole } from "../auth.js";
+import { requireAuth, requirePermission } from "../auth.js";
 import { deleteAsset, getAsset, listAssets, saveAsset } from "../assets.js";
 
 const KINDS: SongAssetKind[] = ["score_pdf", "guitar_tab", "chordpro", "lyrics", "image"];
@@ -27,7 +27,7 @@ export async function assetRoutes(app: FastifyInstance): Promise<void> {
 
   app.post(
     "/api/songs/:id/assets",
-    { preHandler: [requireAuth, requireRole("admin", "editor", "operator")] },
+    { preHandler: [requireAuth, requirePermission("songs")] },
     async (request, reply) => {
       const songId = (request.params as { id: string }).id;
       const file = await request.file({ limits: { fileSize: 50 * 1024 * 1024, files: 1 } });
@@ -89,7 +89,7 @@ export async function assetRoutes(app: FastifyInstance): Promise<void> {
 
   app.delete(
     "/api/assets/:id",
-    { preHandler: [requireAuth, requireRole("admin", "editor", "operator")] },
+    { preHandler: [requireAuth, requirePermission("songs")] },
     async (request, reply) => {
       const ok = deleteAsset((request.params as { id: string }).id);
       if (!ok) return reply.code(404).send({ error: "Asset not found" });

@@ -1,5 +1,5 @@
 import type { FastifyInstance } from "fastify";
-import { requireAuth, requireRole } from "../auth.js";
+import { requireAuth, requirePermission } from "../auth.js";
 import {
   exportSetlistBuffer,
   importSetlistFile,
@@ -43,7 +43,7 @@ export async function transferRoutes(app: FastifyInstance): Promise<void> {
 
   app.post(
     "/api/setlists/import/preview",
-    { preHandler: [requireAuth, requireRole("admin", "editor", "operator")] },
+    { preHandler: [requireAuth, requirePermission("setlists")] },
     async (request, reply) => {
       const file = await request.file({ limits: { fileSize: 200 * 1024 * 1024, files: 1 } });
       if (!file) return reply.code(400).send({ error: "No file uploaded" });
@@ -58,7 +58,7 @@ export async function transferRoutes(app: FastifyInstance): Promise<void> {
 
   app.post(
     "/api/setlists/import",
-    { preHandler: [requireAuth, requireRole("admin", "editor", "operator")] },
+    { preHandler: [requireAuth, requirePermission("setlists")] },
     async (request, reply) => {
       const file = await request.file({ limits: { fileSize: 200 * 1024 * 1024, files: 1 } });
       if (!file) return reply.code(400).send({ error: "No file uploaded" });

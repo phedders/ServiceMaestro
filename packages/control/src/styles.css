@@ -1778,6 +1778,128 @@ body.resizing-live-queue {
   gap: 16px;
 }
 
+.read-only-banner {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border: 1px solid rgba(251, 191, 36, 0.5);
+  border-radius: 8px;
+  background: rgba(251, 191, 36, 0.07);
+  color: var(--warning);
+  font-size: 0.78rem;
+}
+
+.account-section {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+.account-password-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.passkey-list {
+  display: grid;
+  gap: 6px;
+}
+
+.passkey-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel-2);
+}
+
+.passkey-row > div {
+  display: grid;
+  gap: 2px;
+}
+
+.permission-summary,
+.permission-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.permission-chip,
+.permission-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 9px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--panel-2);
+  font-size: 0.72rem;
+}
+
+.permission-chip.allowed {
+  border-color: rgba(76, 194, 255, 0.5);
+  color: #a5e8ff;
+}
+
+.permission-check {
+  cursor: pointer;
+  border-radius: 7px;
+}
+
+.user-create-grid {
+  display: grid;
+  grid-template-columns: minmax(140px, 1fr) minmax(180px, 1.2fr) 140px auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.user-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.user-row {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--panel-2);
+}
+
+.user-row-heading {
+  display: grid;
+  grid-template-columns: minmax(140px, 1fr) 140px auto auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.user-password-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) auto;
+  gap: 10px;
+  align-items: end;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+@media (max-width: 900px) {
+  .account-password-grid,
+  .user-create-grid,
+  .user-row-heading,
+  .user-password-row {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ------------------------------------------------------------------ */
 /* Backgrounds                                                         */
 /* ------------------------------------------------------------------ */

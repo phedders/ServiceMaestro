@@ -15,14 +15,16 @@ import {
   OUTPUT_TOKEN,
   SSL_ENABLED,
 } from "./config.js";
-import { parseCookies, requireAuth, requireRole, userForToken } from "./auth.js";
+import { parseCookies, requireAuth, requirePermission, userForToken } from "./auth.js";
 import { createOutputSocket, registerDisplayRoutes } from "./display-app.js";
 import { sendHtmlFile } from "./send-html.js";
 import { live } from "./live.js";
 import { getDisplayConfig, saveDisplayConfig } from "./display-config.js";
 import { getGitSettings, saveGitSettings } from "./settings.js";
 import { getControlTlsStatus } from "./tls.js";
+import { hasPermission } from "./users.js";
 import { authRoutes } from "./routes/auth.js";
+import { userRoutes } from "./routes/users.js";
 import { songRoutes } from "./routes/songs.js";
 import { setlistRoutes } from "./routes/setlists.js";
 import { liveRoutes } from "./routes/live.js";
@@ -76,6 +78,7 @@ export async function buildApp(
   }
 
   await app.register(authRoutes);
+  await app.register(userRoutes);
   await app.register(songRoutes);
   await app.register(setlistRoutes);
   await app.register(liveRoutes);
@@ -143,7 +146,7 @@ export async function buildApp(
 
   app.put(
     "/api/display/config",
-    { preHandler: [requireAuth, requireRole("admin", "editor", "operator")] },
+    { preHandler: [requireAuth, requirePermission("settings")] },
     async (request, reply) => {
       const parsed = displayConfigSchema.safeParse(request.body);
       if (!parsed.success) {
@@ -169,7 +172,7 @@ export async function buildApp(
 
   app.put(
     "/api/git/settings",
-    { preHandler: [requireAuth, requireRole("admin", "editor")] },
+    { preHandler: [requireAuth, requirePermission("settings")] },
     async (request, reply) => {
       const parsed = gitSettingsSchema.safeParse(request.body);
       if (!parsed.success) {
@@ -183,7 +186,7 @@ export async function buildApp(
 
   app.post(
     "/api/git/sync",
-    { preHandler: [requireAuth, requireRole("admin", "editor", "operator")] },
+    { preHandler: [requireAuth, requirePermission("settings")] },
     async () => {
       await syncGitFromRemotes();
       return { ok: true, repositories: gitStatus() };
@@ -192,7 +195,7 @@ export async function buildApp(
 
   app.post(
     "/api/git/export",
-    { preHandler: [requireAuth, requireRole("admin", "editor")] },
+    { preHandler: [requireAuth, requirePermission("settings")] },
     async () => {
       await exportAllToGit();
       await pushGit();
@@ -233,12 +236,12 @@ export async function buildApp(
 
     const user = socket.data.user as PublicUser;
     socket.on("live:command", (payload: unknown) => {
-      if (!["admin", "editor", "operator"].includes(user.role)) return;
+      if (!hasPermission(user, "live")) return;
       const parsed = liveCommandSchema.safeParse(payload);
       if (parsed.success) live.command(parsed.data);
     });
     socket.on("live:quickText", (payload: unknown) => {
-      if (!["admin", "editor", "operator"].includes(user.role)) return;
+      if (!hasPermission(user, "live")) return;
       const parsed = quickTextSchema.safeParse(payload);
       if (parsed.success) live.quickText(parsed.data.text);
     });

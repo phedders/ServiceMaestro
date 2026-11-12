@@ -9,6 +9,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@simplewebauthn/browser": "^14.0.0",
     "@sm/shared": "*",
     "dompurify": "^3.4.17",
     "marked": "^18.2.0",

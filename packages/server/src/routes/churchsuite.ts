@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { churchsuiteImportSchema } from "@sm/shared";
-import { requireAuth, requireRole } from "../auth.js";
+import { requireAuth, requirePermission } from "../auth.js";
 import {
   churchsuiteStatus,
   listChurchsuitePlanItems,
@@ -19,7 +19,7 @@ export async function churchsuiteRoutes(app: FastifyInstance): Promise<void> {
 
   app.post(
     "/api/integrations/churchsuite/test",
-    { preHandler: [requireAuth, requireRole("admin", "editor")] },
+    { preHandler: [requireAuth, requirePermission("churchsuite")] },
     async (_request, reply) => {
       try {
         return await testChurchsuite();
@@ -31,7 +31,7 @@ export async function churchsuiteRoutes(app: FastifyInstance): Promise<void> {
 
   app.get(
     "/api/integrations/churchsuite/plans",
-    { preHandler: [requireAuth, requireRole("admin", "editor", "operator")] },
+    { preHandler: requireAuth },
     async (request, reply) => {
       const query = request.query as { from?: string; to?: string; status?: string };
       try {
@@ -44,7 +44,7 @@ export async function churchsuiteRoutes(app: FastifyInstance): Promise<void> {
 
   app.get(
     "/api/integrations/churchsuite/plans/:id/items",
-    { preHandler: [requireAuth, requireRole("admin", "editor")] },
+    { preHandler: requireAuth },
     async (request, reply) => {
       const id = Number((request.params as { id: string }).id);
       if (!Number.isInteger(id) || id <= 0) {
@@ -60,7 +60,7 @@ export async function churchsuiteRoutes(app: FastifyInstance): Promise<void> {
 
   app.get(
     "/api/integrations/churchsuite/plans/:id/preview",
-    { preHandler: [requireAuth, requireRole("admin", "editor", "operator")] },
+    { preHandler: requireAuth },
     async (request, reply) => {
       const id = Number((request.params as { id: string }).id);
       if (!Number.isInteger(id) || id <= 0) {
@@ -76,7 +76,7 @@ export async function churchsuiteRoutes(app: FastifyInstance): Promise<void> {
 
   app.post(
     "/api/integrations/churchsuite/plans/:id/import",
-    { preHandler: [requireAuth, requireRole("admin", "editor", "operator")] },
+    { preHandler: [requireAuth, requirePermission("churchsuite")] },
     async (request, reply) => {
       const id = Number((request.params as { id: string }).id);
       if (!Number.isInteger(id) || id <= 0) {

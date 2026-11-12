@@ -5,7 +5,7 @@ import {
   tarpReorderSchema,
   tarpThemeInputSchema,
 } from "@sm/shared";
-import { requireAuth, requireRole } from "../auth.js";
+import { requireAuth, requirePermission } from "../auth.js";
 import {
   addTarpPage,
   createTarpPresentation,
@@ -37,7 +37,7 @@ export async function tarpRoutes(app: FastifyInstance): Promise<void> {
 
   app.post(
     "/api/tarp/themes",
-    { preHandler: [requireAuth, requireRole("admin", "editor")] },
+    { preHandler: [requireAuth, requirePermission("tarp")] },
     async (request, reply) => {
       const parsed = tarpThemeInputSchema.safeParse(request.body);
       if (!parsed.success) {
@@ -51,7 +51,7 @@ export async function tarpRoutes(app: FastifyInstance): Promise<void> {
 
   app.patch(
     "/api/tarp/themes/:id",
-    { preHandler: [requireAuth, requireRole("admin", "editor")] },
+    { preHandler: [requireAuth, requirePermission("tarp")] },
     async (request, reply) => {
       const parsed = tarpThemeInputSchema.safeParse(request.body);
       if (!parsed.success) {
@@ -66,7 +66,7 @@ export async function tarpRoutes(app: FastifyInstance): Promise<void> {
 
   app.delete(
     "/api/tarp/themes/:id",
-    { preHandler: [requireAuth, requireRole("admin", "editor")] },
+    { preHandler: [requireAuth, requirePermission("tarp")] },
     async (request, reply) => {
       if (!deleteTarpTheme((request.params as { id: string }).id)) {
         return reply.code(404).send({ error: "Tarp theme not found" });
@@ -82,7 +82,7 @@ export async function tarpRoutes(app: FastifyInstance): Promise<void> {
 
   app.post(
     "/api/tarp/presentations",
-    { preHandler: [requireAuth, requireRole("admin", "editor")] },
+    { preHandler: [requireAuth, requirePermission("tarp")] },
     async (request, reply) => {
       const parsed = tarpPresentationInputSchema.safeParse(request.body);
       if (!parsed.success) {
@@ -102,7 +102,7 @@ export async function tarpRoutes(app: FastifyInstance): Promise<void> {
 
   app.patch(
     "/api/tarp/presentations/:id",
-    { preHandler: [requireAuth, requireRole("admin", "editor")] },
+    { preHandler: [requireAuth, requirePermission("tarp")] },
     async (request, reply) => {
       const parsed = tarpPresentationInputSchema.partial().safeParse(request.body);
       if (!parsed.success) {
@@ -120,7 +120,7 @@ export async function tarpRoutes(app: FastifyInstance): Promise<void> {
 
   app.delete(
     "/api/tarp/presentations/:id",
-    { preHandler: [requireAuth, requireRole("admin", "editor")] },
+    { preHandler: [requireAuth, requirePermission("tarp")] },
     async (request, reply) => {
       if (!deleteTarpPresentation((request.params as { id: string }).id)) {
         return reply.code(404).send({ error: "Tarp presentation not found" });
@@ -132,7 +132,7 @@ export async function tarpRoutes(app: FastifyInstance): Promise<void> {
 
   app.post(
     "/api/tarp/presentations/:id/pages",
-    { preHandler: [requireAuth, requireRole("admin", "editor")] },
+    { preHandler: [requireAuth, requirePermission("tarp")] },
     async (request, reply) => {
       const body = request.body as { fromPageId?: string | null } | undefined;
       const presentation = addTarpPage(
@@ -147,7 +147,7 @@ export async function tarpRoutes(app: FastifyInstance): Promise<void> {
 
   app.patch(
     "/api/tarp/pages/:id",
-    { preHandler: [requireAuth, requireRole("admin", "editor")] },
+    { preHandler: [requireAuth, requirePermission("tarp")] },
     async (request, reply) => {
       const parsed = tarpPageInputSchema.partial().safeParse(request.body);
       if (!parsed.success) {
@@ -162,7 +162,7 @@ export async function tarpRoutes(app: FastifyInstance): Promise<void> {
 
   app.delete(
     "/api/tarp/pages/:id",
-    { preHandler: [requireAuth, requireRole("admin", "editor")] },
+    { preHandler: [requireAuth, requirePermission("tarp")] },
     async (request, reply) => {
       if (!deleteTarpPage((request.params as { id: string }).id)) {
         return reply.code(404).send({ error: "Tarp page not found" });
@@ -174,7 +174,7 @@ export async function tarpRoutes(app: FastifyInstance): Promise<void> {
 
   app.post(
     "/api/tarp/presentations/:id/pages/reorder",
-    { preHandler: [requireAuth, requireRole("admin", "editor")] },
+    { preHandler: [requireAuth, requirePermission("tarp")] },
     async (request, reply) => {
       const parsed = tarpReorderSchema.safeParse(request.body);
       if (!parsed.success) {

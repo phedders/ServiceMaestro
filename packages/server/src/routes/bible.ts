@@ -1,5 +1,5 @@
 import type { FastifyInstance } from "fastify";
-import { requireAuth, requireRole } from "../auth.js";
+import { requireAuth, requirePermission } from "../auth.js";
 import {
   getBooks,
   getChapter,
@@ -60,7 +60,7 @@ export async function bibleRoutes(app: FastifyInstance): Promise<void> {
 
   app.post(
     "/api/bible/reload",
-    { preHandler: [requireAuth, requireRole("admin")] },
+    { preHandler: [requireAuth, requirePermission("bible")] },
     async () => {
       const catalog = reloadBibleCatalog();
       return {

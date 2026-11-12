@@ -14,7 +14,7 @@ import {
   type SongVerseOrder,
 } from "@sm/shared";
 import { db } from "../db.js";
-import { requireAuth, requireRole } from "../auth.js";
+import { requireAuth, requirePermission } from "../auth.js";
 import { saveSongToGit, deleteSongFromGit, deleteSongsFromGit } from "../git-store.js";
 import { addDefaultVerseTags } from "../lyrics.js";
 import { getAppSettings } from "../settings.js";
@@ -159,13 +159,13 @@ export async function songRoutes(app: FastifyInstance): Promise<void> {
 
   app.get(
     "/api/songs/page-id-fixes",
-    { preHandler: [requireAuth, requireRole("admin", "editor")] },
+    { preHandler: [requireAuth, requirePermission("songs")] },
     async () => pageIdFixScan(),
   );
 
   app.post(
     "/api/songs/page-id-fixes/apply",
-    { preHandler: [requireAuth, requireRole("admin", "editor")] },
+    { preHandler: [requireAuth, requirePermission("songs")] },
     async (request, reply) => {
       const parsed = songPageIdFixApplySchema.safeParse(request.body ?? {});
       if (!parsed.success) {
@@ -220,7 +220,7 @@ export async function songRoutes(app: FastifyInstance): Promise<void> {
 
   app.post(
     "/api/songs",
-    { preHandler: [requireAuth, requireRole("admin", "editor")] },
+    { preHandler: [requireAuth, requirePermission("songs")] },
     async (request, reply) => {
       const parsed = songInputSchema.safeParse(request.body);
       if (!parsed.success) return reply.code(400).send({ error: "Invalid song", issues: parsed.error.issues });
@@ -251,7 +251,7 @@ export async function songRoutes(app: FastifyInstance): Promise<void> {
 
   app.patch(
     "/api/songs/:id",
-    { preHandler: [requireAuth, requireRole("admin", "editor")] },
+    { preHandler: [requireAuth, requirePermission("songs")] },
     async (request, reply) => {
       const parsed = songInputSchema.partial().safeParse(request.body);
       if (!parsed.success) return reply.code(400).send({ error: "Invalid song", issues: parsed.error.issues });
@@ -283,7 +283,7 @@ export async function songRoutes(app: FastifyInstance): Promise<void> {
 
   app.post(
     "/api/songs/:id/verse-orders",
-    { preHandler: [requireAuth, requireRole("admin", "editor")] },
+    { preHandler: [requireAuth, requirePermission("songs")] },
     async (request, reply) => {
       const songId = (request.params as { id: string }).id;
       if (!db.prepare("SELECT id FROM songs WHERE id = ?").get(songId)) {
@@ -313,7 +313,7 @@ export async function songRoutes(app: FastifyInstance): Promise<void> {
 
   app.patch(
     "/api/songs/:id/verse-orders/:verseOrderId",
-    { preHandler: [requireAuth, requireRole("admin", "editor")] },
+    { preHandler: [requireAuth, requirePermission("songs")] },
     async (request, reply) => {
       const { id: songId, verseOrderId } = request.params as {
         id: string;
@@ -351,7 +351,7 @@ export async function songRoutes(app: FastifyInstance): Promise<void> {
 
   app.delete(
     "/api/songs/:id/verse-orders/:verseOrderId",
-    { preHandler: [requireAuth, requireRole("admin", "editor")] },
+    { preHandler: [requireAuth, requirePermission("songs")] },
     async (request, reply) => {
       const { id: songId, verseOrderId } = request.params as {
         id: string;
@@ -370,7 +370,7 @@ export async function songRoutes(app: FastifyInstance): Promise<void> {
 
   app.post(
     "/api/songs/bulk-delete",
-    { preHandler: [requireAuth, requireRole("admin", "editor")] },
+    { preHandler: [requireAuth, requirePermission("songs")] },
     async (request, reply) => {
       const parsed = songBulkDeleteSchema.safeParse(request.body);
       if (!parsed.success) {
@@ -395,7 +395,7 @@ export async function songRoutes(app: FastifyInstance): Promise<void> {
 
   app.delete(
     "/api/songs/:id",
-    { preHandler: [requireAuth, requireRole("admin", "editor")] },
+    { preHandler: [requireAuth, requirePermission("songs")] },
     async (request, reply) => {
       const id = (request.params as { id: string }).id;
       const result = db.prepare("DELETE FROM songs WHERE id = ?").run(id);

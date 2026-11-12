@@ -68,7 +68,7 @@ Open <https://localhost:8080/musicians> to see the read-only musician view. It d
 
 ## What works now
 
-- **Authentication** — local accounts, scrypt password hashing, secure HTTP-only sessions on the HTTPS-only control interface. One seeded `admin`; user management is next.
+- **Authentication and users** — multiple accounts with independent scrypt passwords, WebAuthn passkey login and registration, self-service password changes, admin password resets, and admin-controlled module write permissions. One seeded `admin`; sessions use secure HTTP-only cookies on the HTTPS-only control interface.
 - **Songs** — create/edit lyrics with inline chords (`A[C]mazing`), section labels (`[Verse 1]`), key, author, alternative titles, CCLI and copyright; optional inline Markdown styling; multiple named verse orders. Untagged lyrics receive sequential `[V1]`, `[V2]`, … labels split on blank lines when created or imported. **Simplify page IDs** on import or save converts spaced/long section names into unique compact IDs such as `[Verse 1]` → `[v1]`, using the conversion table in Settings. The song editor has **Add to current setlist** and **Add to live session** actions. The library has a multi-select mode for deleting songs in bulk, with a select-all-shown option and Git-safe batch deletion.
 - **Library import** — scan a folder for OpenLP/OpenLyrics XML, ChordPro and plain-text files; preview titles/formats/warnings, then import. Duplicate CCLI/title matches are detected during the scan and can be **skipped**, **replaced**, or imported as a **duplicate** with an edited title/alternative titles. OpenLP `verseOrder` and ChordPro `{comment: …}` sections are honoured; bare headings such as `Verse 2` or `Chorus:` are also recognised as section labels. SongSelect legal footers and bar markers are removed.
 - **Scores and tabs for musicians** — upload PDFs, ChordPro, lyrics or images to a song; the standalone `/musicians` view lists upcoming/current services, opens a service read-only and renders lyrics plus PDFs with a bundled PDF.js viewer (page navigation, zoom, fit-to-width), text and image assets. It never changes the live session.
@@ -132,6 +132,9 @@ The control interface is HTTPS by default. If a forward proxy terminates TLS and
 | `SM_SSL_CERT_FILE` | `cert.pem` in `SM_SSL_DIR` | Trusted certificate/full-chain path |
 | `SM_SSL_KEY_FILE` | `key.pem` in `SM_SSL_DIR` | Private key path |
 | `SM_SSL_HOSTS` | unset | Extra comma-separated DNS names/IPs for a generated certificate |
+| `SM_WEBAUTHN_RP_NAME` | `Service Maestro` | Passkey relying-party display name |
+| `SM_WEBAUTHN_RP_ID` | derived from request | Passkey RP ID; set explicitly for a proxy/domain |
+| `SM_WEBAUTHN_ORIGIN` | derived from request | Browser-facing HTTPS origin for passkeys |
 | `SM_GIT_ENABLED` | `true` | Enable local/remote Git persistence |
 | `SM_GIT_AUTO_SAVE` | `true` | Write + commit on each song/set-list change |
 | `SM_GIT_AUTO_PUSH` | `true` | Push after commit when a remote is configured |

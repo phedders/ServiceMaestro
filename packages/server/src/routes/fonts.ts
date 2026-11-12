@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { fontImportSchema, type FontOption } from "@sm/shared";
-import { requireAuth, requireRole } from "../auth.js";
+import { requireAuth, requirePermission } from "../auth.js";
 import { deleteFont, importGoogleFont, listFonts } from "../fonts.js";
 import { missingSharedFonts, readSharedSettings } from "../shared-settings.js";
 import { saveSharedSettingsToGit } from "../git-store.js";
@@ -18,7 +18,7 @@ export async function fontRoutes(app: FastifyInstance): Promise<void> {
 
   app.post(
     "/api/fonts/import",
-    { preHandler: [requireAuth, requireRole("admin", "editor")] },
+    { preHandler: [requireAuth, requirePermission("settings")] },
     async (request, reply) => {
       const parsed = fontImportSchema.safeParse(request.body ?? {});
       if (!parsed.success) {
@@ -38,7 +38,7 @@ export async function fontRoutes(app: FastifyInstance): Promise<void> {
 
   app.post(
     "/api/fonts/import-missing",
-    { preHandler: [requireAuth, requireRole("admin", "editor")] },
+    { preHandler: [requireAuth, requirePermission("settings")] },
     async (request) => {
       const fonts = listFonts();
       const missing = missingSharedFonts(fonts, readSharedSettings().fonts);
@@ -65,7 +65,7 @@ export async function fontRoutes(app: FastifyInstance): Promise<void> {
 
   app.delete(
     "/api/fonts/:id",
-    { preHandler: [requireAuth, requireRole("admin", "editor")] },
+    { preHandler: [requireAuth, requirePermission("settings")] },
     async (request, reply) => {
       if (!deleteFont((request.params as { id: string }).id)) {
         return reply.code(404).send({ error: "Font not found" });

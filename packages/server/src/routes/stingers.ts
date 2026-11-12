@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { stingerInputSchema } from "@sm/shared";
-import { requireAuth, requireRole } from "../auth.js";
+import { requireAuth, requirePermission } from "../auth.js";
 import {
   createStinger,
   deleteStinger,
@@ -15,7 +15,7 @@ export async function stingerRoutes(app: FastifyInstance): Promise<void> {
 
   app.post(
     "/api/stingers",
-    { preHandler: [requireAuth, requireRole("admin", "editor")] },
+    { preHandler: [requireAuth, requirePermission("stingers")] },
     async (request, reply) => {
       const parsed = stingerInputSchema.safeParse(request.body);
       if (!parsed.success) {
@@ -31,7 +31,7 @@ export async function stingerRoutes(app: FastifyInstance): Promise<void> {
 
   app.patch(
     "/api/stingers/:id",
-    { preHandler: [requireAuth, requireRole("admin", "editor")] },
+    { preHandler: [requireAuth, requirePermission("stingers")] },
     async (request, reply) => {
       const parsed = stingerInputSchema.safeParse(request.body);
       if (!parsed.success) {
@@ -49,7 +49,7 @@ export async function stingerRoutes(app: FastifyInstance): Promise<void> {
 
   app.delete(
     "/api/stingers/:id",
-    { preHandler: [requireAuth, requireRole("admin", "editor")] },
+    { preHandler: [requireAuth, requirePermission("stingers")] },
     async (request, reply) => {
       if (!deleteStinger((request.params as { id: string }).id)) {
         return reply.code(404).send({ error: "Stinger not found" });

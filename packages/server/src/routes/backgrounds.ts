@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { backgroundColorsSchema, backgroundInputSchema } from "@sm/shared";
-import { requireAuth, requireRole } from "../auth.js";
+import { requireAuth, requirePermission } from "../auth.js";
 import {
   createBackground,
   deleteBackground,
@@ -19,7 +19,7 @@ export async function backgroundRoutes(app: FastifyInstance): Promise<void> {
 
   app.put(
     "/api/backgrounds/colors",
-    { preHandler: [requireAuth, requireRole("admin", "editor")] },
+    { preHandler: [requireAuth, requirePermission("backgrounds")] },
     async (request, reply) => {
       const parsed = backgroundColorsSchema.safeParse(request.body);
       if (!parsed.success) {
@@ -35,7 +35,7 @@ export async function backgroundRoutes(app: FastifyInstance): Promise<void> {
 
   app.post(
     "/api/backgrounds",
-    { preHandler: [requireAuth, requireRole("admin", "editor")] },
+    { preHandler: [requireAuth, requirePermission("backgrounds")] },
     async (request, reply) => {
       const parsed = backgroundInputSchema.safeParse(request.body);
       if (!parsed.success) {
@@ -51,7 +51,7 @@ export async function backgroundRoutes(app: FastifyInstance): Promise<void> {
 
   app.patch(
     "/api/backgrounds/:id",
-    { preHandler: [requireAuth, requireRole("admin", "editor")] },
+    { preHandler: [requireAuth, requirePermission("backgrounds")] },
     async (request, reply) => {
       const parsed = backgroundInputSchema.safeParse(request.body);
       if (!parsed.success) {
@@ -69,7 +69,7 @@ export async function backgroundRoutes(app: FastifyInstance): Promise<void> {
 
   app.delete(
     "/api/backgrounds/:id",
-    { preHandler: [requireAuth, requireRole("admin", "editor")] },
+    { preHandler: [requireAuth, requirePermission("backgrounds")] },
     async (request, reply) => {
       if (!deleteBackground((request.params as { id: string }).id)) {
         return reply.code(404).send({ error: "Background not found" });

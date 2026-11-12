@@ -7,7 +7,7 @@ import {
   quickTextSchema,
   startSessionSchema,
 } from "@sm/shared";
-import { requireAuth, requireRole } from "../auth.js";
+import { requireAuth, requirePermission } from "../auth.js";
 import { live } from "../live.js";
 
 export async function liveRoutes(app: FastifyInstance): Promise<void> {
@@ -17,7 +17,7 @@ export async function liveRoutes(app: FastifyInstance): Promise<void> {
 
   app.post(
     "/api/live/start",
-    { preHandler: [requireAuth, requireRole("admin", "operator", "editor")] },
+    { preHandler: [requireAuth, requirePermission("live")] },
     async (request, reply) => {
       const parsed = startSessionSchema.safeParse(request.body);
       if (!parsed.success) return reply.code(400).send({ error: "Invalid start request" });
@@ -31,7 +31,7 @@ export async function liveRoutes(app: FastifyInstance): Promise<void> {
 
   app.post(
     "/api/live/command",
-    { preHandler: [requireAuth, requireRole("admin", "operator", "editor")] },
+    { preHandler: [requireAuth, requirePermission("live")] },
     async (request, reply) => {
       const parsed = liveCommandSchema.safeParse(request.body);
       if (!parsed.success) return reply.code(400).send({ error: "Invalid command", issues: parsed.error.issues });
@@ -41,7 +41,7 @@ export async function liveRoutes(app: FastifyInstance): Promise<void> {
 
   app.post(
     "/api/live/quick-text",
-    { preHandler: [requireAuth, requireRole("admin", "operator", "editor")] },
+    { preHandler: [requireAuth, requirePermission("live")] },
     async (request, reply) => {
       const parsed = quickTextSchema.safeParse(request.body);
       if (!parsed.success) return reply.code(400).send({ error: "Invalid text" });
@@ -51,7 +51,7 @@ export async function liveRoutes(app: FastifyInstance): Promise<void> {
 
   app.post(
     "/api/live/quick-song",
-    { preHandler: [requireAuth, requireRole("admin", "operator", "editor")] },
+    { preHandler: [requireAuth, requirePermission("live")] },
     async (request, reply) => {
       const parsed = quickSongSchema.safeParse(request.body);
       if (!parsed.success) {
@@ -73,7 +73,7 @@ export async function liveRoutes(app: FastifyInstance): Promise<void> {
 
   app.post(
     "/api/live/quick-image",
-    { preHandler: [requireAuth, requireRole("admin", "operator", "editor")] },
+    { preHandler: [requireAuth, requirePermission("live")] },
     async (request, reply) => {
       const parsed = quickImageSchema.safeParse(request.body);
       if (!parsed.success) {
@@ -89,7 +89,7 @@ export async function liveRoutes(app: FastifyInstance): Promise<void> {
 
   app.post(
     "/api/live/apply",
-    { preHandler: [requireAuth, requireRole("admin", "operator", "editor")] },
+    { preHandler: [requireAuth, requirePermission("live")] },
     async (request, reply) => {
       const parsed = liveApplySchema.safeParse(request.body);
       if (!parsed.success) {
@@ -108,7 +108,7 @@ export async function liveRoutes(app: FastifyInstance): Promise<void> {
 
   app.post(
     "/api/live/stop",
-    { preHandler: [requireAuth, requireRole("admin", "operator", "editor")] },
+    { preHandler: [requireAuth, requirePermission("live")] },
     async () => {
       return { state: live.stop() };
     },

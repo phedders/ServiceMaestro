@@ -1,4 +1,5 @@
 import { FormEvent, useState } from "react";
+import { browserSupportsWebAuthn, startAuthentication } from "@simplewebauthn/browser";
 import type { PublicUser } from "@sm/shared";
 import { api, ApiError } from "../api";
 
@@ -7,6 +8,27 @@ export default function Login({ onLogin }: { onLogin: (user: PublicUser) => void
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [passkeyBusy, setPasskeyBusy] = useState(false);
+  const passkeysSupported = browserSupportsWebAuthn();
+
+  async function passkeyLogin() {
+    if (!username.trim()) {
+      setError("Enter your username first");
+      return;
+    }
+    setPasskeyBusy(true);
+    setError("");
+    try {
+      const { options } = await api.passkeyLoginOptions(username.trim());
+      const response = await startAuthentication({ optionsJSON: options });
+      const result = await api.passkeyLoginVerify(username.trim(), response);
+      onLogin(result.user);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Passkey sign-in was cancelled");
+    } finally {
+      setPasskeyBusy(false);
+    }
+  }
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -63,11 +85,22 @@ export default function Login({ onLogin }: { onLogin: (user: PublicUser) => void
           {error && <div className="form-error">{error}</div>}
           <button
             className="button primary full"
-            disabled={busy}
+            disabled={busy || passkeyBusy}
             title={busy ? "Signing in…" : "Sign in to Service Maestro"}
           >
             {busy ? "Signing in…" : "Sign in"}
           </button>
+          {passkeysSupported && (
+            <button
+              type="button"
+              className="button full"
+              onClick={passkeyLogin}
+              disabled={busy || passkeyBusy}
+              title="Sign in using a passkey registered to this username"
+            >
+              {passkeyBusy ? "Waiting for passkey…" : "Sign in with a passkey"}
+            </button>
+          )}
           <p className="hint">
             The first run creates an <code>admin</code> account. Set <code>SM_ADMIN_PASSWORD</code>{" "}
             before starting the server.

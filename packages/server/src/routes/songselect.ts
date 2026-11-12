@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { requireAuth, requireRole } from "../auth.js";
+import { requireAuth, requirePermission } from "../auth.js";
 import { getSongSelectWatchStatus, runSongSelectWatch } from "../songselect-watch.js";
 
 const scanSchema = z.object({
@@ -10,13 +10,13 @@ const scanSchema = z.object({
 export async function songSelectRoutes(app: FastifyInstance): Promise<void> {
   app.get(
     "/api/integrations/songselect/watch",
-    { preHandler: [requireAuth, requireRole("admin", "editor", "operator")] },
+    { preHandler: requireAuth },
     async () => ({ status: getSongSelectWatchStatus() }),
   );
 
   app.post(
     "/api/integrations/songselect/watch/scan",
-    { preHandler: [requireAuth, requireRole("admin", "editor")] },
+    { preHandler: [requireAuth, requirePermission("songs")] },
     async (request, reply) => {
       const parsed = scanSchema.safeParse(request.body ?? {});
       if (!parsed.success) {

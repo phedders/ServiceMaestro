@@ -13,7 +13,7 @@ import {
   type SetlistSummary,
 } from "@sm/shared";
 import { db } from "../db.js";
-import { requireAuth, requireRole } from "../auth.js";
+import { requireAuth, requirePermission } from "../auth.js";
 import { live } from "../live.js";
 import { saveSetlistToGit, deleteSetlistFromGit, saveSongToGit } from "../git-store.js";
 import { extractTextFormat } from "../render.js";
@@ -151,7 +151,7 @@ export async function setlistRoutes(app: FastifyInstance): Promise<void> {
 
   app.post(
     "/api/setlists",
-    { preHandler: [requireAuth, requireRole("admin", "editor", "operator")] },
+    { preHandler: [requireAuth, requirePermission("setlists")] },
     async (request, reply) => {
       const parsed = setlistInputSchema.safeParse(request.body);
       if (!parsed.success) return reply.code(400).send({ error: "Invalid set list", issues: parsed.error.issues });
@@ -180,7 +180,7 @@ export async function setlistRoutes(app: FastifyInstance): Promise<void> {
 
   app.patch(
     "/api/setlists/:id",
-    { preHandler: [requireAuth, requireRole("admin", "editor", "operator")] },
+    { preHandler: [requireAuth, requirePermission("setlists")] },
     async (request, reply) => {
       const parsed = setlistInputSchema.partial().safeParse(request.body);
       if (!parsed.success) return reply.code(400).send({ error: "Invalid set list", issues: parsed.error.issues });
@@ -208,7 +208,7 @@ export async function setlistRoutes(app: FastifyInstance): Promise<void> {
 
   app.delete(
     "/api/setlists/:id",
-    { preHandler: [requireAuth, requireRole("admin", "editor", "operator")] },
+    { preHandler: [requireAuth, requirePermission("setlists")] },
     async (request, reply) => {
       const id = (request.params as { id: string }).id;
       const result = db.prepare("DELETE FROM setlists WHERE id = ?").run(id);
@@ -220,7 +220,7 @@ export async function setlistRoutes(app: FastifyInstance): Promise<void> {
 
   app.post(
     "/api/setlists/:id/items",
-    { preHandler: [requireAuth, requireRole("admin", "editor", "operator")] },
+    { preHandler: [requireAuth, requirePermission("setlists")] },
     async (request, reply) => {
       const id = (request.params as { id: string }).id;
       if (!db.prepare("SELECT id FROM setlists WHERE id = ?").get(id)) {
@@ -308,7 +308,7 @@ export async function setlistRoutes(app: FastifyInstance): Promise<void> {
 
   app.patch(
     "/api/setlists/:id/items/:itemId/song",
-    { preHandler: [requireAuth, requireRole("admin", "editor", "operator")] },
+    { preHandler: [requireAuth, requirePermission("setlists")] },
     async (request, reply) => {
       const { id, itemId } = request.params as { id: string; itemId: string };
       const parsed = setlistSongReplacementSchema.safeParse(request.body);
@@ -341,7 +341,7 @@ export async function setlistRoutes(app: FastifyInstance): Promise<void> {
 
   app.patch(
     "/api/setlists/:id/items/:itemId",
-    { preHandler: [requireAuth, requireRole("admin", "editor", "operator")] },
+    { preHandler: [requireAuth, requirePermission("setlists")] },
     async (request, reply) => {
       const { id, itemId } = request.params as { id: string; itemId: string };
       const parsed = setlistItemPatchSchema.safeParse(request.body);
@@ -397,7 +397,7 @@ export async function setlistRoutes(app: FastifyInstance): Promise<void> {
 
   app.post(
     "/api/setlists/:id/items/:itemId/save-to-inventory",
-    { preHandler: [requireAuth, requireRole("admin", "editor")] },
+    { preHandler: [requireAuth, requirePermission("songs")] },
     async (request, reply) => {
       const { id, itemId } = request.params as { id: string; itemId: string };
       const parsed = setlistItemPatchSchema.safeParse(request.body ?? {});
@@ -455,7 +455,7 @@ export async function setlistRoutes(app: FastifyInstance): Promise<void> {
 
   app.delete(
     "/api/setlists/:id/items/:itemId",
-    { preHandler: [requireAuth, requireRole("admin", "editor", "operator")] },
+    { preHandler: [requireAuth, requirePermission("setlists")] },
     async (request, reply) => {
       const { id, itemId } = request.params as { id: string; itemId: string };
       const result = db
@@ -470,7 +470,7 @@ export async function setlistRoutes(app: FastifyInstance): Promise<void> {
 
   app.post(
     "/api/setlists/:id/reorder",
-    { preHandler: [requireAuth, requireRole("admin", "editor", "operator")] },
+    { preHandler: [requireAuth, requirePermission("setlists")] },
     async (request, reply) => {
       const id = (request.params as { id: string }).id;
       const parsed = reorderSchema.safeParse(request.body);
@@ -501,7 +501,7 @@ export async function setlistRoutes(app: FastifyInstance): Promise<void> {
 
   app.post(
     "/api/setlists/:id/publish",
-    { preHandler: [requireAuth, requireRole("admin", "editor", "operator")] },
+    { preHandler: [requireAuth, requirePermission("setlists")] },
     async (request, reply) => {
       const id = (request.params as { id: string }).id;
       try {

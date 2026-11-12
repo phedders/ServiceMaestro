@@ -1,6 +1,12 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { io, type Socket } from "socket.io-client";
-import type { DisplayViewLink, LiveState, PublicUser } from "@sm/shared";
+import {
+  MODULE_PERMISSIONS,
+  type DisplayViewLink,
+  type LiveState,
+  type PermissionModule,
+  type PublicUser,
+} from "@sm/shared";
 import { api, ApiError } from "./api";
 import { EMPTY_LIVE } from "./empty";
 import Login from "./components/Login";
@@ -44,6 +50,19 @@ interface Toast {
   text: string;
   kind: "info" | "error";
 }
+
+const PAGE_MODULE: Partial<Record<Page, PermissionModule>> = {
+  live: "live",
+  setlists: "setlists",
+  songs: "songs",
+  images: "images",
+  tarp: "tarp",
+  bible: "bible",
+  churchsuite: "churchsuite",
+  settings: "settings",
+  backgrounds: "backgrounds",
+  stingers: "stingers",
+};
 
 export default function App() {
   const standaloneMusicians =
@@ -323,6 +342,16 @@ export default function App() {
     }
   }, [page]);
 
+  const pageModule = PAGE_MODULE[page];
+  const canWritePage =
+    !pageModule ||
+    !user ||
+    user.role === "admin" ||
+    user.permissions[pageModule] === true;
+  const pageModuleLabel = pageModule
+    ? MODULE_PERMISSIONS.find((module) => module.id === pageModule)?.label ?? pageModule
+    : null;
+
   if (loading) {
     return <div className="boot">Loading Service Maestro…</div>;
   }
@@ -587,6 +616,13 @@ export default function App() {
           </div>
         </header>
 
+        {pageModule && !canWritePage && (
+          <div className="read-only-banner">
+            You have read-only access to {pageModuleLabel}. An administrator can grant write access
+            in Settings → Users and write access.
+          </div>
+        )}
+
         {page === "live" && (
           <LivePage
             live={live}
@@ -624,7 +660,7 @@ export default function App() {
         {page === "churchsuite" && (
           <ChurchsuitePage notify={notify} onOpenSetlists={() => setPage("setlists")} />
         )}
-        {page === "settings" && <SettingsPage notify={notify} />}
+        {page === "settings" && <SettingsPage user={user} notify={notify} />}
         {page === "backgrounds" && <BackgroundsPage notify={notify} />}
         {page === "stingers" && <StingersPage notify={notify} />}
         {page === "help" && <HelpPage onOpenSettings={() => setPage("settings")} />}

@@ -81,6 +81,12 @@ interface FileSslConfig {
   hosts?: unknown;
 }
 
+interface FileWebAuthnConfig {
+  rpId?: unknown;
+  origin?: unknown;
+  rpName?: unknown;
+}
+
 interface FileGitConfig {
   enabled?: unknown;
   autoSave?: unknown;
@@ -99,6 +105,7 @@ interface FileConfig {
   songselect?: FileSongSelectConfig;
   churchsuite?: FileChurchSuiteConfig;
   ssl?: FileSslConfig;
+  webauthn?: FileWebAuthnConfig;
   git?: FileGitConfig;
   /** Top-level form used by the documented configuration example. */
   repositories?: Record<string, FileRepoConfig>;
@@ -152,6 +159,7 @@ const pathsConfig = fileConfig.paths ?? {};
 const songselectConfig = fileConfig.songselect ?? {};
 const churchsuiteConfig = fileConfig.churchsuite ?? {};
 const sslConfig = fileConfig.ssl ?? {};
+const webauthnConfig = fileConfig.webauthn ?? {};
 const gitConfig = fileConfig.git ?? {};
 const repositoryConfig = {
   ...(gitConfig.repositories ?? {}),
@@ -287,6 +295,13 @@ export const SSL_DIR = path.resolve(
 export const SSL_CERT_FILE = optionalOptionString("SM_SSL_CERT_FILE", sslConfig.certFile);
 export const SSL_KEY_FILE = optionalOptionString("SM_SSL_KEY_FILE", sslConfig.keyFile);
 export const SSL_HOSTS = optionList("SM_SSL_HOSTS", sslConfig.hosts);
+export const WEBAUTHN_RP_ID = optionalOptionString("SM_WEBAUTHN_RP_ID", webauthnConfig.rpId);
+export const WEBAUTHN_ORIGIN = optionalOptionString("SM_WEBAUTHN_ORIGIN", webauthnConfig.origin);
+export const WEBAUTHN_RP_NAME = optionString(
+  "SM_WEBAUTHN_RP_NAME",
+  webauthnConfig.rpName,
+  "Service Maestro",
+);
 export const CONTROL_DIST = path.resolve(packageRoot, "../control/dist");
 export const DISPLAY_DIR = path.resolve(packageRoot, "../display");
 export const SONGS_DIR = path.resolve(

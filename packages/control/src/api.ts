@@ -1,4 +1,10 @@
 import type {
+  AuthenticationResponseJSON,
+  PublicKeyCredentialCreationOptionsJSON,
+  PublicKeyCredentialRequestOptionsJSON,
+  RegistrationResponseJSON,
+} from "@simplewebauthn/browser";
+import type {
   AppSettings,
   BackgroundAsset,
   BackgroundColors,
@@ -22,7 +28,10 @@ import type {
   GitStatus,
   ImageAsset,
   LiveState,
+  ModulePermissions,
+  PasskeySummary,
   PublicUser,
+  Role,
   SetlistDetail,
   SetlistImportPreview,
   SetlistImportReport,
@@ -45,6 +54,7 @@ import type {
   TarpPresentationSummary,
   TarpTheme,
   TarpThemeInput,
+  UserManagementEntry,
 } from "@sm/shared";
 
 export class ApiError extends Error {
@@ -83,6 +93,60 @@ export const api = {
     }),
   logout: () => request<{ ok: true }>("/api/auth/logout", { method: "POST" }),
   me: () => request<{ user: PublicUser | null }>("/api/auth/me"),
+  changePassword: (currentPassword: string, newPassword: string) =>
+    request<{ ok: true }>("/api/auth/password", {
+      method: "POST",
+      body: JSON.stringify({ currentPassword, newPassword }),
+    }),
+  passkeyLoginOptions: (username: string) =>
+    request<{ options: PublicKeyCredentialRequestOptionsJSON }>("/api/auth/passkey/login/options", {
+      method: "POST",
+      body: JSON.stringify({ username }),
+    }),
+  passkeyLoginVerify: (username: string, response: AuthenticationResponseJSON) =>
+    request<{ user: PublicUser }>("/api/auth/passkey/login/verify", {
+      method: "POST",
+      body: JSON.stringify({ username, response }),
+    }),
+  passkeys: () => request<{ passkeys: PasskeySummary[] }>("/api/auth/passkeys"),
+  passkeyRegistrationOptions: () =>
+    request<{ options: PublicKeyCredentialCreationOptionsJSON }>("/api/auth/passkeys/options", {
+      method: "POST",
+    }),
+  verifyPasskeyRegistration: (response: RegistrationResponseJSON, name?: string) =>
+    request<{ passkey: PasskeySummary }>("/api/auth/passkeys/verify", {
+      method: "POST",
+      body: JSON.stringify({ response, name }),
+    }),
+  deletePasskey: (id: string) =>
+    request<{ ok: true }>(`/api/auth/passkeys/${id}`, { method: "DELETE" }),
+
+  users: () => request<{ users: UserManagementEntry[] }>("/api/users"),
+  createUser: (payload: {
+    username: string;
+    password: string;
+    role: Role;
+    permissions: ModulePermissions;
+  }) =>
+    request<{ user: UserManagementEntry }>("/api/users", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  updateUser: (
+    id: string,
+    payload: { username?: string; role?: Role; permissions?: ModulePermissions },
+  ) =>
+    request<{ user: UserManagementEntry }>(`/api/users/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }),
+  resetUserPassword: (id: string, password: string) =>
+    request<{ ok: true }>(`/api/users/${id}/password`, {
+      method: "POST",
+      body: JSON.stringify({ password }),
+    }),
+  deleteUser: (id: string) =>
+    request<{ ok: true }>(`/api/users/${id}`, { method: "DELETE" }),
 
   songs: (q = "") => request<{ songs: Song[] }>(`/api/songs${q ? `?q=${encodeURIComponent(q)}` : ""}`),
   song: (id: string) => request<{ song: Song }>(`/api/songs/${id}`),
