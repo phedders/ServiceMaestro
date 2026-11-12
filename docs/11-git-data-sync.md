@@ -241,9 +241,11 @@ SM_GIT_AUTO_PUSH=true
 SM_GIT_SONGS_PATH=/data/repos/songs
 SM_GIT_SONGS_REMOTE=          # unset/empty = local-only
 SM_GIT_SONGS_BRANCH=main
+# Also accepted: SM_GIT_SONGS_REMOTE_BRANCH
 SM_GIT_SETLISTS_PATH=/data/repos/setlists
 SM_GIT_SETLISTS_REMOTE=
 SM_GIT_SETLISTS_BRANCH=main
+# Also accepted: SM_GIT_SETLISTS_REMOTE_BRANCH or SM_GIT_SETLIST_REMOTE_BRANCH
 SM_GIT_BIBLES_PATH=/data/repos/bibles
 SM_GIT_BIBLES_REMOTE=          # optional; leave unset to disable
 SM_GIT_BIBLES_OPTIONAL=true

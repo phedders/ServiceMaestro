@@ -6,6 +6,25 @@ import { parse as parseYaml } from "yaml";
 const here = path.dirname(fileURLToPath(import.meta.url));
 const packageRoot = path.resolve(here, "..");
 
+function loadDotEnvFile(): void {
+  const file = process.env.SM_ENV_FILE ?? path.resolve(packageRoot, "../../.env");
+  if (!fs.existsSync(file)) return;
+  for (const rawLine of fs.readFileSync(file, "utf8").split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith("#")) continue;
+    const match = line.match(/^(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)=(.*)$/);
+    if (!match) continue;
+    const [, key, rawValue] = match;
+    if (process.env[key] !== undefined) continue;
+    process.env[key] = rawValue
+      .trim()
+      .replace(/^(['"])(.*)\1$/, "$2")
+      .replace(/\\n/g, "\n");
+  }
+}
+
+loadDotEnvFile();
+
 interface FileConfig {
   git?: {
     enabled?: boolean;
@@ -165,11 +184,16 @@ function repo(
   const envPrefix = `SM_GIT_${name.toUpperCase()}`;
   const remote =
     optionalEnvFile(`${envPrefix}_REMOTE`) ?? fromFile.remote ?? "";
+  const branchCandidates = [
+    process.env[`${envPrefix}_BRANCH`],
+    process.env[`${envPrefix}_REMOTE_BRANCH`],
+    name === "setlists" ? process.env.SM_GIT_SETLIST_REMOTE_BRANCH : undefined,
+  ].filter((value): value is string => Boolean(value?.trim()));
   return {
     name,
     path: path.resolve(process.env[`${envPrefix}_PATH`] ?? fromFile.path ?? defaultPath),
     remote: remote.trim() || null,
-    branch: process.env[`${envPrefix}_BRANCH`] ?? fromFile.branch ?? "main",
+    branch: branchCandidates[0]?.trim() ?? fromFile.branch ?? "main",
     optional:
       name === "bibles"
         ? boolEnv("SM_GIT_BIBLES_OPTIONAL", fromFile.optional ?? true)
