@@ -14,6 +14,7 @@ services:
       SM_ADMIN_PASSWORD: ${SM_ADMIN_PASSWORD:-change-me}
       SM_OUTPUT_TOKEN: ${SM_OUTPUT_TOKEN:-dev-output}
       SM_CONFIG_FILE: ${SM_CONFIG_FILE:-}
+      SM_SSL_ENABLED: ${SM_SSL_ENABLED:-true}
       SM_SSL_DIR: ${SM_SSL_DIR:-/data/ssl}
       SM_SSL_CERT_FILE: ${SM_SSL_CERT_FILE:-}
       SM_SSL_KEY_FILE: ${SM_SSL_KEY_FILE:-}

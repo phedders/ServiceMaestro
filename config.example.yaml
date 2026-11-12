@@ -23,6 +23,9 @@ server:
   logLevel: info
 
 ssl:
+  # Keep true for direct HTTPS. Set false only when a forward proxy
+  # terminates TLS and forwards plain HTTP to this server.
+  enabled: true
   # Control interface certificate files. Relative cert/key paths resolve
   # against this directory. If both are absent, a local self-signed
   # certificate is generated on first start.

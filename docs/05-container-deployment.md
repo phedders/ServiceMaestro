@@ -89,6 +89,7 @@ Environment-first, with optional file values and `_FILE` secret support:
 | `SM_DISPLAY_PORT` | `8081` | Read-only display HTTP/WS port; serves only `/display/*` |
 | `SM_HOST` | `0.0.0.0` | Bind address |
 | `SM_PUBLIC_URL` | — | Absolute URL used in generated links |
+| `SM_SSL_ENABLED` | `true` | Serve control over HTTPS; disable only behind a TLS-terminating forward proxy |
 | `SM_SSL_DIR` | `/data/ssl` | Control HTTPS certificate directory |
 | `SM_SSL_CERT_FILE` | `cert.pem` | Trusted certificate/full-chain path |
 | `SM_SSL_KEY_FILE` | `key.pem` | Private key path |
@@ -117,7 +118,9 @@ Environment-first, with optional file values and `_FILE` secret support:
 | `SM_LOG_LEVEL` | `info` | `debug`/`info`/`warn`/`error` |
 | `SM_TRUST_PROXY` | `false` | Honour `X-Forwarded-*` behind TLS proxy |
 
-`SM_PORT` and `SM_DISPLAY_PORT` are read at startup, must be different, and accept values from `1` to `65535`. The control interface on `SM_PORT` is HTTPS-only; the display listener on `SM_DISPLAY_PORT` remains plain HTTP for OBS and display devices. Place `cert.pem` and `key.pem` in `SM_SSL_DIR` (default `/data/ssl`) or point `SM_SSL_CERT_FILE`/`SM_SSL_KEY_FILE` at a trusted certificate and key. If neither is present, a local self-signed certificate is generated and the Settings page shows a warning until it is replaced. Secrets are never printed; `_FILE` variants allow Docker/Podman secrets and Incus/LXC files. Git repositories use `SM_GIT_*` remotes (`ssh://` or `https://token@…`), SSH key/known-hosts secrets, and optional Git LFS for Bibles — see [11-git-data-sync.md](11-git-data-sync.md).
+`SM_PORT` and `SM_DISPLAY_PORT` are read at startup, must be different, and accept values from `1` to `65535`. The control interface on `SM_PORT` is HTTPS-only by default; the display listener on `SM_DISPLAY_PORT` remains plain HTTP for OBS and display devices. Place `cert.pem` and `key.pem` in `SM_SSL_DIR` (default `/data/ssl`) or point `SM_SSL_CERT_FILE`/`SM_SSL_KEY_FILE` at a trusted certificate and key. If neither is present, a local self-signed certificate is generated and the Settings page shows a warning until it is replaced.
+
+For a forward proxy that terminates TLS, set `SM_SSL_ENABLED=false` so the control server accepts plain HTTP from the proxy. Never expose that port directly. Secure cookies remain enabled by default because the browser still reaches the proxy over HTTPS; keep `SM_SECURE_COOKIES=true` unless testing directly over HTTP. Secrets are never printed; `_FILE` variants allow Docker/Podman secrets and Incus/LXC files. Git repositories use `SM_GIT_*` remotes (`ssh://` or `https://token@…`), SSH key/known-hosts secrets, and optional Git LFS for Bibles — see [11-git-data-sync.md](11-git-data-sync.md).
 
 The optional structured config can be YAML or JSON. Set `SM_CONFIG_FILE`, or mount it as `config.yaml` / `config.yml` / `config.json` in `/config/`. Environment variables remain the final override, so secrets and deployment-specific values can stay in `.env` or container secrets. Start from [`config.example.yaml`](../config.example.yaml).
 

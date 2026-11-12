@@ -74,6 +74,7 @@ interface FileChurchSuiteConfig {
 }
 
 interface FileSslConfig {
+  enabled?: unknown;
   dir?: unknown;
   certFile?: unknown;
   keyFile?: unknown;
@@ -279,6 +280,7 @@ export const SECURE_COOKIES = optionBool("SM_SECURE_COOKIES", serverConfig.secur
 export const DATA_DIR = path.resolve(
   optionString("SM_DATA_DIR", serverConfig.dataDir, path.join(packageRoot, "data")),
 );
+export const SSL_ENABLED = optionBool("SM_SSL_ENABLED", sslConfig.enabled, true);
 export const SSL_DIR = path.resolve(
   optionString("SM_SSL_DIR", sslConfig.dir, path.join(DATA_DIR, "ssl")),
 );

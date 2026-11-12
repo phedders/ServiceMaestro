@@ -13,6 +13,7 @@ import {
   GIT_ENABLED,
   LOG_LEVEL,
   OUTPUT_TOKEN,
+  SSL_ENABLED,
 } from "./config.js";
 import { parseCookies, requireAuth, requireRole, userForToken } from "./auth.js";
 import { createOutputSocket, registerDisplayRoutes } from "./display-app.js";
@@ -48,12 +49,17 @@ import {
   syncGitFromRemotes,
 } from "./git-store.js";
 
-export async function buildApp(tls: { key: Buffer; cert: Buffer }): Promise<{
+export async function buildApp(
+  tls: { key: Buffer; cert: Buffer } | null,
+): Promise<{
   app: FastifyInstance;
   io: Server;
   outputIo: Server;
 }> {
-  const app = Fastify({ logger: { level: LOG_LEVEL }, https: tls });
+  const app = Fastify({
+    logger: { level: LOG_LEVEL },
+    ...(tls ? { https: tls } : {}),
+  });
 
   await app.register(cookie);
   await app.register(multipart, { limits: { fileSize: 50 * 1024 * 1024, files: 1, fields: 10 } });
@@ -113,6 +119,7 @@ export async function buildApp(tls: { key: Buffer; cert: Buffer }): Promise<{
   app.get("/api/health", async () => ({ ok: true, name: "service-maestro" }));
 
   app.get("/api/ssl/status", { preHandler: requireAuth }, async () => ({
+    enabled: SSL_ENABLED,
     status: getControlTlsStatus(),
   }));
 

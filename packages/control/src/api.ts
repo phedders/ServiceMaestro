@@ -11,7 +11,7 @@ import type {
   ChurchSuiteImportReport,
   ChurchSuitePlanPreview,
   ChurchSuitePlanSummary,
-  ControlTlsStatus,
+  ControlTlsReport,
   DashboardLayout,
   DisplayConfig,
   DisplayViewLink,
@@ -152,7 +152,7 @@ export const api = {
   deleteFont: (id: string) => request<{ ok: true }>(`/api/fonts/${id}`, { method: "DELETE" }),
 
   settings: () => request<{ settings: AppSettings }>("/api/settings"),
-  sslStatus: () => request<{ status: ControlTlsStatus | null }>("/api/ssl/status"),
+  sslStatus: () => request<ControlTlsReport>("/api/ssl/status"),
   saveSettings: (settings: AppSettings) =>
     request<{ settings: AppSettings }>("/api/settings", {
       method: "PUT",

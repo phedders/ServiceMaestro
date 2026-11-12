@@ -57,6 +57,7 @@ export default function SettingsPage({
   const [bibleTranslations, setBibleTranslations] = useState<BibleTranslationInfo[]>([]);
   const [songselectWatch, setSongselectWatch] = useState<SongSelectWatchStatus | null>(null);
   const [scanningSongselect, setScanningSongselect] = useState(false);
+  const [sslEnabled, setSslEnabled] = useState<boolean | null>(null);
   const [sslStatus, setSslStatus] = useState<ControlTlsStatus | null>(null);
   const [pageNames, setPageNames] = useState<string[]>([]);
   const [pageIdDraft, setPageIdDraft] = useState<Record<string, string>>({});
@@ -98,7 +99,10 @@ export default function SettingsPage({
       .catch(() => undefined);
     api
       .sslStatus()
-      .then((result) => setSslStatus(result.status))
+      .then((result) => {
+        setSslEnabled(result.enabled);
+        setSslStatus(result.status);
+      })
       .catch(() => undefined);
     api
       .bibleTranslations()
@@ -499,54 +503,81 @@ export default function SettingsPage({
         stay local to this server.
       </p>
 
-      {sslStatus && (
+      {sslEnabled !== null && (
         <section
-          className={`panel ssl-status-panel ${sslStatus.warnings.length ? "warning" : ""}`}
+          className={`panel ssl-status-panel ${
+            !sslEnabled ? "disabled" : sslStatus?.warnings.length ? "warning" : ""
+          }`}
         >
           <div className="panel-heading">
             <div>
               <h2>Control HTTPS</h2>
               <p className="muted">
-                The control interface is HTTPS-only. Display outputs remain plain HTTP on the
-                display port.
+                {sslEnabled
+                  ? "The control interface is HTTPS-only. Display outputs remain plain HTTP on the display port."
+                  : "Control HTTPS is disabled. The control interface is served over plain HTTP and must be protected by a TLS-terminating forward proxy."}
               </p>
             </div>
-            <span className={`ssl-badge ${sslStatus.selfSigned ? "self-signed" : "trusted"}`}>
-              {sslStatus.source === "generated"
-                ? "Self-signed · generated"
-                : sslStatus.selfSigned
-                  ? "Self-signed · provided"
-                  : "Provided certificate"}
+            <span
+              className={`ssl-badge ${
+                !sslEnabled ? "http-mode" : sslStatus?.selfSigned ? "self-signed" : "trusted"
+              }`}
+            >
+              {!sslEnabled
+                ? "HTTP · proxy TLS"
+                : sslStatus?.source === "generated"
+                  ? "Self-signed · generated"
+                  : sslStatus?.selfSigned
+                    ? "Self-signed · provided"
+                    : "Provided certificate"}
             </span>
           </div>
-          {sslStatus.warnings.map((warning) => (
-            <p key={warning} className="ssl-warning">
-              {warning}
-            </p>
-          ))}
-          <div className="config-kv ssl-cert-details">
-            <div>
-              <span className="muted">Certificate</span>
-              <code>{sslStatus.certFile}</code>
-            </div>
-            <div>
-              <span className="muted">Private key</span>
-              <code>{sslStatus.keyFile}</code>
-            </div>
-            <div>
-              <span className="muted">Valid until</span>
-              <span>{compactDateTime(sslStatus.validTo)}</span>
-            </div>
-            <div>
-              <span className="muted">Days remaining</span>
-              <span>{sslStatus.daysRemaining}</span>
-            </div>
-          </div>
-          <p className="hint">
-            Provide a trusted certificate as <code>cert.pem</code> and <code>key.pem</code> in{" "}
-            <code>{sslStatus.sslDir}</code>, or set <code>SM_SSL_CERT_FILE</code> and{" "}
-            <code>SM_SSL_KEY_FILE</code>. Restart the server after replacing certificates.
-          </p>
+          {!sslEnabled ? (
+            <>
+              <p className="ssl-warning">
+                Never expose the control port directly while HTTPS is disabled. Put it behind a
+                trusted reverse proxy that terminates HTTPS and forwards to this server.
+              </p>
+              <p className="hint">
+                Set <code>SM_SSL_ENABLED=false</code> or <code>ssl.enabled: false</code> in the
+                config file. Keep <code>SM_SECURE_COOKIES=true</code> when the browser reaches the
+                proxy over HTTPS.
+              </p>
+            </>
+          ) : sslStatus ? (
+            <>
+              {sslStatus.warnings.map((warning) => (
+                <p key={warning} className="ssl-warning">
+                  {warning}
+                </p>
+              ))}
+              <div className="config-kv ssl-cert-details">
+                <div>
+                  <span className="muted">Certificate</span>
+                  <code>{sslStatus.certFile}</code>
+                </div>
+                <div>
+                  <span className="muted">Private key</span>
+                  <code>{sslStatus.keyFile}</code>
+                </div>
+                <div>
+                  <span className="muted">Valid until</span>
+                  <span>{compactDateTime(sslStatus.validTo)}</span>
+                </div>
+                <div>
+                  <span className="muted">Days remaining</span>
+                  <span>{sslStatus.daysRemaining}</span>
+                </div>
+              </div>
+              <p className="hint">
+                Provide a trusted certificate as <code>cert.pem</code> and <code>key.pem</code> in{" "}
+                <code>{sslStatus.sslDir}</code>, or set <code>SM_SSL_CERT_FILE</code> and{" "}
+                <code>SM_SSL_KEY_FILE</code>. Restart the server after replacing certificates.
+              </p>
+            </>
+          ) : (
+            <p className="muted">Loading certificate status…</p>
+          )}
         </section>
       )}
 

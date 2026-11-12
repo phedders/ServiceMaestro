@@ -109,9 +109,11 @@ The file covers the server, data paths, SongSelect watcher, ChurchSuite and Git 
 
 Listener ports are set with `SM_PORT` and `SM_DISPLAY_PORT`; both are read at startup and must be different.
 
+The control interface is HTTPS by default. If a forward proxy terminates TLS and forwards plain HTTP to Service Maestro, set `SM_SSL_ENABLED=false`. Do not expose that HTTP control port directly; keep `SM_SECURE_COOKIES=true` so browsers still use Secure cookies through the proxy.
+
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `SM_PORT` | `8080` | Control HTTP/WebSocket port |
+| `SM_PORT` | `8080` | Control HTTPS/WebSocket port (HTTP when TLS is disabled) |
 | `SM_DISPLAY_PORT` | `8081` | Read-only display HTTP/WebSocket port; serves only `/display/*` |
 | `SM_HOST` | `0.0.0.0` | Bind address |
 | `SM_DATA_DIR` | `packages/server/data` | SQLite + runtime data |
@@ -125,6 +127,7 @@ Listener ports are set with `SM_PORT` and `SM_DISPLAY_PORT`; both are read at st
 | `SM_OUTPUT_TOKEN` | `dev-output` | Token required by display sockets |
 | `SM_LOG_LEVEL` | `info` | Fastify log level |
 | `SM_SECURE_COOKIES` | `true` | Marks session cookies Secure; set to `0` only for special proxy setups |
+| `SM_SSL_ENABLED` | `true` | Serve control over HTTPS; set `false` only behind a TLS-terminating forward proxy |
 | `SM_SSL_DIR` | `/data/ssl` | Control HTTPS certificate directory |
 | `SM_SSL_CERT_FILE` | `cert.pem` in `SM_SSL_DIR` | Trusted certificate/full-chain path |
 | `SM_SSL_KEY_FILE` | `key.pem` in `SM_SSL_DIR` | Private key path |

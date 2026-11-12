@@ -446,6 +446,11 @@ export interface FontDownloadReport {
   failed: FontDownloadFailure[];
 }
 
+export interface ControlTlsReport {
+  enabled: boolean;
+  status: ControlTlsStatus | null;
+}
+
 export interface ControlTlsStatus {
   source: "generated" | "provided";
   selfSigned: boolean;

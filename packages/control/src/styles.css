@@ -3718,6 +3718,11 @@ body.resizing-live-queue {
   border-color: rgba(251, 191, 36, 0.55);
 }
 
+.ssl-status-panel.disabled {
+  border-color: rgba(251, 113, 133, 0.55);
+  background: rgba(251, 113, 133, 0.05);
+}
+
 .ssl-warning {
   margin: 0 0 8px;
   padding: 8px 10px;
@@ -3744,6 +3749,11 @@ body.resizing-live-queue {
 .ssl-badge.trusted {
   border-color: rgba(74, 222, 128, 0.45);
   color: #4ade80;
+}
+
+.ssl-badge.http-mode {
+  border-color: rgba(251, 113, 133, 0.55);
+  color: #fb7185;
 }
 
 .ssl-cert-details {

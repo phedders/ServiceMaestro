@@ -36,7 +36,7 @@ EXPOSE 8080 8081
 VOLUME ["/data"]
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
-  CMD node -e "process.env.NODE_TLS_REJECT_UNAUTHORIZED='0'; fetch('https://127.0.0.1:'+(process.env.SM_PORT||'8080')+'/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+  CMD node -e "const secure=!['0','false','no','off'].includes(String(process.env.SM_SSL_ENABLED??'true').toLowerCase()); process.env.NODE_TLS_REJECT_UNAUTHORIZED='0'; fetch((secure?'https':'http')+'://127.0.0.1:'+(process.env.SM_PORT||'8080')+'/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 
 ENTRYPOINT ["/usr/bin/tini", "--"]
 CMD ["node", "packages/server/dist/index.js"]
