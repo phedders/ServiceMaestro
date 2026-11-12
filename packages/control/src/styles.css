@@ -1328,20 +1328,25 @@ body.resizing-live-queue {
 }
 
 .song-row-wrap {
-  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .song-row-wrap .song-row {
-  width: 100%;
-  padding-right: 76px;
+  flex: 1;
+  min-width: 0;
 }
 
-.song-row-update {
-  position: absolute;
-  top: 50%;
-  right: 8px;
-  z-index: 1;
-  transform: translateY(-50%);
+.song-row-actions {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.song-row-actions .button {
+  white-space: nowrap;
 }
 
 .song-list-actions {

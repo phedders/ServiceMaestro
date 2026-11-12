@@ -50,6 +50,7 @@ export default function SongsPage({
   const [saving, setSaving] = useState(false);
   const [siteProvider, setSiteProvider] = useState<SiteScraperProviderSummary | null>(null);
   const [siteUpdatingId, setSiteUpdatingId] = useState<string | null>(null);
+  const [fixingPageNameId, setFixingPageNameId] = useState<string | null>(null);
   const [scan, setScan] = useState<SongImportScan | null>(null);
   const [scanning, setScanning] = useState(false);
   const [importing, setImporting] = useState(false);
@@ -73,9 +74,10 @@ export default function SongsPage({
   const [addingToSetlist, setAddingToSetlist] = useState(false);
   const [showingLive, setShowingLive] = useState(false);
 
-  async function load() {
+  async function load(): Promise<Song[]> {
     const result = await api.songs();
     setSongs(result.songs);
+    return result.songs;
   }
 
   useEffect(() => {
@@ -93,6 +95,27 @@ export default function SongsPage({
       if (await updateSongFromSite(siteProvider, song.id, song.title, notify)) await load();
     } finally {
       setSiteUpdatingId(null);
+    }
+  }
+
+  async function fixPageNames(song: Song) {
+    setFixingPageNameId(song.id);
+    try {
+      const result = await api.applySongPageIdFixes([song.id]);
+      const nextSongs = await load();
+      if (selectedId === song.id) {
+        const updated = nextSongs.find((entry) => entry.id === song.id);
+        if (updated) select(updated);
+      }
+      notify(
+        result.updated
+          ? `Fixed page names in “${song.title}”`
+          : `No page name changes needed for “${song.title}”`,
+      );
+    } catch (error) {
+      notify(error instanceof ApiError ? error.message : "Could not fix page names", "error");
+    } finally {
+      setFixingPageNameId(null);
     }
   }
 
@@ -557,17 +580,28 @@ export default function SongsPage({
                     {song.key ? ` · ${song.key}` : ""}
                   </span>
                 </button>
-                {siteProvider && (
+                <div className="song-row-actions">
+                  {siteProvider && (
+                    <button
+                      type="button"
+                      className="button ghost small"
+                      onClick={() => void updateFromSite(song)}
+                      disabled={siteUpdatingId !== null}
+                      title={`Update from ${siteProvider.label} — check for missing files or changes`}
+                    >
+                      {siteUpdatingId === song.id ? "Checking…" : "Update"}
+                    </button>
+                  )}
                   <button
                     type="button"
-                    className="button ghost small song-row-update"
-                    onClick={() => void updateFromSite(song)}
-                    disabled={siteUpdatingId !== null}
-                    title={`Update from ${siteProvider.label} — check for missing files or changes`}
+                    className="button ghost small"
+                    onClick={() => void fixPageNames(song)}
+                    disabled={fixingPageNameId !== null}
+                    title="Fix page names using the current page-ID shortcuts"
                   >
-                    {siteUpdatingId === song.id ? "Checking…" : "Update"}
+                    {fixingPageNameId === song.id ? "Fixing…" : "Fix page names"}
                   </button>
-                )}
+                </div>
               </div>
             ),
           )}
