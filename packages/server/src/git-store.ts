@@ -20,6 +20,14 @@ import {
   tarpPresentationFile,
   tarpThemeFile,
 } from "./tarp-export.js";
+import {
+  localDownloadedFonts,
+  mergeSharedFonts,
+  readSharedFontSettings,
+  sharedFontsEqual,
+  sharedFontSettingsJson,
+  sharedFontSettingsPath,
+} from "./font-settings.js";
 
 interface RepoRuntime {
   config: GitRepoConfig;
@@ -507,6 +515,18 @@ async function exportAllTarp(runtime: RepoRuntime): Promise<void> {
   );
 }
 
+async function exportSharedFonts(runtime: RepoRuntime): Promise<void> {
+  const file = sharedFontSettingsPath(runtime.config.path);
+  const existing = readSharedFontSettings(runtime.config.path);
+  const merged = mergeSharedFonts(existing.fonts, localDownloadedFonts());
+  // Keep the file byte-stable when nothing changed so restarts don't create
+  // timestamp-only commits.
+  if (!fs.existsSync(file) && !merged.length) return;
+  if (fs.existsSync(file) && sharedFontsEqual(existing.fonts, merged)) return;
+  writeAtomically(file, sharedFontSettingsJson(merged));
+  await commit(runtime, `settings: update shared font list (${merged.length})`);
+}
+
 async function pullRuntime(runtime: RepoRuntime): Promise<void> {
   if (!runtime.config.remote) return;
   try {
@@ -591,6 +611,7 @@ export async function initializeGitStorage(): Promise<void> {
             if (hasFiles) importSetlistsFromRepo(runtime);
             else await exportAllSetlists(runtime);
             await exportAllTarp(runtime);
+            await exportSharedFonts(runtime);
           }
           if (config.name === "bibles") {
             const hasFiles =
@@ -703,12 +724,20 @@ export async function saveTarpLibraryToGit(): Promise<void> {
   await serial(() => exportAllTarp(runtime));
 }
 
+export async function saveFontSettingsToGit(): Promise<void> {
+  if (!GIT_ENABLED || !getGitSettings().autoSave) return;
+  const runtime = runtimes.get("setlists");
+  if (!runtime) return;
+  await serial(() => exportSharedFonts(runtime));
+}
+
 export async function exportAllToGit(): Promise<void> {
   const songs = runtimes.get("songs");
   const setlists = runtimes.get("setlists");
   if (songs) await serial(() => exportAllSongs(songs));
   if (setlists) await serial(() => exportAllSetlists(setlists));
   if (setlists) await serial(() => exportAllTarp(setlists));
+  if (setlists) await serial(() => exportSharedFonts(setlists));
 }
 
 export async function pushGit(): Promise<void> {

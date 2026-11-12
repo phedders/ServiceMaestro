@@ -14,6 +14,8 @@ import type {
   DashboardLayout,
   DisplayConfig,
   DisplayViewLink,
+  FontDownloadReport,
+  FontLibraryStatus,
   FontOption,
   GitSettings,
   GitStatus,
@@ -138,12 +140,14 @@ export const api = {
   deleteVerseOrder: (songId: string, id: string) =>
     request<{ ok: true }>(`/api/songs/${songId}/verse-orders/${id}`, { method: "DELETE" }),
 
-  fonts: () => request<{ fonts: FontOption[] }>("/api/fonts"),
+  fonts: () => request<FontLibraryStatus>("/api/fonts"),
   importFont: (payload: { family?: string; url?: string }) =>
     request<{ font: FontOption }>("/api/fonts/import", {
       method: "POST",
       body: JSON.stringify(payload),
     }),
+  importMissingFonts: () =>
+    request<FontDownloadReport>("/api/fonts/import-missing", { method: "POST" }),
   deleteFont: (id: string) => request<{ ok: true }>(`/api/fonts/${id}`, { method: "DELETE" }),
 
   settings: () => request<{ settings: AppSettings }>("/api/settings"),

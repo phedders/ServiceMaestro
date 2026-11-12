@@ -8,6 +8,7 @@ import {
   type FontOption,
   type GitSettings,
   type GitStatus,
+  type SharedFontOption,
   type SongPageIdFixScan,
   type SongSelectWatchStatus,
 } from "@sm/shared";
@@ -28,9 +29,13 @@ export default function SettingsPage({
   notify: (text: string, kind?: "info" | "error") => void;
 }) {
   const [fonts, setFonts] = useState<FontOption[]>([]);
+  const [sharedFonts, setSharedFonts] = useState<SharedFontOption[]>([]);
+  const [missingFonts, setMissingFonts] = useState<SharedFontOption[]>([]);
   const [family, setFamily] = useState("");
   const [cssUrl, setCssUrl] = useState("");
   const [importing, setImporting] = useState(false);
+  const [downloadingFontId, setDownloadingFontId] = useState("");
+  const [downloadingMissing, setDownloadingMissing] = useState(false);
   const [loadingFonts, setLoadingFonts] = useState(true);
   const [churchsuite, setChurchsuite] = useState<{
     configured: boolean;
@@ -70,6 +75,8 @@ export default function SettingsPage({
     try {
       const result = await api.fonts();
       setFonts(result.fonts);
+      setSharedFonts(result.sharedFonts);
+      setMissingFonts(result.missingFonts);
     } catch (error) {
       notify(error instanceof ApiError ? error.message : "Could not load fonts", "error");
     } finally {
@@ -129,6 +136,47 @@ export default function SettingsPage({
       notify(error instanceof ApiError ? error.message : "Could not import font", "error");
     } finally {
       setImporting(false);
+    }
+  }
+
+  async function downloadSharedFont(font: SharedFontOption) {
+    setDownloadingFontId(font.id);
+    try {
+      await api.importFont(font.cssUrl ? { url: font.cssUrl } : { family: font.label });
+      await loadFonts();
+      notify(`Downloaded ${font.label}`);
+    } catch (error) {
+      notify(
+        error instanceof ApiError ? error.message : `Could not download ${font.label}`,
+        "error",
+      );
+    } finally {
+      setDownloadingFontId("");
+    }
+  }
+
+  async function downloadMissingFonts() {
+    if (!missingFonts.length || downloadingMissing) return;
+    setDownloadingMissing(true);
+    try {
+      const result = await api.importMissingFonts();
+      await loadFonts();
+      const count = result.downloaded.length;
+      if (!result.failed.length) {
+        notify(`Downloaded ${count} missing font${count === 1 ? "" : "s"}`);
+      } else {
+        notify(
+          `Downloaded ${count} font${count === 1 ? "" : "s"}; ${result.failed.length} failed`,
+          "error",
+        );
+      }
+    } catch (error) {
+      notify(
+        error instanceof ApiError ? error.message : "Could not download missing fonts",
+        "error",
+      );
+    } finally {
+      setDownloadingMissing(false);
     }
   }
 
@@ -837,7 +885,23 @@ export default function SettingsPage({
               <code>/data/fonts</code> and become available in the Live display config.
             </p>
           </div>
-          <span className="muted">{fonts.filter((font) => font.source === "google").length} imported</span>
+          <div className="font-heading-actions">
+            <span className="muted">
+              {fonts.filter((font) => font.source === "google").length} downloaded ·{" "}
+              {sharedFonts.length} shared
+              {missingFonts.length ? ` · ${missingFonts.length} missing` : ""}
+            </span>
+            <button
+              className="button primary small"
+              onClick={downloadMissingFonts}
+              disabled={!missingFonts.length || downloadingMissing}
+              title="Download every font listed in the shared settings file that is missing on this server"
+            >
+              {downloadingMissing
+                ? "Downloading…"
+                : `Download missing${missingFonts.length ? ` (${missingFonts.length})` : ""}`}
+            </button>
+          </div>
         </div>
 
         <div className="font-import">
@@ -868,10 +932,28 @@ export default function SettingsPage({
         </div>
         <p className="hint">
           Only <code>fonts.googleapis.com</code> CSS URLs are accepted. The import downloads the
-          actual font files, so displays keep working without internet access.
+          actual font files, so displays keep working without internet access. Downloaded Google
+          font names are shared through <code>settings/fonts.json</code> in the set lists repository.
         </p>
 
         <div className="font-list">
+          {missingFonts.map((font) => (
+            <div key={`shared-${font.id}`} className="font-row missing">
+              <div>
+                <strong>{font.label}</strong>
+                <span className="muted">Shared · not downloaded on this server</span>
+              </div>
+              <code>{font.family}</code>
+              <button
+                className="button primary small"
+                onClick={() => downloadSharedFont(font)}
+                disabled={downloadingMissing || Boolean(downloadingFontId)}
+                title={`Download “${font.label}” on this server`}
+              >
+                {downloadingFontId === font.id ? "Downloading…" : "Download"}
+              </button>
+            </div>
+          ))}
           {fonts.map((font) => (
             <div key={font.id} className="font-row">
               <div>
@@ -893,7 +975,9 @@ export default function SettingsPage({
               )}
             </div>
           ))}
-          {!loadingFonts && !fonts.length && <p className="muted">No fonts available.</p>}
+          {!loadingFonts && !fonts.length && !missingFonts.length && (
+            <p className="muted">No fonts available.</p>
+          )}
         </div>
       </section>
 

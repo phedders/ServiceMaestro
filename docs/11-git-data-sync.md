@@ -71,9 +71,15 @@ setlists/
   revisions/
     <setlist-id>/
       <revision-no>.json         # published immutable revision
+  settings/
+    fonts.json                   # shared list of downloaded Google Fonts
   deleted/
     <setlist-id>.json            # tombstones, optional
 ```
+
+`settings/fonts.json` records the Google fonts downloaded by any instance. It stores the
+font name, CSS family and original Google Fonts URL so another server can highlight
+fonts it is missing and download one or all of them from Settings.
 
 `<setlist-id>.json`:
 

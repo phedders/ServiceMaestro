@@ -420,6 +420,32 @@ export interface FontOption {
   importedAt: string | null;
 }
 
+export interface SharedFontOption {
+  id: string;
+  label: string;
+  family: string;
+  cssUrl: string | null;
+  importedAt: string | null;
+}
+
+export interface FontLibraryStatus {
+  fonts: FontOption[];
+  sharedFonts: SharedFontOption[];
+  missingFonts: SharedFontOption[];
+}
+
+export interface FontDownloadFailure {
+  id: string;
+  label: string;
+  error: string;
+}
+
+export interface FontDownloadReport {
+  ok: boolean;
+  downloaded: FontOption[];
+  failed: FontDownloadFailure[];
+}
+
 export const DEFAULT_CHURCHSUITE_EMPTY_TYPES = [
   "Welcome",
   "Misc",
