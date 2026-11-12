@@ -62,6 +62,59 @@ Environment variables take precedence:
 
 `_FILE` variants are supported for secret values.
 
+### Capturing a browser session cookie
+
+SongSelect uses CCLI’s central login and a browser challenge, so password-only automation is not reliable. Sign in normally in a desktop browser, then copy the **Cookie request header** for a SongSelect request.
+
+**Chrome, Edge, Chromium, Vivaldi**
+
+1. Sign in at <https://songselect.ccli.com/>.
+2. Open Developer Tools (`F12`, `Ctrl+Shift+I`, or `Cmd+Option+I`).
+3. Open the **Network** tab and filter for `GetProfileDetails`.
+4. Reload the page if the request is not listed.
+5. Select the `api/user/GetProfileDetails` request.
+6. In **Headers → Request Headers**, find **Cookie** and copy its value.
+7. If the header is collapsed, use **Show more**; you can also right-click the **Cookie** header and choose **Copy value**.
+
+**Firefox**
+
+1. Sign in at <https://songselect.ccli.com/>.
+2. Open **Tools → Browser Tools → Web Developer Tools** (`F12` or `Ctrl+Shift+I`).
+3. Open the **Network** tab and reload the page.
+4. Select the `GetProfileDetails` request.
+5. In **Headers → Request Headers**, copy the complete **Cookie** value.
+
+**Alternative: Application/Storage panel**
+
+In Chromium DevTools, **Application → Storage → Cookies → https://songselect.ccli.com** lists the cookies. The Network request header is preferred because it includes HttpOnly cookies and gives the exact `name=value; name=value` format the adapter expects. If you copy individual cookies, include every session/auth cookie for the CCLI domains and join them with `; `.
+
+### Storing the cookie
+
+Paste the copied header into **Settings → My account → Song site credentials → Session cookie** for a personal credential, or into the server-level fallback:
+
+```yaml
+songScraping:
+  provider: songselect
+  baseUrl: https://songselect.ccli.com
+  cookie: 'name=value; other=name=value'
+```
+
+For containers, prefer a secret file:
+
+```text
+SM_SONG_SCRAPING_COOKIE_FILE=/run/secrets/songselect-cookie
+```
+
+### Cookie security and expiry
+
+- Treat the cookie like a password: it grants access to the signed-in account until it expires or is revoked.
+- Never commit it, paste it into tickets/chat, include it in screenshots, or store it in shared notes.
+- The local `data/config.yaml` is git-ignored, but backups of that file must still be protected.
+- Prefer **Settings → My account** (encrypted at rest) or a Docker/container secret over a plaintext config file.
+- The cookie will expire or may rotate. If search/download reports that the session is not signed in, repeat the capture above.
+- Signing out of SongSelect in the browser can invalidate the cookie.
+- Remove personal credentials with **Remove** in the account panel. For server-level credentials, delete the cookie from the config file and restart the service.
+
 ### Adapter interface
 
 A site adapter receives resolved credentials and a request, then returns downloaded files. It does not read credentials directly from the database.
