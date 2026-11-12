@@ -22,6 +22,7 @@ import ChurchsuitePage from "./pages/ChurchsuitePage";
 import ImagesPage from "./pages/ImagesPage";
 import BackgroundsPage from "./pages/BackgroundsPage";
 import StingersPage from "./pages/StingersPage";
+import UsersPage from "./pages/UsersPage";
 
 const TarpPage = lazy(() => import("./pages/TarpPage"));
 import {
@@ -44,6 +45,7 @@ type Page =
   | "settings"
   | "backgrounds"
   | "stingers"
+  | "users"
   | "help";
 
 interface Toast {
@@ -364,6 +366,8 @@ export default function App() {
         return "Backgrounds";
       case "stingers":
         return "Stingers";
+      case "users":
+        return "Users";
       case "help":
         return "Help";
     }
@@ -577,6 +581,23 @@ export default function App() {
                     ✦
                   </span>
                 </button>
+                {user.role === "admin" && (
+                  <button
+                    type="button"
+                    className="nav-dropdown-link"
+                    role="menuitem"
+                    onClick={() => {
+                      setPage("users");
+                      setMenuOpen(false);
+                    }}
+                    title="Manage users, write permissions and activity"
+                  >
+                    <span>Users</span>
+                    <span className="nav-dropdown-external" aria-hidden="true">
+                      ◉
+                    </span>
+                  </button>
+                )}
                 <button
                   type="button"
                   className="nav-dropdown-link"
@@ -655,7 +676,7 @@ export default function App() {
         {pageModule && !canWritePage && (
           <div className="read-only-banner">
             You have read-only access to {pageModuleLabel}. An administrator can grant write access
-            in Settings → Users and write access.
+            on the Users page.
           </div>
         )}
 
@@ -697,6 +718,7 @@ export default function App() {
           <ChurchsuitePage notify={notify} onOpenSetlists={() => setPage("setlists")} />
         )}
         {page === "settings" && <SettingsPage user={user} notify={notify} />}
+        {page === "users" && <UsersPage user={user} notify={notify} />}
         {page === "backgrounds" && <BackgroundsPage notify={notify} />}
         {page === "stingers" && <StingersPage notify={notify} />}
         {page === "help" && <HelpPage onOpenSettings={() => setPage("settings")} />}
