@@ -60,6 +60,7 @@ const songFileSchema = z.object({
   verseOrder: z.string().nullable().optional(),
   lyricsMarkdown: z.boolean().optional(),
   priority: z.number().int().min(0).max(10).optional(),
+  differentFromIds: z.array(z.string()).optional(),
   verseOrders: z.array(z.object({ name: z.string(), order: z.string() })).optional(),
   createdAt: z.string().optional(),
   updatedAt: z.string().optional(),
@@ -192,6 +193,7 @@ function songJson(id: string): string | null {
         verse_order: string | null;
         lyrics_markdown: number;
         priority: number;
+        different_from_ids: string | null;
         created_at: string;
         updated_at: string;
       }
@@ -216,6 +218,16 @@ function songJson(id: string): string | null {
       verseOrder: row.verse_order,
       lyricsMarkdown: Boolean(row.lyrics_markdown),
       priority: row.priority ?? 0,
+      differentFromIds: (() => {
+        try {
+          const parsed = JSON.parse(row.different_from_ids ?? "[]") as unknown;
+          return Array.isArray(parsed)
+            ? parsed.filter((id): id is string => typeof id === "string" && Boolean(id))
+            : [];
+        } catch {
+          return [];
+        }
+      })(),
       verseOrders,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
@@ -391,7 +403,7 @@ function importSongsFromRepo(runtime: RepoRuntime): number {
       if (existing) {
         db.prepare(
           `UPDATE songs SET title = ?, alternate_titles = ?, author = ?, copyright = ?, ccli = ?, key = ?, lyrics = ?,
-             verse_order = ?, lyrics_markdown = ?, priority = ?, updated_at = ? WHERE id = ?`,
+             verse_order = ?, lyrics_markdown = ?, priority = ?, different_from_ids = ?, updated_at = ? WHERE id = ?`,
         ).run(
           song.title,
           song.alternateTitles ?? null,
@@ -403,6 +415,7 @@ function importSongsFromRepo(runtime: RepoRuntime): number {
           song.verseOrder ?? null,
           song.lyricsMarkdown ? 1 : 0,
           song.priority ?? 0,
+          JSON.stringify(song.differentFromIds ?? []),
           song.updatedAt ?? new Date().toISOString(),
           song.id,
         );
@@ -410,8 +423,8 @@ function importSongsFromRepo(runtime: RepoRuntime): number {
         db.prepare(
           `INSERT INTO songs
            (id, title, alternate_titles, author, copyright, ccli, key, lyrics, verse_order,
-            lyrics_markdown, priority, source_format, source_path, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'git', NULL, ?, ?)`,
+            lyrics_markdown, priority, different_from_ids, source_format, source_path, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'git', NULL, ?, ?)`,
         ).run(
           song.id,
           song.title,
@@ -424,6 +437,7 @@ function importSongsFromRepo(runtime: RepoRuntime): number {
           song.verseOrder ?? null,
           song.lyricsMarkdown ? 1 : 0,
           song.priority ?? 0,
+          JSON.stringify(song.differentFromIds ?? []),
           song.createdAt ?? new Date().toISOString(),
           song.updatedAt ?? new Date().toISOString(),
         );

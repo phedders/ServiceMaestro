@@ -178,6 +178,11 @@ export const api = {
       method: "PATCH",
       body: JSON.stringify({ priority }),
     }),
+  markSongsDifferent: (firstId: string, secondId: string) =>
+    request<{ songs: Song[] }>("/api/songs/different", {
+      method: "POST",
+      body: JSON.stringify({ songIds: [firstId, secondId] }),
+    }),
   createSong: (payload: Partial<Song>) =>
     request<{ song: Song }>("/api/songs", { method: "POST", body: JSON.stringify(payload) }),
   updateSong: (id: string, payload: Partial<Song>) =>

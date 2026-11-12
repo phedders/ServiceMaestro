@@ -96,6 +96,22 @@ test("groups duplicate songs by similar titles, CCLI and identical lyrics", () =
   assert.ok(groups.every((group) => group.songs.length > 1));
 });
 
+test("does not group songs marked as different", () => {
+  const songs = [
+    {
+      ...song("first", "Amazing Grace"),
+      ccli: "12345",
+      different_from_ids: JSON.stringify(["second"]),
+    },
+    {
+      ...song("second", "Amazing Grace"),
+      ccli: "12345",
+      different_from_ids: JSON.stringify(["first"]),
+    },
+  ];
+  assert.equal(findDuplicateGroups(songs).length, 0);
+});
+
 test("preferred songs rank ahead of otherwise identical matches", () => {
   const songs = [
     { ...song("plain", "Amazing Grace"), priority: 0 },

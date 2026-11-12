@@ -133,10 +133,18 @@ function DifferenceSummary({
 function DuplicateDiffDialog({
   reference,
   candidate,
+  candidatePreferred,
+  busy,
+  onPrefer,
+  onMarkDifferent,
   onClose,
 }: {
   reference: SongDuplicateCandidate;
   candidate: SongDuplicateCandidate;
+  candidatePreferred: boolean;
+  busy: boolean;
+  onPrefer: () => void;
+  onMarkDifferent: () => void;
   onClose: () => void;
 }) {
   const [withoutChords, setWithoutChords] = useState(false);
@@ -181,6 +189,28 @@ function DuplicateDiffDialog({
             </p>
           </div>
           <div className="button-row">
+            <button
+              type="button"
+              className={`button small ${candidatePreferred ? "ghost" : "primary"}`}
+              onClick={onPrefer}
+              disabled={candidatePreferred || busy}
+              title={
+                candidatePreferred
+                  ? "This version already has the higher priority"
+                  : `Make “${candidate.title}” the higher priority version`
+              }
+            >
+              {candidatePreferred ? "Preferred" : "Higher priority"}
+            </button>
+            <button
+              type="button"
+              className="button ghost small"
+              onClick={onMarkDifferent}
+              disabled={busy}
+              title="Mark these two versions as different songs so they stop appearing as duplicates"
+            >
+              Different songs
+            </button>
             <button
               type="button"
               className={`button small ${withoutChords ? "primary" : "ghost"}`}
@@ -265,9 +295,13 @@ export default function DeDupePage({
 }) {
   const [groups, setGroups] = useState<SongDuplicateGroup[]>([]);
   const [loading, setLoading] = useState(true);
-  const [working, setWorking] = useState<{ id: string; action: "prefer" | "delete" } | null>(null);
+  const [working, setWorking] = useState<{
+    id: string;
+    action: "prefer" | "delete" | "different";
+  } | null>(null);
   const [lyricsSong, setLyricsSong] = useState<SongDuplicateCandidate | null>(null);
   const [comparison, setComparison] = useState<{
+    group: SongDuplicateGroup;
     reference: SongDuplicateCandidate;
     candidate: SongDuplicateCandidate;
   } | null>(null);
@@ -288,7 +322,7 @@ export default function DeDupePage({
     void loadDuplicates();
   }, []);
 
-  async function prefer(group: SongDuplicateGroup, song: SongDuplicateCandidate) {
+  async function prefer(group: SongDuplicateGroup, song: SongDuplicateCandidate): Promise<boolean> {
     setWorking({ id: song.id, action: "prefer" });
     try {
       await api.setSongPriority(song.id, 1);
@@ -299,8 +333,35 @@ export default function DeDupePage({
       );
       notify(`“${song.title}” is now the preferred version`);
       await loadDuplicates();
+      return true;
     } catch (error) {
       notify(error instanceof ApiError ? error.message : "Could not set the preferred version", "error");
+      return false;
+    } finally {
+      setWorking(null);
+    }
+  }
+
+  async function markDifferent(
+    first: SongDuplicateCandidate,
+    second: SongDuplicateCandidate,
+  ): Promise<boolean> {
+    if (
+      !window.confirm(
+        `Mark “${first.title}” and “${second.title}” as different songs? They will stop appearing as duplicates.`,
+      )
+    ) {
+      return false;
+    }
+    setWorking({ id: second.id, action: "different" });
+    try {
+      await api.markSongsDifferent(first.id, second.id);
+      notify(`Marked “${first.title}” and “${second.title}” as different songs`);
+      await loadDuplicates();
+      return true;
+    } catch (error) {
+      notify(error instanceof ApiError ? error.message : "Could not mark the songs as different", "error");
+      return false;
     } finally {
       setWorking(null);
     }
@@ -320,6 +381,16 @@ export default function DeDupePage({
     } finally {
       setWorking(null);
     }
+  }
+
+  async function preferFromDialog() {
+    if (!comparison) return;
+    if (await prefer(comparison.group, comparison.candidate)) setComparison(null);
+  }
+
+  async function markDifferentFromDialog() {
+    if (!comparison) return;
+    if (await markDifferent(comparison.reference, comparison.candidate)) setComparison(null);
   }
 
   return (
@@ -371,6 +442,8 @@ export default function DeDupePage({
                     const preferred = song.priority > 0;
                     const savingPriority = working?.id === song.id && working.action === "prefer";
                     const deleting = working?.id === song.id && working.action === "delete";
+                    const markingDifferent =
+                      working?.id === song.id && working.action === "different";
                     const comparison =
                       song.id === reference.id ? null : compareSongs(reference, song);
                     return (
@@ -403,7 +476,9 @@ export default function DeDupePage({
                               changedLinesApartFromSplits={
                                 comparison.changedLinesApartFromSplits
                               }
-                              onShowDiff={() => setComparison({ reference, candidate: song })}
+                              onShowDiff={() =>
+                                setComparison({ group, reference, candidate: song })
+                              }
                             />
                           ) : (
                             <span className="dedupe-diff-note">
@@ -426,7 +501,7 @@ export default function DeDupePage({
                             type="button"
                             className="button ghost small icon-button"
                             onClick={() =>
-                              setComparison({ reference, candidate: song })
+                              setComparison({ group, reference, candidate: song })
                             }
                             disabled={song.id === reference.id}
                             title={
@@ -451,6 +526,17 @@ export default function DeDupePage({
                           >
                             {preferred ? "Preferred" : savingPriority ? "Saving…" : "Higher priority"}
                           </button>
+                          {song.id !== reference.id && (
+                            <button
+                              type="button"
+                              className="button ghost small"
+                              onClick={() => void markDifferent(reference, song)}
+                              disabled={working !== null}
+                              title="Mark these two versions as different songs so they stop appearing as duplicates"
+                            >
+                              {markingDifferent ? "Saving…" : "Different songs"}
+                            </button>
+                          )}
                           <button
                             type="button"
                             className="button danger small"
@@ -476,6 +562,10 @@ export default function DeDupePage({
         <DuplicateDiffDialog
           reference={comparison.reference}
           candidate={comparison.candidate}
+          candidatePreferred={comparison.candidate.priority > 0}
+          busy={working !== null}
+          onPrefer={() => void preferFromDialog()}
+          onMarkDifferent={() => void markDifferentFromDialog()}
           onClose={() => setComparison(null)}
         />
       )}

@@ -124,6 +124,7 @@ export interface Song {
   lyricsMarkdown: boolean;
   verseOrders: SongVerseOrder[];
   priority: number;
+  differentFromIds: string[];
   sourceFormat: string | null;
   sourcePath: string | null;
   createdAt: string;
@@ -1260,6 +1261,10 @@ export const songBulkDeleteSchema = z.object({
 
 export const songPrioritySchema = z.object({
   priority: z.number().int().min(0).max(10),
+});
+
+export const songDifferentSchema = z.object({
+  songIds: z.array(z.string().trim().min(1).max(100)).length(2),
 });
 
 export const songPageIdFixApplySchema = z.object({

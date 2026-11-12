@@ -17,6 +17,7 @@ export interface MatchingSongRow {
   verse_order: string | null;
   lyrics_markdown: number;
   priority: number;
+  different_from_ids?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -228,9 +229,30 @@ function lyricsKey(lyrics: string): string {
     .replace(/[^a-z0-9]+/g, "");
 }
 
+function differentSongIds(song: MatchingSongRow | undefined): Set<string> {
+  if (!song?.different_from_ids) return new Set();
+  try {
+    const parsed = JSON.parse(song.different_from_ids) as unknown;
+    return new Set(
+      Array.isArray(parsed)
+        ? parsed.filter((id): id is string => typeof id === "string" && Boolean(id))
+        : [],
+    );
+  } catch {
+    return new Set();
+  }
+}
+
 export function findDuplicateGroups(songs: MatchingSongRow[]): SongDuplicateGroup[] {
   const parent = new Map(songs.map((song) => [song.id, song.id]));
+  const different = new Map(
+    songs.map((song) => [song.id, differentSongIds(song)]),
+  );
   const edges: Array<{ a: string; b: string; reason: string }> = [];
+
+  function markedDifferent(a: string, b: string): boolean {
+    return Boolean(different.get(a)?.has(b) || different.get(b)?.has(a));
+  }
 
   function root(id: string): string {
     let current = id;
@@ -267,19 +289,28 @@ export function findDuplicateGroups(songs: MatchingSongRow[]): SongDuplicateGrou
     }
   }
   for (const ids of byCcli.values()) {
-    for (let i = 1; i < ids.length; i += 1) {
-      union(ids[0], ids[i], "Same CCLI number");
+    for (let i = 0; i < ids.length; i += 1) {
+      for (let j = i + 1; j < ids.length; j += 1) {
+        if (!markedDifferent(ids[i], ids[j])) {
+          union(ids[i], ids[j], "Same CCLI number");
+        }
+      }
     }
   }
   for (const ids of byLyrics.values()) {
-    for (let i = 1; i < ids.length; i += 1) {
-      union(ids[0], ids[i], "Identical lyrics");
+    for (let i = 0; i < ids.length; i += 1) {
+      for (let j = i + 1; j < ids.length; j += 1) {
+        if (!markedDifferent(ids[i], ids[j])) {
+          union(ids[i], ids[j], "Identical lyrics");
+        }
+      }
     }
   }
 
   for (const song of songs) {
     for (const alternative of findSongAlternatives(song, songs, null, songs.length)) {
       if (alternative.score < 300) continue;
+      if (markedDifferent(song.id, alternative.id)) continue;
       union(song.id, alternative.id, alternative.reasons[0] ?? "Similar title");
     }
   }

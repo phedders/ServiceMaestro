@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import {
   simplifySongPageIds,
   songBulkDeleteSchema,
+  songDifferentSchema,
   songInputSchema,
   songPageIdFixApplySchema,
   songPageNameCandidates,
@@ -33,6 +34,7 @@ interface SongRow {
   verse_order: string | null;
   lyrics_markdown: number;
   priority: number;
+  different_from_ids: string | null;
   source_format: string | null;
   source_path: string | null;
   created_at: string;
@@ -68,6 +70,18 @@ function verseOrders(songId: string): SongVerseOrder[] {
   return rows.map(mapVerseOrder);
 }
 
+function parseDifferentIds(value: string | null | undefined): string[] {
+  if (!value) return [];
+  try {
+    const parsed = JSON.parse(value) as unknown;
+    return Array.isArray(parsed)
+      ? parsed.filter((id): id is string => typeof id === "string" && Boolean(id))
+      : [];
+  } catch {
+    return [];
+  }
+}
+
 function mapSong(row: SongRow): Song {
   return {
     id: row.id,
@@ -82,6 +96,7 @@ function mapSong(row: SongRow): Song {
     lyricsMarkdown: Boolean(row.lyrics_markdown),
     verseOrders: verseOrders(row.id),
     priority: row.priority ?? 0,
+    differentFromIds: parseDifferentIds(row.different_from_ids),
     sourceFormat: row.source_format,
     sourcePath: row.source_path,
     createdAt: row.created_at,
@@ -183,6 +198,54 @@ export async function songRoutes(app: FastifyInstance): Promise<void> {
       );
       const row = db.prepare("SELECT * FROM songs WHERE id = ?").get(id) as SongRow;
       return { song: mapSong(row) };
+    },
+  );
+
+  app.post(
+    "/api/songs/different",
+    { preHandler: [requireAuth, requirePermission("songs")] },
+    async (request, reply) => {
+      const parsed = songDifferentSchema.safeParse(request.body ?? {});
+      if (!parsed.success) {
+        return reply.code(400).send({ error: "Invalid song pair", issues: parsed.error.issues });
+      }
+      const [firstId, secondId] = parsed.data.songIds;
+      if (firstId === secondId) {
+        return reply.code(400).send({ error: "Choose two different songs" });
+      }
+      const first = db.prepare("SELECT * FROM songs WHERE id = ?").get(firstId) as
+        | SongRow
+        | undefined;
+      const second = db.prepare("SELECT * FROM songs WHERE id = ?").get(secondId) as
+        | SongRow
+        | undefined;
+      if (!first || !second) return reply.code(404).send({ error: "Song not found" });
+      const firstDifferent = new Set(parseDifferentIds(first.different_from_ids));
+      const secondDifferent = new Set(parseDifferentIds(second.different_from_ids));
+      firstDifferent.add(secondId);
+      secondDifferent.add(firstId);
+      const now = new Date().toISOString();
+      const update = db.prepare(
+        "UPDATE songs SET different_from_ids = ?, updated_at = ? WHERE id = ?",
+      );
+      db.transaction(() => {
+        update.run(JSON.stringify([...firstDifferent]), now, firstId);
+        update.run(JSON.stringify([...secondDifferent]), now, secondId);
+      })();
+      await Promise.all([
+        saveSongToGit(firstId).catch((error) =>
+          request.log.warn({ err: error }, "git song difference save failed"),
+        ),
+        saveSongToGit(secondId).catch((error) =>
+          request.log.warn({ err: error }, "git song difference save failed"),
+        ),
+      ]);
+      return {
+        songs: [
+          mapSong(db.prepare("SELECT * FROM songs WHERE id = ?").get(firstId) as SongRow),
+          mapSong(db.prepare("SELECT * FROM songs WHERE id = ?").get(secondId) as SongRow),
+        ],
+      };
     },
   );
 
