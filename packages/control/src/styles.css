@@ -3447,6 +3447,45 @@ body.resizing-live-queue {
   width: auto;
 }
 
+.cs-preview-cell {
+  width: 54px;
+  text-align: center !important;
+}
+
+.cs-eye-button {
+  padding: 5px 7px;
+  line-height: 0;
+}
+
+.lyrics-preview-modal {
+  width: min(760px, 96vw);
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.lyrics-preview-body {
+  flex: 1;
+  overflow: auto;
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--panel-2);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.lyrics-preview-copyright {
+  margin-top: 10px;
+  flex: 0 0 auto;
+}
+
 .cs-match-table td:nth-child(2) {
   min-width: 180px;
 }

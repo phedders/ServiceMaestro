@@ -47,6 +47,14 @@ export default function ChurchsuitePage({
   const [importing, setImporting] = useState(false);
   const [report, setReport] = useState<ChurchSuiteImportReport | null>(null);
   const [songSelections, setSongSelections] = useState<Record<number, string>>({});
+  const [lyricsPreview, setLyricsPreview] = useState<{
+    title: string;
+    author: string | null;
+    copyright: string | null;
+    ccli: string | null;
+    lyrics: string;
+  } | null>(null);
+  const [lyricsLoadingId, setLyricsLoadingId] = useState<string | null>(null);
 
   async function loadPlans() {
     setLoading(true);
@@ -68,6 +76,33 @@ export default function ChurchsuitePage({
   useEffect(() => {
     loadPlans();
   }, []);
+
+  useEffect(() => {
+    if (!lyricsPreview) return;
+    const close = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setLyricsPreview(null);
+    };
+    window.addEventListener("keydown", close);
+    return () => window.removeEventListener("keydown", close);
+  }, [lyricsPreview]);
+
+  async function previewLyrics(candidate: { id: string; title: string }) {
+    setLyricsLoadingId(candidate.id);
+    try {
+      const result = await api.song(candidate.id);
+      setLyricsPreview({
+        title: result.song.title,
+        author: result.song.author,
+        copyright: result.song.copyright,
+        ccli: result.song.ccli,
+        lyrics: result.song.lyrics,
+      });
+    } catch (error) {
+      notify(error instanceof ApiError ? error.message : "Could not load song lyrics", "error");
+    } finally {
+      setLyricsLoadingId(null);
+    }
+  }
 
   async function openPlan(plan: ChurchSuitePlanSummary) {
     setSelectedPlan(plan.id);
@@ -263,6 +298,7 @@ export default function ChurchsuitePage({
                                 <th>CCLI</th>
                                 <th>Key</th>
                                 <th>Alternative titles / first lines</th>
+                                <th>Lyrics</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -301,6 +337,42 @@ export default function ChurchsuitePage({
                                       {candidate.alternateTitles || "No alternate titles"}
                                     </span>
                                     <span className="cs-match-lyrics">{candidate.firstLines}</span>
+                                  </td>
+                                  <td className="cs-preview-cell">
+                                    <button
+                                      type="button"
+                                      className="button ghost small cs-eye-button"
+                                      onClick={() => previewLyrics(candidate)}
+                                      disabled={lyricsLoadingId === candidate.id}
+                                      title={`Preview all lyrics for “${candidate.title}”`}
+                                      aria-label={`Preview lyrics for ${candidate.title}`}
+                                    >
+                                      {lyricsLoadingId === candidate.id ? (
+                                        "…"
+                                      ) : (
+                                        <svg
+                                          viewBox="0 0 24 24"
+                                          width="16"
+                                          height="16"
+                                          aria-hidden="true"
+                                        >
+                                          <path
+                                            d="M2.5 12s3.4-6 9.5-6 9.5 6 9.5 6-3.4 6-9.5 6-9.5-6-9.5-6Z"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            strokeWidth="1.7"
+                                          />
+                                          <circle
+                                            cx="12"
+                                            cy="12"
+                                            r="2.6"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            strokeWidth="1.7"
+                                          />
+                                        </svg>
+                                      )}
+                                    </button>
                                   </td>
                                 </tr>
                               ))}
@@ -365,6 +437,39 @@ export default function ChurchsuitePage({
           )}
         </section>
       </div>
+
+      {lyricsPreview && (
+        <div
+          className="alt-backdrop"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setLyricsPreview(null);
+          }}
+        >
+          <div className="alt-modal lyrics-preview-modal" role="dialog" aria-modal="true">
+            <div className="alt-modal-heading">
+              <div>
+                <h3>{lyricsPreview.title}</h3>
+                <p className="muted">
+                  {[lyricsPreview.author, lyricsPreview.ccli ? `CCLI ${lyricsPreview.ccli}` : ""]
+                    .filter(Boolean)
+                    .join(" · ") || "Song lyrics"}
+                </p>
+              </div>
+              <button
+                className="button ghost small"
+                onClick={() => setLyricsPreview(null)}
+                title="Close the lyrics preview"
+              >
+                Close
+              </button>
+            </div>
+            <pre className="lyrics-preview-body">{lyricsPreview.lyrics}</pre>
+            {lyricsPreview.copyright && (
+              <p className="hint lyrics-preview-copyright">{lyricsPreview.copyright}</p>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
