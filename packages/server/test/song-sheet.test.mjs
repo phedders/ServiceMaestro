@@ -74,7 +74,7 @@ test("builds a printable PDF song sheet without chords or slide labels", () => {
   const data = JSON.parse(result.stdout);
 
   assert.deepEqual(data.lines, ["Amazing grace", "", "How sweet the sound"]);
-  assert.equal(data.filename, "sunday-service-20261115-songs.pdf");
+  assert.equal(data.filename, "sunday-service-2026-11-15-songs.pdf");
   assert.equal(data.header, "%PDF-");
   assert.ok(data.bytes > 1000);
   assert.equal(data.pageCount, 1);

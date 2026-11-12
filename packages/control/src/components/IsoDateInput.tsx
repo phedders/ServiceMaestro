@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { compactDate } from "../service-date";
 
-function parseCompact(value: string): string | null {
+function parseDate(value: string): string | null {
   const digits = value.replace(/\D/g, "").slice(0, 8);
   if (digits.length !== 8) return null;
   const year = Number(digits.slice(0, 4));
@@ -16,6 +16,13 @@ function parseCompact(value: string): string | null {
     return null;
   }
   return `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6, 8)}`;
+}
+
+function formatDateInput(value: string): string {
+  const digits = value.replace(/\D/g, "").slice(0, 8);
+  if (digits.length <= 4) return digits;
+  if (digits.length <= 6) return `${digits.slice(0, 4)}-${digits.slice(4)}`;
+  return `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6)}`;
 }
 
 export function IsoDateInput({
@@ -54,16 +61,16 @@ export function IsoDateInput({
         inputMode="numeric"
         autoComplete="off"
         spellCheck={false}
-        placeholder="YYYYMMDD"
-        title="Date in YYYYMMDD format"
+        placeholder="YYYY-MM-DD"
+        title="Date in YYYY-MM-DD format"
         onChange={(event) => {
-          const digits = event.target.value.replace(/\D/g, "").slice(0, 8);
-          setText(digits);
-          const next = parseCompact(digits);
+          const formatted = formatDateInput(event.target.value);
+          setText(formatted);
+          const next = parseDate(formatted);
           if (next) onChange(next);
         }}
         onBlur={() => {
-          if (!parseCompact(text)) setText(compactDate(value));
+          if (!parseDate(text)) setText(compactDate(value));
         }}
         onFocus={(event) => event.currentTarget.select()}
       />

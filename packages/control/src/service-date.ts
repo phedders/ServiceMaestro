@@ -1,18 +1,18 @@
 import type { SetlistSummary } from "@sm/shared";
 
 /**
- * Compact ISO-style calendar date (`YYYYMMDD`) used for display and sortable
- * set-list names. Accepts `YYYY-MM-DD`, `YYYYMMDD` or an ISO timestamp/Date.
+ * ISO calendar date (`YYYY-MM-DD`) used for display and sortable set-list
+ * names. Accepts `YYYY-MM-DD`, `YYYYMMDD` or an ISO timestamp/Date.
  */
 export function compactDate(value: string | Date): string {
   if (value instanceof Date) {
     const year = value.getFullYear();
     const month = String(value.getMonth() + 1).padStart(2, "0");
     const day = String(value.getDate()).padStart(2, "0");
-    return `${year}${month}${day}`;
+    return `${year}-${month}-${day}`;
   }
   const match = value.match(/^(\d{4})-?(\d{2})-?(\d{2})/);
-  if (match) return `${match[1]}${match[2]}${match[3]}`;
+  if (match) return `${match[1]}-${match[2]}-${match[3]}`;
   return compactDate(new Date(value));
 }
 

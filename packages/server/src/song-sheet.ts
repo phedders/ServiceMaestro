@@ -180,7 +180,7 @@ function safeFilename(name: string, serviceDate: string): string {
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-+|-+$/g, "")
       .slice(0, 60) || "service";
-  return `${base}-${serviceDate.replace(/-/g, "")}-songs.pdf`;
+  return `${base}-${serviceDate}-songs.pdf`;
 }
 
 function loadSongs(setlistId: string): { setlist: SetlistRow; songs: SongForPdf[] } {

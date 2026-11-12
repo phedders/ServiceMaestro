@@ -45,7 +45,7 @@ This gives the "edit without affecting live" guarantee by construction rather th
 ### Metadata
 
 - `name` — required, free text (e.g. "Sunday AM", "Carols by Candlelight").
-- `service_date` — required, local date; displayed and edited as `YYYYMMDD` (for example `20261115-…`) so set-list names sort naturally. The API/database still store `YYYY-MM-DD` internally. `service_time` optional (AM/PM services on the same day are separate set lists).
+- `service_date` — required, local date; displayed and edited as `YYYY-MM-DD` (for example `2026-11-15-…`) so set-list names sort naturally. `service_time` optional (AM/PM services on the same day are separate set lists).
 - `notes`, `location`, `tags` optional.
 - `status`: `draft` | `ready` | `archived`.
 - `created_by`, timestamps.

@@ -368,7 +368,7 @@ export function buildSetlistExport(
     tarp: tarp && (tarp.presentations?.length || tarp.themes?.length) ? tarp : undefined,
   };
 
-  const base = `${safeName(setlist.name)}-${setlist.service_date.replace(/-/g, "")}`;
+  const base = `${safeName(setlist.name)}-${setlist.service_date}`;
   return {
     manifest,
     files: assetFiles,
