@@ -59,6 +59,7 @@ const songFileSchema = z.object({
   lyrics: z.string(),
   verseOrder: z.string().nullable().optional(),
   lyricsMarkdown: z.boolean().optional(),
+  priority: z.number().int().min(0).max(10).optional(),
   verseOrders: z.array(z.object({ name: z.string(), order: z.string() })).optional(),
   createdAt: z.string().optional(),
   updatedAt: z.string().optional(),
@@ -190,6 +191,7 @@ function songJson(id: string): string | null {
         lyrics: string;
         verse_order: string | null;
         lyrics_markdown: number;
+        priority: number;
         created_at: string;
         updated_at: string;
       }
@@ -213,6 +215,7 @@ function songJson(id: string): string | null {
       lyrics: row.lyrics,
       verseOrder: row.verse_order,
       lyricsMarkdown: Boolean(row.lyrics_markdown),
+      priority: row.priority ?? 0,
       verseOrders,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
@@ -388,7 +391,7 @@ function importSongsFromRepo(runtime: RepoRuntime): number {
       if (existing) {
         db.prepare(
           `UPDATE songs SET title = ?, alternate_titles = ?, author = ?, copyright = ?, ccli = ?, key = ?, lyrics = ?,
-             verse_order = ?, lyrics_markdown = ?, updated_at = ? WHERE id = ?`,
+             verse_order = ?, lyrics_markdown = ?, priority = ?, updated_at = ? WHERE id = ?`,
         ).run(
           song.title,
           song.alternateTitles ?? null,
@@ -399,14 +402,16 @@ function importSongsFromRepo(runtime: RepoRuntime): number {
           addDefaultVerseTags(song.lyrics),
           song.verseOrder ?? null,
           song.lyricsMarkdown ? 1 : 0,
+          song.priority ?? 0,
           song.updatedAt ?? new Date().toISOString(),
           song.id,
         );
       } else {
         db.prepare(
           `INSERT INTO songs
-           (id, title, alternate_titles, author, copyright, ccli, key, lyrics, verse_order, lyrics_markdown, source_format, source_path, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'git', NULL, ?, ?)`,
+           (id, title, alternate_titles, author, copyright, ccli, key, lyrics, verse_order,
+            lyrics_markdown, priority, source_format, source_path, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'git', NULL, ?, ?)`,
         ).run(
           song.id,
           song.title,
@@ -418,6 +423,7 @@ function importSongsFromRepo(runtime: RepoRuntime): number {
           addDefaultVerseTags(song.lyrics),
           song.verseOrder ?? null,
           song.lyricsMarkdown ? 1 : 0,
+          song.priority ?? 0,
           song.createdAt ?? new Date().toISOString(),
           song.updatedAt ?? new Date().toISOString(),
         );

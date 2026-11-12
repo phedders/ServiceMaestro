@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  findDuplicateGroups,
   findSongAlternatives,
   findSongMatches,
   matchSummary,
@@ -18,6 +19,7 @@ function song(id, title, alternateTitles = null, lyrics = "[Verse 1]\nFirst line
     lyrics,
     verse_order: null,
     lyrics_markdown: 0,
+    priority: 0,
     created_at: "2026-01-01T00:00:00.000Z",
     updated_at: "2026-01-01T00:00:00.000Z",
   };
@@ -57,4 +59,48 @@ test("alternatives exclude the current song and include full lyrics", () => {
   assert.equal(alternatives.length, 1);
   assert.equal(alternatives[0].id, "extended");
   assert.match(alternatives[0].lyrics, /Other lyric/);
+});
+
+test("groups duplicate songs by similar titles, CCLI and identical lyrics", () => {
+  const songs = [
+    song("plain", "Amazing Grace"),
+    song("extended", "Amazing Grace (My Chains Are Gone)"),
+    { ...song("ccli-a", "First title", null, "[Verse 1]\nA different lyric"), ccli: "12345" },
+    { ...song("ccli-b", "Second title", null, "[Verse 1]\nAnother lyric"), ccli: "12345" },
+    {
+      ...song(
+        "lyrics-a",
+        "A song name",
+        null,
+        "[Verse 1]\nExactly the same words here and they continue for long enough to be compared as identical lyrics",
+      ),
+      ccli: null,
+    },
+    {
+      ...song(
+        "lyrics-b",
+        "Another song name",
+        null,
+        "[Verse 1]\nExactly the same words here and they continue for long enough to be compared as identical lyrics",
+      ),
+      ccli: null,
+    },
+    song("unrelated", "Grace Alone"),
+  ];
+  const groups = findDuplicateGroups(songs);
+  const ids = groups.map((group) => group.songs.map((item) => item.id));
+  assert.ok(ids.some((group) => group.includes("plain") && group.includes("extended")));
+  assert.ok(ids.some((group) => group.includes("ccli-a") && group.includes("ccli-b")));
+  assert.ok(ids.some((group) => group.includes("lyrics-a") && group.includes("lyrics-b")));
+  assert.ok(!ids.some((group) => group.includes("unrelated")));
+  assert.ok(groups.every((group) => group.songs.length > 1));
+});
+
+test("preferred songs rank ahead of otherwise identical matches", () => {
+  const songs = [
+    { ...song("plain", "Amazing Grace"), priority: 0 },
+    { ...song("preferred", "Amazing Grace"), priority: 1 },
+  ];
+  assert.equal(findSongMatches("Amazing Grace", songs)[0].song.id, "preferred");
+  assert.equal(findSongAlternatives(songs[0], songs)[0].id, "preferred");
 });

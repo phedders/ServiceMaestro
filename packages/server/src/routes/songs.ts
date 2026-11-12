@@ -6,6 +6,7 @@ import {
   songInputSchema,
   songPageIdFixApplySchema,
   songPageNameCandidates,
+  songPrioritySchema,
   songVerseOrderInputSchema,
   songVerseOrderPatchSchema,
   type Song,
@@ -18,7 +19,7 @@ import { requireAuth, requirePermission } from "../auth.js";
 import { saveSongToGit, deleteSongFromGit, deleteSongsFromGit } from "../git-store.js";
 import { addDefaultVerseTags } from "../lyrics.js";
 import { getAppSettings } from "../settings.js";
-import { findSongAlternatives } from "../song-matching.js";
+import { findDuplicateGroups, findSongAlternatives } from "../song-matching.js";
 
 interface SongRow {
   id: string;
@@ -31,6 +32,7 @@ interface SongRow {
   lyrics: string;
   verse_order: string | null;
   lyrics_markdown: number;
+  priority: number;
   source_format: string | null;
   source_path: string | null;
   created_at: string;
@@ -79,6 +81,7 @@ function mapSong(row: SongRow): Song {
     verseOrder: row.verse_order,
     lyricsMarkdown: Boolean(row.lyrics_markdown),
     verseOrders: verseOrders(row.id),
+    priority: row.priority ?? 0,
     sourceFormat: row.source_format,
     sourcePath: row.source_path,
     createdAt: row.created_at,
@@ -156,6 +159,32 @@ export async function songRoutes(app: FastifyInstance): Promise<void> {
       names: [...names.values()].sort((a, b) => a.localeCompare(b)),
     };
   });
+
+  app.get("/api/songs/duplicates", { preHandler: requireAuth }, async () => {
+    const rows = db.prepare("SELECT * FROM songs").all() as SongRow[];
+    return { groups: findDuplicateGroups(rows) };
+  });
+
+  app.patch(
+    "/api/songs/:id/priority",
+    { preHandler: [requireAuth, requirePermission("songs")] },
+    async (request, reply) => {
+      const parsed = songPrioritySchema.safeParse(request.body ?? {});
+      if (!parsed.success) {
+        return reply.code(400).send({ error: "Invalid priority", issues: parsed.error.issues });
+      }
+      const id = (request.params as { id: string }).id;
+      const result = db
+        .prepare("UPDATE songs SET priority = ?, updated_at = ? WHERE id = ?")
+        .run(parsed.data.priority, new Date().toISOString(), id);
+      if (!result.changes) return reply.code(404).send({ error: "Song not found" });
+      await saveSongToGit(id).catch((error) =>
+        request.log.warn({ err: error }, "git song priority save failed"),
+      );
+      const row = db.prepare("SELECT * FROM songs WHERE id = ?").get(id) as SongRow;
+      return { song: mapSong(row) };
+    },
+  );
 
   app.get(
     "/api/songs/page-id-fixes",

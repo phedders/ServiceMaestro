@@ -68,6 +68,7 @@ db.exec(`
     key TEXT,
     lyrics TEXT NOT NULL,
     verse_order TEXT,
+    priority INTEGER NOT NULL DEFAULT 0,
     source_format TEXT,
     source_path TEXT,
     created_at TEXT NOT NULL,
@@ -280,6 +281,7 @@ function ensureColumn(table: string, column: string, definition: string): void {
 }
 
 ensureColumn("users", "permissions_json", "TEXT");
+ensureColumn("songs", "priority", "INTEGER NOT NULL DEFAULT 0");
 ensureColumn("songs", "source_format", "TEXT");
 ensureColumn("songs", "source_path", "TEXT");
 ensureColumn("songs", "verse_order", "TEXT");

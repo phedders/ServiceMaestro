@@ -23,6 +23,7 @@ import ImagesPage from "./pages/ImagesPage";
 import BackgroundsPage from "./pages/BackgroundsPage";
 import StingersPage from "./pages/StingersPage";
 import UsersPage from "./pages/UsersPage";
+import DeDupePage from "./pages/DeDupePage";
 
 const TarpPage = lazy(() => import("./pages/TarpPage"));
 import {
@@ -45,6 +46,7 @@ type Page =
   | "settings"
   | "backgrounds"
   | "stingers"
+  | "dedupe"
   | "users"
   | "help";
 
@@ -65,6 +67,7 @@ const PAGE_MODULE: Partial<Record<Page, PermissionModule>> = {
   settings: "settings",
   backgrounds: "backgrounds",
   stingers: "stingers",
+  dedupe: "songs",
 };
 
 export default function App() {
@@ -366,6 +369,8 @@ export default function App() {
         return "Backgrounds";
       case "stingers":
         return "Stingers";
+      case "dedupe":
+        return "DeDupe";
       case "users":
         return "Users";
       case "help":
@@ -581,6 +586,21 @@ export default function App() {
                     ✦
                   </span>
                 </button>
+                <button
+                  type="button"
+                  className="nav-dropdown-link"
+                  role="menuitem"
+                  onClick={() => {
+                    setPage("dedupe");
+                    setMenuOpen(false);
+                  }}
+                  title="Find duplicate songs, preview differences and keep the best version"
+                >
+                  <span>DeDupe</span>
+                  <span className="nav-dropdown-external" aria-hidden="true">
+                    ⧉
+                  </span>
+                </button>
                 {user.role === "admin" && (
                   <button
                     type="button"
@@ -718,6 +738,7 @@ export default function App() {
           <ChurchsuitePage notify={notify} onOpenSetlists={() => setPage("setlists")} />
         )}
         {page === "settings" && <SettingsPage user={user} notify={notify} />}
+        {page === "dedupe" && <DeDupePage notify={notify} />}
         {page === "users" && <UsersPage user={user} notify={notify} />}
         {page === "backgrounds" && <BackgroundsPage notify={notify} />}
         {page === "stingers" && <StingersPage notify={notify} />}

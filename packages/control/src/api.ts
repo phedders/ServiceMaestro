@@ -41,6 +41,7 @@ import type {
   SetlistSummary,
   Song,
   SongAlternative,
+  SongDuplicateGroup,
   SongAsset,
   SongImportReport,
   SongImportScan,
@@ -171,6 +172,12 @@ export const api = {
     request<{ alternatives: SongAlternative[] }>(
       `/api/songs/${id}/alternatives${q ? `?q=${encodeURIComponent(q)}` : ""}`,
     ),
+  songDuplicates: () => request<{ groups: SongDuplicateGroup[] }>("/api/songs/duplicates"),
+  setSongPriority: (id: string, priority: number) =>
+    request<{ song: Song }>(`/api/songs/${id}/priority`, {
+      method: "PATCH",
+      body: JSON.stringify({ priority }),
+    }),
   createSong: (payload: Partial<Song>) =>
     request<{ song: Song }>("/api/songs", { method: "POST", body: JSON.stringify(payload) }),
   updateSong: (id: string, payload: Partial<Song>) =>

@@ -123,10 +123,32 @@ export interface Song {
   verseOrder: string | null;
   lyricsMarkdown: boolean;
   verseOrders: SongVerseOrder[];
+  priority: number;
   sourceFormat: string | null;
   sourcePath: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface SongDuplicateCandidate {
+  id: string;
+  title: string;
+  alternateTitles: string | null;
+  author: string | null;
+  copyright: string | null;
+  ccli: string | null;
+  key: string | null;
+  lyrics: string;
+  lyricsMarkdown: boolean;
+  priority: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SongDuplicateGroup {
+  id: string;
+  reasons: string[];
+  songs: SongDuplicateCandidate[];
 }
 
 export type ItemKind = "song" | "text" | "image" | "image_list" | "tarp";
@@ -633,6 +655,7 @@ export interface SongMatchSummary {
   key: string | null;
   firstLines: string;
   score: number;
+  priority: number;
   reasons: string[];
 }
 
@@ -1090,6 +1113,10 @@ export const songInputSchema = z.object({
 
 export const songBulkDeleteSchema = z.object({
   ids: z.array(z.string().trim().min(1).max(100)).min(1).max(1000),
+});
+
+export const songPrioritySchema = z.object({
+  priority: z.number().int().min(0).max(10),
 });
 
 export const songPageIdFixApplySchema = z.object({

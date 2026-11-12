@@ -5,7 +5,9 @@ import type {
   ChurchSuitePlanSummary,
 } from "@sm/shared";
 import { api, ApiError } from "../api";
+import { EyeIcon } from "../components/Icons";
 import { IsoDateInput } from "../components/IsoDateInput";
+import { SongLyricsDialog } from "../components/SongLyricsDialog";
 import { compactDate } from "../service-date";
 
 function isoDate(date: Date): string {
@@ -347,31 +349,7 @@ export default function ChurchsuitePage({
                                       title={`Preview all lyrics for “${candidate.title}”`}
                                       aria-label={`Preview lyrics for ${candidate.title}`}
                                     >
-                                      {lyricsLoadingId === candidate.id ? (
-                                        "…"
-                                      ) : (
-                                        <svg
-                                          viewBox="0 0 24 24"
-                                          width="16"
-                                          height="16"
-                                          aria-hidden="true"
-                                        >
-                                          <path
-                                            d="M2.5 12s3.4-6 9.5-6 9.5 6 9.5 6-3.4 6-9.5 6-9.5-6-9.5-6Z"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            strokeWidth="1.7"
-                                          />
-                                          <circle
-                                            cx="12"
-                                            cy="12"
-                                            r="2.6"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            strokeWidth="1.7"
-                                          />
-                                        </svg>
-                                      )}
+                                      {lyricsLoadingId === candidate.id ? "…" : <EyeIcon />}
                                     </button>
                                   </td>
                                 </tr>
@@ -438,38 +416,7 @@ export default function ChurchsuitePage({
         </section>
       </div>
 
-      {lyricsPreview && (
-        <div
-          className="alt-backdrop"
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget) setLyricsPreview(null);
-          }}
-        >
-          <div className="alt-modal lyrics-preview-modal" role="dialog" aria-modal="true">
-            <div className="alt-modal-heading">
-              <div>
-                <h3>{lyricsPreview.title}</h3>
-                <p className="muted">
-                  {[lyricsPreview.author, lyricsPreview.ccli ? `CCLI ${lyricsPreview.ccli}` : ""]
-                    .filter(Boolean)
-                    .join(" · ") || "Song lyrics"}
-                </p>
-              </div>
-              <button
-                className="button ghost small"
-                onClick={() => setLyricsPreview(null)}
-                title="Close the lyrics preview"
-              >
-                Close
-              </button>
-            </div>
-            <pre className="lyrics-preview-body">{lyricsPreview.lyrics}</pre>
-            {lyricsPreview.copyright && (
-              <p className="hint lyrics-preview-copyright">{lyricsPreview.copyright}</p>
-            )}
-          </div>
-        </div>
-      )}
+      <SongLyricsDialog song={lyricsPreview} onClose={() => setLyricsPreview(null)} />
     </div>
   );
 }

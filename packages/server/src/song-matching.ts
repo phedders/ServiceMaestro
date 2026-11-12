@@ -1,4 +1,9 @@
-import type { SongAlternative, SongMatchSummary } from "@sm/shared";
+import type {
+  SongAlternative,
+  SongDuplicateCandidate,
+  SongDuplicateGroup,
+  SongMatchSummary,
+} from "@sm/shared";
 
 export interface MatchingSongRow {
   id: string;
@@ -11,6 +16,7 @@ export interface MatchingSongRow {
   lyrics: string;
   verse_order: string | null;
   lyrics_markdown: number;
+  priority: number;
   created_at: string;
   updated_at: string;
 }
@@ -128,7 +134,12 @@ export function findSongMatches(
     if (bestScore > 0) matches.push({ song, score: bestScore, reasons: [...reasons] });
   }
   return matches
-    .sort((a, b) => b.score - a.score || a.song.title.localeCompare(b.song.title))
+    .sort(
+      (a, b) =>
+        b.score - a.score ||
+        (b.song.priority ?? 0) - (a.song.priority ?? 0) ||
+        a.song.title.localeCompare(b.song.title),
+    )
     .slice(0, limit);
 }
 
@@ -159,6 +170,7 @@ export function matchSummary(match: SongMatch): SongMatchSummary {
     key: song.key,
     firstLines: firstLines(song.lyrics),
     score: match.score,
+    priority: song.priority ?? 0,
     reasons: match.reasons,
   };
 }
@@ -175,6 +187,7 @@ export function findSongAlternatives(
   current: MatchingSongRow,
   songs: MatchingSongRow[],
   itemTitle?: string | null,
+  limit = 12,
 ): SongAlternative[] {
   const queries = [
     itemTitle?.trim(),
@@ -186,7 +199,7 @@ export function findSongAlternatives(
   ].filter((value): value is string => Boolean(value));
   const byId = new Map<string, SongMatch>();
   for (const query of queries) {
-    for (const match of findSongMatches(query, songs, 12)) {
+    for (const match of findSongMatches(query, songs, limit)) {
       if (match.song.id === current.id) continue;
       const existing = byId.get(match.song.id);
       if (!existing) {
@@ -198,7 +211,118 @@ export function findSongAlternatives(
     }
   }
   return [...byId.values()]
-    .sort((a, b) => b.score - a.score || a.song.title.localeCompare(b.song.title))
-    .slice(0, 12)
+    .sort(
+      (a, b) =>
+        b.score - a.score ||
+        (b.song.priority ?? 0) - (a.song.priority ?? 0) ||
+        a.song.title.localeCompare(b.song.title),
+    )
+    .slice(0, limit)
     .map(matchAlternative);
+}
+
+function lyricsKey(lyrics: string): string {
+  return lyrics
+    .replace(/\[[^\]]*\]/g, " ")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "");
+}
+
+export function findDuplicateGroups(songs: MatchingSongRow[]): SongDuplicateGroup[] {
+  const parent = new Map(songs.map((song) => [song.id, song.id]));
+  const edges: Array<{ a: string; b: string; reason: string }> = [];
+
+  function root(id: string): string {
+    let current = id;
+    while (parent.get(current) !== current) current = parent.get(current)!;
+    while (parent.get(id) !== id) {
+      const next = parent.get(id)!;
+      parent.set(id, current);
+      id = next;
+    }
+    return current;
+  }
+
+  function union(a: string, b: string, reason: string): void {
+    const rootA = root(a);
+    const rootB = root(b);
+    if (rootA !== rootB) parent.set(rootB, rootA);
+    edges.push({
+      a,
+      b,
+      reason: reason.includes("contained in") ? "One title contains the other" : reason,
+    });
+  }
+
+  const byCcli = new Map<string, string[]>();
+  const byLyrics = new Map<string, string[]>();
+  for (const song of songs) {
+    const ccli = song.ccli?.trim();
+    if (ccli && !/^0+$/.test(ccli)) {
+      byCcli.set(ccli.toLowerCase(), [...(byCcli.get(ccli.toLowerCase()) ?? []), song.id]);
+    }
+    const key = lyricsKey(song.lyrics);
+    if (key.length >= 80) {
+      byLyrics.set(key, [...(byLyrics.get(key) ?? []), song.id]);
+    }
+  }
+  for (const ids of byCcli.values()) {
+    for (let i = 1; i < ids.length; i += 1) {
+      union(ids[0], ids[i], "Same CCLI number");
+    }
+  }
+  for (const ids of byLyrics.values()) {
+    for (let i = 1; i < ids.length; i += 1) {
+      union(ids[0], ids[i], "Identical lyrics");
+    }
+  }
+
+  for (const song of songs) {
+    for (const alternative of findSongAlternatives(song, songs, null, songs.length)) {
+      if (alternative.score < 300) continue;
+      union(song.id, alternative.id, alternative.reasons[0] ?? "Similar title");
+    }
+  }
+
+  const groups = new Map<string, MatchingSongRow[]>();
+  for (const song of songs) {
+    const key = root(song.id);
+    groups.set(key, [...(groups.get(key) ?? []), song]);
+  }
+  const reasonMap = new Map<string, Set<string>>();
+  for (const edge of edges) {
+    const key = root(edge.a);
+    reasonMap.set(key, (reasonMap.get(key) ?? new Set()).add(edge.reason));
+  }
+
+  return [...groups.entries()]
+    .filter(([, members]) => members.length > 1)
+    .map(([key, members]) => {
+      const sorted = [...members].sort(
+        (a, b) =>
+          (b.priority ?? 0) - (a.priority ?? 0) ||
+          a.title.localeCompare(b.title),
+      );
+      const candidates: SongDuplicateCandidate[] = sorted.map((song) => ({
+        id: song.id,
+        title: song.title,
+        alternateTitles: song.alternate_titles,
+        author: song.author,
+        copyright: song.copyright,
+        ccli: song.ccli,
+        key: song.key,
+        lyrics: song.lyrics,
+        lyricsMarkdown: Boolean(song.lyrics_markdown),
+        priority: song.priority ?? 0,
+        createdAt: song.created_at,
+        updatedAt: song.updated_at,
+      }));
+      return {
+        id: `duplicate-${candidates[0].id}`,
+        reasons: [...(reasonMap.get(key) ?? new Set(["Possible duplicate"]))],
+        songs: candidates,
+      };
+    })
+    .sort((a, b) => a.songs[0].title.localeCompare(b.songs[0].title))
+    .slice(0, 200);
 }
