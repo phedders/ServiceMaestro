@@ -1,7 +1,7 @@
 import { randomBytes, randomUUID } from "node:crypto";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import type { PublicUser, Role } from "@sm/shared";
-import { COOKIE_NAME, SESSION_DAYS } from "./config.js";
+import { COOKIE_NAME, SECURE_COOKIES, SESSION_DAYS } from "./config.js";
 import { db } from "./db.js";
 
 declare module "fastify" {
@@ -101,7 +101,7 @@ export function makeSessionCookie(token: string): {
       httpOnly: true,
       sameSite: "lax",
       maxAge: SESSION_DAYS * 24 * 60 * 60,
-      secure: process.env.SM_SECURE_COOKIES === "1",
+      secure: SECURE_COOKIES,
     },
   };
 }

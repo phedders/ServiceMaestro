@@ -25,34 +25,111 @@ function loadDotEnvFile(): void {
 
 loadDotEnvFile();
 
+type RepoName = "songs" | "setlists" | "bibles" | "templates";
+type LfsMode = "required" | "auto" | "off";
+
+interface FileRepoConfig {
+  path?: unknown;
+  remote?: unknown;
+  branch?: unknown;
+  optional?: unknown;
+  lfs?: unknown;
+}
+
+interface FileServerConfig {
+  host?: unknown;
+  port?: unknown;
+  displayPort?: unknown;
+  dataDir?: unknown;
+  adminPassword?: unknown;
+  outputToken?: unknown;
+  sessionDays?: unknown;
+  secureCookies?: unknown;
+  logLevel?: unknown;
+}
+
+interface FilePathsConfig {
+  songs?: unknown;
+  bible?: unknown;
+  bibles?: unknown;
+  images?: unknown;
+  fonts?: unknown;
+  templates?: unknown;
+  songselect?: unknown;
+  songSelect?: unknown;
+}
+
+interface FileSongSelectConfig {
+  watchEnabled?: unknown;
+  watchIntervalSeconds?: unknown;
+}
+
+interface FileChurchSuiteConfig {
+  clientId?: unknown;
+  clientSecret?: unknown;
+  tokenUrl?: unknown;
+  apiUrl?: unknown;
+  scopes?: unknown;
+  redirectUri?: unknown;
+}
+
+interface FileGitConfig {
+  enabled?: unknown;
+  autoSave?: unknown;
+  autoPush?: unknown;
+  workDir?: unknown;
+  pullIntervalSeconds?: unknown;
+  author?: { name?: unknown; email?: unknown };
+  sshKeyFile?: unknown;
+  knownHostsFile?: unknown;
+  repositories?: Record<string, FileRepoConfig>;
+}
+
 interface FileConfig {
-  git?: {
-    enabled?: boolean;
-    autoSave?: boolean;
-    autoPush?: boolean;
-    pullIntervalSeconds?: number;
-    author?: { name?: string; email?: string };
-    sshKeyFile?: string;
-    knownHostsFile?: string;
-    repositories?: Record<
-      string,
-      {
-        path?: string;
-        remote?: string | null;
-        branch?: string;
-        optional?: boolean;
-        lfs?: "required" | "auto" | "off";
-      }
-    >;
-  };
+  server?: FileServerConfig;
+  paths?: FilePathsConfig;
+  songselect?: FileSongSelectConfig;
+  churchsuite?: FileChurchSuiteConfig;
+  git?: FileGitConfig;
+  /** Top-level form used by the documented configuration example. */
+  repositories?: Record<string, FileRepoConfig>;
+}
+
+function configFileCandidates(): { files: string[]; explicit: boolean } {
+  const explicit = process.env.SM_CONFIG_FILE?.trim();
+  if (explicit) return { files: [path.resolve(explicit)], explicit: true };
+  const files = [
+    path.resolve(process.cwd(), "config.yaml"),
+    path.resolve(process.cwd(), "config.yml"),
+    path.resolve(process.cwd(), "config.json"),
+    path.resolve(packageRoot, "../../config.yaml"),
+    path.resolve(packageRoot, "../../config.yml"),
+    path.resolve(packageRoot, "../../config.json"),
+    "/config/config.yaml",
+    "/config/config.yml",
+    "/config/config.json",
+  ];
+  return { files: [...new Set(files)], explicit: false };
 }
 
 function loadConfigFile(): FileConfig {
-  const file = process.env.SM_CONFIG_FILE;
-  if (!file) return {};
+  const { files, explicit } = configFileCandidates();
+  const file = files.find((candidate) => fs.existsSync(candidate));
+  if (!file) {
+    if (explicit) {
+      // eslint-disable-next-line no-console
+      console.warn(`[sm] Config file not found: ${files[0]}`);
+    }
+    return {};
+  }
   try {
-    if (!fs.existsSync(file)) return {};
-    return (parseYaml(fs.readFileSync(file, "utf8")) ?? {}) as FileConfig;
+    const parsed = parseYaml(fs.readFileSync(file, "utf8")) as unknown;
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      // eslint-disable-next-line no-console
+      console.warn(`[sm] Config file must contain an object: ${file}`);
+      return {};
+    }
+    return parsed as FileConfig;
   } catch (error) {
     // eslint-disable-next-line no-console
     console.warn(`[sm] Could not read config file ${file}: ${(error as Error).message}`);
@@ -61,153 +138,280 @@ function loadConfigFile(): FileConfig {
 }
 
 const fileConfig = loadConfigFile();
+const serverConfig = fileConfig.server ?? {};
+const pathsConfig = fileConfig.paths ?? {};
+const songselectConfig = fileConfig.songselect ?? {};
+const churchsuiteConfig = fileConfig.churchsuite ?? {};
 const gitConfig = fileConfig.git ?? {};
+const repositoryConfig = {
+  ...(gitConfig.repositories ?? {}),
+  ...(fileConfig.repositories ?? {}),
+};
 
-function boolEnv(name: string, fallback: boolean): boolean {
-  const value = process.env[name];
+function fileString(value: unknown): string | undefined {
+  return typeof value === "string" ? value : undefined;
+}
+
+function fileNumber(value: unknown): number | undefined {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim() !== "") {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : undefined;
+  }
+  return undefined;
+}
+
+function fileBool(value: unknown): boolean | undefined {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") return value !== 0;
+  if (typeof value === "string" && value.trim() !== "") {
+    return !["0", "false", "no", "off"].includes(value.trim().toLowerCase());
+  }
+  return undefined;
+}
+
+function optionString(name: string, fileValue: unknown, fallback: string): string {
+  const env = process.env[name];
+  if (env !== undefined && env.trim() !== "") return env;
+  const value = fileString(fileValue);
+  return value !== undefined && value.trim() !== "" ? value : fallback;
+}
+
+function optionNumber(name: string, fileValue: unknown, fallback: number): number {
+  const env = process.env[name];
+  if (env !== undefined && env.trim() !== "") {
+    const value = Number(env);
+    if (Number.isFinite(value)) return value;
+  }
+  return fileNumber(fileValue) ?? fallback;
+}
+
+function optionBool(name: string, fileValue: unknown, fallback: boolean): boolean {
+  const env = process.env[name];
+  if (env !== undefined && env.trim() !== "") {
+    return !["0", "false", "no", "off"].includes(env.trim().toLowerCase());
+  }
+  return fileBool(fileValue) ?? fallback;
+}
+
+function optionalOptionString(name: string, fileValue: unknown): string | undefined {
+  const env = process.env[name];
+  if (env !== undefined && env.trim() !== "") return env;
+  return fileString(fileValue);
+}
+
+function portOption(name: string, fileValue: unknown, fallback: number): number {
+  const env = process.env[name];
+  const value = env !== undefined && env.trim() !== "" ? Number(env) : fileNumber(fileValue);
   if (value === undefined) return fallback;
-  return !["0", "false", "no", "off"].includes(value.toLowerCase());
-}
-
-function stringEnv(name: string, fallback: string): string {
-  return process.env[name] ?? fallback;
-}
-
-export interface GitRepoConfig {
-  name: "songs" | "setlists" | "bibles" | "templates";
-  path: string;
-  remote: string | null;
-  branch: string;
-  optional: boolean;
-  lfs: "required" | "auto" | "off";
-}
-
-function portEnv(name: string, fallback: number): number {
-  const raw = process.env[name];
-  if (raw === undefined || raw.trim() === "") return fallback;
-  const value = Number(raw);
   if (!Number.isInteger(value) || value < 1 || value > 65_535) {
     throw new Error(`${name} must be an integer between 1 and 65535`);
   }
   return value;
 }
 
-export const HOST = process.env.SM_HOST ?? "0.0.0.0";
-export const PORT = portEnv("SM_PORT", 8080);
-export const DISPLAY_PORT = portEnv("SM_DISPLAY_PORT", 8081);
-export const DATA_DIR = path.resolve(process.env.SM_DATA_DIR ?? path.join(packageRoot, "data"));
-export const CONTROL_DIST = path.resolve(packageRoot, "../control/dist");
-export const DISPLAY_DIR = path.resolve(packageRoot, "../display");
-export const SONGS_DIR = path.resolve(
-  process.env.SM_SONGS_DIR ?? path.join(packageRoot, "../../samples"),
-);
-export const BIBLE_DIR = path.resolve(
-  process.env.SM_BIBLE_DIR ?? path.join(packageRoot, "../../samples/bible"),
-);
-export const ASSETS_DIR = path.join(DATA_DIR, "assets");
-export const FONTS_DIR = path.resolve(process.env.SM_FONTS_DIR ?? path.join(DATA_DIR, "fonts"));
-export const IMAGES_DIR = path.resolve(
-  process.env.SM_IMAGES_DIR ?? path.join(packageRoot, "../../library/images"),
-);
-export const SONGSELECT_WATCH_DIR = path.resolve(
-  process.env.SM_SONGSELECT_WATCH_DIR ?? path.join(DATA_DIR, "imports", "songselect"),
-);
-export const SONGSELECT_WATCH_ENABLED = boolEnv("SM_SONGSELECT_WATCH_ENABLED", true);
-export const SONGSELECT_WATCH_INTERVAL = Math.max(
-  2,
-  Math.min(3600, Number(process.env.SM_SONGSELECT_WATCH_INTERVAL ?? 10) || 10),
-);
-export const TEMPLATES_DIR = path.resolve(process.env.SM_TEMPLATES_DIR ?? path.join(DATA_DIR, "templates"));
-export const OUTPUT_TOKEN = process.env.SM_OUTPUT_TOKEN ?? "dev-output";
-export const ADMIN_PASSWORD = process.env.SM_ADMIN_PASSWORD ?? "admin";
-export const SESSION_DAYS = Number(process.env.SM_SESSION_DAYS ?? 7);
-export const COOKIE_NAME = "sm_session";
-
-export const GIT_ENABLED = boolEnv("SM_GIT_ENABLED", gitConfig.enabled ?? true);
-export const GIT_AUTO_SAVE = boolEnv("SM_GIT_AUTO_SAVE", gitConfig.autoSave ?? true);
-export const GIT_AUTO_PUSH = boolEnv("SM_GIT_AUTO_PUSH", gitConfig.autoPush ?? true);
-export const GIT_PULL_INTERVAL = Number(
-  process.env.SM_GIT_PULL_INTERVAL ?? gitConfig.pullIntervalSeconds ?? 60,
-);
-export const GIT_AUTHOR_NAME = stringEnv(
-  "SM_GIT_AUTHOR_NAME",
-  gitConfig.author?.name ?? "Service Maestro",
-);
-export const GIT_AUTHOR_EMAIL = stringEnv(
-  "SM_GIT_AUTHOR_EMAIL",
-  gitConfig.author?.email ?? "maestro@localhost",
-);
-export const GIT_SSH_KEY_FILE = process.env.SM_GIT_SSH_KEY_FILE ?? gitConfig.sshKeyFile;
-export const GIT_KNOWN_HOSTS_FILE =
-  process.env.SM_GIT_KNOWN_HOSTS_FILE ?? gitConfig.knownHostsFile;
-
-function envFile(name: string): string {
+function secretOption(name: string, fileValue: unknown, fallback = ""): string {
   const file = process.env[`${name}_FILE`];
   if (file) {
     try {
-      return fs.readFileSync(file, "utf8").trim();
+      const value = fs.readFileSync(file, "utf8").trim();
+      if (value !== "") return value;
     } catch {
-      // Fall back to an empty value; the integration will report itself unconfigured.
+      // Fall through to the environment or config file value.
     }
   }
-  return process.env[name] ?? "";
+  const env = process.env[name];
+  if (env !== undefined && env !== "") return env;
+  const value = fileString(fileValue);
+  return value !== undefined && value !== "" ? value : fallback;
 }
 
 function optionalEnvFile(name: string): string | undefined {
   const file = process.env[`${name}_FILE`];
   if (file) {
     try {
-      return fs.readFileSync(file, "utf8").trim();
+      const value = fs.readFileSync(file, "utf8").trim();
+      if (value !== "") return value;
     } catch {
-      return undefined;
+      // Fall through to the environment value.
     }
   }
-  return process.env[name];
+  const env = process.env[name];
+  return env !== undefined && env.trim() !== "" ? env : undefined;
 }
 
-export const CHURCHSUITE_CLIENT_ID = envFile("SM_CHURCHSUITE_CLIENT_ID");
-export const CHURCHSUITE_CLIENT_SECRET = envFile("SM_CHURCHSUITE_CLIENT_SECRET");
-export const CHURCHSUITE_TOKEN_URL =
-  process.env.SM_CHURCHSUITE_TOKEN_URL ?? "https://login.churchsuite.com/oauth2/token";
-export const CHURCHSUITE_API_URL =
-  process.env.SM_CHURCHSUITE_API_URL ?? "https://api.churchsuite.com/v2";
-export const CHURCHSUITE_SCOPES = process.env.SM_CHURCHSUITE_SCOPES ?? "planning.read";
-export const CHURCHSUITE_REDIRECT_URI =
-  process.env.SM_CHURCHSUITE_REDIRECT_URI ?? "";
+export interface GitRepoConfig {
+  name: RepoName;
+  path: string;
+  remote: string | null;
+  branch: string;
+  optional: boolean;
+  lfs: LfsMode;
+}
 
-function repo(
-  name: "songs" | "setlists" | "bibles" | "templates",
-  defaultPath: string,
-  optional = false,
-): GitRepoConfig {
-  const fromFile = gitConfig.repositories?.[name] ?? {};
+export const HOST = optionString("SM_HOST", serverConfig.host, "0.0.0.0");
+export const PORT = portOption("SM_PORT", serverConfig.port, 8080);
+export const DISPLAY_PORT = portOption("SM_DISPLAY_PORT", serverConfig.displayPort, 8081);
+export const LOG_LEVEL = optionString("SM_LOG_LEVEL", serverConfig.logLevel, "info");
+export const SECURE_COOKIES = optionBool("SM_SECURE_COOKIES", serverConfig.secureCookies, false);
+export const DATA_DIR = path.resolve(
+  optionString("SM_DATA_DIR", serverConfig.dataDir, path.join(packageRoot, "data")),
+);
+export const CONTROL_DIST = path.resolve(packageRoot, "../control/dist");
+export const DISPLAY_DIR = path.resolve(packageRoot, "../display");
+export const SONGS_DIR = path.resolve(
+  optionString("SM_SONGS_DIR", pathsConfig.songs, path.join(packageRoot, "../../samples")),
+);
+export const BIBLE_DIR = path.resolve(
+  optionString(
+    "SM_BIBLE_DIR",
+    pathsConfig.bible ?? pathsConfig.bibles,
+    path.join(packageRoot, "../../samples/bible"),
+  ),
+);
+export const ASSETS_DIR = path.join(DATA_DIR, "assets");
+export const FONTS_DIR = path.resolve(
+  optionString("SM_FONTS_DIR", pathsConfig.fonts, path.join(DATA_DIR, "fonts")),
+);
+export const IMAGES_DIR = path.resolve(
+  optionString(
+    "SM_IMAGES_DIR",
+    pathsConfig.images,
+    path.join(packageRoot, "../../library/images"),
+  ),
+);
+const songselectPath = pathsConfig.songselect ?? pathsConfig.songSelect;
+export const SONGSELECT_WATCH_DIR = path.resolve(
+  optionString(
+    "SM_SONGSELECT_WATCH_DIR",
+    songselectPath,
+    path.join(DATA_DIR, "imports", "songselect"),
+  ),
+);
+export const SONGSELECT_WATCH_ENABLED = optionBool(
+  "SM_SONGSELECT_WATCH_ENABLED",
+  songselectConfig.watchEnabled,
+  true,
+);
+export const SONGSELECT_WATCH_INTERVAL = Math.max(
+  2,
+  Math.min(
+    3600,
+    optionNumber(
+      "SM_SONGSELECT_WATCH_INTERVAL",
+      songselectConfig.watchIntervalSeconds,
+      10,
+    ),
+  ),
+);
+export const TEMPLATES_DIR = path.resolve(
+  optionString("SM_TEMPLATES_DIR", pathsConfig.templates, path.join(DATA_DIR, "templates")),
+);
+export const OUTPUT_TOKEN = secretOption("SM_OUTPUT_TOKEN", serverConfig.outputToken, "dev-output");
+export const ADMIN_PASSWORD = secretOption("SM_ADMIN_PASSWORD", serverConfig.adminPassword, "admin");
+export const SESSION_DAYS = optionNumber("SM_SESSION_DAYS", serverConfig.sessionDays, 7);
+export const COOKIE_NAME = "sm_session";
+
+export const GIT_ENABLED = optionBool("SM_GIT_ENABLED", gitConfig.enabled, true);
+export const GIT_AUTO_SAVE = optionBool("SM_GIT_AUTO_SAVE", gitConfig.autoSave, true);
+export const GIT_AUTO_PUSH = optionBool("SM_GIT_AUTO_PUSH", gitConfig.autoPush, true);
+export const GIT_PULL_INTERVAL = optionNumber(
+  "SM_GIT_PULL_INTERVAL",
+  gitConfig.pullIntervalSeconds,
+  60,
+);
+export const GIT_AUTHOR_NAME = optionString(
+  "SM_GIT_AUTHOR_NAME",
+  gitConfig.author?.name,
+  "Service Maestro",
+);
+export const GIT_AUTHOR_EMAIL = optionString(
+  "SM_GIT_AUTHOR_EMAIL",
+  gitConfig.author?.email,
+  "maestro@localhost",
+);
+export const GIT_SSH_KEY_FILE = optionalOptionString(
+  "SM_GIT_SSH_KEY_FILE",
+  gitConfig.sshKeyFile,
+);
+export const GIT_KNOWN_HOSTS_FILE = optionalOptionString(
+  "SM_GIT_KNOWN_HOSTS_FILE",
+  gitConfig.knownHostsFile,
+);
+const gitWorkDirValue = optionalOptionString("SM_GIT_WORK_DIR", gitConfig.workDir);
+const gitWorkDir = gitWorkDirValue ? path.resolve(gitWorkDirValue) : null;
+
+export const CHURCHSUITE_CLIENT_ID = secretOption(
+  "SM_CHURCHSUITE_CLIENT_ID",
+  churchsuiteConfig.clientId,
+);
+export const CHURCHSUITE_CLIENT_SECRET = secretOption(
+  "SM_CHURCHSUITE_CLIENT_SECRET",
+  churchsuiteConfig.clientSecret,
+);
+export const CHURCHSUITE_TOKEN_URL = optionString(
+  "SM_CHURCHSUITE_TOKEN_URL",
+  churchsuiteConfig.tokenUrl,
+  "https://login.churchsuite.com/oauth2/token",
+);
+export const CHURCHSUITE_API_URL = optionString(
+  "SM_CHURCHSUITE_API_URL",
+  churchsuiteConfig.apiUrl,
+  "https://api.churchsuite.com/v2",
+);
+export const CHURCHSUITE_SCOPES = optionString(
+  "SM_CHURCHSUITE_SCOPES",
+  churchsuiteConfig.scopes,
+  "planning.read",
+);
+export const CHURCHSUITE_REDIRECT_URI = optionString(
+  "SM_CHURCHSUITE_REDIRECT_URI",
+  churchsuiteConfig.redirectUri,
+  "",
+);
+
+function repo(name: RepoName, optional = false): GitRepoConfig {
+  const fromFile = repositoryConfig[name] ?? {};
   const envPrefix = `SM_GIT_${name.toUpperCase()}`;
   const remote =
-    optionalEnvFile(`${envPrefix}_REMOTE`) ?? fromFile.remote ?? "";
+    optionalEnvFile(`${envPrefix}_REMOTE`) ?? fileString(fromFile.remote) ?? "";
   const branchCandidates = [
-    process.env[`${envPrefix}_BRANCH`],
-    process.env[`${envPrefix}_REMOTE_BRANCH`],
-    name === "setlists" ? process.env.SM_GIT_SETLIST_REMOTE_BRANCH : undefined,
-  ].filter((value): value is string => Boolean(value?.trim()));
+    process.env[`${envPrefix}_BRANCH`]?.trim(),
+    process.env[`${envPrefix}_REMOTE_BRANCH`]?.trim(),
+    name === "setlists" ? process.env.SM_GIT_SETLIST_REMOTE_BRANCH?.trim() : undefined,
+    fileString(fromFile.branch)?.trim(),
+  ].filter((value): value is string => Boolean(value));
+  const filePath = fileString(fromFile.path);
+  const defaultPath = gitWorkDir
+    ? path.join(gitWorkDir, name)
+    : path.join(DATA_DIR, "repos", name);
+  const rawLfs =
+    process.env[`${envPrefix}_LFS`] ??
+    fileString(fromFile.lfs) ??
+    (name === "bibles" ? "required" : "auto");
+  const lfs: LfsMode =
+    rawLfs === "required" || rawLfs === "auto" || rawLfs === "off"
+      ? rawLfs
+      : name === "bibles"
+        ? "required"
+        : "auto";
   return {
     name,
-    path: path.resolve(process.env[`${envPrefix}_PATH`] ?? fromFile.path ?? defaultPath),
+    path: path.resolve(process.env[`${envPrefix}_PATH`] ?? filePath ?? defaultPath),
     remote: remote.trim() || null,
-    branch: branchCandidates[0]?.trim() ?? fromFile.branch ?? "main",
-    optional:
-      name === "bibles"
-        ? boolEnv("SM_GIT_BIBLES_OPTIONAL", fromFile.optional ?? true)
-        : (fromFile.optional ?? optional),
-    lfs:
-      (process.env[`${envPrefix}_LFS`] as GitRepoConfig["lfs"] | undefined) ??
-      fromFile.lfs ??
-      (name === "bibles" ? "required" : "auto"),
+    branch: branchCandidates[0] ?? "main",
+    optional: optionBool(
+      `${envPrefix}_OPTIONAL`,
+      fromFile.optional,
+      name === "bibles" ? true : optional,
+    ),
+    lfs,
   };
 }
 
-export const GIT_REPOS: Record<"songs" | "setlists" | "bibles" | "templates", GitRepoConfig> = {
-  songs: repo("songs", path.join(DATA_DIR, "repos", "songs")),
-  setlists: repo("setlists", path.join(DATA_DIR, "repos", "setlists")),
-  bibles: repo("bibles", path.join(DATA_DIR, "repos", "bibles"), true),
-  templates: repo("templates", path.join(DATA_DIR, "repos", "templates"), true),
+export const GIT_REPOS: Record<RepoName, GitRepoConfig> = {
+  songs: repo("songs"),
+  setlists: repo("setlists"),
+  bibles: repo("bibles", true),
+  templates: repo("templates", true),
 };

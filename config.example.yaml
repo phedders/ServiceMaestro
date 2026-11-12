@@ -1,0 +1,77 @@
+# Service Maestro configuration file.
+#
+# Copy this to config.yaml and the server discovers it automatically, or start
+# with an explicit path:
+#   SM_CONFIG_FILE=/config/config.yaml npm start
+#
+# Environment variables take precedence over values in this file. Secrets can
+# also use the usual SM_*_FILE environment variables. Paths are resolved from
+# the process working directory unless absolute.
+#
+# The same file can be JSON; the parser accepts both YAML and JSON.
+
+# Paths below match the container layout. Adjust them for a local npm start.
+server:
+  host: 0.0.0.0
+  port: 8080
+  displayPort: 8081
+  dataDir: /data
+  adminPassword: change-me
+  outputToken: dev-output
+  sessionDays: 7
+  secureCookies: false
+  logLevel: info
+
+paths:
+  songs: /library/songs
+  bible: /library/bible
+  images: /library/images
+  fonts: /data/fonts
+  templates: /data/templates
+  songselect: /data/imports/songselect
+
+songselect:
+  watchEnabled: true
+  watchIntervalSeconds: 10
+
+churchsuite:
+  clientId:
+  clientSecret:
+  tokenUrl: https://login.churchsuite.com/oauth2/token
+  apiUrl: https://api.churchsuite.com/v2
+  scopes: planning.read
+  redirectUri:
+
+git:
+  enabled: true
+  autoSave: true
+  autoPush: true
+  pullIntervalSeconds: 60
+  workDir: /data/repos
+  author:
+    name: Service Maestro
+    email: maestro@localhost
+  sshKeyFile:
+  knownHostsFile:
+
+repositories:
+  songs:
+    remote: ""
+    branch: main
+    optional: false
+    lfs: auto
+  setlists:
+    remote: ""
+    branch: main
+    optional: false
+    lfs: auto
+  bibles:
+    remote: ""
+    branch: main
+    optional: true
+    lfs: required
+  templates:
+    remote: ""
+    branch: main
+    optional: true
+    lfs: auto

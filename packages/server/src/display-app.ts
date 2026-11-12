@@ -3,7 +3,7 @@ import path from "node:path";
 import Fastify, { type FastifyInstance } from "fastify";
 import fastifyStatic from "@fastify/static";
 import { Server } from "socket.io";
-import { CONTROL_DIST, COOKIE_NAME, DISPLAY_DIR, FONTS_DIR, OUTPUT_TOKEN } from "./config.js";
+import { CONTROL_DIST, COOKIE_NAME, DISPLAY_DIR, FONTS_DIR, LOG_LEVEL, OUTPUT_TOKEN } from "./config.js";
 import { parseCookies, userForToken } from "./auth.js";
 import { imageMime, resolveImage } from "./images.js";
 import { live } from "./live.js";
@@ -126,7 +126,7 @@ export function createOutputSocket(app: FastifyInstance): Server {
 }
 
 export async function buildDisplayApp(): Promise<{ app: FastifyInstance; io: Server }> {
-  const app = Fastify({ logger: { level: process.env.SM_LOG_LEVEL ?? "info" } });
+  const app = Fastify({ logger: { level: LOG_LEVEL } });
   await registerDisplayRoutes(app);
 
   app.setNotFoundHandler(async (_request, reply) =>

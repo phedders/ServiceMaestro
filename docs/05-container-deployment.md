@@ -96,7 +96,7 @@ Environment-first, with optional file values and `_FILE` secret support:
 | `SM_SONGSELECT_WATCH_DIR` | `/data/imports/songselect` | Watched folder for CCLI SongSelect downloader `.txt` files |
 | `SM_SONGSELECT_WATCH_ENABLED` | `true` | Enable background watched-folder imports |
 | `SM_SONGSELECT_WATCH_INTERVAL` | `10` | Watched-folder poll interval in seconds |
-| `SM_CONFIG_FILE` | `/config/config.json` | Optional structured config |
+| `SM_CONFIG_FILE` | auto-discovered | Optional YAML/JSON config; environment variables override file values |
 | `SM_TZ` | `Europe/London` | Service dates/times and logs |
 | `SM_SESSION_SECRET` / `_FILE` | generated at first start | Cookie signing |
 | `SM_SECRET_KEY` / `_FILE` | generated at first start | Master key for encrypted provider credentials (SongSelect) |
@@ -114,6 +114,8 @@ Environment-first, with optional file values and `_FILE` secret support:
 | `SM_TRUST_PROXY` | `false` | Honour `X-Forwarded-*` behind TLS proxy |
 
 `SM_PORT` and `SM_DISPLAY_PORT` are read at startup, must be different, and accept values from `1` to `65535`. Secrets are never printed; `_FILE` variants allow Docker/Podman secrets and Incus/LXC files. Git repositories use `SM_GIT_*` remotes (`ssh://` or `https://token@…`), SSH key/known-hosts secrets, and optional Git LFS for Bibles — see [11-git-data-sync.md](11-git-data-sync.md).
+
+The optional structured config can be YAML or JSON. Set `SM_CONFIG_FILE`, or mount it as `config.yaml` / `config.yml` / `config.json` in `/config/`. Environment variables remain the final override, so secrets and deployment-specific values can stay in `.env` or container secrets. Start from [`config.example.yaml`](../config.example.yaml).
 
 ## 5. Docker / Podman
 

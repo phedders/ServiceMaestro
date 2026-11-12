@@ -8,6 +8,9 @@ build/
 # Environment / runtime data
 .env
 .env.local
+config.yaml
+config.yml
+config.json
 data/
 packages/*/data/
 *.sqlite

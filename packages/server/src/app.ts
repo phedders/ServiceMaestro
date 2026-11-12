@@ -6,7 +6,14 @@ import fastifyStatic from "@fastify/static";
 import multipart from "@fastify/multipart";
 import { Server } from "socket.io";
 import { displayConfigSchema, gitSettingsSchema, liveCommandSchema, quickTextSchema, type PublicUser } from "@sm/shared";
-import { COOKIE_NAME, CONTROL_DIST, DISPLAY_DIR, GIT_ENABLED, OUTPUT_TOKEN } from "./config.js";
+import {
+  COOKIE_NAME,
+  CONTROL_DIST,
+  DISPLAY_DIR,
+  GIT_ENABLED,
+  LOG_LEVEL,
+  OUTPUT_TOKEN,
+} from "./config.js";
 import { parseCookies, requireAuth, requireRole, userForToken } from "./auth.js";
 import { createOutputSocket, registerDisplayRoutes } from "./display-app.js";
 import { sendHtmlFile } from "./send-html.js";
@@ -44,7 +51,7 @@ export async function buildApp(): Promise<{
   io: Server;
   outputIo: Server;
 }> {
-  const app = Fastify({ logger: { level: process.env.SM_LOG_LEVEL ?? "info" } });
+  const app = Fastify({ logger: { level: LOG_LEVEL } });
 
   await app.register(cookie);
   await app.register(multipart, { limits: { fileSize: 50 * 1024 * 1024, files: 1, fields: 10 } });

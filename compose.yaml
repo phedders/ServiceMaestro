@@ -13,6 +13,7 @@ services:
       SM_DISPLAY_PORT: ${SM_DISPLAY_PORT:-8081}
       SM_ADMIN_PASSWORD: ${SM_ADMIN_PASSWORD:-change-me}
       SM_OUTPUT_TOKEN: ${SM_OUTPUT_TOKEN:-dev-output}
+      SM_CONFIG_FILE: ${SM_CONFIG_FILE:-}
       SM_SONGS_DIR: /library/songs
       SM_BIBLE_DIR: /library/bible
       SM_IMAGES_DIR: /library/images
@@ -41,6 +42,8 @@ services:
       - ./library/songs:/library/songs:ro
       - ./library/bible:/library/bible:ro
       - ./library/images:/library/images
+      # Optional: mount a structured config and set SM_CONFIG_FILE=/config/config.yaml
+      # - ./config.yaml:/config/config.yaml:ro
     read_only: true
     tmpfs:
       - /tmp:size=256m

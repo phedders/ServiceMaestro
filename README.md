@@ -99,6 +99,14 @@ Open <http://localhost:8080/musicians> to see the read-only musician view. It de
 
 ## Configuration
 
+Create `config.yaml` (or `.json`) from [`config.example.yaml`](config.example.yaml). The server loads it automatically from the working directory, the application root, or `/config/`; you can also set an explicit path:
+
+```sh
+SM_CONFIG_FILE=/config/config.yaml npm start
+```
+
+The file covers the server, data paths, SongSelect watcher, ChurchSuite and Git repositories. Environment variables always take precedence, so a container can keep only secrets and deployment-specific values in its environment. See [Git-backed shared data](docs/11-git-data-sync.md#3-configuration) for the repository layout and URI forms.
+
 Listener ports are set with `SM_PORT` and `SM_DISPLAY_PORT`; both are read at startup and must be different.
 
 | Variable | Default | Purpose |
@@ -123,7 +131,7 @@ Listener ports are set with `SM_PORT` and `SM_DISPLAY_PORT`; both are read at st
 | `SM_GIT_SONGS_PATH` | `/data/repos/songs` | Songs repo working tree |
 | `SM_GIT_SETLISTS_PATH` | `/data/repos/setlists` | Set lists repo working tree |
 | `SM_GIT_BIBLES_PATH` | `/data/repos/bibles` | Optional Bibles repo |
-| `SM_CONFIG_FILE` | unset | YAML/JSON config with `git.repositories` and URIs |
+| `SM_CONFIG_FILE` | unset | YAML/JSON config; environment variables override file values |
 | `SM_TEMPLATES_DIR` | `/data/templates` | Display template folder (after the set-list repo lookup) |
 | `SM_FONTS_DIR` | `/data/fonts` | Cache for imported Google Fonts |
 | `SM_CHURCHSUITE_CLIENT_ID` | unset | ChurchSuite OAuth client id / API user identifier |

@@ -162,47 +162,42 @@ bible/
 
 ## 3. Configuration
 
-Prefer a mounted config file (for example `/config/config.yaml`) with environment overrides. Remotes use **standard Git URIs**; the transport is selected by the URI scheme.
+Prefer a mounted config file (for example `/config/config.yaml`) with environment overrides. Set `SM_CONFIG_FILE` to its path, or let the server discover `config.yaml` / `config.yml` / `config.json` in the working directory, application root or `/config/`. The same parser accepts YAML or JSON, and environment variables always win over file values. See [`config.example.yaml`](../config.example.yaml) for the full file, including server paths and integrations. Remotes use **standard Git URIs**; the transport is selected by the URI scheme.
 
 ```yaml
 git:
   enabled: true
   autoSave: true             # write files + commit on every change
   autoPush: true             # push after commit when a remote exists
-  workDir: /data/repos
+  workDir: /data/repos       # default parent for repositories without a path
   author:
     name: Service Maestro
     email: sm@example.local
   pullIntervalSeconds: 60
-  pushDebounceSeconds: 2
-  conflictPolicy: fail        # fail | keep-local | keep-remote
   sshKeyFile: /run/secrets/git_ssh_key
   knownHostsFile: /run/secrets/git_known_hosts
 
 repositories:
   songs:
-    path: /data/repos/songs
     remote: ""                 # empty = local-only; add later if desired
     branch: main
-    mode: read-write
+    optional: false
+    lfs: auto                  # required | auto | off
   setlists:
-    path: /data/repos/setlists
     remote: ""
     branch: main
-    mode: read-write
+    optional: false
+    lfs: auto
   bibles:
     optional: true
-    path: /data/repos/bibles
     remote: ""
     branch: main
-    mode: read-only
-    lfs: required              # required | auto | off
+    lfs: required
   templates:
     optional: true
-    path: /data/repos/templates
     remote: ""
     branch: main
-    mode: read-only
+    lfs: auto
 ```
 
 ### Remote URI forms
@@ -235,9 +230,11 @@ Runtime settings (Settings → Git repositories):
 Environment equivalents:
 
 ```sh
+SM_CONFIG_FILE=/config/config.yaml   # optional; file discovery also works
 SM_GIT_ENABLED=true
 SM_GIT_AUTO_SAVE=true
 SM_GIT_AUTO_PUSH=true
+SM_GIT_WORK_DIR=/data/repos  # default parent when a per-repo path is omitted
 SM_GIT_SONGS_PATH=/data/repos/songs
 SM_GIT_SONGS_REMOTE=          # unset/empty = local-only
 SM_GIT_SONGS_BRANCH=main
