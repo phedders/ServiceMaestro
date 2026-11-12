@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { randomUUID } from "node:crypto";
 import {
+  chordProPreviewSchema,
   simplifySongPageIds,
   songBulkDeleteSchema,
   songDifferentSchema,
@@ -19,6 +20,7 @@ import { db } from "../db.js";
 import { requireAuth, requirePermission } from "../auth.js";
 import { saveSongToGit, deleteSongFromGit, deleteSongsFromGit } from "../git-store.js";
 import { addDefaultVerseTags } from "../lyrics.js";
+import { parseChordPro } from "../importers/index.js";
 import { getAppSettings } from "../settings.js";
 import { findDuplicateGroups, findSongAlternatives } from "../song-matching.js";
 
@@ -174,6 +176,31 @@ export async function songRoutes(app: FastifyInstance): Promise<void> {
       names: [...names.values()].sort((a, b) => a.localeCompare(b)),
     };
   });
+
+  app.post(
+    "/api/songs/chordpro-preview",
+    { preHandler: [requireAuth, requirePermission("songs")] },
+    async (request, reply) => {
+      const parsed = chordProPreviewSchema.safeParse(request.body ?? {});
+      if (!parsed.success) {
+        return reply.code(400).send({ error: "Invalid ChordPro file", issues: parsed.error.issues });
+      }
+      const song = parseChordPro(parsed.data.filename, parsed.data.content);
+      return {
+        preview: {
+          filename: parsed.data.filename,
+          title: song.title,
+          alternateTitles: song.alternateTitles,
+          author: song.author,
+          copyright: song.copyright,
+          ccli: song.ccli,
+          key: song.key,
+          lyrics: song.lyrics,
+          warnings: song.warnings,
+        },
+      };
+    },
+  );
 
   app.get("/api/songs/duplicates", { preHandler: requireAuth }, async () => {
     const rows = db.prepare("SELECT * FROM songs").all() as SongRow[];

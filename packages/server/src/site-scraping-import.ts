@@ -1,5 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
 import type {
+  ChordProFilePreview,
   SiteScraperImportResult,
   SiteScraperSearchResult,
   SiteScraperSongUpdateCheck,
@@ -141,11 +142,11 @@ function normalizedTitle(value: string): string {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, "");
 }
 
-export async function checkSiteSongUpdates(
+async function siteMatchForSong(
   userId: string,
   providerId: string,
   songId: string,
-): Promise<SiteScraperSongUpdateCheck> {
+): Promise<SiteScraperSearchResult> {
   const song = db
     .prepare("SELECT id, title, ccli FROM songs WHERE id = ?")
     .get(songId) as { id: string; title: string; ccli: string | null } | undefined;
@@ -158,6 +159,41 @@ export async function checkSiteSongUpdates(
     (ccli ? results.find((result) => result.songNumber === ccli) : undefined) ??
     results.find((result) => normalizedTitle(result.title) === normalizedTitle(song.title));
   if (!match) throw new Error("No matching SongSelect song found");
+  return match;
+}
+
+export async function fetchSiteSongChordPro(
+  userId: string,
+  providerId: string,
+  songId: string,
+): Promise<ChordProFilePreview> {
+  const match = await siteMatchForSong(userId, providerId, songId);
+  if (!match.availableKinds.includes("chord")) {
+    throw new Error("SongSelect has no ChordPro file for this song");
+  }
+  const files = await downloadSiteSong(userId, providerId, match, ["chord"]);
+  const chordFile = files.find((file) => file.kind === "chord" || file.kind === "songpro");
+  if (!chordFile) throw new Error("SongSelect has no ChordPro file for this song");
+  const parsed = parseChordPro(chordFile.filename, chordFile.data.toString("utf8"));
+  return {
+    filename: chordFile.filename,
+    title: parsed.title,
+    alternateTitles: parsed.alternateTitles,
+    author: parsed.author,
+    copyright: parsed.copyright,
+    ccli: parsed.ccli,
+    key: parsed.key,
+    lyrics: parsed.lyrics,
+    warnings: parsed.warnings,
+  };
+}
+
+export async function checkSiteSongUpdates(
+  userId: string,
+  providerId: string,
+  songId: string,
+): Promise<SiteScraperSongUpdateCheck> {
+  const match = await siteMatchForSong(userId, providerId, songId);
 
   const remoteFiles = await downloadSiteSong(
     userId,

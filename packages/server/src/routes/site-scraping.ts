@@ -9,7 +9,11 @@ import {
   saveSiteCredentials,
   searchSiteSongs,
 } from "../site-scraping.js";
-import { checkSiteSongUpdates, importSiteSong } from "../site-scraping-import.js";
+import {
+  checkSiteSongUpdates,
+  fetchSiteSongChordPro,
+  importSiteSong,
+} from "../site-scraping-import.js";
 
 export async function siteScrapingRoutes(app: FastifyInstance): Promise<void> {
   app.get("/api/site-scraping/providers", { preHandler: requireAuth }, async (request) => {
@@ -110,6 +114,26 @@ export async function siteScrapingRoutes(app: FastifyInstance): Promise<void> {
       } catch (error) {
         return reply.code(400).send({
           error: error instanceof Error ? error.message : "Could not load song lyrics",
+        });
+      }
+    },
+  );
+
+  app.post(
+    "/api/site-scraping/providers/:provider/songs/:songId/chordpro",
+    { preHandler: [requireAuth, requirePermission("songs")] },
+    async (request, reply) => {
+      const providerId = (request.params as { provider: string }).provider;
+      const songId = (request.params as { songId: string }).songId;
+      const provider = listSiteScraperProviders(request.user!.id).find(
+        (entry) => entry.id === providerId,
+      );
+      if (!provider) return reply.code(404).send({ error: "Unknown site scraper provider" });
+      try {
+        return { preview: await fetchSiteSongChordPro(request.user!.id, providerId, songId) };
+      } catch (error) {
+        return reply.code(400).send({
+          error: error instanceof Error ? error.message : "Could not fetch the ChordPro file",
         });
       }
     },

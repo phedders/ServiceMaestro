@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { simplifySongPageIds } from "@sm/shared";
 import type {
+  ChordProFilePreview,
   LiveState,
   SetlistSummary,
   SiteScraperProviderSummary,
@@ -11,6 +12,7 @@ import type {
   SongImportScan,
 } from "@sm/shared";
 import { api, ApiError } from "../api";
+import { ChordProUpdateDialog } from "../components/ChordProUpdateDialog";
 import { PageContentEditor } from "../components/PageContentEditor";
 import { SiteSongDownloadPanel } from "../components/SiteSongDownloadPanel";
 import { compactDate, compactDateTime, pickCurrentSetlist } from "../service-date";
@@ -52,6 +54,7 @@ export default function SongsPage({
   const [siteProvider, setSiteProvider] = useState<SiteScraperProviderSummary | null>(null);
   const [siteUpdatingId, setSiteUpdatingId] = useState<string | null>(null);
   const [fixingPageNameId, setFixingPageNameId] = useState<string | null>(null);
+  const [chordProOpen, setChordProOpen] = useState(false);
   const restoredSelection = useRef(false);
   const [scan, setScan] = useState<SongImportScan | null>(null);
   const [scanning, setScanning] = useState(false);
@@ -108,6 +111,21 @@ export default function SongsPage({
     } finally {
       setSiteUpdatingId(null);
     }
+  }
+
+  function applyChordPro(preview: ChordProFilePreview) {
+    setForm((current) => ({
+      ...current,
+      title: preview.title || current.title,
+      alternateTitles: preview.alternateTitles ?? current.alternateTitles,
+      author: preview.author ?? current.author,
+      copyright: preview.copyright ?? current.copyright,
+      ccli: preview.ccli ?? current.ccli,
+      key: preview.key ?? current.key,
+      verseOrder: "",
+      lyrics: preview.lyrics,
+    }));
+    notify("ChordPro changes loaded — review and save the song");
   }
 
   async function fixPageNames(song: Song) {
@@ -327,6 +345,7 @@ export default function SongsPage({
 
   function select(song: Song) {
     setSelectedId(song.id);
+    setChordProOpen(false);
     setNewOrderName("");
     setNewOrderText("");
     setSimplifyPageIds(false);
@@ -345,6 +364,7 @@ export default function SongsPage({
 
   function newSong() {
     setSelectedId(null);
+    setChordProOpen(false);
     setNewOrderName("");
     setNewOrderText("");
     setSimplifyPageIds(false);
@@ -836,15 +856,25 @@ export default function SongsPage({
         <div className="lyrics-field">
           <span className="field-label">Lyrics and chords</span>
           {selectedSong && (
-            <button
-              type="button"
-              className="button ghost small song-fix-page-names"
-              onClick={() => void fixPageNames(selectedSong)}
-              disabled={fixingPageNameId !== null}
-              title="Fix page names using the current page-ID shortcuts"
-            >
-              {fixingPageNameId === selectedSong.id ? "Fixing…" : "Fix page names"}
-            </button>
+            <div className="song-editor-tools">
+              <button
+                type="button"
+                className="button ghost small"
+                onClick={() => void fixPageNames(selectedSong)}
+                disabled={fixingPageNameId !== null}
+                title="Fix page names using the current page-ID shortcuts"
+              >
+                {fixingPageNameId === selectedSong.id ? "Fixing…" : "Fix page names"}
+              </button>
+              <button
+                type="button"
+                className="button ghost small"
+                onClick={() => setChordProOpen(true)}
+                title="Compare a downloaded ChordPro file with this song before applying it"
+              >
+                Update from ChordPro
+              </button>
+            </div>
           )}
           <PageContentEditor
             value={form.lyrics}
@@ -1140,6 +1170,25 @@ export default function SongsPage({
           </div>
         )}
       </section>
+
+      {chordProOpen && selectedSong && (
+        <ChordProUpdateDialog
+          songId={selectedSong.id}
+          current={{
+            title: form.title,
+            alternateTitles: form.alternateTitles,
+            author: form.author,
+            copyright: form.copyright,
+            ccli: form.ccli,
+            key: form.key,
+            lyrics: form.lyrics,
+          }}
+          provider={siteProvider}
+          notify={notify}
+          onApply={applyChordPro}
+          onClose={() => setChordProOpen(false)}
+        />
+      )}
 
       <SiteSongDownloadPanel notify={notify} onImported={() => void load()} />
     </div>

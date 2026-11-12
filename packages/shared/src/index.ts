@@ -126,6 +126,18 @@ export interface SiteScraperSongUpdateCheck {
   hasUpdates: boolean;
 }
 
+export interface ChordProFilePreview {
+  filename: string;
+  title: string;
+  alternateTitles: string | null;
+  author: string | null;
+  copyright: string | null;
+  ccli: string | null;
+  key: string | null;
+  lyrics: string;
+  warnings: string[];
+}
+
 export interface ActivityEntry {
   id: string;
   userId: string | null;
@@ -1312,6 +1324,11 @@ export const siteScraperDownloadSchema = z.object({
     .array(z.enum(["songpro", "chord", "lead", "vocal", "lyrics"]))
     .optional(),
   kinds: z.array(z.enum(["songpro", "chord", "lead", "vocal", "lyrics"])).optional(),
+});
+
+export const chordProPreviewSchema = z.object({
+  filename: z.string().trim().min(1).max(300),
+  content: z.string().min(1).max(500_000),
 });
 
 export const songInputSchema = z.object({

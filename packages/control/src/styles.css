@@ -4312,8 +4312,10 @@ body.resizing-live-queue {
   color: #ffb2b2;
 }
 
-.song-fix-page-names {
+.song-editor-tools {
   display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
   width: fit-content;
   margin: 4px 0 0;
 }
@@ -5238,6 +5240,84 @@ body.resizing-live-queue {
 
 .song-edit-modal {
   width: min(1040px, 96vw);
+}
+
+.chordpro-update-modal {
+  width: min(1200px, 96vw);
+}
+
+.chordpro-update-sources {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.chordpro-preview-meta {
+  margin-top: 4px;
+}
+
+.chordpro-side-by-side {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  background: rgba(2, 6, 12, 0.5);
+}
+
+.chordpro-side-by-side-head,
+.chordpro-side-by-side-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+.chordpro-side-by-side-head {
+  border-bottom: 1px solid var(--border);
+  background: #111c2a;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.chordpro-side-by-side-head span {
+  padding: 6px 9px;
+}
+
+.chordpro-side-by-side-head span + span {
+  border-left: 1px solid var(--border);
+}
+
+.chordpro-side-by-side-body {
+  max-height: 360px;
+  overflow: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.72rem;
+  line-height: 1.45;
+}
+
+.chordpro-side-by-side-cell {
+  min-height: 1.45em;
+  padding: 1px 8px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.chordpro-side-by-side-cell + .chordpro-side-by-side-cell {
+  border-left: 1px solid var(--border);
+}
+
+.chordpro-side-by-side-cell.removed {
+  background: rgba(248, 113, 113, 0.14);
+  color: #fecaca;
+}
+
+.chordpro-side-by-side-cell.added {
+  background: rgba(74, 222, 128, 0.14);
+  color: #bbf7d0;
+}
+
+.chordpro-side-by-side-cell.empty {
+  background: rgba(148, 163, 184, 0.05);
 }
 
 .song-edit-modal .meta-grid {

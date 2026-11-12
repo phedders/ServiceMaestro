@@ -19,6 +19,7 @@ import type {
   ChurchSuiteImportReport,
   ChurchSuitePlanPreview,
   ChurchSuitePlanSummary,
+  ChordProFilePreview,
   ControlTlsReport,
   DashboardLayout,
   DisplayConfig,
@@ -417,6 +418,16 @@ export const api = {
       `/api/site-scraping/providers/${encodeURIComponent(providerId)}/songs/${encodeURIComponent(songId)}/check`,
       { method: "POST" },
     ),
+  siteScraperChordProForSong: (providerId: string, songId: string) =>
+    request<{ preview: ChordProFilePreview }>(
+      `/api/site-scraping/providers/${encodeURIComponent(providerId)}/songs/${encodeURIComponent(songId)}/chordpro`,
+      { method: "POST" },
+    ),
+  parseChordProFile: (filename: string, content: string) =>
+    request<{ preview: ChordProFilePreview }>("/api/songs/chordpro-preview", {
+      method: "POST",
+      body: JSON.stringify({ filename, content }),
+    }),
   scanSongselectWatch: (force = false) =>
     request<{ report: SongSelectWatchReport; status: SongSelectWatchStatus }>(
       "/api/integrations/songselect/watch/scan",

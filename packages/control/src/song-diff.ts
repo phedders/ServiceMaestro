@@ -3,6 +3,39 @@ export interface LyricDiffLine {
   text: string;
 }
 
+export interface SideBySideDiffRow {
+  left: LyricDiffLine | null;
+  right: LyricDiffLine | null;
+}
+
+export function sideBySideDiff(before: string, after: string): SideBySideDiffRow[] {
+  const diff = diffLyrics(before, after);
+  const rows: SideBySideDiffRow[] = [];
+  let index = 0;
+  while (index < diff.length) {
+    if (diff[index].type === "same") {
+      rows.push({ left: diff[index], right: diff[index] });
+      index += 1;
+      continue;
+    }
+    const removed: LyricDiffLine[] = [];
+    const added: LyricDiffLine[] = [];
+    while (index < diff.length && diff[index].type !== "same") {
+      if (diff[index].type === "removed") removed.push(diff[index]);
+      else added.push(diff[index]);
+      index += 1;
+    }
+    const length = Math.max(removed.length, added.length);
+    for (let rowIndex = 0; rowIndex < length; rowIndex += 1) {
+      rows.push({
+        left: removed[rowIndex] ?? null,
+        right: added[rowIndex] ?? null,
+      });
+    }
+  }
+  return rows;
+}
+
 export function diffLyrics(before: string, after: string): LyricDiffLine[] {
   const a = before.replace(/\r\n?/g, "\n").split("\n");
   const b = after.replace(/\r\n?/g, "\n").split("\n");

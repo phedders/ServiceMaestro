@@ -218,7 +218,8 @@ Rules:
 | `/login`, `/logout` | Auth | — |
 | `/api/songs`, `/api/songs/:id`, `/api/songs/:id/versions`, `/api/songs/:id/preview` | Song library, versions, arrangements, render preview | editor |
 | `/api/songs/page-names`, `/api/songs/page-id-fixes` | Scan section names and preview/apply compact page-ID conversions | editor/admin |
-| `/api/site-scraping/*` | Per-user credential status and site download framework | authenticated users |
+| `/api/songs/chordpro-preview` | Parse a downloaded ChordPro file for the editor's diff preview | editor/admin |
+| `/api/site-scraping/*` | Per-user credential status, site download framework and per-song ChordPro updates | authenticated users |
 | `/api/songs/:id/assets`, `/api/assets/:id/file` | ChordPro/PDF/tab assets and signed file access | editor/musician |
 | `/api/musicians/services`, `/api/musicians/services/:id` | Musician service view and score readiness | musician |
 | `/api/usage/report` | CCLI usage export | admin |
