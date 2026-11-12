@@ -14,6 +14,8 @@ import { getGitSettings } from "./settings.js";
 import { buildSetlistExport, parseSetlistFile, type SetlistManifest } from "./setlist-transfer.js";
 import { reloadBibleCatalog, setBibleDir } from "./bible.js";
 import { addDefaultVerseTags } from "./lyrics.js";
+import { getDisplayConfig } from "./display-config.js";
+import { live } from "./live.js";
 import {
   exportTarpBundle,
   importTarpBundle,
@@ -21,13 +23,16 @@ import {
   tarpThemeFile,
 } from "./tarp-export.js";
 import {
+  applySharedSettings,
+  legacyFontSettingsPath,
   localDownloadedFonts,
   mergeSharedFonts,
-  readSharedFontSettings,
-  sharedFontsEqual,
-  sharedFontSettingsJson,
-  sharedFontSettingsPath,
-} from "./font-settings.js";
+  readSharedSettings,
+  sharedSettingsEqual,
+  sharedSettingsJson,
+  sharedSettingsPath,
+  sharedSettingsPayload,
+} from "./shared-settings.js";
 
 interface RepoRuntime {
   config: GitRepoConfig;
@@ -515,16 +520,44 @@ async function exportAllTarp(runtime: RepoRuntime): Promise<void> {
   );
 }
 
-async function exportSharedFonts(runtime: RepoRuntime): Promise<void> {
-  const file = sharedFontSettingsPath(runtime.config.path);
-  const existing = readSharedFontSettings(runtime.config.path);
+function importSharedSettingsFromRepo(runtime: RepoRuntime): void {
+  const shared = readSharedSettings(runtime.config.path);
+  if (shared.appSettings || shared.displayConfig || shared.backgroundColors) {
+    applySharedSettings(shared);
+    live.updateDisplayConfig(getDisplayConfig());
+  }
+}
+
+async function exportSharedSettings(runtime: RepoRuntime): Promise<void> {
+  const file = sharedSettingsPath(runtime.config.path);
+  const legacyFile = legacyFontSettingsPath(runtime.config.path);
+  const existing = readSharedSettings(runtime.config.path);
   const merged = mergeSharedFonts(existing.fonts, localDownloadedFonts());
-  // Keep the file byte-stable when nothing changed so restarts don't create
-  // timestamp-only commits.
-  if (!fs.existsSync(file) && !merged.length) return;
-  if (fs.existsSync(file) && sharedFontsEqual(existing.fonts, merged)) return;
-  writeAtomically(file, sharedFontSettingsJson(merged));
-  await commit(runtime, `settings: update shared font list (${merged.length})`);
+  const payload = sharedSettingsPayload(merged);
+  const unchanged =
+    fs.existsSync(file) &&
+    existing.appSettings !== null &&
+    existing.displayConfig !== null &&
+    existing.backgroundColors !== null &&
+    sharedSettingsEqual(
+      sharedSettingsPayload(
+        existing.fonts,
+        existing.appSettings,
+        existing.displayConfig,
+        existing.backgroundColors,
+      ),
+      payload,
+    );
+  if (unchanged) {
+    if (fs.existsSync(legacyFile)) {
+      fs.unlinkSync(legacyFile);
+      await commit(runtime, "settings: migrate shared settings file");
+    }
+    return;
+  }
+  writeAtomically(file, sharedSettingsJson(merged));
+  if (fs.existsSync(legacyFile)) fs.unlinkSync(legacyFile);
+  await commit(runtime, `settings: update shared configuration (${merged.length} fonts)`);
 }
 
 async function pullRuntime(runtime: RepoRuntime): Promise<void> {
@@ -559,6 +592,7 @@ export async function syncGitFromRemotes(): Promise<void> {
   const setlists = runtimes.get("setlists");
   if (songs) importSongsFromRepo(songs);
   if (setlists) {
+    importSharedSettingsFromRepo(setlists);
     importTarpFromRepo(setlists);
     importSetlistsFromRepo(setlists);
   }
@@ -605,13 +639,14 @@ export async function initializeGitStorage(): Promise<void> {
             else await exportAllSongs(runtime);
           }
           if (config.name === "setlists") {
+            importSharedSettingsFromRepo(runtime);
             importTarpFromRepo(runtime);
             const dir = path.join(config.path, "setlists");
             const hasFiles = fs.existsSync(dir) && fs.readdirSync(dir).some((name) => name.endsWith(".json"));
             if (hasFiles) importSetlistsFromRepo(runtime);
             else await exportAllSetlists(runtime);
             await exportAllTarp(runtime);
-            await exportSharedFonts(runtime);
+            await exportSharedSettings(runtime);
           }
           if (config.name === "bibles") {
             const hasFiles =
@@ -724,11 +759,11 @@ export async function saveTarpLibraryToGit(): Promise<void> {
   await serial(() => exportAllTarp(runtime));
 }
 
-export async function saveFontSettingsToGit(): Promise<void> {
+export async function saveSharedSettingsToGit(): Promise<void> {
   if (!GIT_ENABLED || !getGitSettings().autoSave) return;
   const runtime = runtimes.get("setlists");
   if (!runtime) return;
-  await serial(() => exportSharedFonts(runtime));
+  await serial(() => exportSharedSettings(runtime));
 }
 
 export async function exportAllToGit(): Promise<void> {
@@ -737,7 +772,7 @@ export async function exportAllToGit(): Promise<void> {
   if (songs) await serial(() => exportAllSongs(songs));
   if (setlists) await serial(() => exportAllSetlists(setlists));
   if (setlists) await serial(() => exportAllTarp(setlists));
-  if (setlists) await serial(() => exportSharedFonts(setlists));
+  if (setlists) await serial(() => exportSharedSettings(setlists));
 }
 
 export async function pushGit(): Promise<void> {

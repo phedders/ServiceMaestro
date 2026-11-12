@@ -109,7 +109,8 @@ export default function BackgroundsPage({
           <div>
             <h2>Global background colours</h2>
             <p className="muted">
-              Animated backgrounds can use these colours instead of their own preset palette.
+              Animated backgrounds can use these colours instead of their own preset palette. The
+              global palette is shared through the set lists repository.
             </p>
           </div>
           <button

@@ -43,6 +43,7 @@ import {
   gitStatus,
   initializeGitStorage,
   pushGit,
+  saveSharedSettingsToGit,
   syncGitFromRemotes,
 } from "./git-store.js";
 
@@ -137,6 +138,9 @@ export async function buildApp(): Promise<{
         return reply.code(400).send({ error: "Invalid display config", issues: parsed.error.issues });
       }
       const config = saveDisplayConfig(parsed.data);
+      await saveSharedSettingsToGit().catch((error) =>
+        request.log.warn({ err: error }, "shared settings save failed"),
+      );
       const state = live.updateDisplayConfig(config);
       return { config, state };
     },

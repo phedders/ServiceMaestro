@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { appSettingsSchema } from "@sm/shared";
 import { requireAuth, requireRole } from "../auth.js";
 import { getAppSettings, saveAppSettings } from "../settings.js";
+import { saveSharedSettingsToGit } from "../git-store.js";
 
 export async function settingsRoutes(app: FastifyInstance): Promise<void> {
   app.get("/api/settings", { preHandler: requireAuth }, async () => ({
@@ -16,7 +17,11 @@ export async function settingsRoutes(app: FastifyInstance): Promise<void> {
       if (!parsed.success) {
         return reply.code(400).send({ error: "Invalid settings", issues: parsed.error.issues });
       }
-      return { settings: saveAppSettings(parsed.data) };
+      const settings = saveAppSettings(parsed.data);
+      await saveSharedSettingsToGit().catch((error) =>
+        request.log.warn({ err: error }, "shared settings save failed"),
+      );
+      return { settings };
     },
   );
 }

@@ -72,14 +72,20 @@ setlists/
     <setlist-id>/
       <revision-no>.json         # published immutable revision
   settings/
-    fonts.json                   # shared list of downloaded Google Fonts
+    shared.json                  # shared team settings + downloaded Google Fonts
   deleted/
     <setlist-id>.json            # tombstones, optional
 ```
 
-`settings/fonts.json` records the Google fonts downloaded by any instance. It stores the
-font name, CSS family and original Google Fonts URL so another server can highlight
-fonts it is missing and download one or all of them from Settings.
+`settings/shared.json` records values that should match across instances: page
+navigation, ChurchSuite empty-item types, the default Bible version, song page-ID
+shortcuts, display styling, the global background palette, and Google fonts downloaded
+by any instance. Font entries store the name, CSS family and original Google Fonts URL
+so another server can highlight fonts it is missing and download one or all of them
+from Settings.
+
+Server-specific configuration stays local: ports, data paths, credentials, output
+tokens, SongSelect watched-folder state and Git repository settings are not shared.
 
 `<setlist-id>.json`:
 

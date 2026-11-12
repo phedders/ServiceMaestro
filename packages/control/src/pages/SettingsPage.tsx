@@ -486,6 +486,12 @@ export default function SettingsPage({
 
   return (
     <div className="config-page">
+      <p className="hint">
+        Team-wide settings — live navigation, default Bible, ChurchSuite empty items, song page IDs,
+        display styling and background colours — sync through <code>settings/shared.json</code> in
+        the set lists repository. Keyboard shortcuts, credentials, SongSelect state and Git settings
+        stay local to this server.
+      </p>
       <section className="panel">
         <div className="panel-heading">
           <div>
@@ -932,8 +938,9 @@ export default function SettingsPage({
         </div>
         <p className="hint">
           Only <code>fonts.googleapis.com</code> CSS URLs are accepted. The import downloads the
-          actual font files, so displays keep working without internet access. Downloaded Google
-          font names are shared through <code>settings/fonts.json</code> in the set lists repository.
+          actual font files, so displays keep working without internet access. Team settings and
+          downloaded Google font names are shared through <code>settings/shared.json</code> in the
+          set lists repository.
         </p>
 
         <div className="font-list">

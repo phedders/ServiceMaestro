@@ -2,13 +2,13 @@ import type { FastifyInstance } from "fastify";
 import { fontImportSchema, type FontOption } from "@sm/shared";
 import { requireAuth, requireRole } from "../auth.js";
 import { deleteFont, importGoogleFont, listFonts } from "../fonts.js";
-import { missingSharedFonts, readSharedFontSettings } from "../font-settings.js";
-import { saveFontSettingsToGit } from "../git-store.js";
+import { missingSharedFonts, readSharedSettings } from "../shared-settings.js";
+import { saveSharedSettingsToGit } from "../git-store.js";
 
 export async function fontRoutes(app: FastifyInstance): Promise<void> {
   app.get("/api/fonts", { preHandler: requireAuth }, async () => {
     const fonts = listFonts();
-    const sharedFonts = readSharedFontSettings().fonts;
+    const sharedFonts = readSharedSettings().fonts;
     return {
       fonts,
       sharedFonts,
@@ -26,7 +26,7 @@ export async function fontRoutes(app: FastifyInstance): Promise<void> {
       }
       try {
         const font = await importGoogleFont(parsed.data);
-        await saveFontSettingsToGit().catch((error) =>
+        await saveSharedSettingsToGit().catch((error) =>
           request.log.warn({ err: error }, "shared font settings save failed"),
         );
         return reply.code(201).send({ font });
@@ -41,7 +41,7 @@ export async function fontRoutes(app: FastifyInstance): Promise<void> {
     { preHandler: [requireAuth, requireRole("admin", "editor")] },
     async (request) => {
       const fonts = listFonts();
-      const missing = missingSharedFonts(fonts, readSharedFontSettings().fonts);
+      const missing = missingSharedFonts(fonts, readSharedSettings().fonts);
       const downloaded: FontOption[] = [];
       const failed: Array<{ id: string; label: string; error: string }> = [];
       for (const font of missing) {
@@ -56,7 +56,7 @@ export async function fontRoutes(app: FastifyInstance): Promise<void> {
           failed.push({ id: font.id, label: font.label, error: (error as Error).message });
         }
       }
-      await saveFontSettingsToGit().catch((error) =>
+      await saveSharedSettingsToGit().catch((error) =>
         request.log.warn({ err: error }, "shared font settings save failed"),
       );
       return { ok: failed.length === 0, downloaded, failed };

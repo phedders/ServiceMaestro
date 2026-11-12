@@ -9,6 +9,7 @@ import {
   saveBackgroundColors,
   updateBackground,
 } from "../backgrounds.js";
+import { saveSharedSettingsToGit } from "../git-store.js";
 
 export async function backgroundRoutes(app: FastifyInstance): Promise<void> {
   app.get("/api/backgrounds", { preHandler: requireAuth }, async () => ({
@@ -24,7 +25,11 @@ export async function backgroundRoutes(app: FastifyInstance): Promise<void> {
       if (!parsed.success) {
         return reply.code(400).send({ error: "Invalid background colours", issues: parsed.error.issues });
       }
-      return { colors: saveBackgroundColors(parsed.data) };
+      const colors = saveBackgroundColors(parsed.data);
+      await saveSharedSettingsToGit().catch((error) =>
+        request.log.warn({ err: error }, "shared settings save failed"),
+      );
+      return { colors };
     },
   );
 

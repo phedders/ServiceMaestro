@@ -427,7 +427,7 @@ export default function LivePage({
             <p className="muted">
               Global styling applies to the lower-third, centered two-thirds and full-screen views.
               The lower-third has separate font and size controls. Stage and chords keep their fixed
-              style.
+              style. These settings sync to other servers through the set lists repository.
             </p>
           </div>
           <button
