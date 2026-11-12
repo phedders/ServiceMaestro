@@ -129,6 +129,7 @@ export function renderTarpPages(presentationId: string): LivePage[] {
   if (!presentation) return [];
   return presentation.pages.map((page: TarpPage, index) => {
     const theme = getTarpTheme(page.themeId ?? presentation.themeId ?? "");
+    const flex = presentation.aspect === "flex";
     const aspect = presentation.aspect === "16:10" ? 1.6 : 16 / 9;
     const transition = page.transition ?? {
       type: "fade" as const,
@@ -139,7 +140,7 @@ export function renderTarpPages(presentationId: string): LivePage[] {
     return {
       index,
       section: page.name,
-      html: `<div class="tarp-page-root"
+      html: `<div class="tarp-page-root ${flex ? "tarp-flex" : ""}"
         data-tarp-object-mode="${transition.objectMode}"
         data-tarp-duration="${transition.durationMs}"
         data-tarp-easing="${escapeHtml(transition.easing)}">

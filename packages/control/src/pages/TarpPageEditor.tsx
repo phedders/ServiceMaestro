@@ -389,8 +389,9 @@ export default function TarpPageEditor({
         <div>
           <h3>{draft.name}</h3>
           <span className="muted">
-            Page {draft.position + 1} · {presentation.aspect} normal · lower-third overlay
-            {dirty ? " · unsaved changes" : ""}
+            Page {draft.position + 1} ·{" "}
+            {presentation.aspect === "flex" ? "Flex" : presentation.aspect} normal · lower-third
+            overlay{dirty ? " · unsaved changes" : ""}
           </span>
         </div>
         <div className="button-row">
@@ -584,13 +585,24 @@ export default function TarpPageEditor({
             >
               <header>
                 <span>{viewKey === "normal" ? "Normal" : "Lower third"}</span>
-                <span className="muted">{viewKey === "normal" ? presentation.aspect : "16:3"}</span>
+                <span className="muted">
+                  {viewKey === "normal"
+                    ? presentation.aspect === "flex"
+                      ? "Flex · fills output"
+                      : presentation.aspect
+                    : "16:3"}
+                </span>
               </header>
               <div
                 className={`tarp-canvas tarp-canvas-${viewKey}`}
                 style={{
                   ...(libraryBackground ? {} : backgroundStyle(background)),
-                  aspectRatio: viewKey === "normal" ? presentation.aspect.replace(":", " / ") : "16 / 3",
+                  aspectRatio:
+                    viewKey === "normal"
+                      ? presentation.aspect === "flex"
+                        ? "16 / 9"
+                        : presentation.aspect.replace(":", " / ")
+                      : "16 / 3",
                   color: viewData.textColor ?? theme?.textColor ?? "#ffffff",
                   fontFamily: viewData.fontFamily ?? theme?.fontFamily ?? DEFAULT_FONT,
                 }}

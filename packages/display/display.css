@@ -308,6 +308,26 @@ body.idle .sm-template {
   aspect-ratio: var(--tarp-ratio, 1.7778);
 }
 
+.tarp-page-root.tarp-flex .tarp-normal-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  width: 100vw;
+  height: 100vh;
+}
+
+.tarp-page-root.tarp-flex .tarp-canvas-normal {
+  width: 100vw;
+  height: 100vh;
+  max-width: none;
+  aspect-ratio: auto;
+}
+
+body.mode-tarp .sm-stage .sm-meta,
+body.mode-tarp .sm-stage .sm-footer {
+  display: none;
+}
+
 body.display-main .tarp-normal-layer {
   display: none;
 }

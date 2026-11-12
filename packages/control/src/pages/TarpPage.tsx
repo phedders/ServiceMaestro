@@ -478,7 +478,8 @@ export default function TarpPage({
                 <span>
                   <strong>{presentation.name}</strong>
                   <span className="muted">
-                    {presentation.aspect} · {presentation.pageCount} page
+                    {presentation.aspect === "flex" ? "Flex" : presentation.aspect} ·{" "}
+                    {presentation.pageCount} page
                     {presentation.pageCount === 1 ? "" : "s"}
                   </span>
                 </span>
@@ -500,6 +501,7 @@ export default function TarpPage({
               >
                 <option value="16:9">16:9</option>
                 <option value="16:10">16:10</option>
+                <option value="flex">Flex · fill screen</option>
               </select>
               <select
                 value={newPresentationTheme}
@@ -542,6 +544,7 @@ export default function TarpPage({
                     >
                       <option value="16:9">16:9</option>
                       <option value="16:10">16:10</option>
+                      <option value="flex">Flex · fill screen</option>
                     </select>
                   </label>
                   <label>

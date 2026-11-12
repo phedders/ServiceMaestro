@@ -36,7 +36,7 @@ const tarpPageBundleSchema = z.object({
 const tarpPresentationBundleSchema = z.object({
   id: z.string().min(1),
   name: z.string(),
-  aspect: z.enum(["16:9", "16:10"]),
+  aspect: z.enum(["16:9", "16:10", "flex"]),
   themeId: z.string().nullable().optional(),
   createdAt: z.string().optional(),
   updatedAt: z.string().optional(),

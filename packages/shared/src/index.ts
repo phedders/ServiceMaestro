@@ -308,7 +308,7 @@ export interface BackgroundAsset {
   updatedAt: string;
 }
 
-export type TarpAspect = "16:9" | "16:10";
+export type TarpAspect = "16:9" | "16:10" | "flex";
 export type TarpObjectKind = "text" | "markdown" | "image";
 export type TarpAnimationType =
   | "fade-in"
@@ -952,7 +952,7 @@ export const tarpThemeInputSchema = z.object({
 
 export const tarpPresentationInputSchema = z.object({
   name: z.string().trim().min(1).max(160),
-  aspect: z.enum(["16:9", "16:10"]).default("16:9"),
+  aspect: z.enum(["16:9", "16:10", "flex"]).default("16:9"),
   themeId: z.string().trim().max(100).nullable().optional(),
 });
 

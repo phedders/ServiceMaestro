@@ -2,7 +2,7 @@
 
 Tarp is a lightweight presentation system for building simple, animated slides with two coordinated layouts per page:
 
-- **Normal view** for 16:9 or 16:10 full-screen output.
+- **Normal view** for 16:9, 16:10 or flexible full-screen output.
 - **Lower-third view** for the transparent YouTube/OBS speaker overlay.
 
 Each page, object and theme is reusable from the set-list system. A set-list **Tarp** item references a presentation and supports the same autoplay, Single/Loop/Bounce mode and delay options as image lists.
@@ -19,7 +19,7 @@ Each page, object and theme is reusable from the set-list system. A set-list **T
 ## 2. Data model (proposed)
 
 ```ts
-type TarpAspect = "16:9" | "16:10";
+type TarpAspect = "16:9" | "16:10" | "flex";
 
 interface TarpTheme {
   id: string;
@@ -210,7 +210,7 @@ The presentation itself is library data, not duplicated into the set list. Expor
 
 ## 7. Decisions to confirm before Section 1
 
-1. Normal aspect ratio: support both 16:9 and 16:10 per presentation, default **16:9**.
+1. Normal aspect ratio: support 16:9, 16:10 and **flex** (fill the full output viewport) per presentation, default **16:9**. Flex uses a 16:9 editor-preparation canvas but stretches the rendered canvas to 100vw × 100vh on outputs.
 2. Lower-third canvas aspect: use a normalized wide strip (default 16:3) with safe-area guides.
 3. Tarp item behaviour: one Tarp presentation per set-list item, with autoplay default off, playback mode default Loop and delay default 6 seconds.
 4. Stage output: use the normal view; chords output continues to show chord content, not Tarp.
