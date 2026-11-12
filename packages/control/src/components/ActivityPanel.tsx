@@ -14,6 +14,12 @@ const FILTER_MODULES = [
   { id: "users", label: "Users" },
 ];
 
+const RETENTION_OPTIONS = [0, 30, 90, 180, 365, 730, 1095, 1825, 3650];
+
+function retentionLabel(days: number): string {
+  return days === 0 ? "forever" : `${days} days`;
+}
+
 export function ActivityPanel({
   notify,
 }: {
@@ -25,6 +31,8 @@ export function ActivityPanel({
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [retentionDays, setRetentionDays] = useState(0);
+  const [savingRetention, setSavingRetention] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -40,6 +48,15 @@ export function ActivityPanel({
       notify(error instanceof ApiError ? error.message : "Could not load activity log", "error");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function loadRetention() {
+    try {
+      const result = await api.activityRetention();
+      setRetentionDays(result.retentionDays);
+    } catch {
+      // Leave the safe "keep forever" default when the setting cannot be loaded.
     }
   }
 
@@ -59,8 +76,27 @@ export function ActivityPanel({
     }
   }
 
+  async function saveRetention() {
+    setSavingRetention(true);
+    try {
+      const result = await api.saveActivityRetention(retentionDays);
+      setRetentionDays(result.retentionDays);
+      await load();
+      notify(
+        result.deleted
+          ? `Activity retention set to ${retentionLabel(result.retentionDays)}; removed ${result.deleted} old ${result.deleted === 1 ? "entry" : "entries"}`
+          : `Activity retention set to ${retentionLabel(result.retentionDays)}`,
+      );
+    } catch (error) {
+      notify(error instanceof ApiError ? error.message : "Could not save activity retention", "error");
+    } finally {
+      setSavingRetention(false);
+    }
+  }
+
   useEffect(() => {
     void load();
+    void loadRetention();
   }, []);
 
   return (
@@ -103,6 +139,36 @@ export function ActivityPanel({
             {exporting ? "Exporting…" : "Export CSV"}
           </button>
         </div>
+      </div>
+
+      <div className="activity-retention">
+        <label>
+          Retention
+          <select
+            value={retentionDays}
+            onChange={(event) => setRetentionDays(Number(event.target.value))}
+          >
+            {RETENTION_OPTIONS.map((days) => (
+              <option key={days} value={days}>
+                {days === 0 ? "Keep forever" : `${days} days`}
+              </option>
+            ))}
+            {!RETENTION_OPTIONS.includes(retentionDays) && (
+              <option value={retentionDays}>{retentionDays} days</option>
+            )}
+          </select>
+        </label>
+        <button
+          className="button"
+          onClick={() => void saveRetention()}
+          disabled={savingRetention}
+          title="Delete activity entries older than the selected retention period"
+        >
+          {savingRetention ? "Saving…" : "Save retention"}
+        </button>
+        <span className="muted">
+          Older entries are pruned immediately and checked daily. The default keeps everything.
+        </span>
       </div>
 
       {entries.length ? (

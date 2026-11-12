@@ -200,6 +200,12 @@ export const api = {
       filename: match?.[1] ?? "service-maestro-activity.csv",
     };
   },
+  activityRetention: () => request<{ retentionDays: number }>("/api/activity/retention"),
+  saveActivityRetention: (retentionDays: number) =>
+    request<{ retentionDays: number; deleted: number }>("/api/activity/retention", {
+      method: "PUT",
+      body: JSON.stringify({ retentionDays }),
+    }),
 
   songs: (q = "") => request<{ songs: Song[] }>(`/api/songs${q ? `?q=${encodeURIComponent(q)}` : ""}`),
   song: (id: string) => request<{ song: Song }>(`/api/songs/${id}`),

@@ -20,7 +20,7 @@ SM_ADMIN_PASSWORD='change-me' npm start
 | Area | What is in place |
 | --- | --- |
 | Auth | Local users, scrypt hashes, DB-backed sessions, HTTP-only cookie, roles (`admin`, `editor`, `operator`, `musician`, `viewer`) |
-| Audit log | Persistent SQLite activity log for logins, content changes, live commands, exports and account actions; admin filters and CSV export |
+| Audit log | Persistent SQLite activity log for logins, content changes, live commands, exports and account actions; admin filters, CSV export and local configurable retention (default keep forever) |
 | Songs | Create/edit/list/delete; title, alternative titles, author, key, CCLI, copyright, lyrics with inline `[C]` chords and `[Verse 1]` labels; optional inline Markdown styling; multiple saved verse orders; add to current setlist or live session |
 | Library import | Folder scan for OpenLP XML, ChordPro and plain text; preview + warnings; duplicate CCLI/title review with skip/replace/duplicate (editable title and alternative titles); OpenLP `verseOrder` and ChordPro comment sections honoured; legal footers/bar markers removed |
 | Bible | Schema detection for MyBible `book`/`verse`, BibleDb `books`/`verses` and JSON; sanitised verses; translation/book/chapter/from-to UI; **Add to current setlist** and **Add to live session** |

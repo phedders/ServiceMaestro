@@ -1697,6 +1697,10 @@ export const churchsuiteImportSchema = z.object({
   songSelections: z.record(z.string(), z.string().min(1).max(100)).optional(),
 });
 
+export const activityRetentionSchema = z.object({
+  retentionDays: z.number().int().min(0).max(3650),
+});
+
 export const dashboardLayoutSchema = z.object({  version: z.literal(1),
   layouts: z.object({
     lg: z.array(layoutItemSchema).max(100),

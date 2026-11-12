@@ -1,4 +1,5 @@
 import { buildApp } from "./app.js";
+import { startActivityRetention } from "./activity.js";
 import { DISPLAY_PORT, HOST, PORT, SSL_ENABLED } from "./config.js";
 import { buildDisplayApp } from "./display-app.js";
 import { startHeartbeat } from "./heartbeat.js";
@@ -32,6 +33,7 @@ const stopHeartbeats = [
   startHeartbeat(display.io),
 ];
 const stopSongSelectWatcher = startSongSelectWatcher();
+const stopActivityRetention = startActivityRetention();
 
 try {
   await app.listen({ host: HOST, port: PORT });
@@ -52,6 +54,7 @@ async function shutdown(signal: string): Promise<void> {
   app.log.info(`${signal} received, shutting down`);
   shutdownGit();
   stopSongSelectWatcher();
+  stopActivityRetention();
   stopHeartbeats.forEach((stop) => stop());
   io.close();
   outputIo.close();

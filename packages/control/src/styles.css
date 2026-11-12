@@ -2045,6 +2045,31 @@ body.resizing-live-queue {
   align-items: end;
 }
 
+.activity-retention {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--panel-2);
+}
+
+.activity-retention label {
+  display: grid;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.activity-retention .muted {
+  font-size: 0.7rem;
+  font-weight: 400;
+}
+
 .activity-list {
   display: grid;
   gap: 5px;

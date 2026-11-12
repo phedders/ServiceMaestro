@@ -17,9 +17,14 @@ test("records and filters user activity", () => {
   const script = `
     const { db } = await import(process.env.SM_MODULE_BASE + "db.js");
     const { getUserById, mapUser } = await import(process.env.SM_MODULE_BASE + "users.js");
-    const { logActivity, listActivity, moduleForPath, exportActivityCsv } = await import(
-      process.env.SM_MODULE_BASE + "activity.js"
-    );
+    const {
+      logActivity,
+      listActivity,
+      moduleForPath,
+      exportActivityCsv,
+      getActivityRetentionDays,
+      saveActivityRetentionDays,
+    } = await import(process.env.SM_MODULE_BASE + "activity.js");
     const now = new Date().toISOString();
     db.prepare(
       "INSERT INTO users (id, username, password_hash, role, permissions_json, created_at) VALUES (?, ?, ?, ?, ?, ?)",
@@ -29,11 +34,25 @@ test("records and filters user activity", () => {
     logActivity({ user, action: "create", module: "songs", path: "/api/songs", status: 201 });
     logActivity({ user, action: "download_pdf", module: "setlists", status: 200, detail: "Big Print PDF" });
     logActivity({ user, action: "export", module: "settings", status: 200, detail: 'a, "quoted"\\nline' });
-    console.log(JSON.stringify({
+    const beforePrune = {
       all: listActivity(),
       songs: listActivity({ module: "songs" }),
       search: listActivity({ q: "Print" }),
+    };
+    const retentionDefault = getActivityRetentionDays();
+    db.prepare("UPDATE activity_log SET created_at = ? WHERE detail = ?").run(
+      new Date(Date.now() - 40 * 24 * 60 * 60 * 1000).toISOString(),
+      "Big Print PDF",
+    );
+    const retentionSaved = saveActivityRetentionDays(30);
+    const afterPrune = listActivity({ q: "Print" });
+    console.log(JSON.stringify({
+      ...beforePrune,
       settingsCsv: exportActivityCsv({ module: "settings" }),
+      retentionDefault,
+      retentionSaved,
+      retentionAfter: getActivityRetentionDays(),
+      afterPruneTotal: afterPrune.total,
       pathModules: [
         moduleForPath("/api/songs/123"),
         moduleForPath("/api/setlists/123/songs.pdf"),
@@ -69,5 +88,10 @@ test("records and filters user activity", () => {
   );
   assert.match(data.settingsCsv, /a, ""quoted""\nline/);
   assert.match(data.settingsCsv, /activity-user/);
+  assert.equal(data.retentionDefault, 0);
+  assert.equal(data.retentionSaved.retentionDays, 30);
+  assert.equal(data.retentionSaved.deleted, 1);
+  assert.equal(data.retentionAfter, 30);
+  assert.equal(data.afterPruneTotal, 0);
   assert.deepEqual(data.pathModules, ["songs", "setlists", "users"]);
 });

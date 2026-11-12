@@ -1,8 +1,32 @@
 import type { FastifyInstance } from "fastify";
+import { activityRetentionSchema } from "@sm/shared";
 import { requireAuth, requireRole } from "../auth.js";
-import { exportActivityCsv, listActivity } from "../activity.js";
+import {
+  exportActivityCsv,
+  getActivityRetentionDays,
+  listActivity,
+  saveActivityRetentionDays,
+} from "../activity.js";
 
 export async function activityRoutes(app: FastifyInstance): Promise<void> {
+  app.get(
+    "/api/activity/retention",
+    { preHandler: [requireAuth, requireRole("admin")] },
+    async () => ({ retentionDays: getActivityRetentionDays() }),
+  );
+
+  app.put(
+    "/api/activity/retention",
+    { preHandler: [requireAuth, requireRole("admin")] },
+    async (request, reply) => {
+      const parsed = activityRetentionSchema.safeParse(request.body ?? {});
+      if (!parsed.success) {
+        return reply.code(400).send({ error: "Invalid retention setting", issues: parsed.error.issues });
+      }
+      return saveActivityRetentionDays(parsed.data.retentionDays);
+    },
+  );
+
   app.get(
     "/api/activity/export",
     { preHandler: [requireAuth, requireRole("admin")] },

@@ -199,6 +199,51 @@ export function exportActivityCsv(
     .concat("\r\n");
 }
 
+const ACTIVITY_RETENTION_KEY = "activity_retention_days";
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+export function getActivityRetentionDays(): number {
+  const row = db
+    .prepare("SELECT value FROM app_settings WHERE key = ?")
+    .get(ACTIVITY_RETENTION_KEY) as { value: string } | undefined;
+  const days = Number(row?.value);
+  return Number.isFinite(days) && days > 0 ? Math.min(3650, Math.floor(days)) : 0;
+}
+
+export function pruneActivityLog(retentionDays = getActivityRetentionDays()): number {
+  if (retentionDays <= 0) return 0;
+  const cutoff = new Date(Date.now() - retentionDays * DAY_MS).toISOString();
+  const result = db.prepare("DELETE FROM activity_log WHERE created_at < ?").run(cutoff);
+  return Number(result.changes);
+}
+
+export function saveActivityRetentionDays(retentionDays: number): {
+  retentionDays: number;
+  deleted: number;
+} {
+  const days = Math.max(0, Math.min(3650, Math.floor(retentionDays)));
+  const now = new Date().toISOString();
+  db.prepare(
+    `INSERT INTO app_settings (key, value, updated_at) VALUES (?, ?, ?)
+     ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`,
+  ).run(ACTIVITY_RETENTION_KEY, String(days), now);
+  return { retentionDays: days, deleted: pruneActivityLog(days) };
+}
+
+export function startActivityRetention(): () => void {
+  const prune = () => {
+    try {
+      pruneActivityLog();
+    } catch {
+      // Retention failures should never prevent the app from starting.
+    }
+  };
+  prune();
+  const timer = setInterval(prune, DAY_MS);
+  timer.unref();
+  return () => clearInterval(timer);
+}
+
 export function listActivity(options: {
   limit?: number;
   offset?: number;
