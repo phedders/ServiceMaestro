@@ -17,7 +17,7 @@ test("records and filters user activity", () => {
   const script = `
     const { db } = await import(process.env.SM_MODULE_BASE + "db.js");
     const { getUserById, mapUser } = await import(process.env.SM_MODULE_BASE + "users.js");
-    const { logActivity, listActivity, moduleForPath } = await import(
+    const { logActivity, listActivity, moduleForPath, exportActivityCsv } = await import(
       process.env.SM_MODULE_BASE + "activity.js"
     );
     const now = new Date().toISOString();
@@ -28,10 +28,12 @@ test("records and filters user activity", () => {
     logActivity({ user, action: "login", module: "auth", status: 200, detail: "Password login" });
     logActivity({ user, action: "create", module: "songs", path: "/api/songs", status: 201 });
     logActivity({ user, action: "download_pdf", module: "setlists", status: 200, detail: "Big Print PDF" });
+    logActivity({ user, action: "export", module: "settings", status: 200, detail: 'a, "quoted"\\nline' });
     console.log(JSON.stringify({
       all: listActivity(),
       songs: listActivity({ module: "songs" }),
       search: listActivity({ q: "Print" }),
+      settingsCsv: exportActivityCsv({ module: "settings" }),
       pathModules: [
         moduleForPath("/api/songs/123"),
         moduleForPath("/api/setlists/123/songs.pdf"),
@@ -54,12 +56,18 @@ test("records and filters user activity", () => {
   assert.equal(result.status, 0, result.stderr);
   const data = JSON.parse(result.stdout);
 
-  assert.equal(data.all.total, 3);
-  assert.equal(data.all.entries.length, 3);
+  assert.equal(data.all.total, 4);
+  assert.equal(data.all.entries.length, 4);
   assert.equal(data.all.entries[0].username, "activity-user");
   assert.equal(data.songs.total, 1);
   assert.equal(data.songs.entries[0].path, "/api/songs");
   assert.equal(data.search.total, 1);
   assert.equal(data.search.entries[0].action, "download_pdf");
+  assert.match(
+    data.settingsCsv,
+    /^id,created_at,username,action,module,method,path,status,detail,ip,user_agent\r\n/,
+  );
+  assert.match(data.settingsCsv, /a, ""quoted""\nline/);
+  assert.match(data.settingsCsv, /activity-user/);
   assert.deepEqual(data.pathModules, ["songs", "setlists", "users"]);
 });

@@ -137,6 +137,68 @@ export function logRequestActivity(request: FastifyRequest, status: number): voi
   });
 }
 
+function csvCell(value: unknown): string {
+  let text = value == null ? "" : String(value);
+  // Avoid spreadsheet formula injection from user-controlled details.
+  if (/^[=+\-@]/.test(text)) text = `'${text}`;
+  return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+}
+
+export function exportActivityCsv(
+  options: {
+    module?: string;
+    userId?: string;
+    q?: string;
+    maxEntries?: number;
+  } = {},
+): string {
+  const maxEntries = Math.max(1, Math.min(50_000, Math.floor(options.maxEntries ?? 50_000)));
+  const rows: ActivityEntry[] = [];
+  let offset = 0;
+  while (rows.length < maxEntries) {
+    const page = listActivity({
+      module: options.module,
+      userId: options.userId,
+      q: options.q,
+      limit: Math.min(500, maxEntries - rows.length),
+      offset,
+    });
+    rows.push(...page.entries);
+    if (!page.entries.length || rows.length >= page.total || offset >= page.total) break;
+    offset += page.entries.length;
+  }
+
+  const header = [
+    "id",
+    "created_at",
+    "username",
+    "action",
+    "module",
+    "method",
+    "path",
+    "status",
+    "detail",
+    "ip",
+    "user_agent",
+  ];
+  return [header, ...rows.map((entry) => [
+    entry.id,
+    entry.createdAt,
+    entry.username,
+    entry.action,
+    entry.module,
+    entry.method,
+    entry.path,
+    entry.status,
+    entry.detail,
+    entry.ip,
+    entry.userAgent,
+  ])]
+    .map((row) => row.map(csvCell).join(","))
+    .join("\r\n")
+    .concat("\r\n");
+}
+
 export function listActivity(options: {
   limit?: number;
   offset?: number;

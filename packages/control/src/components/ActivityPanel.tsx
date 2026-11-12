@@ -5,6 +5,7 @@ import {
 } from "@sm/shared";
 import { api, ApiError } from "../api";
 import { compactDateTime } from "../service-date";
+import { downloadBlob } from "../site-download";
 
 const FILTER_MODULES = [
   { id: "", label: "All modules" },
@@ -23,6 +24,7 @@ export function ActivityPanel({
   const [module, setModule] = useState("");
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -38,6 +40,22 @@ export function ActivityPanel({
       notify(error instanceof ApiError ? error.message : "Could not load activity log", "error");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function exportCsv() {
+    setExporting(true);
+    try {
+      const result = await api.activityExport({
+        module: module || undefined,
+        q: query.trim() || undefined,
+      });
+      downloadBlob(result.blob, result.filename);
+      notify("Exported activity log");
+    } catch (error) {
+      notify(error instanceof ApiError ? error.message : "Could not export activity log", "error");
+    } finally {
+      setExporting(false);
     }
   }
 
@@ -75,6 +93,14 @@ export function ActivityPanel({
             title="Refresh the activity log"
           >
             {loading ? "Loading…" : "Refresh"}
+          </button>
+          <button
+            className="button"
+            onClick={() => void exportCsv()}
+            disabled={loading || exporting}
+            title="Export all entries matching the current module and search filters as CSV"
+          >
+            {exporting ? "Exporting…" : "Export CSV"}
           </button>
         </div>
       </div>

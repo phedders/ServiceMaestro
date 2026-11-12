@@ -171,6 +171,35 @@ export const api = {
     if (options.q) params.set("q", options.q);
     return request<ActivityPage>(`/api/activity${params.size ? `?${params}` : ""}`);
   },
+  activityExport: async (options: {
+    module?: string;
+    userId?: string;
+    q?: string;
+  } = {}): Promise<{ blob: Blob; filename: string }> => {
+    const params = new URLSearchParams();
+    if (options.module) params.set("module", options.module);
+    if (options.userId) params.set("userId", options.userId);
+    if (options.q) params.set("q", options.q);
+    const response = await fetch(`/api/activity/export${params.size ? `?${params}` : ""}`, {
+      credentials: "include",
+    });
+    if (!response.ok) {
+      const text = await response.text();
+      let data: { error?: string } | null = null;
+      try {
+        data = text ? (JSON.parse(text) as { error?: string }) : null;
+      } catch {
+        // Keep the status text when the body is not JSON.
+      }
+      throw new ApiError(response.status, data?.error ?? response.statusText);
+    }
+    const disposition = response.headers.get("content-disposition") ?? "";
+    const match = disposition.match(/filename="?([^";]+)"?/i);
+    return {
+      blob: await response.blob(),
+      filename: match?.[1] ?? "service-maestro-activity.csv",
+    };
+  },
 
   songs: (q = "") => request<{ songs: Song[] }>(`/api/songs${q ? `?q=${encodeURIComponent(q)}` : ""}`),
   song: (id: string) => request<{ song: Song }>(`/api/songs/${id}`),
