@@ -280,6 +280,137 @@ body.idle .sm-template {
   width: 100%;
 }
 
+/* Tarp pages carry both normal and lower-third layouts. The target output
+   chooses which layer is visible. */
+.tarp-page-root {
+  width: 100%;
+}
+
+.tarp-normal-layer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.tarp-lowerthird-layer {
+  display: none;
+}
+
+.tarp-canvas {
+  position: relative;
+  overflow: hidden;
+  container-type: size;
+}
+
+.tarp-canvas-normal {
+  width: min(100%, calc(90vh * var(--tarp-ratio, 1.7778)));
+  aspect-ratio: var(--tarp-ratio, 1.7778);
+}
+
+body.display-main .tarp-normal-layer {
+  display: none;
+}
+
+body.display-main .tarp-lowerthird-layer {
+  display: block;
+  position: fixed;
+  left: 6vw;
+  right: 6vw;
+  bottom: var(--sm-lowerthird-padding, 48px);
+  z-index: 1;
+}
+
+body.display-main.mode-tarp .sm-lowerthird-panel {
+  padding: 0;
+  border: 0;
+  background: none;
+  border-radius: 0;
+}
+
+.tarp-canvas-lowerthird {
+  width: 100%;
+  aspect-ratio: 16 / 3;
+}
+
+.tarp-background {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.tarp-background .sm-bg-fill {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.tarp-object {
+  position: absolute;
+  display: block;
+  box-sizing: border-box;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.tarp-object-text {
+  white-space: pre-wrap;
+  line-height: 1.15;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.45);
+}
+
+.tarp-object-markdown {
+  line-height: 1.25;
+}
+
+.tarp-object-markdown h1,
+.tarp-object-markdown h2,
+.tarp-object-markdown h3,
+.tarp-object-markdown h4,
+.tarp-object-markdown p,
+.tarp-object-markdown ul,
+.tarp-object-markdown ol,
+.tarp-object-markdown blockquote {
+  margin: 0 0 0.35em;
+}
+
+.tarp-object-markdown h1 {
+  font-size: 1.5em;
+}
+
+.tarp-object-markdown h2 {
+  font-size: 1.25em;
+}
+
+.tarp-object-markdown h3,
+.tarp-object-markdown h4 {
+  font-size: 1.1em;
+}
+
+.tarp-object-markdown ul,
+.tarp-object-markdown ol {
+  padding-left: 1.2em;
+}
+
+.tarp-object-markdown a {
+  color: var(--tarp-accent, #63c7ff);
+}
+
+.tarp-object-markdown code {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 0.9em;
+  background: rgba(255, 255, 255, 0.14);
+  border-radius: 0.15em;
+  padding: 0 0.2em;
+}
+
+.tarp-object-image img {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
 .sm-content .slide-inner {
   display: flex;
   flex-direction: column;

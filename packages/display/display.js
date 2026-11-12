@@ -195,6 +195,7 @@
       "mode-image",
       state.mode === "image" || state.mode === "image_list",
     );
+    document.body.classList.toggle("mode-tarp", state.mode === "tarp");
     const pageKey = currentPageKey(state);
     const pageChanged = Boolean(pageKey && displayedPageKey && pageKey !== displayedPageKey);
     const stinger =

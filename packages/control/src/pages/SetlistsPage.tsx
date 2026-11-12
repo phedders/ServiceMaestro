@@ -926,8 +926,9 @@ function ItemRow({
                 </label>
               </div>
               <p className="hint">
-                Tarp items use the referenced presentation&apos;s pages. Display rendering is coming
-                in the next Tarp output section.
+                Tarp items use the referenced presentation&apos;s normal and lower-third views. The
+                normal view is used on full/two-thirds/stage; the lower-third view is used on the
+                lower-third output.
               </p>
               <label>
                 Notes
@@ -2479,7 +2480,8 @@ export default function SetlistsPage({
                     </label>
                   </div>
                   <span className="hint">
-                    Tarp display rendering is the next output section; the item can be added now.
+                    The presentation’s normal view appears on full/two-thirds/stage outputs; its
+                    lower-third view appears on the lower-third output.
                   </span>
                 </>
               )}

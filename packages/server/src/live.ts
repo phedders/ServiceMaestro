@@ -25,6 +25,7 @@ import { getAppSettings } from "./settings.js";
 import { resolveImage } from "./images.js";
 import { getBackground } from "./backgrounds.js";
 import { getStinger } from "./stingers.js";
+import { renderTarpPages } from "./tarp-render.js";
 
 interface SnapshotItem extends RenderItem {
   itemId: string | null;
@@ -884,14 +885,20 @@ class LiveService {
     if (!this.active) return [];
     const stored = this.active.state.displayConfig;
     const config = { ...getDisplayConfig(), ...(stored ?? {}) };
-    const pages = buildPages(item, this.active.state.transpose, {
-      maxLines: this.active.state.maxLines || config.maxLines,
-      maxWords: config.maxWords,
-      smartPageSplits: config.smartPageSplits,
-      smartWrapMinWords: config.smartWrapMinWords,
-      smartWrapModules: config.smartWrapModules,
-      textScale: config.textScale,
-    });
+    const pages =
+      item.kind === "tarp"
+        ? (() => {
+            const content = parseTarpItemContent(item.content);
+            return content ? renderTarpPages(content.presentationId) : [];
+          })()
+        : buildPages(item, this.active.state.transpose, {
+            maxLines: this.active.state.maxLines || config.maxLines,
+            maxWords: config.maxWords,
+            smartPageSplits: config.smartPageSplits,
+            smartWrapMinWords: config.smartWrapMinWords,
+            smartWrapModules: config.smartWrapModules,
+            textScale: config.textScale,
+          });
     for (const page of pages) {
       const pageOverride = item.stingerPageOverrides?.[String(page.index + 1)];
       const stingerId =
