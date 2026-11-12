@@ -43,6 +43,7 @@ import type {
   SiteScraperImportResult,
   SiteScraperProviderSummary,
   SiteScraperSearchResult,
+  SiteScraperSongUpdateCheck,
   Song,
   SongAlternative,
   SongDuplicateGroup,
@@ -410,6 +411,11 @@ export const api = {
           kinds,
         }),
       },
+    ),
+  siteScraperCheckUpdates: (providerId: string, songId: string) =>
+    request<SiteScraperSongUpdateCheck>(
+      `/api/site-scraping/providers/${encodeURIComponent(providerId)}/songs/${encodeURIComponent(songId)}/check`,
+      { method: "POST" },
     ),
   scanSongselectWatch: (force = false) =>
     request<{ report: SongSelectWatchReport; status: SongSelectWatchStatus }>(

@@ -1,14 +1,15 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import type {
   SiteScraperImportResult,
   SiteScraperSearchResult,
+  SiteScraperSongUpdateCheck,
   SongResourceKind,
 } from "@sm/shared";
 import { deleteAsset, saveAsset } from "./assets.js";
 import { db } from "./db.js";
 import { saveSongToGit } from "./git-store.js";
 import { parseChordPro, parsePlainText } from "./importers/index.js";
-import { downloadSiteSong } from "./site-scraping.js";
+import { downloadSiteSong, searchSiteSongs } from "./site-scraping.js";
 
 const LEGAL_LINE =
   /^(ccli\s*(song|licen[cs]e)|for use solely with the songselect|note:\s*reproduction|©|copyright|\(c\)|all rights reserved)/i;
@@ -133,5 +134,63 @@ export async function importSiteSong(
       bytes: file.data.byteLength,
     })),
     assets: assets.length,
+  };
+}
+
+function normalizedTitle(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, "");
+}
+
+export async function checkSiteSongUpdates(
+  userId: string,
+  providerId: string,
+  songId: string,
+): Promise<SiteScraperSongUpdateCheck> {
+  const song = db
+    .prepare("SELECT id, title, ccli FROM songs WHERE id = ?")
+    .get(songId) as { id: string; title: string; ccli: string | null } | undefined;
+  if (!song) throw new Error("Song not found");
+  const query = song.ccli?.trim() || song.title.trim();
+  if (!query) throw new Error("This song has no title or CCLI number to search for");
+  const results = await searchSiteSongs(userId, providerId, query);
+  const ccli = song.ccli?.trim();
+  const match =
+    (ccli ? results.find((result) => result.songNumber === ccli) : undefined) ??
+    results.find((result) => normalizedTitle(result.title) === normalizedTitle(song.title));
+  if (!match) throw new Error("No matching SongSelect song found");
+
+  const remoteFiles = await downloadSiteSong(
+    userId,
+    providerId,
+    match,
+    match.availableKinds,
+  );
+  const localAssets = db
+    .prepare("SELECT kind, title, sha256 FROM song_assets WHERE song_id = ? AND source = ?")
+    .all(songId, providerId) as Array<{ kind: string; title: string; sha256: string }>;
+  const missingKinds: SongResourceKind[] = [];
+  const changedKinds: SongResourceKind[] = [];
+  for (const file of remoteFiles) {
+    const kind = assetKind(file.kind);
+    if (!kind) continue;
+    const title = assetTitle(file.kind);
+    const local = localAssets.find((asset) => asset.kind === kind && asset.title === title);
+    if (!local) {
+      missingKinds.push(file.kind);
+      continue;
+    }
+    // Generated PDFs can differ byte-for-byte on every render, so only use
+    // checksums for stable text artifacts when reporting content updates.
+    if (kind === "chordpro" || kind === "lyrics") {
+      const sha256 = createHash("sha256").update(file.data).digest("hex");
+      if (sha256 !== local.sha256) changedKinds.push(file.kind);
+    }
+  }
+  return {
+    provider: providerId,
+    song: match,
+    missingKinds,
+    changedKinds,
+    hasUpdates: missingKinds.length > 0 || changedKinds.length > 0,
   };
 }

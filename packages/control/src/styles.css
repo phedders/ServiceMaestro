@@ -1327,6 +1327,23 @@ body.resizing-live-queue {
   color: var(--muted);
 }
 
+.song-row-wrap {
+  position: relative;
+}
+
+.song-row-wrap .song-row {
+  width: 100%;
+  padding-right: 76px;
+}
+
+.song-row-update {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  z-index: 1;
+  transform: translateY(-50%);
+}
+
 .song-list-actions {
   display: flex;
   align-items: center;

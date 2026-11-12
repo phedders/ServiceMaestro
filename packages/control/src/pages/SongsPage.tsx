@@ -3,6 +3,7 @@ import { simplifySongPageIds } from "@sm/shared";
 import type {
   LiveState,
   SetlistSummary,
+  SiteScraperProviderSummary,
   Song,
   SongAsset,
   SongImportDecision,
@@ -13,6 +14,7 @@ import { api, ApiError } from "../api";
 import { PageContentEditor } from "../components/PageContentEditor";
 import { SiteSongDownloadPanel } from "../components/SiteSongDownloadPanel";
 import { compactDate, compactDateTime, pickCurrentSetlist } from "../service-date";
+import { loadActiveSiteProvider, updateSongFromSite } from "../site-update";
 
 const EMPTY = {
   title: "",
@@ -46,6 +48,8 @@ export default function SongsPage({
   const [pageIdShortcuts, setPageIdShortcuts] = useState<Record<string, string>>({});
   const [form, setForm] = useState({ ...EMPTY });
   const [saving, setSaving] = useState(false);
+  const [siteProvider, setSiteProvider] = useState<SiteScraperProviderSummary | null>(null);
+  const [siteUpdatingId, setSiteUpdatingId] = useState<string | null>(null);
   const [scan, setScan] = useState<SongImportScan | null>(null);
   const [scanning, setScanning] = useState(false);
   const [importing, setImporting] = useState(false);
@@ -77,6 +81,20 @@ export default function SongsPage({
   useEffect(() => {
     load().catch(() => notify("Could not load songs", "error"));
   }, []);
+
+  useEffect(() => {
+    void loadActiveSiteProvider().then(setSiteProvider);
+  }, []);
+
+  async function updateFromSite(song: Song) {
+    if (!siteProvider) return;
+    setSiteUpdatingId(song.id);
+    try {
+      if (await updateSongFromSite(siteProvider, song.id, song.title, notify)) await load();
+    } finally {
+      setSiteUpdatingId(null);
+    }
+  }
 
   useEffect(() => {
     api
@@ -526,19 +544,31 @@ export default function SongsPage({
                 </span>
               </label>
             ) : (
-              <button
-                key={song.id}
-                data-key-list-item
-                className={`song-row ${song.id === selectedId ? "current" : ""}`}
-                onClick={() => select(song)}
-                title={`Edit “${song.title}”`}
-              >
-                <strong>{song.title}</strong>
-                <span>
-                  {song.author || "Unknown author"}
-                  {song.key ? ` · ${song.key}` : ""}
-                </span>
-              </button>
+              <div key={song.id} className="song-row-wrap">
+                <button
+                  data-key-list-item
+                  className={`song-row ${song.id === selectedId ? "current" : ""}`}
+                  onClick={() => select(song)}
+                  title={`Edit “${song.title}”`}
+                >
+                  <strong>{song.title}</strong>
+                  <span>
+                    {song.author || "Unknown author"}
+                    {song.key ? ` · ${song.key}` : ""}
+                  </span>
+                </button>
+                {siteProvider && (
+                  <button
+                    type="button"
+                    className="button ghost small song-row-update"
+                    onClick={() => void updateFromSite(song)}
+                    disabled={siteUpdatingId !== null}
+                    title={`Update from ${siteProvider.label} — check for missing files or changes`}
+                  >
+                    {siteUpdatingId === song.id ? "Checking…" : "Update"}
+                  </button>
+                )}
+              </div>
             ),
           )}
           {!filtered.length && <p className="muted">No songs found.</p>}

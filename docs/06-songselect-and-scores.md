@@ -181,7 +181,7 @@ Adapters should:
 - remove personal credentials and fall back to the server set;
 - see the artifact kinds supported by the provider.
 
-**Songs → Song site downloads** searches the configured site and offers an eye-button lyric preview plus **Download Lyrics**, **Download ChordPro**, **Download Lead PDF**, **Download Vocal PDF**, **Download all to computer** and **Import into Service Maestro**. Downloads are saved through the browser. **Import into Service Maestro** creates or updates the local song by CCLI number, attaches the ChordPro/lyrics/PDF files as song assets and saves the song so the files appear in the musician view whenever the song is used in a set list. Administrators do not see other users' passwords or cookies.
+**Songs → Song site downloads** searches the configured site and offers an eye-button lyric preview plus **Download Lyrics**, **Download ChordPro**, **Download Lead PDF**, **Download Vocal PDF**, **Download all to computer** and **Import into Service Maestro**. Downloads are saved through the browser. **Import into Service Maestro** creates or updates the local song by CCLI number, attaches the ChordPro/lyrics/PDF files as song assets and saves the song so the files appear in the musician view whenever the song is used in a set list. Songs in the library and song items in set lists also have an **Update** action. It matches the local song to SongSelect (exact CCLI first), checks for missing attachments and changed ChordPro/lyrics, then asks before importing the refreshed files. Administrators do not see other users' passwords or cookies.
 
 ## 3. SongSelect drop folder
 

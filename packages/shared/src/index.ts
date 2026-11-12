@@ -118,6 +118,14 @@ export interface SiteScraperImportResult {
   assets: number;
 }
 
+export interface SiteScraperSongUpdateCheck {
+  provider: string;
+  song: SiteScraperSearchResult;
+  missingKinds: SongResourceKind[];
+  changedKinds: SongResourceKind[];
+  hasUpdates: boolean;
+}
+
 export interface ActivityEntry {
   id: string;
   userId: string | null;

@@ -21,6 +21,7 @@ import {
   type SetlistItem,
   type SetlistRevisionInfo,
   type SetlistSummary,
+  type SiteScraperProviderSummary,
   type Song,
   type SongAlternative,
   type StingerAsset,
@@ -32,6 +33,7 @@ import { BibleLayoutButtons } from "../components/BibleLayoutButtons";
 import { IsoDateInput } from "../components/IsoDateInput";
 import { PageContentEditor } from "../components/PageContentEditor";
 import { compactDate, compactDateTime, defaultSetlistName } from "../service-date";
+import { loadActiveSiteProvider, updateSongFromSite as checkAndUpdateSongFromSite } from "../site-update";
 import { diffLyrics } from "../song-diff";
 
 const ROOT_FOLDER_KEY = "__root__";
@@ -159,6 +161,9 @@ function ItemRow({
   backgrounds,
   stingers,
   tarpPresentations,
+  siteProvider,
+  siteUpdatingSongId,
+  onUpdateFromSite,
   onUploadImage,
   first,
   last,
@@ -181,6 +186,9 @@ function ItemRow({
   backgrounds: BackgroundAsset[];
   stingers: StingerAsset[];
   tarpPresentations: TarpPresentationSummary[];
+  siteProvider: SiteScraperProviderSummary | null;
+  siteUpdatingSongId: string | null;
+  onUpdateFromSite: (song: Song) => Promise<void>;
   onUploadImage: (file: File) => Promise<ImageAsset>;
   first: boolean;
   last: boolean;
@@ -573,6 +581,16 @@ function ItemRow({
               title="Find alternative versions with similar titles"
             >
               ALT
+            </button>
+          )}
+          {item.kind === "song" && song && siteProvider && (
+            <button
+              className="button ghost small"
+              onClick={() => void onUpdateFromSite(song)}
+              disabled={siteUpdatingSongId !== null}
+              title={`Update from ${siteProvider.label} — check for missing files or changes`}
+            >
+              {siteUpdatingSongId === song.id ? "Checking…" : "Update"}
             </button>
           )}
           <button
@@ -1258,6 +1276,8 @@ export default function SetlistsPage({
   const [loading, setLoading] = useState(true);
   const [dragId, setDragId] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
+  const [siteProvider, setSiteProvider] = useState<SiteScraperProviderSummary | null>(null);
+  const [siteUpdatingSongId, setSiteUpdatingSongId] = useState<string | null>(null);
 
   const [newName, setNewName] = useState(() => defaultSetlistName(today()));
   const [newNameEdited, setNewNameEdited] = useState(false);
@@ -1337,12 +1357,27 @@ export default function SetlistsPage({
       .catch(() => setRevisions([]));
   }
 
+  async function updateSongFromSelect(song: Song) {
+    if (!siteProvider) return;
+    setSiteUpdatingSongId(song.id);
+    try {
+      if (await checkAndUpdateSongFromSite(siteProvider, song.id, song.title, notify)) {
+        const songResult = await api.songs();
+        setSongs(songResult.songs);
+        if (selectedId) await loadDetail(selectedId);
+      }
+    } finally {
+      setSiteUpdatingSongId(null);
+    }
+  }
+
   useEffect(() => {
     loadList().catch((error) => {
       notify(error instanceof ApiError ? error.message : "Could not load set lists", "error");
       setLoading(false);
     });
     api.songs().then((result) => setSongs(result.songs)).catch(() => undefined);
+    void loadActiveSiteProvider().then(setSiteProvider);
     api.images().then((result) => setImages(result.images)).catch(() => undefined);
     api
       .backgrounds()
@@ -2125,6 +2160,9 @@ export default function SetlistsPage({
                 backgrounds={backgrounds}
                 stingers={stingers}
                 tarpPresentations={tarpPresentations}
+                siteProvider={siteProvider}
+                siteUpdatingSongId={siteUpdatingSongId}
+                onUpdateFromSite={updateSongFromSelect}
                 onUploadImage={(file) => uploadImage(file)}
                 first={index === 0}
                 last={index === detail.items.length - 1}
