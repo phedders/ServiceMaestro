@@ -50,6 +50,7 @@ interface SessionRecord {
   status: "live" | "rehearsal";
   items: SnapshotItem[];
   transient: SnapshotItem | null;
+  transientReturnItemIndex: number | null;
   pending: PendingUpdate | null;
   state: LiveState;
   autoplayDirection: 1 | -1;
@@ -383,6 +384,7 @@ class LiveService {
         status: row.status,
         items,
         transient: null,
+        transientReturnItemIndex: null,
         pending,
         state,
         autoplayDirection: 1,
@@ -452,6 +454,7 @@ class LiveService {
       status,
       items,
       transient: null,
+      transientReturnItemIndex: null,
       pending: null,
       state,
       autoplayDirection: 1,
@@ -549,6 +552,7 @@ class LiveService {
       record.revisionId = revisionId;
       record.pending = null;
       record.transient = null;
+      record.transientReturnItemIndex = null;
       record.state.itemIndex = 0;
       record.state.pageIndex = 0;
       record.state.items = summaries(items);
@@ -574,6 +578,7 @@ class LiveService {
     record.revisionId = record.pending.revisionId;
     record.pending = null;
     record.transient = null;
+    record.transientReturnItemIndex = null;
     record.state.itemIndex = 0;
     record.state.pageIndex = 0;
     record.state.items = summaries(record.items);
@@ -596,6 +601,10 @@ class LiveService {
         break;
       case "page": {
         const delta = Number(command.delta ?? 0);
+        if (this.active.transient) {
+          this.setPage(state.pageIndex + delta);
+          break;
+        }
         const settings = getAppSettings();
         if (settings.pageNavigation === "next-item" && Math.abs(delta) === 1) {
           const lastPage = Math.max(0, state.pageCount - 1);
@@ -688,6 +697,10 @@ class LiveService {
       verseOrder: null,
       notes: null,
     };
+    if (!record.transient) {
+      record.transientReturnItemIndex =
+        record.state.itemIndex >= 0 ? record.state.itemIndex : 0;
+    }
     record.transient = item;
     record.state.mode = "text";
     record.state.title = "Quick text";
@@ -727,6 +740,10 @@ class LiveService {
       verseOrder: options.verseOrder ?? song.verse_order,
       notes: null,
     };
+    if (!record.transient) {
+      record.transientReturnItemIndex =
+        record.state.itemIndex >= 0 ? record.state.itemIndex : 0;
+    }
     record.transient = item;
     record.state.mode = "song";
     record.state.title = song.title;
@@ -760,6 +777,10 @@ class LiveService {
       verseOrder: null,
       notes: null,
     };
+    if (!record.transient) {
+      record.transientReturnItemIndex =
+        record.state.itemIndex >= 0 ? record.state.itemIndex : 0;
+    }
     record.transient = item;
     record.state.mode = "image";
     record.state.title = item.title;
@@ -779,6 +800,7 @@ class LiveService {
     const { state, items } = this.active;
     if (index < 0 || index >= items.length) return;
     this.active.transient = null;
+    this.active.transientReturnItemIndex = null;
     state.queuedItemIndex = null;
     state.queuedTitle = null;
     state.queuedPages = [];
@@ -825,9 +847,24 @@ class LiveService {
     const { state, items } = record;
 
     if (record.transient) {
-      record.transient = null;
-      if (record.pending) this.applyPending();
-      else this.setItem(0);
+      // A quick song/text/image is a temporary overlay item. Its pages behave
+      // like any other item; don't discard it just because the operator
+      // advances or goes back a page.
+      const nextPage = state.pageIndex + delta;
+      if (nextPage >= 0 && nextPage < state.pageCount) {
+        state.pageIndex = nextPage;
+        return;
+      }
+      // At the end of a transient item, resume the item that was live before
+      // it, or apply a queued snapshot when one is waiting.
+      if (delta > 0) {
+        if (record.pending) {
+          this.applyPending();
+        } else if (items.length) {
+          const returnIndex = record.transientReturnItemIndex ?? 0;
+          this.setItem(Math.max(0, Math.min(returnIndex, items.length - 1)));
+        }
+      }
       return;
     }
 
