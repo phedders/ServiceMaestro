@@ -229,6 +229,7 @@ export async function importChurchsuitePlan(
       key_override, transpose, max_lines, verse_order, notes)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   );
+  const findSong = db.prepare("SELECT id, title FROM songs WHERE id = ?");
 
   let position = 0;
   let songsMatched = 0;
@@ -240,19 +241,36 @@ export async function importChurchsuitePlan(
       skipped += 1;
       continue;
     }
-    if (item.action === "song" && item.matchedSong) {
-      const selectedId = input.songSelections?.[String(item.id)];
-      const selected = selectedId
-        ? item.matchCandidates.find((candidate) => candidate.id === selectedId)
-        : undefined;
-      const chosen = selected ?? item.matchedSong;
+    const selectedId = input.songSelections?.[String(item.id)];
+    const selectedSong = selectedId
+      ? (findSong.get(selectedId) as { id: string; title: string } | undefined)
+      : undefined;
+    if (selectedSong && item.isSong) {
       insert.run(
         randomUUID(),
         id,
         position,
         "song",
-        chosen.id,
-        chosen.title,
+        selectedSong.id,
+        selectedSong.title,
+        null,
+        null,
+        null,
+        item.key,
+        0,
+        4,
+        null,
+        item.notes,
+      );
+      songsMatched += 1;
+    } else if (item.action === "song" && item.matchedSong) {
+      insert.run(
+        randomUUID(),
+        id,
+        position,
+        "song",
+        item.matchedSong.id,
+        item.matchedSong.title,
         null,
         null,
         null,

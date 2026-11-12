@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import type {
+  SiteScraperImportResult,
   SiteScraperProviderSummary,
   SiteScraperSearchResult,
   SongResourceKind,
@@ -13,11 +14,13 @@ export function SiteSongLookupDialog({
   provider,
   initialQuery,
   notify,
+  onImported,
   onClose,
 }: {
   provider: SiteScraperProviderSummary;
   initialQuery: string;
   notify: (text: string, kind?: "info" | "error") => void;
+  onImported?: (song: SiteScraperImportResult["song"]) => void;
   onClose: () => void;
 }) {
   const [query, setQuery] = useState(initialQuery);
@@ -100,6 +103,7 @@ export function SiteSongLookupDialog({
           ? `Imported “${result.song.title}” with ${result.files.length} file${result.files.length === 1 ? "" : "s"}`
           : `Updated “${result.song.title}” with ${result.files.length} file${result.files.length === 1 ? "" : "s"}`,
       );
+      onImported?.(result.song);
     } catch (error) {
       notify(error instanceof ApiError ? error.message : "Could not import the song", "error");
     } finally {

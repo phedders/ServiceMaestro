@@ -3,6 +3,7 @@ import type {
   ChurchSuiteImportReport,
   ChurchSuitePlanPreview,
   ChurchSuitePlanSummary,
+  SiteScraperImportResult,
   SiteScraperProviderSummary,
 } from "@sm/shared";
 import { api, ApiError } from "../api";
@@ -64,7 +65,7 @@ export default function ChurchsuitePage({
   } | null>(null);
   const [lyricsLoadingId, setLyricsLoadingId] = useState<string | null>(null);
   const [siteProvider, setSiteProvider] = useState<SiteScraperProviderSummary | null>(null);
-  const [lookupQuery, setLookupQuery] = useState<string | null>(null);
+  const [lookup, setLookup] = useState<{ itemId: number; query: string } | null>(null);
 
   async function loadPlans() {
     setLoading(true);
@@ -150,6 +151,44 @@ export default function ChurchsuitePage({
     } finally {
       setPreviewLoading(false);
     }
+  }
+
+  function linkImportedSong(itemId: number, song: SiteScraperImportResult["song"]) {
+    setSongSelections((current) => ({ ...current, [itemId]: song.id }));
+    setPreview((current) => {
+      if (!current) return current;
+      const items = current.items.map((item) => {
+        if (item.id !== itemId) return item;
+        return {
+          ...item,
+          action: "song" as const,
+          matchedSong: { id: song.id, title: song.title, key: item.key },
+          matchCandidates: [
+            {
+              id: song.id,
+              title: song.title,
+              alternateTitles: null,
+              author: null,
+              copyright: null,
+              ccli: song.ccli,
+              key: item.key,
+              firstLines: "",
+              score: 100,
+              priority: 0,
+              reasons: ["Imported from SongSelect"],
+            },
+            ...item.matchCandidates.filter((candidate) => candidate.id !== song.id),
+          ],
+        };
+      });
+      return {
+        ...current,
+        items,
+        matchedCount: items.filter((item) => item.matchedSong).length,
+        placeholderCount: items.filter((item) => item.action === "placeholder").length,
+        emptyCount: items.filter((item) => item.action === "empty").length,
+      };
+    });
   }
 
   async function createSetlist() {
@@ -303,9 +342,12 @@ export default function ChurchsuitePage({
                               type="button"
                               className="button ghost small cs-site-lookup"
                               onClick={() =>
-                                setLookupQuery(item.name || item.typeName || "worship song")
+                                setLookup({
+                                  itemId: item.id,
+                                  query: item.name || item.typeName || "worship song",
+                                })
                               }
-                              title="Search SongSelect for this song and download its files"
+                              title="Search SongSelect for this song and link an imported song back to this item"
                             >
                               Lookup song in SongSelect
                             </button>
@@ -451,12 +493,16 @@ export default function ChurchsuitePage({
       </div>
 
       <SongLyricsDialog song={lyricsPreview} onClose={() => setLyricsPreview(null)} />
-      {lookupQuery !== null && siteProvider && (
+      {lookup && siteProvider && (
         <SiteSongLookupDialog
           provider={siteProvider}
-          initialQuery={lookupQuery}
+          initialQuery={lookup.query}
           notify={notify}
-          onClose={() => setLookupQuery(null)}
+          onImported={(song) => {
+            linkImportedSong(lookup.itemId, song);
+            setLookup(null);
+          }}
+          onClose={() => setLookup(null)}
         />
       )}
     </div>
