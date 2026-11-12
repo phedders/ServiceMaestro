@@ -1251,6 +1251,7 @@ export default function SetlistsPage({
   const [importPreview, setImportPreview] = useState<SetlistImportPreview | null>(null);
   const [importReport, setImportReport] = useState<SetlistImportReport | null>(null);
   const [importing, setImporting] = useState(false);
+  const [creatingSongPdf, setCreatingSongPdf] = useState(false);
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
   const [dragId, setDragId] = useState<string | null>(null);
@@ -1664,6 +1665,30 @@ export default function SetlistsPage({
     }
   }
 
+  async function createSongPdf() {
+    if (!detail) return;
+    setCreatingSongPdf(true);
+    try {
+      const { blob, filename } = await api.downloadSetlistSongsPdf(detail.id);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.append(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      notify("Song sheet PDF downloaded");
+    } catch (error) {
+      notify(
+        error instanceof ApiError ? error.message : "Could not create the song sheet PDF",
+        "error",
+      );
+    } finally {
+      setCreatingSongPdf(false);
+    }
+  }
+
   async function chooseImport(file: File | null) {
     setImportFile(file);
     setImportReport(null);
@@ -1827,6 +1852,18 @@ export default function SetlistsPage({
           <h3>Share / backup</h3>
           {detail && (
             <div className="button-row">
+              <button
+                className="button primary small"
+                onClick={createSongPdf}
+                disabled={creatingSongPdf || !detail.items.some((item) => item.kind === "song")}
+                title={
+                  detail.items.some((item) => item.kind === "song")
+                    ? "Download a printable PDF containing the words of every song in this service"
+                    : "Add at least one song to create a song sheet"
+                }
+              >
+                {creatingSongPdf ? "Creating PDF…" : "Create PDF of the songs"}
+              </button>
               <a
                 className="button ghost small"
                 href={api.exportSetlistUrl(detail.id, "json")}

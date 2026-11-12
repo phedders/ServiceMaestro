@@ -306,6 +306,29 @@ export const api = {
     request<{ revision: SetlistRevisionInfo }>(`/api/setlists/${id}/publish`, { method: "POST" }),
   exportSetlistUrl: (id: string, format: "json" | "bundle") =>
     `/api/setlists/${id}/export?format=${format}`,
+  downloadSetlistSongsPdf: async (
+    id: string,
+  ): Promise<{ blob: Blob; filename: string }> => {
+    const response = await fetch(`/api/setlists/${id}/songs.pdf`, {
+      credentials: "include",
+    });
+    if (!response.ok) {
+      let message = response.statusText;
+      try {
+        const data = (await response.json()) as { error?: string };
+        if (data.error) message = data.error;
+      } catch {
+        // Keep the HTTP status text when the error body is not JSON.
+      }
+      throw new ApiError(response.status, message);
+    }
+    const disposition = response.headers.get("content-disposition") ?? "";
+    const match = disposition.match(/filename="?([^";]+)"?/i);
+    return {
+      blob: await response.blob(),
+      filename: match?.[1] ?? "service-songs.pdf",
+    };
+  },
   previewSetlistImport: async (file: File): Promise<{ preview: SetlistImportPreview }> => {
     const form = new FormData();
     form.append("file", file);

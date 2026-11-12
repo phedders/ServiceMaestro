@@ -5,6 +5,7 @@ import {
   importSetlistFile,
   previewSetlistImport,
 } from "../setlist-transfer.js";
+import { buildSongSheetPdf } from "../song-sheet.js";
 import { saveSetlistToGit, saveTarpLibraryToGit } from "../git-store.js";
 
 export async function transferRoutes(app: FastifyInstance): Promise<void> {
@@ -21,6 +22,24 @@ export async function transferRoutes(app: FastifyInstance): Promise<void> {
       return reply.code(404).send({ error: (error as Error).message });
     }
   });
+
+  app.get(
+    "/api/setlists/:id/songs.pdf",
+    { preHandler: requireAuth },
+    async (request, reply) => {
+      const id = (request.params as { id: string }).id;
+      try {
+        const result = await buildSongSheetPdf(id);
+        return reply
+          .type("application/pdf")
+          .header("content-disposition", `attachment; filename="${result.filename}"`)
+          .header("cache-control", "no-store")
+          .send(result.buffer);
+      } catch (error) {
+        return reply.code(404).send({ error: (error as Error).message });
+      }
+    },
+  );
 
   app.post(
     "/api/setlists/import/preview",
