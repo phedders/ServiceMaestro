@@ -18,6 +18,11 @@
     "concurrently": "^9.1.2",
     "typescript": "^5.7.3"
   },
+  "overrides": {
+    "restructured": {
+      "power-assert": "file:./packages/power-assert-stub"
+    }
+  },
   "allowScripts": {
     "esbuild@0.28.2": true,
     "esbuild@0.25.12": true

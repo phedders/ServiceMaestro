@@ -1,0 +1,8 @@
+{
+  "name": "power-assert",
+  "version": "1.6.2",
+  "description": "Local stub for restructured's unused power-assert dependency",
+  "main": "index.js",
+  "license": "MIT",
+  "private": true
+}

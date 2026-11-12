@@ -116,6 +116,20 @@ test("renders markdown text items and strips scripts", () => {
   assert.doesNotMatch(pages[0].html, /script|alert/);
 });
 
+test("renders reStructuredText text items", () => {
+  const pages = buildPages({
+    kind: "text",
+    title: "RST notice",
+    content: "type: rst\nTitle\n=====\n\nThis is **bold**.\n\n- one\n- two",
+    transpose: 0,
+    maxLines: 4,
+  });
+  assert.equal(pages.length, 1);
+  assert.match(pages[0].html, /<h1[^>]*>[\s\S]*Title[\s\S]*<\/h1>/);
+  assert.match(pages[0].html, /<strong[^>]*>[\s\S]*bold[\s\S]*<\/strong>/);
+  assert.match(pages[0].html, /<li[^>]*>[\s\S]*one[\s\S]*<\/li>/);
+});
+
 test("supports front-matter HTML text and page breaks", () => {
   const pages = buildPages({
     kind: "text",
