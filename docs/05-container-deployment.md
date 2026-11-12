@@ -88,7 +88,8 @@ Environment-first, with optional file values and `_FILE` secret support:
 | `SM_PORT` | `8080` | HTTPS control HTTP/WS port |
 | `SM_DISPLAY_PORT` | `8081` | Read-only display HTTP/WS port; serves only `/display/*` |
 | `SM_HOST` | `0.0.0.0` | Bind address |
-| `SM_PUBLIC_URL` | — | Absolute URL used in generated links |
+| `SM_SECURE_COOKIES` | `true` | Mark session cookies Secure; keep enabled behind an HTTPS proxy |
+| `SM_TRUST_PROXY` | `false` | Honour `X-Forwarded-*` from a trusted reverse proxy |
 | `SM_SSL_ENABLED` | `true` | Serve control over HTTPS; disable only behind a TLS-terminating forward proxy |
 | `SM_SSL_DIR` | `/data/ssl` | Control HTTPS certificate directory |
 | `SM_SSL_CERT_FILE` | `cert.pem` | Trusted certificate/full-chain path |
@@ -124,15 +125,185 @@ Environment-first, with optional file values and `_FILE` secret support:
 | `SM_CHURCHSUITE_CLIENT_SECRET` / `_FILE` | unset | ChurchSuite API user secret |
 | `SM_CHURCHSUITE_SCOPES` | `planning.read` | Requested ChurchSuite scopes |
 | `SM_LOG_LEVEL` | `info` | `debug`/`info`/`warn`/`error` |
-| `SM_TRUST_PROXY` | `false` | Honour `X-Forwarded-*` behind TLS proxy |
 
 `SM_PORT` and `SM_DISPLAY_PORT` are read at startup, must be different, and accept values from `1` to `65535`. The control interface on `SM_PORT` is HTTPS-only by default; the display listener on `SM_DISPLAY_PORT` remains plain HTTP for OBS and display devices. Place `cert.pem` and `key.pem` in `SM_SSL_DIR` (default `/data/ssl`) or point `SM_SSL_CERT_FILE`/`SM_SSL_KEY_FILE` at a trusted certificate and key. If neither is present, a local self-signed certificate is generated and the Settings page shows a warning until it is replaced.
 
 For a forward proxy that terminates TLS, set `SM_SSL_ENABLED=false` so the control server accepts plain HTTP from the proxy. Never expose that port directly. Secure cookies remain enabled by default because the browser still reaches the proxy over HTTPS; keep `SM_SECURE_COOKIES=true` unless testing directly over HTTP. Secrets are never printed; `_FILE` variants allow Docker/Podman secrets and Incus/LXC files. Git repositories use `SM_GIT_*` remotes (`ssh://` or `https://token@…`), SSH key/known-hosts secrets, and optional Git LFS for Bibles — see [11-git-data-sync.md](11-git-data-sync.md).
 
-Passkeys require a browser-trusted HTTPS origin. Set `SM_WEBAUTHN_RP_ID` to the hostname only (for example `service.example.org`) and `SM_WEBAUTHN_ORIGIN` to the exact browser-facing URL including any port (for example `https://service.example.org` or `https://service.example.org:8443`). Self-signed certificates must be trusted by each device before passkey registration will work. When an instance uses a local CA, the CA certificate can be downloaded from Settings → Control HTTPS, or from `/display/ca.crt` on the display port, and installed on each device. Changing the RP ID or origin invalidates existing passkey credentials; registered users must add their passkeys again.
+Passkeys require a browser-trusted HTTPS origin. Configure certificates and passkeys as described in §4.1–4.4 below.
 
 The optional structured config can be YAML or JSON. Set `SM_CONFIG_FILE`, or mount it as `config.yaml` / `config.yml` / `config.json` in `/config/`. Environment variables remain the final override, so secrets and deployment-specific values can stay in `.env` or container secrets. Start from [`config.example.yaml`](../config.example.yaml).
+
+### 4.1 HTTPS certificate options
+
+Use one of these arrangements:
+
+| Arrangement | Use when | Key settings |
+| --- | --- | --- |
+| **External trusted certificate** (recommended) | You have a real hostname and a certificate from a public CA or your organisation | Put the full chain and key in `SM_SSL_DIR` or point `SM_SSL_CERT_FILE`/`SM_SSL_KEY_FILE` at them |
+| **Local CA** | Isolated LAN with no public DNS, but devices can install a CA certificate | Create a local CA and a server certificate; install the CA on every browser/device |
+| **Generated self-signed certificate** | Temporary test only | Leave certificate files absent; the app generates one and shows a trust warning |
+| **TLS terminated by a reverse proxy** | Caddy/nginx/Traefik already handles the public certificate | `SM_SSL_ENABLED=false`; proxy forwards to the control port |
+
+The control port is HTTPS by default. The display listener remains plain HTTP for OBS and display devices. Never expose the control HTTP port directly when `SM_SSL_ENABLED=false`; expose only the reverse proxy.
+
+For any browser-facing HTTPS URL:
+
+- The certificate must include the browser-facing hostname in its SAN. A certificate for `localhost` does not work for `service.example.org`.
+- Use the full chain if the issuing CA provides one.
+- Set `SM_WEBAUTHN_RP_ID` to the hostname only, without scheme or port.
+- Set `SM_WEBAUTHN_ORIGIN` to the exact browser URL, including a non-standard port. For example:
+  `SM_WEBAUTHN_RP_ID=service.example.org`
+  `SM_WEBAUTHN_ORIGIN=https://service.example.org:8443`
+- Restart the server after changing certificates.
+- Passkeys are tied to the RP ID and origin. Changing either invalidates existing passkeys; users must register them again.
+
+#### External certificate, direct TLS
+
+Place the files at `SM_SSL_DIR/cert.pem` and `SM_SSL_DIR/key.pem` (default `/data/ssl`), or set explicit paths:
+
+```yaml
+ssl:
+  enabled: true
+  dir: /data/ssl
+  certFile: /data/ssl/fullchain.pem
+  keyFile: /data/ssl/privkey.pem
+
+webauthn:
+  rpId: service.example.org
+  origin: https://service.example.org
+```
+
+Check the SAN before restarting:
+
+```sh
+openssl x509 -in /data/ssl/fullchain.pem -noout -subject -ext subjectAltName
+```
+
+#### External certificate behind a reverse proxy
+
+Let the proxy terminate TLS and forward to the control port over HTTP:
+
+```yaml
+ssl:
+  enabled: false
+
+webauthn:
+  rpId: service.example.org
+  origin: https://service.example.org
+```
+
+Set `SM_TRUST_PROXY=true` when the proxy supplies `X-Forwarded-*` headers. Keep secure cookies enabled because the browser still reaches the proxy over HTTPS. Example Caddy site:
+
+```caddyfile
+service.example.org {
+  reverse_proxy 127.0.0.1:6111
+}
+```
+
+Use your actual published control port in place of `6111`, and expose only the proxy to users.
+
+### 4.2 Local CA certificate setup
+
+A local CA is the practical option for a LAN hostname such as `brix.foo` or `service.church.local`. The public CA certificate is installed on each device; the CA private key stays on the server.
+
+The following creates a local CA and a CA-signed server certificate inside the running container, so the files have the correct runtime ownership:
+
+```sh
+docker compose exec -T service-maestro sh -lc '
+set -e
+cd /data/ssl
+cp -f cert.pem cert.previous.pem 2>/dev/null || true
+cp -f key.pem key.previous.pem 2>/dev/null || true
+
+openssl genrsa -out ca.key 4096
+openssl req -x509 -new -nodes -key ca.key -sha256 -days 3650 \
+  -out ca.crt \
+  -subj "/CN=Service Maestro Local CA/O=Service Maestro" \
+  -addext "basicConstraints=critical,CA:TRUE" \
+  -addext "keyUsage=critical,keyCertSign,cRLSign"
+
+openssl genrsa -out key.pem 2048
+openssl req -new -key key.pem -out server.csr \
+  -subj "/CN=service.example.org/O=Service Maestro" \
+  -addext "subjectAltName=DNS:service.example.org,DNS:localhost,IP:127.0.0.1"
+
+printf "%s\n" \
+  "basicConstraints=CA:FALSE" \
+  "keyUsage=critical,digitalSignature,keyEncipherment" \
+  "extendedKeyUsage=serverAuth" \
+  "subjectAltName=DNS:service.example.org,DNS:localhost,IP:127.0.0.1" \
+  > /tmp/server.ext
+
+openssl x509 -req -in server.csr -CA ca.crt -CAkey ca.key \
+  -CAcreateserial -out cert.pem -days 825 -sha256 \
+  -extfile /tmp/server.ext
+
+chmod 600 key.pem ca.key
+rm -f server.csr
+'
+docker compose restart service-maestro
+```
+
+Replace `service.example.org` in both `subjectAltName` values. Add any additional LAN names or IPs that users will type. Then configure the relying party:
+
+```yaml
+ssl:
+  enabled: true
+  dir: /data/ssl
+  hosts:
+    - service.example.org
+
+webauthn:
+  rpId: service.example.org
+  origin: https://service.example.org
+```
+
+`SM_SSL_HOSTS` only affects the certificate generated automatically when no certificate files exist. For a CA-signed certificate, the SAN is controlled by the `openssl` command above. Setting both is harmless and avoids a mismatch if the generated fallback is ever used.
+
+Install `ca.crt` on each device:
+
+- **From the app:** Settings → Control HTTPS → **Download local CA** (`GET /api/ssl/ca.crt`, authenticated).
+- **Before login/on another device:** `http://<host>:<display-port>/display/ca.crt`. For this deployment that is `http://brix.foo:8898/display/ca.crt`.
+- **iOS/iPadOS:** install the downloaded profile, then enable it under Settings → General → About → Certificate Trust Settings.
+- **Android:** Settings → Security → Encryption & credentials → Install a certificate → CA certificate. Android shows a security warning for user-installed CAs.
+- **Desktop:** import `ca.crt` into the OS or browser trust store. Chromium on Linux can use `certutil -d sql:$HOME/.pki/nssdb -A -t "C,," -n "Service Maestro Local CA" -i ca.crt`.
+
+Keep `ca.key` private and backed up. Do not commit it to Git or place it in a shared folder. If the server certificate is replaced later, devices only need the same CA; keep `ca.crt` stable. If the CA itself changes, every device must install the new CA.
+
+### 4.3 Passkey setup and use
+
+1. Configure HTTPS and trust the certificate/CA on the device.
+2. Set `SM_WEBAUTHN_RP_NAME`, `SM_WEBAUTHN_RP_ID` and `SM_WEBAUTHN_ORIGIN` as described above.
+3. Open the exact browser-facing origin (for example `https://service.example.org:8443`).
+4. Sign in with a password.
+5. Open **Settings → My account → Passkeys**, name the device if desired, and choose **Register passkey**.
+6. Follow the device prompt (fingerprint, face, PIN or security key).
+7. Sign out. Enter the username first, then choose **Sign in with a passkey**.
+
+The same origin rule applies to every device: users must open the exact URL configured in `SM_WEBAUTHN_ORIGIN`. A different port, hostname or IP address is a different passkey origin.
+
+### 4.4 Verifying HTTPS and passkeys
+
+Check that the server is serving the certificate you expect:
+
+```sh
+openssl s_client -connect service.example.org:8443 -servername service.example.org </dev/null 2>/dev/null \
+  | openssl x509 -noout -subject -issuer -ext subjectAltName -dates
+```
+
+After signing in, **Settings → Control HTTPS** shows the certificate source, issuer, validity, warnings and a **Download local CA** button when `SM_SSL_DIR/ca.crt` exists. The JSON status is available at `/api/ssl/status`.
+
+In the browser console on the control origin:
+
+```js
+window.isSecureContext
+typeof PublicKeyCredential !== "undefined"
+```
+
+Both must be truthy before passkey registration can work. If registration still fails, check that the browser URL exactly matches `SM_WEBAUTHN_ORIGIN`, the certificate SAN contains that hostname, and the device trusts the issuing CA.
+
+The current deployment-specific settings live in `compose.override.yaml` (`brix.foo`, control `8899`, display `8898`). Change those values when deploying under a different hostname or port.
 
 ## 5. Docker / Podman
 
@@ -151,7 +322,6 @@ services:
       SM_TZ: Europe/London
       SM_PORT: ${SM_PORT:-8080}
       SM_DISPLAY_PORT: ${SM_DISPLAY_PORT:-8081}
-      SM_PUBLIC_URL: http://10.181.1.10:8080
     volumes:
       - ./data:/data
       - ./library/songs:/library/songs:ro
@@ -285,7 +455,7 @@ LXC (without Incus) follows Option B: unprivileged container, `lxc.idmap`/subuid
 
 - `/display/twothirds`, `/display/main`, `/display/lower`, `/display/fullscreen`, `/display/mainfull`, `/display/stage` and `/display/chords` work on the read-only listener. Legacy `/obs-*` aliases remain on the control port for existing local OBS sources.
 - WebSockets use normal HTTP upgrade; enable upgrade headers and set generous read timeouts for the long-lived output sockets.
-- TLS is optional and best terminated by Caddy/nginx/Traefik in front. Set `SM_PUBLIC_URL` and `SM_TRUST_PROXY=true` accordingly.
+- TLS is optional and best terminated by Caddy/nginx/Traefik in front. Set `SM_TRUST_PROXY=true` when the proxy supplies `X-Forwarded-*` headers.
 - LAN-only deployments can skip TLS; output tokens still prevent casual access.
 - No mDNS/discovery is required; outputs are plain URLs.
 - **Outbound HTTPS is optional** and only needed when a site scraping adapter is enabled: allow egress to the download site through `HTTPS_PROXY`/`NO_PROXY`, or use manual imports and the drop folder offline. Downloads are user-initiated; no background crawling.

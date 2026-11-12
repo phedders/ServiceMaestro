@@ -23,6 +23,9 @@ server:
   secretKey:
   sessionDays: 7
   secureCookies: true
+  # Honour X-Forwarded-* headers from a trusted reverse proxy. Only enable
+  # when the control port is not directly exposed to untrusted clients.
+  trustProxy: false
   logLevel: info
 
 ssl:
@@ -35,6 +38,9 @@ ssl:
   dir: /data/ssl
   certFile:
   keyFile:
+  # For a local CA, place ca.crt and ca.key here and replace cert.pem/key.pem
+  # with a CA-signed certificate. ca.crt is exposed for device installation;
+  # ca.key must stay private.
   # Extra DNS names/IP addresses for the generated certificate's SAN.
   hosts: []
 
@@ -63,6 +69,8 @@ webauthn:
   rpName: Service Maestro
   # Browser-facing RP ID and origin. Leave blank to derive them from the
   # incoming request; set both explicitly behind a forward proxy.
+  # rpId is the hostname only; origin is the exact URL including any port.
+  # Changing either value invalidates existing passkeys.
   rpId:
   origin:
 

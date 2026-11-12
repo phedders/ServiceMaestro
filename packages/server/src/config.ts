@@ -46,6 +46,7 @@ interface FileServerConfig {
   secretKey?: unknown;
   sessionDays?: unknown;
   secureCookies?: unknown;
+  trustProxy?: unknown;
   logLevel?: unknown;
 }
 
@@ -303,6 +304,7 @@ export const PORT = portOption("SM_PORT", serverConfig.port, 8080);
 export const DISPLAY_PORT = portOption("SM_DISPLAY_PORT", serverConfig.displayPort, 8081);
 export const LOG_LEVEL = optionString("SM_LOG_LEVEL", serverConfig.logLevel, "info");
 export const SECURE_COOKIES = optionBool("SM_SECURE_COOKIES", serverConfig.secureCookies, true);
+export const TRUST_PROXY = optionBool("SM_TRUST_PROXY", serverConfig.trustProxy, false);
 export const DATA_DIR = path.resolve(
   optionString("SM_DATA_DIR", serverConfig.dataDir, path.join(packageRoot, "data")),
 );

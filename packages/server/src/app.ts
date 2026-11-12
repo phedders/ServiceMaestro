@@ -15,6 +15,7 @@ import {
   OUTPUT_TOKEN,
   SSL_DIR,
   SSL_ENABLED,
+  TRUST_PROXY,
 } from "./config.js";
 import { parseCookies, requireAuth, requirePermission, userForToken } from "./auth.js";
 import { createOutputSocket, registerDisplayRoutes } from "./display-app.js";
@@ -65,6 +66,7 @@ export async function buildApp(
 }> {
   const app = Fastify({
     logger: { level: LOG_LEVEL },
+    trustProxy: TRUST_PROXY,
     ...(tls ? { https: tls } : {}),
   });
 

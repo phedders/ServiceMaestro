@@ -113,6 +113,15 @@ Listener ports are set with `SM_PORT` and `SM_DISPLAY_PORT`; both are read at st
 
 The control interface is HTTPS by default. If a forward proxy terminates TLS and forwards plain HTTP to Service Maestro, set `SM_SSL_ENABLED=false`. Do not expose that HTTP control port directly; keep `SM_SECURE_COOKIES=true` so browsers still use Secure cookies through the proxy.
 
+### HTTPS certificates and passkeys
+
+- **External certificate (recommended):** put the full chain in `SM_SSL_DIR/cert.pem` and the private key in `key.pem`, or set `SM_SSL_CERT_FILE`/`SM_SSL_KEY_FILE`.
+- **Local CA:** use a local CA-signed certificate for LAN names such as `brix.foo`; install the public CA on each device. The app can serve it from **Settings → Control HTTPS** or `/display/ca.crt` on the display port.
+- **Reverse proxy:** set `SM_SSL_ENABLED=false`, keep secure cookies, and terminate TLS at Caddy/nginx/Traefik.
+- **Passkeys:** set `SM_WEBAUTHN_RP_ID` to the hostname and `SM_WEBAUTHN_ORIGIN` to the exact browser URL, including any non-standard port. Use the same URL on every device; changing either value invalidates existing passkeys.
+
+Full setup commands for external certificates, local CA generation, device trust, reverse proxies and passkey verification are in [HTTPS certificates and passkeys](docs/05-container-deployment.md#41-https-certificate-options).
+
 | Variable | Default | Purpose |
 | --- | --- | --- |
 | `SM_PORT` | `8080` | Control HTTPS/WebSocket port (HTTP when TLS is disabled) |
@@ -135,6 +144,7 @@ The control interface is HTTPS by default. If a forward proxy terminates TLS and
 | `SM_SONG_SCRAPING_COOKIE` | unset | Optional server-level fallback session cookie |
 | `SM_LOG_LEVEL` | `info` | Fastify log level |
 | `SM_SECURE_COOKIES` | `true` | Marks session cookies Secure; set to `0` only for special proxy setups |
+| `SM_TRUST_PROXY` | `false` | Honour `X-Forwarded-*` from a trusted reverse proxy |
 | `SM_SSL_ENABLED` | `true` | Serve control over HTTPS; set `false` only behind a TLS-terminating forward proxy |
 | `SM_SSL_DIR` | `/data/ssl` | Control HTTPS certificate directory |
 | `SM_SSL_CERT_FILE` | `cert.pem` in `SM_SSL_DIR` | Trusted certificate/full-chain path |

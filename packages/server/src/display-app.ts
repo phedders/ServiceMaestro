@@ -11,6 +11,7 @@ import {
   LOG_LEVEL,
   OUTPUT_TOKEN,
   SSL_DIR,
+  TRUST_PROXY,
 } from "./config.js";
 import { parseCookies, userForToken } from "./auth.js";
 import { imageMime, resolveImage } from "./images.js";
@@ -146,7 +147,7 @@ export function createOutputSocket(app: FastifyInstance): Server {
 }
 
 export async function buildDisplayApp(): Promise<{ app: FastifyInstance; io: Server }> {
-  const app = Fastify({ logger: { level: LOG_LEVEL } });
+  const app = Fastify({ logger: { level: LOG_LEVEL }, trustProxy: TRUST_PROXY });
   await registerDisplayRoutes(app);
 
   app.setNotFoundHandler(async (_request, reply) =>
