@@ -22,6 +22,7 @@
   });
 
   const FADE_MS = 240;
+  const FADE_CLASS = target === "main" ? "sm-text-fading" : "sm-fading";
   const HEARTBEAT_TIMEOUT_MS = 45_000;
   const HEARTBEAT_CHECK_MS = 5_000;
   let lastHeartbeat = Date.now();
@@ -110,7 +111,7 @@
   function cancelFade() {
     if (fadeTimer) clearTimeout(fadeTimer);
     fadeTimer = null;
-    document.body.classList.remove("sm-fading");
+    document.body.classList.remove("sm-fading", "sm-text-fading");
   }
 
   function cancelStinger() {
@@ -144,6 +145,44 @@
       stingerLayer.innerHTML = "";
       pendingStingerPage = "";
     }, duration);
+  }
+
+  function swapHtml(html) {
+    if (target === "main" && root.firstElementChild?.classList.contains("sm-template")) {
+      const parsed = document.createElement("template");
+      parsed.innerHTML = html;
+      const nextTemplate = parsed.content.firstElementChild;
+      const currentTemplate = root.firstElementChild;
+      const currentPanel = currentTemplate.querySelector(".sm-lowerthird-panel");
+      const nextPanel = nextTemplate?.querySelector(".sm-lowerthird-panel");
+      const currentContent = currentPanel?.querySelector(".sm-content");
+      const nextContent = nextPanel?.querySelector(".sm-content");
+      const currentFooter = currentPanel?.querySelector(".sm-footer");
+      const nextFooter = nextPanel?.querySelector(".sm-footer");
+      if (
+        nextTemplate &&
+        nextTemplate.classList.contains("sm-template") &&
+        currentPanel &&
+        nextPanel &&
+        currentContent &&
+        nextContent
+      ) {
+        currentTemplate.className = nextTemplate.className;
+        currentPanel.className = nextPanel.className;
+        currentContent.className = nextContent.className;
+        currentContent.innerHTML = nextContent.innerHTML;
+        if (currentFooter && nextFooter) {
+          currentFooter.className = nextFooter.className;
+          currentFooter.innerHTML = nextFooter.innerHTML;
+        } else if (currentFooter && !nextFooter) {
+          currentFooter.remove();
+        } else if (!currentFooter && nextFooter) {
+          currentPanel.appendChild(nextFooter);
+        }
+        return;
+      }
+    }
+    root.innerHTML = html;
   }
 
   function apply(state) {
@@ -222,12 +261,14 @@
         style.textContent = template.css;
         lastCss = template.css;
       }
-      root.innerHTML = html;
+      swapHtml(html);
       lastHtml = html;
       displayedPageKey = pageKey;
       // Paint the new text at zero opacity before fading back in.
       requestAnimationFrame(() => {
-        requestAnimationFrame(() => document.body.classList.remove("sm-fading"));
+        requestAnimationFrame(() =>
+          document.body.classList.remove("sm-fading", "sm-text-fading"),
+        );
       });
     };
 
@@ -238,7 +279,7 @@
 
     cancelStinger();
     if (root.innerHTML) {
-      document.body.classList.add("sm-fading");
+      document.body.classList.add(FADE_CLASS);
       if (fadeTimer) clearTimeout(fadeTimer);
       // Wait for the fade-out to finish before swapping the text.
       fadeTimer = setTimeout(commit, FADE_MS);

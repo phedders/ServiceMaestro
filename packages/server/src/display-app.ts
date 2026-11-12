@@ -7,7 +7,6 @@ import { CONTROL_DIST, COOKIE_NAME, DISPLAY_DIR, FONTS_DIR, OUTPUT_TOKEN } from 
 import { parseCookies, userForToken } from "./auth.js";
 import { imageMime, resolveImage } from "./images.js";
 import { live } from "./live.js";
-import { sendHtmlFile } from "./send-html.js";
 
 export const OUTPUT_SOCKET_PATH = "/display/socket.ro.io";
 
@@ -34,6 +33,11 @@ export async function registerDisplayRoutes(
     prefix: "/display/assets/",
     decorateReply: false,
     cacheControl: false,
+    setHeaders(response) {
+      // Revalidate display JS/CSS after deployments instead of relying on
+      // browser heuristic caching, which otherwise keeps old transition code.
+      response.header("cache-control", "no-cache");
+    },
   });
 
   await app.register(fastifyStatic, {
@@ -78,7 +82,20 @@ export async function registerDisplayRoutes(
     const page = (request.params as { page: string }).page;
     const file = DISPLAY_PAGES[page];
     if (!file) return reply.code(404).send({ error: "Unknown display" });
-    return sendHtmlFile(reply, path.join(DISPLAY_DIR, file));
+    const displayJs = path.join(DISPLAY_DIR, "display.js");
+    const displayCss = path.join(DISPLAY_DIR, "display.css");
+    const version = Math.max(
+      fs.statSync(displayJs).mtimeMs,
+      fs.statSync(displayCss).mtimeMs,
+    ).toString(36);
+    const html = fs
+      .readFileSync(path.join(DISPLAY_DIR, file), "utf8")
+      .replaceAll("/display/assets/display.js", `/display/assets/display.js?v=${version}`)
+      .replaceAll("/display/assets/display.css", `/display/assets/display.css?v=${version}`);
+    return reply
+      .type("text/html; charset=utf-8")
+      .header("cache-control", "no-store")
+      .send(html);
   });
 }
 
