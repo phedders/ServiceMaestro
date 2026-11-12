@@ -18,6 +18,7 @@ import {
 import { api, ApiError } from "../api";
 import { AccountPanel } from "../components/AccountPanel";
 import { ActivityPanel } from "../components/ActivityPanel";
+import { BrandingPanel } from "../components/BrandingPanel";
 import { UsersPanel } from "../components/UsersPanel";
 import { compactDateTime } from "../service-date";
 import {
@@ -530,6 +531,7 @@ export default function SettingsPage({
       </p>
 
       <AccountPanel user={user} notify={notify} />
+      {user.role === "admin" && <BrandingPanel notify={notify} />}
 
       <section className="panel">
         <div className="panel-heading">

@@ -97,6 +97,8 @@ Environment-first, with optional file values and `_FILE` secret support:
 | `SM_WEBAUTHN_RP_NAME` | `Service Maestro` | Passkey relying-party display name |
 | `SM_WEBAUTHN_RP_ID` | derived | Passkey RP ID; set explicitly for a proxy/domain |
 | `SM_WEBAUTHN_ORIGIN` | derived | Browser-facing HTTPS origin for passkeys |
+| `SM_BRANDING_NAV_BACKGROUND` | unset | Default instance sidebar/top-menu background |
+| `SM_BRANDING_LOGO_FILE` | unset | Optional instance logo file |
 | `SM_DATA_DIR` | `/data` | Writable state |
 | `SM_SONGS_DIR` | `/library/songs` | Song sources |
 | `SM_BIBLE_DIR` | `/library/bible` | Bible SQLite files |

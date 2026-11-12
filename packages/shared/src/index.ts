@@ -94,6 +94,12 @@ export interface ActivityPage {
   offset: number;
 }
 
+export interface BrandingSettings {
+  logoUrl: string | null;
+  navBackground: string | null;
+  logoUpdatedAt: string | null;
+}
+
 export type TextFormat = "text" | "markdown" | "html" | "rst";
 
 export interface SongVerseOrder {

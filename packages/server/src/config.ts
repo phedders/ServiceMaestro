@@ -87,6 +87,11 @@ interface FileWebAuthnConfig {
   rpName?: unknown;
 }
 
+interface FileBrandingConfig {
+  navBackground?: unknown;
+  logoFile?: unknown;
+}
+
 interface FileGitConfig {
   enabled?: unknown;
   autoSave?: unknown;
@@ -106,6 +111,7 @@ interface FileConfig {
   churchsuite?: FileChurchSuiteConfig;
   ssl?: FileSslConfig;
   webauthn?: FileWebAuthnConfig;
+  branding?: FileBrandingConfig;
   git?: FileGitConfig;
   /** Top-level form used by the documented configuration example. */
   repositories?: Record<string, FileRepoConfig>;
@@ -160,6 +166,7 @@ const songselectConfig = fileConfig.songselect ?? {};
 const churchsuiteConfig = fileConfig.churchsuite ?? {};
 const sslConfig = fileConfig.ssl ?? {};
 const webauthnConfig = fileConfig.webauthn ?? {};
+const brandingConfig = fileConfig.branding ?? {};
 const gitConfig = fileConfig.git ?? {};
 const repositoryConfig = {
   ...(gitConfig.repositories ?? {}),
@@ -301,6 +308,14 @@ export const WEBAUTHN_RP_NAME = optionString(
   "SM_WEBAUTHN_RP_NAME",
   webauthnConfig.rpName,
   "Service Maestro",
+);
+export const BRANDING_NAV_BACKGROUND = optionalOptionString(
+  "SM_BRANDING_NAV_BACKGROUND",
+  brandingConfig.navBackground,
+);
+export const BRANDING_LOGO_FILE = optionalOptionString(
+  "SM_BRANDING_LOGO_FILE",
+  brandingConfig.logoFile,
 );
 export const CONTROL_DIST = path.resolve(packageRoot, "../control/dist");
 export const DISPLAY_DIR = path.resolve(packageRoot, "../display");

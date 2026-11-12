@@ -15,6 +15,7 @@
   --success: #4ade80;
   --warning: #fbbf24;
   --radius: 14px;
+  --nav-bg: #0a1018;
 }
 
 * {
@@ -44,7 +45,7 @@ body {
   gap: 18px;
   padding: 16px 24px;
   border-bottom: 1px solid var(--border);
-  background: #0a1018;
+  background: var(--nav-bg);
 }
 
 .standalone-header-actions {
@@ -324,7 +325,7 @@ img.brand-mark.large {
 }
 
 .sidebar {
-  background: #0a1018;
+  background: var(--nav-bg);
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
@@ -3895,6 +3896,56 @@ body.resizing-live-queue {
   text-transform: uppercase;
   letter-spacing: 0.08em;
   font-weight: 700;
+}
+
+.branding-logo-row {
+  display: flex;
+  gap: 18px;
+  align-items: flex-start;
+  padding: 10px 0 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.branding-logo-preview {
+  width: 82px;
+  height: 82px;
+  flex: 0 0 auto;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--panel-2);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+.branding-logo-preview img {
+  max-width: 68px;
+  max-height: 68px;
+  object-fit: contain;
+}
+
+.branding-logo-actions {
+  flex: 1;
+  display: grid;
+  gap: 8px;
+}
+
+.branding-colour-row {
+  display: flex;
+  align-items: end;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding-top: 14px;
+}
+
+.branding-colour-row label {
+  display: grid;
+  gap: 6px;
+}
+
+.branding-colour-row input[type="color"] {
+  width: 90px;
+  height: 38px;
 }
 
 .ssl-status-panel.warning {

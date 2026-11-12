@@ -1,9 +1,15 @@
 import { FormEvent, useState } from "react";
 import { browserSupportsWebAuthn, startAuthentication } from "@simplewebauthn/browser";
-import type { PublicUser } from "@sm/shared";
+import type { BrandingSettings, PublicUser } from "@sm/shared";
 import { api, ApiError } from "../api";
 
-export default function Login({ onLogin }: { onLogin: (user: PublicUser) => void }) {
+export default function Login({
+  branding,
+  onLogin,
+}: {
+  branding: BrandingSettings;
+  onLogin: (user: PublicUser) => void;
+}) {
   const [username, setUsername] = useState("admin");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -48,7 +54,11 @@ export default function Login({ onLogin }: { onLogin: (user: PublicUser) => void
     <div className="login-page">
       <div className="login-art">
         <div className="login-art-inner">
-          <img className="brand-mark large" src="/icon.svg" alt="Service Maestro" />
+          <img
+            className="brand-mark large"
+            src={branding.logoUrl ?? "/icon.svg"}
+            alt="Service Maestro"
+          />
           <h1>Service Maestro</h1>
           <p>Lyrics, Bible passages and service visuals — driven live, with every screen in sync.</p>
           <ul>

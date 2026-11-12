@@ -54,6 +54,12 @@ webauthn:
   rpId:
   origin:
 
+branding:
+  # Local instance personalisation. Runtime changes in Settings override these.
+  navBackground: "#0a1018"
+  # Optional logo file already present on the server.
+  logoFile:
+
 churchsuite:
   clientId:
   clientSecret:

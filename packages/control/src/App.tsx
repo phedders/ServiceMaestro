@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { io, type Socket } from "socket.io-client";
 import {
   MODULE_PERMISSIONS,
+  type BrandingSettings,
   type DisplayViewLink,
   type LiveState,
   type PermissionModule,
@@ -71,6 +72,11 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState<Page>("live");
   const [live, setLive] = useState<LiveState>(EMPTY_LIVE);
+  const [branding, setBranding] = useState<BrandingSettings>({
+    logoUrl: null,
+    navBackground: null,
+    logoUpdatedAt: null,
+  });
   const [connected, setConnected] = useState(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [displayViews, setDisplayViews] = useState<DisplayViewLink[]>([]);
@@ -101,6 +107,27 @@ export default function App() {
       // Storage can be unavailable in private browsing; layout still works for this session.
     }
   }, [sidebarCollapsed, topbarMode]);
+
+  useEffect(() => {
+    const loadBranding = () => {
+      api
+        .branding()
+        .then((result) => setBranding(result.branding))
+        .catch(() => undefined);
+    };
+    loadBranding();
+    window.addEventListener("sm-branding-changed", loadBranding);
+    return () => window.removeEventListener("sm-branding-changed", loadBranding);
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.style.setProperty(
+      "--nav-bg",
+      branding.navBackground ?? "#0a1018",
+    );
+    const icon = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
+    if (icon) icon.href = branding.logoUrl ?? "/icon.svg";
+  }, [branding]);
 
   useEffect(() => {
     const refresh = () => setShortcuts(loadKeyboardShortcuts());
@@ -359,6 +386,7 @@ export default function App() {
   if (!user) {
     return (
       <Login
+        branding={branding}
         onLogin={(nextUser) => {
           setUser(nextUser);
           setPage("live");
@@ -372,7 +400,11 @@ export default function App() {
       <div className="standalone-shell">
         <header className="standalone-header">
           <div className="brand">
-            <img className="brand-mark" src="/icon.svg" alt="Service Maestro" />
+            <img
+              className="brand-mark"
+              src={branding.logoUrl ?? "/icon.svg"}
+              alt="Service Maestro"
+            />
             <div>
               <strong>Service Maestro</strong>
               <span>Musicians · read-only service view</span>
@@ -410,7 +442,11 @@ export default function App() {
     >
       <aside className="sidebar">
         <div className="brand">
-          <img className="brand-mark" src="/icon.svg" alt="Service Maestro" />
+          <img
+            className="brand-mark"
+            src={branding.logoUrl ?? "/icon.svg"}
+            alt="Service Maestro"
+          />
           <div>
             <strong>Service Maestro</strong>
             <span>Service control</span>

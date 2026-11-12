@@ -71,6 +71,7 @@ export function moduleForPath(pathname: string): string | null {
     pathname.startsWith("/api/display") ||
     pathname.startsWith("/api/git") ||
     pathname.startsWith("/api/ssl") ||
+    pathname.startsWith("/api/branding") ||
     pathname.startsWith("/api/activity")
   ) {
     return "settings";

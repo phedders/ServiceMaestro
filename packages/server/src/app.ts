@@ -41,6 +41,7 @@ import { settingsRoutes } from "./routes/settings.js";
 import { imageRoutes } from "./routes/images.js";
 import { tarpRoutes } from "./routes/tarp.js";
 import { backgroundRoutes } from "./routes/backgrounds.js";
+import { brandingRoutes } from "./routes/branding.js";
 import { stingerRoutes } from "./routes/stingers.js";
 import { songSelectRoutes } from "./routes/songselect.js";
 import {
@@ -100,6 +101,7 @@ export async function buildApp(
   await app.register(imageRoutes);
   await app.register(tarpRoutes);
   await app.register(backgroundRoutes);
+  await app.register(brandingRoutes);
   await app.register(stingerRoutes);
   await app.register(songSelectRoutes);
 

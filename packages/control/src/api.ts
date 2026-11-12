@@ -15,6 +15,7 @@ import type {
   StingerInput,
   BiblePassage,
   BibleTranslationInfo,
+  BrandingSettings,
   ChurchSuiteImportReport,
   ChurchSuitePlanPreview,
   ChurchSuitePlanSummary,
@@ -231,6 +232,30 @@ export const api = {
     request<FontDownloadReport>("/api/fonts/import-missing", { method: "POST" }),
   deleteFont: (id: string) => request<{ ok: true }>(`/api/fonts/${id}`, { method: "DELETE" }),
 
+  branding: () => request<{ branding: BrandingSettings }>("/api/branding"),
+  saveBranding: (navBackground: string | null) =>
+    request<{ branding: BrandingSettings }>("/api/branding", {
+      method: "PUT",
+      body: JSON.stringify({ navBackground }),
+    }),
+  uploadBrandingLogo: async (file: File): Promise<{ branding: BrandingSettings }> => {
+    const form = new FormData();
+    form.append("file", file);
+    const response = await fetch("/api/branding/logo", {
+      method: "POST",
+      body: form,
+      credentials: "include",
+    });
+    const data = (await response.json().catch(() => null)) as
+      | { branding?: BrandingSettings; error?: string }
+      | null;
+    if (!response.ok) {
+      throw new ApiError(response.status, data?.error ?? "Could not upload logo");
+    }
+    return data as { branding: BrandingSettings };
+  },
+  deleteBrandingLogo: () =>
+    request<{ branding: BrandingSettings }>("/api/branding/logo", { method: "DELETE" }),
   settings: () => request<{ settings: AppSettings }>("/api/settings"),
   sslStatus: () => request<ControlTlsReport>("/api/ssl/status"),
   saveSettings: (settings: AppSettings) =>

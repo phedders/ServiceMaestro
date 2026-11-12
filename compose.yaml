@@ -22,6 +22,8 @@ services:
       SM_WEBAUTHN_RP_NAME: ${SM_WEBAUTHN_RP_NAME:-Service Maestro}
       SM_WEBAUTHN_RP_ID: ${SM_WEBAUTHN_RP_ID:-}
       SM_WEBAUTHN_ORIGIN: ${SM_WEBAUTHN_ORIGIN:-}
+      SM_BRANDING_NAV_BACKGROUND: ${SM_BRANDING_NAV_BACKGROUND:-}
+      SM_BRANDING_LOGO_FILE: ${SM_BRANDING_LOGO_FILE:-}
       SM_SONGS_DIR: /library/songs
       SM_BIBLE_DIR: /library/bible
       SM_IMAGES_DIR: /library/images
