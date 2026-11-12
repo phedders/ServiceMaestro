@@ -1,5 +1,10 @@
 import { useEffect, useState } from "react";
-import type { SongDuplicateCandidate, SongDuplicateGroup } from "@sm/shared";
+import {
+  songHasChords,
+  songKeyWithoutChords,
+  type SongDuplicateCandidate,
+  type SongDuplicateGroup,
+} from "@sm/shared";
 import { api, ApiError } from "../api";
 import { DiffIcon, EyeIcon } from "../components/Icons";
 import { SongLyricsDialog } from "../components/SongLyricsDialog";
@@ -33,15 +38,27 @@ function compareSongs(reference: SongDuplicateCandidate, candidate: SongDuplicat
     .map(([label]) => label);
   const diff = diffLyrics(reference.lyrics, candidate.lyrics);
   const changedLines = diff.filter((line) => line.type !== "same").length;
-  return { metadata, changedFields, changedLines, diff };
+  const referenceKey = songKeyWithoutChords(reference.lyrics);
+  const candidateKey = songKeyWithoutChords(candidate.lyrics);
+  return {
+    metadata,
+    changedFields,
+    changedLines,
+    diff,
+    referenceHasChords: songHasChords(reference.lyrics),
+    candidateHasChords: songHasChords(candidate.lyrics),
+    sameWithoutChords: Boolean(referenceKey) && referenceKey === candidateKey,
+  };
 }
 
 function DifferenceSummary({
   changedFields,
   changedLines,
+  sameWithoutChords = false,
 }: {
   changedFields: string[];
   changedLines: number;
+  sameWithoutChords?: boolean;
 }) {
   return (
     <span className="dedupe-diff-note">
@@ -67,6 +84,14 @@ function DifferenceSummary({
       ) : (
         <span className="dedupe-same">Lyrics identical</span>
       )}
+      {sameWithoutChords && (
+        <span
+          className="dedupe-diff-chip same"
+          title="The lyric text matches when embedded chord symbols are ignored"
+        >
+          Same without chords
+        </span>
+      )}
     </span>
   );
 }
@@ -88,7 +113,15 @@ function DuplicateDiffDialog({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [onClose]);
 
-  const { metadata, changedFields, changedLines, diff } = compareSongs(reference, candidate);
+  const {
+    metadata,
+    changedFields,
+    changedLines,
+    diff,
+    referenceHasChords,
+    candidateHasChords,
+    sameWithoutChords,
+  } = compareSongs(reference, candidate);
 
   return (
     <div
@@ -102,14 +135,20 @@ function DuplicateDiffDialog({
           <div>
             <h3>Compare duplicate versions</h3>
             <p className="muted">
-              {reference.title} · compared with {candidate.title}
+              {reference.title}
+              {referenceHasChords ? " · chords" : ""} · compared with {candidate.title}
+              {candidateHasChords ? " · chords" : ""}
             </p>
           </div>
           <button className="button ghost small" onClick={onClose} title="Close the comparison">
             Close
           </button>
         </div>
-        <DifferenceSummary changedFields={changedFields} changedLines={changedLines} />
+        <DifferenceSummary
+          changedFields={changedFields}
+          changedLines={changedLines}
+          sameWithoutChords={sameWithoutChords}
+        />
         <div className="alt-diff">
           <table className="alt-diff-meta">
             <thead>
@@ -280,6 +319,14 @@ export default function DeDupePage({
                           <div className="dedupe-song-title">
                             <strong>{song.title}</strong>
                             {preferred && <span className="badge preferred">Preferred</span>}
+                            {songHasChords(song.lyrics) && (
+                              <span
+                                className="badge chords"
+                                title="This version contains embedded chord symbols"
+                              >
+                                Chords
+                              </span>
+                            )}
                           </div>
                           <span className="muted">{songMeta(song) || "No song details"}</span>
                           {song.alternateTitles && (
@@ -289,6 +336,7 @@ export default function DeDupePage({
                             <DifferenceSummary
                               changedFields={comparison.changedFields}
                               changedLines={comparison.changedLines}
+                              sameWithoutChords={comparison.sameWithoutChords}
                             />
                           ) : (
                             <span className="dedupe-diff-note">

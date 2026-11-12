@@ -151,6 +151,36 @@ export interface SongDuplicateGroup {
   songs: SongDuplicateCandidate[];
 }
 
+const SECTION_LABEL_TOKEN =
+  /^(?:verse|chorus|pre[-\s]?chorus|bridge|intro|outro|ending|tag|turnaround|interlude|instrumental|refrain)(?:\s*\d+[a-z]?)?$/i;
+
+export function isSongChordToken(value: string): boolean {
+  const token = value.trim();
+  if (!token || SECTION_LABEL_TOKEN.test(token)) return false;
+  if (token === "N.C." || token === "NC") return true;
+  return /^[A-G](?:#|b)?[A-Za-z0-9+#°øsusmajmin()/.-]*$/.test(token);
+}
+
+export function songHasChords(lyrics: string): boolean {
+  return [...lyrics.matchAll(/\[([^\]]+)\]/g)].some((match) =>
+    isSongChordToken(match[1]),
+  );
+}
+
+/**
+ * Normalized song text with chord symbols and section labels removed.
+ * Used to estimate whether two versions differ only by their chords.
+ */
+export function songKeyWithoutChords(lyrics: string): string {
+  return lyrics
+    .replace(/\[([^\]]+)\]/g, (full, token: string) =>
+      isSongChordToken(token) ? "" : full,
+    )
+    .replace(/\[[^\]]*\]/g, " ")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "");
+}
+
 export type ItemKind = "song" | "text" | "image" | "image_list" | "tarp";
 export type ImageFit = "scale" | "actual" | "crop" | "stretch";
 

@@ -668,6 +668,11 @@ img.brand-mark.large {
   color: #86efac;
 }
 
+.badge.chords {
+  background: rgba(167, 139, 250, 0.16);
+  color: #c4b5fd;
+}
+
 input,
 select,
 textarea {
@@ -5051,6 +5056,12 @@ body.resizing-live-queue {
   border-color: rgba(76, 194, 255, 0.32);
   background: rgba(76, 194, 255, 0.14);
   color: #8ddcff;
+}
+
+.dedupe-diff-chip.same {
+  border-color: rgba(74, 222, 128, 0.32);
+  background: rgba(74, 222, 128, 0.14);
+  color: #86efac;
 }
 
 .dedupe-same {
