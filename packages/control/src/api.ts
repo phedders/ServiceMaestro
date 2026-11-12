@@ -5,6 +5,7 @@ import type {
   RegistrationResponseJSON,
 } from "@simplewebauthn/browser";
 import type {
+  ActivityPage,
   AppSettings,
   BackgroundAsset,
   BackgroundColors,
@@ -147,6 +148,21 @@ export const api = {
     }),
   deleteUser: (id: string) =>
     request<{ ok: true }>(`/api/users/${id}`, { method: "DELETE" }),
+  activity: (options: {
+    limit?: number;
+    offset?: number;
+    module?: string;
+    userId?: string;
+    q?: string;
+  } = {}) => {
+    const params = new URLSearchParams();
+    if (options.limit !== undefined) params.set("limit", String(options.limit));
+    if (options.offset !== undefined) params.set("offset", String(options.offset));
+    if (options.module) params.set("module", options.module);
+    if (options.userId) params.set("userId", options.userId);
+    if (options.q) params.set("q", options.q);
+    return request<ActivityPage>(`/api/activity${params.size ? `?${params}` : ""}`);
+  },
 
   songs: (q = "") => request<{ songs: Song[] }>(`/api/songs${q ? `?q=${encodeURIComponent(q)}` : ""}`),
   song: (id: string) => request<{ song: Song }>(`/api/songs/${id}`),

@@ -1886,6 +1886,39 @@ body.resizing-live-queue {
   align-items: end;
 }
 
+.activity-list {
+  display: grid;
+  gap: 5px;
+  max-height: 460px;
+  overflow: auto;
+}
+
+.activity-row {
+  display: grid;
+  grid-template-columns: minmax(160px, 0.8fr) 150px minmax(220px, 1.6fr) 120px;
+  gap: 10px;
+  align-items: center;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel-2);
+  font-size: 0.74rem;
+}
+
+.activity-main,
+.activity-action {
+  display: grid;
+  gap: 2px;
+}
+
+.activity-action > span:first-child {
+  color: #a5e8ff;
+}
+
+.activity-row code {
+  overflow-wrap: anywhere;
+}
+
 .user-list {
   display: grid;
   gap: 10px;
@@ -1922,7 +1955,8 @@ body.resizing-live-queue {
   .song-sheet-settings-grid,
   .user-create-grid,
   .user-row-heading,
-  .user-password-row {
+  .user-password-row,
+  .activity-row {
     grid-template-columns: 1fr;
   }
 }

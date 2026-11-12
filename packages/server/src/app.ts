@@ -23,8 +23,10 @@ import { getDisplayConfig, saveDisplayConfig } from "./display-config.js";
 import { getGitSettings, saveGitSettings } from "./settings.js";
 import { getControlTlsStatus } from "./tls.js";
 import { hasPermission } from "./users.js";
+import { logActivity, logRequestActivity } from "./activity.js";
 import { authRoutes } from "./routes/auth.js";
 import { userRoutes } from "./routes/users.js";
+import { activityRoutes } from "./routes/activity.js";
 import { songRoutes } from "./routes/songs.js";
 import { setlistRoutes } from "./routes/setlists.js";
 import { liveRoutes } from "./routes/live.js";
@@ -63,6 +65,10 @@ export async function buildApp(
     ...(tls ? { https: tls } : {}),
   });
 
+  app.addHook("onResponse", async (request, reply) => {
+    logRequestActivity(request, reply.statusCode);
+  });
+
   await app.register(cookie);
   await app.register(multipart, { limits: { fileSize: 50 * 1024 * 1024, files: 1, fields: 10 } });
 
@@ -79,6 +85,7 @@ export async function buildApp(
 
   await app.register(authRoutes);
   await app.register(userRoutes);
+  await app.register(activityRoutes);
   await app.register(songRoutes);
   await app.register(setlistRoutes);
   await app.register(liveRoutes);
@@ -238,12 +245,28 @@ export async function buildApp(
     socket.on("live:command", (payload: unknown) => {
       if (!hasPermission(user, "live")) return;
       const parsed = liveCommandSchema.safeParse(payload);
-      if (parsed.success) live.command(parsed.data);
+      if (parsed.success) {
+        logActivity({
+          user,
+          action: "live_command",
+          module: "live",
+          detail: JSON.stringify(parsed.data).slice(0, 2000),
+        });
+        live.command(parsed.data);
+      }
     });
     socket.on("live:quickText", (payload: unknown) => {
       if (!hasPermission(user, "live")) return;
       const parsed = quickTextSchema.safeParse(payload);
-      if (parsed.success) live.quickText(parsed.data.text);
+      if (parsed.success) {
+        logActivity({
+          user,
+          action: "live_quick_text",
+          module: "live",
+          detail: parsed.data.text.slice(0, 500),
+        });
+        live.quickText(parsed.data.text);
+      }
     });
   });
 

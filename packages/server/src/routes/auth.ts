@@ -26,6 +26,7 @@ import {
   userForRequest,
 } from "../auth.js";
 import { COOKIE_NAME } from "../config.js";
+import { logActivity } from "../activity.js";
 import {
   getUserById,
   getUserByUsername,
@@ -51,13 +52,30 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
 
     const row = getUserByUsername(parsed.data.username);
     if (!row || !verifyPassword(parsed.data.password, row.password_hash)) {
+      logActivity({
+        request,
+        username: parsed.data.username,
+        action: "login_failed",
+        module: "auth",
+        status: 401,
+        detail: "Invalid username or password",
+      });
       return reply.code(401).send({ error: "Invalid username or password" });
     }
 
     const session = createSession(row.id);
     const cookie = makeSessionCookie(session.token);
     reply.setCookie(cookie.name, cookie.value, cookie.options);
-    return { user: mapUser(row) };
+    const user = mapUser(row);
+    logActivity({
+      request,
+      user,
+      action: "login",
+      module: "auth",
+      status: 200,
+      detail: "Password login",
+    });
+    return { user };
   });
 
   app.post("/api/auth/password", { preHandler: requireAuth }, async (request, reply) => {
@@ -105,13 +123,33 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
     const parsed = passkeyLoginVerifySchema.safeParse(request.body);
     if (!parsed.success) return reply.code(400).send({ error: "Invalid passkey response" });
     const row = getUserByUsername(parsed.data.username);
-    if (!row) return reply.code(401).send({ error: "Passkey login failed" });
+    if (!row) {
+      logActivity({
+        request,
+        username: parsed.data.username,
+        action: "passkey_login_failed",
+        module: "auth",
+        status: 401,
+        detail: "Unknown username",
+      });
+      return reply.code(401).send({ error: "Passkey login failed" });
+    }
     const response = parsed.data.response as AuthenticationResponseJSON;
     if (!response || typeof response.id !== "string") {
       return reply.code(400).send({ error: "Invalid passkey response" });
     }
     const passkey = getPasskeyByCredential(row.id, response.id);
-    if (!passkey) return reply.code(401).send({ error: "Passkey login failed" });
+    if (!passkey) {
+      logActivity({
+        request,
+        user: mapUser(row),
+        action: "passkey_login_failed",
+        module: "auth",
+        status: 401,
+        detail: "Credential not found",
+      });
+      return reply.code(401).send({ error: "Passkey login failed" });
+    }
     const challenge = takeChallenge(`authentication:${row.id}`);
     if (!challenge) return reply.code(400).send({ error: "Passkey challenge expired" });
     const rp = relyingParty(request);
@@ -124,15 +162,42 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
         credential: toWebAuthnCredential(passkey),
         requireUserVerification: false,
       });
-      if (!result.verified) return reply.code(401).send({ error: "Passkey login failed" });
+      if (!result.verified) {
+        logActivity({
+          request,
+          user: mapUser(row),
+          action: "passkey_login_failed",
+          module: "auth",
+          status: 401,
+          detail: "Verification failed",
+        });
+        return reply.code(401).send({ error: "Passkey login failed" });
+      }
       updatePasskeyUsage(row.id, response.id, result.authenticationInfo.newCounter);
     } catch {
+      logActivity({
+        request,
+        user: mapUser(row),
+        action: "passkey_login_failed",
+        module: "auth",
+        status: 401,
+        detail: "Verification error",
+      });
       return reply.code(401).send({ error: "Passkey login failed" });
     }
     const session = createSession(row.id);
     const cookie = makeSessionCookie(session.token);
     reply.setCookie(cookie.name, cookie.value, cookie.options);
-    return { user: mapUser(row) };
+    const user = mapUser(row);
+    logActivity({
+      request,
+      user,
+      action: "passkey_login",
+      module: "auth",
+      status: 200,
+      detail: "Passkey login",
+    });
+    return { user };
   });
 
   app.get("/api/auth/passkeys", { preHandler: requireAuth }, async (request) => ({
@@ -194,6 +259,14 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
           result.registrationInfo.credential,
           parsed.data.name ?? "Passkey",
         );
+        logActivity({
+          request,
+          user,
+          action: "passkey_register",
+          module: "auth",
+          status: 201,
+          detail: passkey.name,
+        });
         return reply.code(201).send({ passkey });
       } catch {
         return reply.code(400).send({ error: "Passkey registration failed" });
@@ -208,14 +281,30 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
       if (!deletePasskey(request.user!.id, (request.params as { id: string }).id)) {
         return reply.code(404).send({ error: "Passkey not found" });
       }
+      logActivity({
+        request,
+        user: request.user,
+        action: "passkey_delete",
+        module: "auth",
+        status: 200,
+        detail: (request.params as { id: string }).id,
+      });
       return { ok: true };
     },
   );
 
   app.post("/api/auth/logout", async (request, reply) => {
+    const user = userForRequest(request);
     const token = parseCookies(request.headers.cookie)[COOKIE_NAME];
     if (token) destroySession(token);
     reply.clearCookie(COOKIE_NAME, { path: "/" });
+    logActivity({
+      request,
+      user,
+      action: "logout",
+      module: "auth",
+      status: 200,
+    });
     return { ok: true };
   });
 

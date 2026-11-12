@@ -72,6 +72,28 @@ export interface PasskeySummary {
   lastUsedAt: string | null;
 }
 
+export interface ActivityEntry {
+  id: string;
+  userId: string | null;
+  username: string;
+  action: string;
+  module: string | null;
+  method: string | null;
+  path: string | null;
+  status: number | null;
+  detail: string | null;
+  ip: string | null;
+  userAgent: string | null;
+  createdAt: string;
+}
+
+export interface ActivityPage {
+  entries: ActivityEntry[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
 export type TextFormat = "text" | "markdown" | "html" | "rst";
 
 export interface SongVerseOrder {

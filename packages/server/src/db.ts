@@ -42,6 +42,23 @@ db.exec(`
   );
   CREATE INDEX IF NOT EXISTS idx_passkeys_user ON passkeys(user_id);
 
+  CREATE TABLE IF NOT EXISTS activity_log (
+    id TEXT PRIMARY KEY,
+    user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+    username TEXT NOT NULL,
+    action TEXT NOT NULL,
+    module TEXT,
+    method TEXT,
+    path TEXT,
+    status INTEGER,
+    detail TEXT,
+    ip TEXT,
+    user_agent TEXT,
+    created_at TEXT NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_activity_created ON activity_log(created_at DESC);
+  CREATE INDEX IF NOT EXISTS idx_activity_user ON activity_log(user_id, created_at DESC);
+
   CREATE TABLE IF NOT EXISTS songs (
     id TEXT PRIMARY KEY,
     title TEXT NOT NULL,

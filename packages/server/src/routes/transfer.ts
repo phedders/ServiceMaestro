@@ -7,6 +7,7 @@ import {
 } from "../setlist-transfer.js";
 import { buildSongSheetPdf } from "../song-sheet.js";
 import { saveSetlistToGit, saveTarpLibraryToGit } from "../git-store.js";
+import { logActivity } from "../activity.js";
 
 export async function transferRoutes(app: FastifyInstance): Promise<void> {
   app.get("/api/setlists/:id/export", { preHandler: requireAuth }, async (request, reply) => {
@@ -14,6 +15,14 @@ export async function transferRoutes(app: FastifyInstance): Promise<void> {
     const format = String((request.query as { format?: string }).format ?? "json");
     try {
       const result = exportSetlistBuffer(id, format === "bundle");
+      logActivity({
+        request,
+        user: request.user,
+        action: "export",
+        module: "setlists",
+        status: 200,
+        detail: format === "bundle" ? "Set-list bundle" : "Set-list JSON",
+      });
       return reply
         .type(result.contentType)
         .header("content-disposition", `attachment; filename="${result.filename}"`)
@@ -35,6 +44,14 @@ export async function transferRoutes(app: FastifyInstance): Promise<void> {
         const result = await buildSongSheetPdf(id, {
           fontSize: Number.isFinite(fontSize) ? fontSize : undefined,
           columns: Number.isFinite(columns) ? columns : undefined,
+        });
+        logActivity({
+          request,
+          user: request.user,
+          action: "download_pdf",
+          module: "setlists",
+          status: 200,
+          detail: `Big Print PDF${fontSize ? ` · ${fontSize}pt` : ""}${columns ? ` · ${columns} columns` : ""}`,
         });
         return reply
           .type("application/pdf")
