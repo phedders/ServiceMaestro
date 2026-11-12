@@ -5064,6 +5064,23 @@ body.resizing-live-queue {
   color: #86efac;
 }
 
+.dedupe-diff-chip-button {
+  appearance: none;
+  font-family: inherit;
+  line-height: 1.2;
+  cursor: pointer;
+}
+
+.dedupe-diff-chip-button:hover {
+  border-color: rgba(76, 194, 255, 0.6);
+  background: rgba(76, 194, 255, 0.24);
+}
+
+.dedupe-diff-chip-button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 .dedupe-same {
   color: #86efac;
 }

@@ -55,10 +55,12 @@ function DifferenceSummary({
   changedFields,
   changedLines,
   sameWithoutChords = false,
+  onShowDiff,
 }: {
   changedFields: string[];
   changedLines: number;
   sameWithoutChords?: boolean;
+  onShowDiff?: () => void;
 }) {
   return (
     <span className="dedupe-diff-note">
@@ -78,9 +80,20 @@ function DifferenceSummary({
         ·
       </span>
       {changedLines ? (
-        <span className="dedupe-diff-chip lyrics">
-          {changedLines} lyric line{changedLines === 1 ? " differs" : "s differ"}
-        </span>
+        onShowDiff ? (
+          <button
+            type="button"
+            className="dedupe-diff-chip lyrics dedupe-diff-chip-button"
+            onClick={onShowDiff}
+            title="Open the lyric difference"
+          >
+            {changedLines} lyric line{changedLines === 1 ? " differs" : "s differ"}
+          </button>
+        ) : (
+          <span className="dedupe-diff-chip lyrics">
+            {changedLines} lyric line{changedLines === 1 ? " differs" : "s differ"}
+          </span>
+        )
       ) : (
         <span className="dedupe-same">Lyrics identical</span>
       )}
@@ -337,6 +350,7 @@ export default function DeDupePage({
                               changedFields={comparison.changedFields}
                               changedLines={comparison.changedLines}
                               sameWithoutChords={comparison.sameWithoutChords}
+                              onShowDiff={() => setComparison({ reference, candidate: song })}
                             />
                           ) : (
                             <span className="dedupe-diff-note">
