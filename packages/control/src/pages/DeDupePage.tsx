@@ -11,6 +11,66 @@ function songMeta(song: SongDuplicateCandidate): string {
     .join(" · ");
 }
 
+const METADATA_FIELDS: Array<{
+  label: string;
+  value: (song: SongDuplicateCandidate) => string;
+}> = [
+  { label: "Title", value: (song) => song.title },
+  { label: "Author", value: (song) => song.author ?? "" },
+  { label: "CCLI", value: (song) => song.ccli ?? "" },
+  { label: "Key", value: (song) => song.key ?? "" },
+  { label: "Alternate titles", value: (song) => song.alternateTitles ?? "" },
+];
+
+function compareSongs(reference: SongDuplicateCandidate, candidate: SongDuplicateCandidate) {
+  const metadata: Array<[string, string, string]> = METADATA_FIELDS.map((field) => [
+    field.label,
+    field.value(reference),
+    field.value(candidate),
+  ]);
+  const changedFields = metadata
+    .filter(([, current, next]) => current !== next)
+    .map(([label]) => label);
+  const diff = diffLyrics(reference.lyrics, candidate.lyrics);
+  const changedLines = diff.filter((line) => line.type !== "same").length;
+  return { metadata, changedFields, changedLines, diff };
+}
+
+function DifferenceSummary({
+  changedFields,
+  changedLines,
+}: {
+  changedFields: string[];
+  changedLines: number;
+}) {
+  return (
+    <span className="dedupe-diff-note">
+      {changedFields.length ? (
+        <>
+          <span className="dedupe-diff-label">Metadata differs</span>
+          {changedFields.map((field) => (
+            <span className="dedupe-diff-chip" key={field}>
+              {field}
+            </span>
+          ))}
+        </>
+      ) : (
+        <span className="dedupe-same">Metadata identical</span>
+      )}
+      <span className="dedupe-diff-separator" aria-hidden="true">
+        ·
+      </span>
+      {changedLines ? (
+        <span className="dedupe-diff-chip lyrics">
+          {changedLines} lyric line{changedLines === 1 ? " differs" : "s differ"}
+        </span>
+      ) : (
+        <span className="dedupe-same">Lyrics identical</span>
+      )}
+    </span>
+  );
+}
+
 function DuplicateDiffDialog({
   reference,
   candidate,
@@ -28,19 +88,7 @@ function DuplicateDiffDialog({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [onClose]);
 
-  const diff = diffLyrics(reference.lyrics, candidate.lyrics);
-  const changedLines = diff.filter((line) => line.type !== "same").length;
-  const metadata: Array<[string, string, string]> = [
-    ["Title", reference.title, candidate.title],
-    ["Author", reference.author ?? "", candidate.author ?? ""],
-    ["CCLI", reference.ccli ?? "", candidate.ccli ?? ""],
-    ["Key", reference.key ?? "", candidate.key ?? ""],
-    [
-      "Alternate titles",
-      reference.alternateTitles ?? "",
-      candidate.alternateTitles ?? "",
-    ],
-  ];
+  const { metadata, changedFields, changedLines, diff } = compareSongs(reference, candidate);
 
   return (
     <div
@@ -61,6 +109,7 @@ function DuplicateDiffDialog({
             Close
           </button>
         </div>
+        <DifferenceSummary changedFields={changedFields} changedLines={changedLines} />
         <div className="alt-diff">
           <table className="alt-diff-meta">
             <thead>
@@ -85,7 +134,8 @@ function DuplicateDiffDialog({
           ) : (
             <div className="alt-diff-lines">
               <div className="alt-diff-summary">
-                {changedLines} changed or reordered lyric lines
+                {changedLines} changed or reordered lyric{" "}
+                {changedLines === 1 ? "line" : "lines"}
               </div>
               {diff.map((line, index) => (
                 <div
@@ -219,6 +269,8 @@ export default function DeDupePage({
                     const preferred = song.priority > 0;
                     const savingPriority = working?.id === song.id && working.action === "prefer";
                     const deleting = working?.id === song.id && working.action === "delete";
+                    const comparison =
+                      song.id === reference.id ? null : compareSongs(reference, song);
                     return (
                       <div
                         className={`dedupe-song ${preferred ? "is-preferred" : ""}`}
@@ -232,6 +284,17 @@ export default function DeDupePage({
                           <span className="muted">{songMeta(song) || "No song details"}</span>
                           {song.alternateTitles && (
                             <span className="alt-alias">Also known as: {song.alternateTitles}</span>
+                          )}
+                          {comparison ? (
+                            <DifferenceSummary
+                              changedFields={comparison.changedFields}
+                              changedLines={comparison.changedLines}
+                            />
+                          ) : (
+                            <span className="dedupe-diff-note">
+                              <span className="dedupe-diff-label">Reference version</span>
+                              <span className="dedupe-same">used for comparisons</span>
+                            </span>
                           )}
                         </div>
                         <div className="dedupe-song-actions">

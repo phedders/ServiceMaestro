@@ -4980,6 +4980,50 @@ body.resizing-live-queue {
   flex-wrap: wrap;
 }
 
+.dedupe-diff-note {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 0.7rem;
+  line-height: 1.4;
+}
+
+.dedupe-diff-label {
+  color: #fbbf24;
+  font-weight: 600;
+}
+
+.dedupe-diff-chip {
+  padding: 2px 7px;
+  border: 1px solid rgba(251, 191, 36, 0.32);
+  border-radius: 999px;
+  background: rgba(251, 191, 36, 0.14);
+  color: #fcd34d;
+  font-size: 0.66rem;
+  font-weight: 600;
+}
+
+.dedupe-diff-chip.lyrics {
+  border-color: rgba(76, 194, 255, 0.32);
+  background: rgba(76, 194, 255, 0.14);
+  color: #8ddcff;
+}
+
+.dedupe-same {
+  color: #86efac;
+}
+
+.dedupe-diff-separator {
+  color: #475569;
+}
+
+.dedupe-diff-modal > .dedupe-diff-note {
+  margin: 0 0 12px;
+}
+
 .dedupe-song-actions {
   display: flex;
   align-items: flex-start;
