@@ -1252,6 +1252,8 @@ export default function SetlistsPage({
   const [importReport, setImportReport] = useState<SetlistImportReport | null>(null);
   const [importing, setImporting] = useState(false);
   const [creatingSongPdf, setCreatingSongPdf] = useState(false);
+  const [songPdfFontSize, setSongPdfFontSize] = useState(15);
+  const [songPdfColumns, setSongPdfColumns] = useState(1);
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
   const [dragId, setDragId] = useState<string | null>(null);
@@ -1353,6 +1355,13 @@ export default function SetlistsPage({
     api
       .tarpPresentations()
       .then((result) => setTarpPresentations(result.presentations))
+      .catch(() => undefined);
+    api
+      .settings()
+      .then((result) => {
+        setSongPdfFontSize(result.settings.songSheetFontSize);
+        setSongPdfColumns(result.settings.songSheetColumns);
+      })
       .catch(() => undefined);
   }, []);
 
@@ -1669,7 +1678,10 @@ export default function SetlistsPage({
     if (!detail) return;
     setCreatingSongPdf(true);
     try {
-      const { blob, filename } = await api.downloadSetlistSongsPdf(detail.id);
+      const { blob, filename } = await api.downloadSetlistSongsPdf(detail.id, {
+        fontSize: songPdfFontSize,
+        columns: songPdfColumns,
+      });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
@@ -1848,22 +1860,57 @@ export default function SetlistsPage({
           </button>
         </div>
 
+        <div className="big-print-pdf">
+          <h3>Big Print PDF</h3>
+          <p className="hint">
+            Printable song words for elderly members. Size and columns apply only to this download;
+            defaults live in Settings.
+          </p>
+          <div className="big-print-controls">
+            <label>
+              Text size
+              <input
+                type="number"
+                min={8}
+                max={28}
+                value={songPdfFontSize}
+                onChange={(event) =>
+                  setSongPdfFontSize(
+                    Math.max(8, Math.min(28, Number(event.target.value) || 15)),
+                  )
+                }
+              />
+            </label>
+            <label>
+              Columns
+              <select
+                value={songPdfColumns}
+                onChange={(event) => setSongPdfColumns(Number(event.target.value))}
+              >
+                <option value={1}>1 column</option>
+                <option value={2}>2 columns</option>
+                <option value={3}>3 columns</option>
+              </select>
+            </label>
+            <button
+              className="button primary small"
+              onClick={createSongPdf}
+              disabled={!detail || creatingSongPdf || !detail.items.some((item) => item.kind === "song")}
+              title={
+                detail?.items.some((item) => item.kind === "song")
+                  ? "Download a printable PDF containing the words of every song in this service"
+                  : "Add at least one song to create a song sheet"
+              }
+            >
+              {creatingSongPdf ? "Creating PDF…" : "Create PDF of the songs"}
+            </button>
+          </div>
+        </div>
+
         <div className="transfer-panel">
           <h3>Share / backup</h3>
           {detail && (
             <div className="button-row">
-              <button
-                className="button primary small"
-                onClick={createSongPdf}
-                disabled={creatingSongPdf || !detail.items.some((item) => item.kind === "song")}
-                title={
-                  detail.items.some((item) => item.kind === "song")
-                    ? "Download a printable PDF containing the words of every song in this service"
-                    : "Add at least one song to create a song sheet"
-                }
-              >
-                {creatingSongPdf ? "Creating PDF…" : "Create PDF of the songs"}
-              </button>
               <a
                 className="button ghost small"
                 href={api.exportSetlistUrl(detail.id, "json")}

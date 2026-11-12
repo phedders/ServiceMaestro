@@ -537,11 +537,22 @@ export const DEFAULT_CHURCHSUITE_EMPTY_TYPES = [
   "Announcement",
 ];
 
+export const SONG_SHEET_FONTS = [
+  { id: "Helvetica", label: "Helvetica (sans-serif)" },
+  { id: "TimesRoman", label: "Times Roman (serif)" },
+  { id: "Courier", label: "Courier (monospace)" },
+] as const;
+
+export type SongSheetFont = (typeof SONG_SHEET_FONTS)[number]["id"];
+
 export interface AppSettings {
   pageNavigation: "stop" | "next-item";
   churchsuiteEmptyTypes: string[];
   defaultBibleTranslation: string | null;
   pageIdShortcuts: Record<string, string>;
+  songSheetFontFamily: SongSheetFont;
+  songSheetFontSize: number;
+  songSheetColumns: number;
 }
 
 export interface GitSettings {
@@ -1333,6 +1344,11 @@ export const appSettingsSchema = z.object({
     .default(DEFAULT_CHURCHSUITE_EMPTY_TYPES),
   defaultBibleTranslation: z.string().trim().max(40).nullable().default(null),
   pageIdShortcuts: z.record(z.string().trim().min(1).max(120), z.string().trim().min(1).max(40)).default({}),
+  songSheetFontFamily: z
+    .enum(SONG_SHEET_FONTS.map((font) => font.id) as [SongSheetFont, ...SongSheetFont[]])
+    .default("Helvetica"),
+  songSheetFontSize: z.number().int().min(8).max(28).default(15),
+  songSheetColumns: z.number().int().min(1).max(3).default(1),
 });
 
 export const gitSettingsSchema = z.object({

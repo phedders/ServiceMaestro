@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 import {
   DEFAULT_CHURCHSUITE_EMPTY_TYPES,
+  SONG_SHEET_FONTS,
   suggestSongPageId,
   type AppSettings,
   type BibleTranslationInfo,
@@ -58,6 +59,9 @@ export default function SettingsPage({
     churchsuiteEmptyTypes: [...DEFAULT_CHURCHSUITE_EMPTY_TYPES],
     defaultBibleTranslation: null,
     pageIdShortcuts: {},
+    songSheetFontFamily: "Helvetica",
+    songSheetFontSize: 15,
+    songSheetColumns: 1,
   });
   const [bibleTranslations, setBibleTranslations] = useState<BibleTranslationInfo[]>([]);
   const [songselectWatch, setSongselectWatch] = useState<SongSelectWatchStatus | null>(null);
@@ -416,6 +420,22 @@ export default function SettingsPage({
     }
   }
 
+  async function saveSongSheetSettings() {
+    setSavingSettings(true);
+    try {
+      const result = await api.saveSettings(settings);
+      setSettings(result.settings);
+      notify("Big Print PDF defaults saved");
+    } catch (error) {
+      notify(
+        error instanceof ApiError ? error.message : "Could not save Big Print PDF settings",
+        "error",
+      );
+    } finally {
+      setSavingSettings(false);
+    }
+  }
+
   async function updateEmptyTypes(nextTypes: string[]) {
     const next = { ...settings, churchsuiteEmptyTypes: nextTypes };
     setSettings(next);
@@ -509,6 +529,78 @@ export default function SettingsPage({
       </p>
 
       <AccountPanel user={user} notify={notify} />
+
+      <section className="panel">
+        <div className="panel-heading">
+          <div>
+            <h2>Big Print PDF</h2>
+            <p className="muted">
+              Defaults for the printable song sheet. The set-list page can override text size and
+              columns for a single download.
+            </p>
+          </div>
+          <button
+            className="button primary"
+            onClick={saveSongSheetSettings}
+            disabled={savingSettings}
+            title="Save the default font, text size and columns for song-sheet PDFs"
+          >
+            {savingSettings ? "Saving…" : "Save PDF defaults"}
+          </button>
+        </div>
+        <div className="song-sheet-settings-grid">
+          <label>
+            Font
+            <select
+              value={settings.songSheetFontFamily}
+              onChange={(event) =>
+                setSettings({
+                  ...settings,
+                  songSheetFontFamily: event.target.value as AppSettings["songSheetFontFamily"],
+                })
+              }
+            >
+              {SONG_SHEET_FONTS.map((font) => (
+                <option key={font.id} value={font.id}>
+                  {font.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Text size
+            <input
+              type="number"
+              min={8}
+              max={28}
+              value={settings.songSheetFontSize}
+              onChange={(event) =>
+                setSettings({
+                  ...settings,
+                  songSheetFontSize: Math.max(
+                    8,
+                    Math.min(28, Number(event.target.value) || 15),
+                  ),
+                })
+              }
+            />
+          </label>
+          <label>
+            Columns
+            <select
+              value={settings.songSheetColumns}
+              onChange={(event) =>
+                setSettings({ ...settings, songSheetColumns: Number(event.target.value) })
+              }
+            >
+              <option value={1}>1 column</option>
+              <option value={2}>2 columns</option>
+              <option value={3}>3 columns</option>
+            </select>
+          </label>
+        </div>
+      </section>
+
       {user.role === "admin" && <UsersPanel currentUser={user} notify={notify} />}
 
       {sslEnabled !== null && (

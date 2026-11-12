@@ -374,10 +374,15 @@ export const api = {
     `/api/setlists/${id}/export?format=${format}`,
   downloadSetlistSongsPdf: async (
     id: string,
+    options: { fontSize?: number; columns?: number } = {},
   ): Promise<{ blob: Blob; filename: string }> => {
-    const response = await fetch(`/api/setlists/${id}/songs.pdf`, {
-      credentials: "include",
-    });
+    const params = new URLSearchParams();
+    if (options.fontSize !== undefined) params.set("fontSize", String(options.fontSize));
+    if (options.columns !== undefined) params.set("columns", String(options.columns));
+    const response = await fetch(
+      `/api/setlists/${id}/songs.pdf${params.size ? `?${params}` : ""}`,
+      { credentials: "include" },
+    );
     if (!response.ok) {
       let message = response.statusText;
       try {

@@ -1,17 +1,36 @@
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "pdf-lib";
+import type { SongSheetFont } from "@sm/shared";
 import { db } from "./db.js";
+import { getAppSettings } from "./settings.js";
 
 const PAGE_WIDTH = 595.28;
 const PAGE_HEIGHT = 841.89;
-const MARGIN = 56;
+const MARGIN = 48;
 const BOTTOM_MARGIN = 48;
-const TITLE_SIZE = 22;
-const TITLE_LINE_HEIGHT = 27;
-const AUTHOR_SIZE = 10.5;
-const LYRICS_SIZE = 15;
-const LYRICS_LINE_HEIGHT = 22;
-const PARAGRAPH_GAP = 10;
 const HEADER_SIZE = 9;
+const COLUMN_GAP = 22;
+const SONG_GAP = 16;
+
+const PDF_FONTS: Record<
+  SongSheetFont,
+  { regular: StandardFonts; bold: StandardFonts; italic: StandardFonts }
+> = {
+  Helvetica: {
+    regular: StandardFonts.Helvetica,
+    bold: StandardFonts.HelveticaBold,
+    italic: StandardFonts.HelveticaOblique,
+  },
+  TimesRoman: {
+    regular: StandardFonts.TimesRoman,
+    bold: StandardFonts.TimesRomanBold,
+    italic: StandardFonts.TimesRomanItalic,
+  },
+  Courier: {
+    regular: StandardFonts.Courier,
+    bold: StandardFonts.CourierBold,
+    italic: StandardFonts.CourierOblique,
+  },
+};
 
 const MONTHS = [
   "January",
@@ -191,83 +210,145 @@ function loadSongs(setlistId: string): { setlist: SetlistRow; songs: SongForPdf[
   };
 }
 
+export interface SongSheetOptions {
+  fontSize?: number;
+  columns?: number;
+}
+
 export async function buildSongSheetPdf(
   setlistId: string,
+  options: SongSheetOptions = {},
 ): Promise<{ buffer: Buffer; filename: string }> {
   const { setlist, songs } = loadSongs(setlistId);
   if (!songs.length) throw new Error("This set list has no songs");
+  const settings = getAppSettings();
+  const baseSize = Math.max(
+    8,
+    Math.min(28, Math.round(options.fontSize ?? settings.songSheetFontSize)),
+  );
+  const columnCount = Math.max(
+    1,
+    Math.min(3, Math.round(options.columns ?? settings.songSheetColumns)),
+  );
+  const fontChoice = PDF_FONTS[settings.songSheetFontFamily];
+  const titleSize = baseSize + 7;
+  const titleLineHeight = titleSize * 1.22;
+  const authorSize = Math.max(8.5, baseSize * 0.72);
+  const lineHeight = baseSize * 1.45;
+  const paragraphGap = baseSize * 0.6;
+  const contentTop = PAGE_HEIGHT - MARGIN - 8;
+  const contentWidth = PAGE_WIDTH - MARGIN * 2;
+  const columnWidth = (contentWidth - COLUMN_GAP * (columnCount - 1)) / columnCount;
+  const columnX = (index: number) => MARGIN + index * (columnWidth + COLUMN_GAP);
 
   const pdf = await PDFDocument.create();
-  const font = await pdf.embedFont(StandardFonts.Helvetica);
-  const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
-  const italic = await pdf.embedFont(StandardFonts.HelveticaOblique);
+  const font = await pdf.embedFont(fontChoice.regular);
+  const bold = await pdf.embedFont(fontChoice.bold);
+  const italic = await pdf.embedFont(fontChoice.italic);
   const date = printedDate(setlist.service_date, setlist.service_time);
   const dark = rgb(0.08, 0.1, 0.14);
   const muted = rgb(0.38, 0.42, 0.48);
   const rule = rgb(0.82, 0.84, 0.87);
 
-  const pageHeader = (page: PDFPage) => {
-    page.drawText(pdfSafe(`${setlist.name}  ·  ${date}`), {
+  let page: PDFPage = pdf.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
+  let column = 0;
+  let y = contentTop;
+
+  const pageHeader = (target: PDFPage) => {
+    target.drawText(pdfSafe(`${setlist.name}  ·  ${date}`), {
       x: MARGIN,
       y: PAGE_HEIGHT - MARGIN + 22,
       size: HEADER_SIZE,
       font,
       color: muted,
     });
-    page.drawLine({
+    target.drawLine({
       start: { x: MARGIN, y: PAGE_HEIGHT - MARGIN + 12 },
       end: { x: PAGE_WIDTH - MARGIN, y: PAGE_HEIGHT - MARGIN + 12 },
       thickness: 0.6,
       color: rule,
     });
   };
+  pageHeader(page);
 
-  for (const song of songs) {
-    let page = pdf.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
-    pageHeader(page);
-    let y = PAGE_HEIGHT - MARGIN - 8;
-    const titleLines = wrapLine(pdfSafe(song.title), bold, TITLE_SIZE, PAGE_WIDTH - MARGIN * 2);
-    for (const line of titleLines) {
-      page.drawText(line, { x: MARGIN, y, size: TITLE_SIZE, font: bold, color: dark });
-      y -= TITLE_LINE_HEIGHT;
-    }
-    const byline = song.author ? `Words: ${song.author}` : "";
-    if (byline) {
-      page.drawText(pdfSafe(byline), {
-        x: MARGIN,
-        y,
-        size: AUTHOR_SIZE,
-        font: italic,
-        color: muted,
-      });
-      y -= 18;
-    }
-    y -= 12;
-
-    const newLyricsPage = () => {
+  const nextColumn = (continuationTitle?: string) => {
+    if (column + 1 < columnCount) {
+      column += 1;
+    } else {
       page = pdf.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
       pageHeader(page);
-      y = PAGE_HEIGHT - MARGIN - 8;
-      page.drawText(pdfSafe(`${song.title} (continued)`), {
-        x: MARGIN,
+      column = 0;
+    }
+    y = contentTop;
+    if (continuationTitle) {
+      page.drawText(pdfSafe(`${continuationTitle} (continued)`), {
+        x: columnX(column),
         y,
-        size: AUTHOR_SIZE,
+        size: authorSize,
         font: italic,
         color: muted,
       });
-      y -= 24;
-    };
+      y -= authorSize + 8;
+    }
+  };
+
+  const ensureSpace = (height: number, continuationTitle?: string) => {
+    if (y - height < BOTTOM_MARGIN) nextColumn(continuationTitle);
+  };
+
+  for (const song of songs) {
+    const titleLines = wrapLine(pdfSafe(song.title), bold, titleSize, columnWidth);
+    const byline = song.author ? `Words: ${song.author}` : "";
+    const previewLyricLines = song.lines
+      .filter(Boolean)
+      .slice(0, 2)
+      .flatMap((line) => wrapLine(pdfSafe(line), font, baseSize, columnWidth))
+      .slice(0, 2).length;
+    const required =
+      titleLines.length * titleLineHeight +
+      (byline ? authorSize + 8 : 0) +
+      6 +
+      previewLyricLines * lineHeight;
+    ensureSpace(required);
+
+    for (const line of titleLines) {
+      page.drawText(line, {
+        x: columnX(column),
+        y,
+        size: titleSize,
+        font: bold,
+        color: dark,
+      });
+      y -= titleLineHeight;
+    }
+    if (byline) {
+      page.drawText(pdfSafe(byline), {
+        x: columnX(column),
+        y,
+        size: authorSize,
+        font: italic,
+        color: muted,
+      });
+      y -= authorSize + 8;
+    }
+    y -= 6;
 
     for (const line of song.lines) {
       if (!line) {
-        y -= PARAGRAPH_GAP;
+        y = Math.max(BOTTOM_MARGIN, y - paragraphGap);
         continue;
       }
-      const wrapped = wrapLine(pdfSafe(line), font, LYRICS_SIZE, PAGE_WIDTH - MARGIN * 2);
+      const wrapped = wrapLine(pdfSafe(line), font, baseSize, columnWidth);
       for (const text of wrapped) {
-        if (y - LYRICS_LINE_HEIGHT < BOTTOM_MARGIN) newLyricsPage();
-        page.drawText(text, { x: MARGIN, y, size: LYRICS_SIZE, font, color: dark });
-        y -= LYRICS_LINE_HEIGHT;
+        ensureSpace(lineHeight, song.title);
+        page.drawText(text, {
+          x: columnX(column),
+          y,
+          size: baseSize,
+          font,
+          color: dark,
+        });
+        y -= lineHeight;
       }
     }
 
@@ -275,21 +356,23 @@ export async function buildSongSheetPdf(
       .filter(Boolean)
       .join("  ·  ");
     if (attribution) {
-      if (y - 30 < BOTTOM_MARGIN) newLyricsPage();
-      y -= 8;
+      ensureSpace(authorSize + 12, song.title);
+      y -= 6;
       page.drawText(pdfSafe(attribution), {
-        x: MARGIN,
+        x: columnX(column),
         y,
-        size: 9,
+        size: Math.max(7.5, baseSize * 0.6),
         font,
         color: muted,
       });
+      y -= authorSize;
     }
+    y -= SONG_GAP;
   }
 
   const pages = pdf.getPages();
-  pages.forEach((page, index) => {
-    page.drawText(`${index + 1} / ${pages.length}`, {
+  pages.forEach((target, index) => {
+    target.drawText(`${index + 1} / ${pages.length}`, {
       x: PAGE_WIDTH - MARGIN - 34,
       y: 24,
       size: 8,

@@ -28,8 +28,14 @@ export async function transferRoutes(app: FastifyInstance): Promise<void> {
     { preHandler: requireAuth },
     async (request, reply) => {
       const id = (request.params as { id: string }).id;
+      const query = request.query as { fontSize?: string; columns?: string };
+      const fontSize = query.fontSize === undefined ? undefined : Number(query.fontSize);
+      const columns = query.columns === undefined ? undefined : Number(query.columns);
       try {
-        const result = await buildSongSheetPdf(id);
+        const result = await buildSongSheetPdf(id, {
+          fontSize: Number.isFinite(fontSize) ? fontSize : undefined,
+          columns: Number.isFinite(columns) ? columns : undefined,
+        });
         return reply
           .type("application/pdf")
           .header("content-disposition", `attachment; filename="${result.filename}"`)

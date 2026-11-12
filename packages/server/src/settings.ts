@@ -1,4 +1,10 @@
-import { DEFAULT_CHURCHSUITE_EMPTY_TYPES, type AppSettings, type GitSettings } from "@sm/shared";
+import {
+  DEFAULT_CHURCHSUITE_EMPTY_TYPES,
+  SONG_SHEET_FONTS,
+  type AppSettings,
+  type GitSettings,
+  type SongSheetFont,
+} from "@sm/shared";
 import { db } from "./db.js";
 import { GIT_AUTO_PUSH, GIT_AUTO_SAVE, GIT_PULL_INTERVAL } from "./config.js";
 
@@ -7,6 +13,9 @@ const DEFAULTS: AppSettings = {
   churchsuiteEmptyTypes: [...DEFAULT_CHURCHSUITE_EMPTY_TYPES],
   defaultBibleTranslation: null,
   pageIdShortcuts: {},
+  songSheetFontFamily: "Helvetica",
+  songSheetFontSize: 15,
+  songSheetColumns: 1,
 };
 
 const GIT_DEFAULTS: GitSettings = {
@@ -64,12 +73,31 @@ export function getAppSettings(): AppSettings {
       // Ignore malformed configuration.
     }
   }
+  const rawSongSheetFont = values.get("song_sheet_font_family");
+  const songSheetFontFamily: SongSheetFont = SONG_SHEET_FONTS.some(
+    (font) => font.id === rawSongSheetFont,
+  )
+    ? (rawSongSheetFont as SongSheetFont)
+    : DEFAULTS.songSheetFontFamily;
+  const rawSongSheetFontSize = Number(values.get("song_sheet_font_size"));
+  const songSheetFontSize =
+    Number.isFinite(rawSongSheetFontSize) && rawSongSheetFontSize >= 8 && rawSongSheetFontSize <= 28
+      ? Math.round(rawSongSheetFontSize)
+      : DEFAULTS.songSheetFontSize;
+  const rawSongSheetColumns = Number(values.get("song_sheet_columns"));
+  const songSheetColumns =
+    Number.isFinite(rawSongSheetColumns) && rawSongSheetColumns >= 1 && rawSongSheetColumns <= 3
+      ? Math.round(rawSongSheetColumns)
+      : DEFAULTS.songSheetColumns;
   return {
     pageNavigation:
       pageNavigation === "next-item" ? "next-item" : DEFAULTS.pageNavigation,
     churchsuiteEmptyTypes,
     defaultBibleTranslation,
     pageIdShortcuts,
+    songSheetFontFamily,
+    songSheetFontSize,
+    songSheetColumns,
   };
 }
 
@@ -83,6 +111,9 @@ export function saveAppSettings(settings: AppSettings): AppSettings {
   write.run("churchsuite_empty_types", JSON.stringify(settings.churchsuiteEmptyTypes), now);
   write.run("default_bible_translation", settings.defaultBibleTranslation ?? "", now);
   write.run("page_id_shortcuts", JSON.stringify(settings.pageIdShortcuts), now);
+  write.run("song_sheet_font_family", settings.songSheetFontFamily, now);
+  write.run("song_sheet_font_size", String(settings.songSheetFontSize), now);
+  write.run("song_sheet_columns", String(settings.songSheetColumns), now);
   return getAppSettings();
 }
 

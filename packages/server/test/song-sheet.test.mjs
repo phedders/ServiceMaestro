@@ -79,3 +79,54 @@ test("builds a printable PDF song sheet without chords or slide labels", () => {
   assert.ok(data.bytes > 1000);
   assert.equal(data.pageCount, 1);
 });
+
+test("multi-column song sheets use fewer pages than single-column output", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "sm-song-columns-"));
+  const emptyEnv = path.join(dir, "empty.env");
+  const emptyConfig = path.join(dir, "config.yaml");
+  fs.writeFileSync(emptyEnv, "");
+  fs.writeFileSync(emptyConfig, "{}\n");
+
+  const script = `
+    const { db } = await import(process.env.SM_MODULE_BASE + "db.js");
+    const { buildSongSheetPdf } = await import(process.env.SM_MODULE_BASE + "song-sheet.js");
+    const { PDFDocument } = await import("pdf-lib");
+    const now = new Date().toISOString();
+    db.prepare(
+      "INSERT INTO setlists (id, name, service_date, service_time, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
+    ).run("setlist-columns", "Column Test", "2026-11-15", null, now, now);
+    for (let song = 0; song < 8; song += 1) {
+      const id = "song-" + song;
+      const lines = Array.from({ length: 18 }, (_, index) => "line " + (index + 1) + " of song " + (song + 1)).join("\\n");
+      db.prepare(
+        "INSERT INTO songs (id, title, lyrics, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
+      ).run(id, "Song " + (song + 1), lines, now, now);
+      db.prepare(
+        "INSERT INTO setlist_items (id, setlist_id, position, kind, song_id, title) VALUES (?, ?, ?, ?, ?, ?)",
+      ).run("item-" + song, "setlist-columns", song, "song", id, "Song " + (song + 1));
+    }
+    const single = await buildSongSheetPdf("setlist-columns", { fontSize: 15, columns: 1 });
+    const multi = await buildSongSheetPdf("setlist-columns", { fontSize: 10, columns: 3 });
+    const singlePdf = await PDFDocument.load(single.buffer);
+    const multiPdf = await PDFDocument.load(multi.buffer);
+    console.log(JSON.stringify({
+      singlePages: singlePdf.getPageCount(),
+      multiPages: multiPdf.getPageCount(),
+    }));
+  `;
+
+  const result = spawnSync(process.execPath, ["--input-type=module", "-e", script], {
+    encoding: "utf8",
+    env: {
+      PATH: process.env.PATH,
+      SM_ENV_FILE: emptyEnv,
+      SM_CONFIG_FILE: emptyConfig,
+      SM_DATA_DIR: dir,
+      SM_GIT_ENABLED: "false",
+      SM_MODULE_BASE: moduleBase,
+    },
+  });
+  assert.equal(result.status, 0, result.stderr);
+  const data = JSON.parse(result.stdout);
+  assert.ok(data.singlePages > data.multiPages, JSON.stringify(data));
+});
