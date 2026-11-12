@@ -12,6 +12,8 @@ import {
 import type {
   DisplayConfig,
   LiveApplyMode,
+  LiveAutoplaySettings,
+  LiveAutoplayState,
   LiveState,
   SetlistRevisionInfo,
   Song,
@@ -302,6 +304,19 @@ function autoplayConfigFor(item: SnapshotItem | null | undefined): AutoplayConfi
   return null;
 }
 
+function autoplayKey(item: SnapshotItem, index: number): string {
+  return item.itemId ? `item:${item.itemId}` : `index:${index}`;
+}
+
+function resolvedAutoplayConfig(
+  item: SnapshotItem | null | undefined,
+  override: LiveAutoplaySettings | null | undefined,
+): AutoplayConfig | null {
+  const base = autoplayConfigFor(item);
+  if (!base) return null;
+  return override ? { ...base, ...override } : base;
+}
+
 class LiveService {
   private ios = new Set<Server>();
   private active: SessionRecord | null = null;
@@ -341,6 +356,26 @@ class LiveService {
       background,
       templates: resolveTemplates(this.active.setlistId),
       displayConfig: config,
+      autoplay: this.currentAutoplayState(),
+    };
+  }
+
+  private currentAutoplayState(): LiveAutoplayState | null {
+    const record = this.active;
+    if (!record || record.transient) return null;
+    const item = record.items[record.state.itemIndex];
+    if (!item || (item.kind !== "image_list" && item.kind !== "tarp")) return null;
+    const key = autoplayKey(item, record.state.itemIndex);
+    const override = record.state.autoplayOverrides?.[key] ?? null;
+    const config = resolvedAutoplayConfig(item, override);
+    if (!config) return null;
+    return {
+      itemIndex: record.state.itemIndex,
+      itemKind: item.kind,
+      autoplay: config.autoplay,
+      mode: config.mode,
+      delaySeconds: config.delaySeconds,
+      overridden: Boolean(override),
     };
   }
 
@@ -670,6 +705,53 @@ class LiveService {
       case "footer":
         state.footer = String(command.text ?? "");
         break;
+      case "autoplay": {
+        const record = this.active;
+        const item = record.items[state.itemIndex];
+        if (!item || (item.kind !== "image_list" && item.kind !== "tarp")) break;
+        const base = autoplayConfigFor(item);
+        if (!base) break;
+        const key = autoplayKey(item, state.itemIndex);
+        if (command.reset === true) {
+          if (state.autoplayOverrides?.[key]) {
+            const next = { ...state.autoplayOverrides };
+            delete next[key];
+            state.autoplayOverrides = next;
+          }
+          break;
+        }
+        const current = state.autoplayOverrides?.[key] ?? base;
+        const requestedMode: PlaybackMode | null =
+          command.mode === "single" || command.mode === "loop" || command.mode === "bounce"
+            ? command.mode
+            : null;
+        const nextSettings: LiveAutoplaySettings = {
+          autoplay:
+            typeof command.autoplay === "boolean" ? command.autoplay : current.autoplay,
+          mode: requestedMode ?? current.mode,
+          delaySeconds:
+            typeof command.delaySeconds === "number" && Number.isFinite(command.delaySeconds)
+              ? Math.max(1, Math.min(300, Math.round(command.delaySeconds)))
+              : current.delaySeconds,
+        };
+        if (
+          nextSettings.autoplay === base.autoplay &&
+          nextSettings.mode === base.mode &&
+          nextSettings.delaySeconds === base.delaySeconds
+        ) {
+          if (state.autoplayOverrides?.[key]) {
+            const next = { ...state.autoplayOverrides };
+            delete next[key];
+            state.autoplayOverrides = next;
+          }
+        } else {
+          state.autoplayOverrides = {
+            ...(state.autoplayOverrides ?? {}),
+            [key]: nextSettings,
+          };
+        }
+        break;
+      }
       default:
         break;
     }
@@ -954,7 +1036,10 @@ class LiveService {
     if (!record || record.state.blank) return;
     const item = record.transient ?? record.items[record.state.itemIndex];
     if (!item) return;
-    const autoplay = autoplayConfigFor(item);
+    const override = record.transient
+      ? null
+      : record.state.autoplayOverrides?.[autoplayKey(item, record.state.itemIndex)];
+    const autoplay = resolvedAutoplayConfig(item, override);
     if (!autoplay?.autoplay) return;
     const count = this.pagesFor(item).length;
     if (count < 2 || record.state.pageIndex >= count) return;
@@ -971,7 +1056,10 @@ class LiveService {
     if (!record || record.state.blank) return;
     const item = record.transient ?? record.items[record.state.itemIndex];
     if (!item) return;
-    const autoplay = autoplayConfigFor(item);
+    const override = record.transient
+      ? null
+      : record.state.autoplayOverrides?.[autoplayKey(item, record.state.itemIndex)];
+    const autoplay = resolvedAutoplayConfig(item, override);
     if (!autoplay?.autoplay) return;
     const count = this.pagesFor(item).length;
     if (count < 2) return;

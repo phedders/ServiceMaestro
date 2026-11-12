@@ -732,6 +732,18 @@ export interface SongSelectWatchReport {
   files: SongSelectWatchFile[];
 }
 
+export interface LiveAutoplaySettings {
+  autoplay: boolean;
+  mode: PlaybackMode;
+  delaySeconds: number;
+}
+
+export interface LiveAutoplayState extends LiveAutoplaySettings {
+  itemIndex: number;
+  itemKind: "image_list" | "tarp";
+  overridden: boolean;
+}
+
 export interface LiveState {
   sessionId: string;
   setlistId: string | null;
@@ -755,6 +767,8 @@ export interface LiveState {
   queuedTitle?: string | null;
   queuedPages?: LivePage[];
   appendedItems?: number[];
+  autoplay?: LiveAutoplayState | null;
+  autoplayOverrides?: Record<string, LiveAutoplaySettings>;
   version: number;
   updatedAt: string;
   pendingUpdate: boolean;
@@ -1181,6 +1195,13 @@ export const liveCommandSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("transpose"), delta: z.number().int().min(-12).max(12) }),
   z.object({ type: z.literal("maxLines"), value: z.number().int().min(1).max(30) }),
   z.object({ type: z.literal("footer"), text: z.string().max(500) }),
+  z.object({
+    type: z.literal("autoplay"),
+    autoplay: z.boolean().optional(),
+    mode: z.enum(["single", "loop", "bounce"]).optional(),
+    delaySeconds: z.number().int().min(1).max(300).optional(),
+    reset: z.boolean().optional(),
+  }),
 ]);
 
 export const quickTextSchema = z.object({

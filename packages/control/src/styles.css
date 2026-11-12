@@ -1009,6 +1009,47 @@ body.resizing-live-queue {
   font-size: 0.88rem;
 }
 
+.transport-autoplay {
+  display: grid;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--panel-2);
+}
+
+.transport-autoplay-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.transport-autoplay-heading strong {
+  font-size: 0.8rem;
+}
+
+.transport-select {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 120px;
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+
+.transport-select select {
+  flex: 1;
+  min-width: 80px;
+}
+
+.transport-autoplay-hint {
+  margin: 0;
+  font-size: 0.68rem;
+}
+
 .transport-meta {
   display: flex;
   justify-content: space-between;

@@ -1,5 +1,11 @@
 import type { LiveState } from "@sm/shared";
 
+const PLAYBACK_MODES = [
+  { value: "single", label: "Single" },
+  { value: "loop", label: "Loop" },
+  { value: "bounce", label: "Bounce" },
+] as const;
+
 export function Transport({
   live,
   onCommand,
@@ -10,6 +16,7 @@ export function Transport({
   compact?: boolean;
 }) {
   const active = live.status !== "idle";
+  const autoplay = live.autoplay;
   return (
     <div className={`transport ${compact ? "compact" : ""}`}>
       <div className="transport-row">
@@ -80,6 +87,93 @@ export function Transport({
           </button>
         </div>
       </div>
+      {active && autoplay && (
+        <div className="transport-autoplay">
+          <div className="transport-autoplay-heading">
+            <strong>
+              {autoplay.itemKind === "tarp" ? "Tarp playback" : "Image list playback"}
+            </strong>
+            <span className={`badge ${autoplay.overridden ? "rehearsal" : ""}`}>
+              {autoplay.overridden ? "Temporary override" : "Set-list settings"}
+            </span>
+          </div>
+          <div className="transport-row">
+            <button
+              type="button"
+              className={`button small ${autoplay.autoplay ? "primary" : "ghost"}`}
+              onClick={() =>
+                onCommand({ type: "autoplay", autoplay: !autoplay.autoplay })
+              }
+              title={
+                autoplay.autoplay
+                  ? "Temporarily stop automatic page changes"
+                  : "Temporarily start automatic page changes"
+              }
+            >
+              {autoplay.autoplay ? "Autoplay on" : "Autoplay off"}
+            </button>
+            <label className="transport-select">
+              <span>Mode</span>
+              <select
+                value={autoplay.mode}
+                onChange={(event) =>
+                  onCommand({ type: "autoplay", mode: event.target.value })
+                }
+                title="Temporarily override the loop mode for this live item"
+              >
+                {PLAYBACK_MODES.map((mode) => (
+                  <option key={mode.value} value={mode.value}>
+                    {mode.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div className="stepper">
+              <span>Delay</span>
+              <button
+                type="button"
+                className="button ghost small"
+                onClick={() =>
+                  onCommand({
+                    type: "autoplay",
+                    delaySeconds: Math.max(1, autoplay.delaySeconds - 1),
+                  })
+                }
+                title="Reduce the temporary playback delay"
+              >
+                −
+              </button>
+              <strong>{autoplay.delaySeconds}s</strong>
+              <button
+                type="button"
+                className="button ghost small"
+                onClick={() =>
+                  onCommand({
+                    type: "autoplay",
+                    delaySeconds: Math.min(300, autoplay.delaySeconds + 1),
+                  })
+                }
+                title="Increase the temporary playback delay"
+              >
+                +
+              </button>
+            </div>
+            {autoplay.overridden && (
+              <button
+                type="button"
+                className="button ghost small"
+                onClick={() => onCommand({ type: "autoplay", reset: true })}
+                title="Restore the playback settings saved in the set list"
+              >
+                Reset
+              </button>
+            )}
+          </div>
+          <p className="hint transport-autoplay-hint">
+            Temporary changes apply to this live session only and do not alter the set list.
+          </p>
+        </div>
+      )}
       <div className="transport-meta">
         {active ? (
           <>
