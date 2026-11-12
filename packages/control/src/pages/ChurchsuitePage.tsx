@@ -11,6 +11,7 @@ import { IsoDateInput } from "../components/IsoDateInput";
 import { SiteSongLookupDialog } from "../components/SiteSongLookupDialog";
 import { SongLyricsDialog } from "../components/SongLyricsDialog";
 import { compactDate } from "../service-date";
+import { useSessionState } from "../session-state";
 
 function isoDate(date: Date): string {
   return date.toISOString().slice(0, 10);
@@ -42,7 +43,10 @@ export default function ChurchsuitePage({
   const [status, setStatus] = useState("published");
   const [plans, setPlans] = useState<ChurchSuitePlanSummary[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedPlan, setSelectedPlan] = useState<number | null>(null);
+  const [selectedPlan, setSelectedPlan] = useSessionState<number | null>(
+    "churchsuite:selected-plan",
+    null,
+  );
   const [preview, setPreview] = useState<ChurchSuitePlanPreview | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [importName, setImportName] = useState("");
@@ -71,7 +75,11 @@ export default function ChurchsuitePage({
         `${a.date}T${a.time ?? ""}`.localeCompare(`${b.date}T${b.time ?? ""}`),
       );
       setPlans(next);
-      if (!next.some((plan) => plan.id === selectedPlan)) setSelectedPlan(null);
+      const restoredPlan = selectedPlan
+        ? next.find((plan) => plan.id === selectedPlan)
+        : undefined;
+      if (selectedPlan !== null && !restoredPlan) setSelectedPlan(null);
+      else if (restoredPlan && !preview) void openPlan(restoredPlan);
     } catch (error) {
       notify(error instanceof ApiError ? error.message : "Could not load ChurchSuite plans", "error");
     } finally {

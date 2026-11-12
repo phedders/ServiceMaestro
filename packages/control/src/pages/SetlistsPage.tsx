@@ -33,6 +33,7 @@ import { BibleLayoutButtons } from "../components/BibleLayoutButtons";
 import { IsoDateInput } from "../components/IsoDateInput";
 import { PageContentEditor } from "../components/PageContentEditor";
 import { compactDate, compactDateTime, defaultSetlistName } from "../service-date";
+import { useSessionState } from "../session-state";
 import { loadActiveSiteProvider, updateSongFromSite as checkAndUpdateSongFromSite } from "../site-update";
 import { diffLyrics } from "../song-diff";
 
@@ -1258,7 +1259,10 @@ export default function SetlistsPage({
   notify: (text: string, kind?: "info" | "error") => void;
 }) {
   const [setlists, setSetlists] = useState<SetlistSummary[]>([]);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useSessionState<string | null>(
+    "setlists:selected",
+    null,
+  );
   const [detail, setDetail] = useState<SetlistDetail | null>(null);
   const [songs, setSongs] = useState<Song[]>([]);
   const [images, setImages] = useState<ImageAsset[]>([]);
@@ -1335,7 +1339,11 @@ export default function SetlistsPage({
   async function loadList(select?: string) {
     const result = await api.setlists();
     setSetlists(result.setlists);
-    const next = select ?? selectedId ?? result.setlists[0]?.id ?? null;
+    const next =
+      select ??
+      (selectedId && result.setlists.some((setlist) => setlist.id === selectedId)
+        ? selectedId
+        : result.setlists[0]?.id ?? null);
     setSelectedId(next);
     if (next) await loadDetail(next);
     else setDetail(null);

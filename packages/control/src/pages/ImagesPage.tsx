@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { ImageAsset, LiveState, SetlistSummary } from "@sm/shared";
 import { api, ApiError } from "../api";
 import { compactDate, compactDateTime, pickCurrentSetlist } from "../service-date";
+import { useSessionState } from "../session-state";
 
 interface FolderNode {
   name: string;
@@ -88,8 +89,8 @@ export default function ImagesPage({
   const [targetSetlist, setTargetSetlist] = useState("");
   const [addingPath, setAddingPath] = useState("");
   const [livePath, setLivePath] = useState("");
-  const [search, setSearch] = useState("");
-  const [folder, setFolder] = useState("");
+  const [search, setSearch] = useSessionState("images:search", "");
+  const [folder, setFolder] = useSessionState("images:folder", "");
   const [uploadFolder, setUploadFolder] = useState("uploads");
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);

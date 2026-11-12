@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { simplifySongPageIds } from "@sm/shared";
 import type {
   LiveState,
@@ -14,6 +14,7 @@ import { api, ApiError } from "../api";
 import { PageContentEditor } from "../components/PageContentEditor";
 import { SiteSongDownloadPanel } from "../components/SiteSongDownloadPanel";
 import { compactDate, compactDateTime, pickCurrentSetlist } from "../service-date";
+import { useSessionState } from "../session-state";
 import { loadActiveSiteProvider, updateSongFromSite } from "../site-update";
 
 const EMPTY = {
@@ -39,7 +40,7 @@ export default function SongsPage({
 }) {
   const [songs, setSongs] = useState<Song[]>([]);
   const [search, setSearch] = useState("");
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useSessionState<string | null>("songs:selected", null);
   const [selectMode, setSelectMode] = useState(false);
   const [selectedSongIds, setSelectedSongIds] = useState<Set<string>>(() => new Set());
   const [bulkDeleting, setBulkDeleting] = useState(false);
@@ -51,6 +52,7 @@ export default function SongsPage({
   const [siteProvider, setSiteProvider] = useState<SiteScraperProviderSummary | null>(null);
   const [siteUpdatingId, setSiteUpdatingId] = useState<string | null>(null);
   const [fixingPageNameId, setFixingPageNameId] = useState<string | null>(null);
+  const restoredSelection = useRef(false);
   const [scan, setScan] = useState<SongImportScan | null>(null);
   const [scanning, setScanning] = useState(false);
   const [importing, setImporting] = useState(false);
@@ -87,6 +89,16 @@ export default function SongsPage({
   useEffect(() => {
     void loadActiveSiteProvider().then(setSiteProvider);
   }, []);
+
+  useEffect(() => {
+    if (restoredSelection.current || !songs.length) return;
+    restoredSelection.current = true;
+    const restored = selectedId
+      ? songs.find((song) => song.id === selectedId)
+      : undefined;
+    if (restored) select(restored);
+    else if (selectedId) setSelectedId(null);
+  }, [songs]);
 
   async function updateFromSite(song: Song) {
     if (!siteProvider) return;

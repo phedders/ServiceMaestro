@@ -11,6 +11,7 @@ import type {
   TarpThemeInput,
 } from "@sm/shared";
 import { api, ApiError } from "../api";
+import { useSessionState } from "../session-state";
 import TarpPageEditor from "./TarpPageEditor";
 
 const DEFAULT_FONT = '"Clear Sans", "Segoe UI", system-ui, -apple-system, sans-serif';
@@ -47,7 +48,14 @@ export default function TarpPage({
   const [themes, setThemes] = useState<TarpTheme[]>([]);
   const [presentations, setPresentations] = useState<TarpPresentationSummary[]>([]);
   const [selected, setSelected] = useState<TarpPresentationDetail | null>(null);
-  const [selectedPageId, setSelectedPageId] = useState<string | null>(null);
+  const [selectedPresentationId, setSelectedPresentationId] = useSessionState<string | null>(
+    "tarp:presentation",
+    null,
+  );
+  const [selectedPageId, setSelectedPageId] = useSessionState<string | null>(
+    "tarp:page",
+    null,
+  );
   const [pageDirty, setPageDirty] = useState(false);
   const [images, setImages] = useState<ImageAsset[]>([]);
   const [backgrounds, setBackgrounds] = useState<BackgroundAsset[]>([]);
@@ -85,8 +93,9 @@ export default function TarpPage({
     setPresentations(result.presentations);
     const nextId =
       selectId ??
-      (selected && result.presentations.some((item) => item.id === selected.id)
-        ? selected.id
+      (selectedPresentationId &&
+      result.presentations.some((item) => item.id === selectedPresentationId)
+        ? selectedPresentationId
         : result.presentations[0]?.id);
     if (nextId) await selectPresentation(nextId);
     else setSelected(null);
@@ -108,6 +117,7 @@ export default function TarpPage({
     try {
       const result = await api.tarpPresentation(id);
       setSelected(result.presentation);
+      setSelectedPresentationId(id);
       setPresentationName(result.presentation.name);
       setPresentationAspect(result.presentation.aspect);
       setPresentationTheme(result.presentation.themeId ?? "");
@@ -254,6 +264,7 @@ export default function TarpPage({
     try {
       await api.deleteTarpPresentation(selected.id);
       setSelected(null);
+      setSelectedPresentationId(null);
       setSelectedPageId(null);
       await loadPresentations();
       notify("Tarp presentation deleted");

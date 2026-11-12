@@ -11,6 +11,7 @@ import type {
 import { api, ApiError } from "../api";
 import { BibleLayoutButtons } from "../components/BibleLayoutButtons";
 import { compactDate, pickCurrentSetlist } from "../service-date";
+import { useSessionState } from "../session-state";
 
 export default function BiblePage({
   live,
@@ -22,16 +23,19 @@ export default function BiblePage({
   notify: (text: string, kind?: "info" | "error") => void;
 }) {
   const [translations, setTranslations] = useState<BibleTranslationInfo[]>([]);
-  const [translation, setTranslation] = useState("");
+  const [translation, setTranslation] = useSessionState("bible:translation", "");
   const [books, setBooks] = useState<BibleBook[]>([]);
-  const [bookNumber, setBookNumber] = useState(1);
-  const [chapter, setChapter] = useState(1);
+  const [bookNumber, setBookNumber] = useSessionState("bible:book", 1);
+  const [chapter, setChapter] = useSessionState("bible:chapter", 1);
   const [passage, setPassage] = useState<BiblePassage | null>(null);
   const [from, setFrom] = useState(1);
   const [to, setTo] = useState(1);
   const [loading, setLoading] = useState(true);
-  const [includeReference, setIncludeReference] = useState(true);
-  const [layout, setLayout] = useState<BibleLayout>("verses");
+  const [includeReference, setIncludeReference] = useSessionState(
+    "bible:include-reference",
+    true,
+  );
+  const [layout, setLayout] = useSessionState<BibleLayout>("bible:layout", "verses");
   const [setlists, setSetlists] = useState<SetlistSummary[]>([]);
   const [targetSetlist, setTargetSetlist] = useState("");
   const [adding, setAdding] = useState(false);
@@ -46,7 +50,8 @@ export default function BiblePage({
         const preferred =
           settings?.settings.defaultBibleTranslation ?? null;
         const initial =
-          result.translations.find((translation) => translation.code === preferred) ??
+          result.translations.find((entry) => entry.code === translation) ??
+          result.translations.find((entry) => entry.code === preferred) ??
           result.translations[0];
         if (initial) setTranslation(initial.code);
         if (!result.translations.length) notify("No Bible translations found in the Bible folder", "error");
@@ -61,8 +66,9 @@ export default function BiblePage({
       .bibleBooks(translation)
       .then((result) => {
         setBooks(result.books);
+        const current = result.books.find((book) => book.number === bookNumber);
         const first = result.books[0];
-        if (first) {
+        if (!current && first) {
           setBookNumber(first.number);
           setChapter(1);
         }

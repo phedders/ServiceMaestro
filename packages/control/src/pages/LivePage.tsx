@@ -22,6 +22,7 @@ import { FontSelect } from "../components/FontSelect";
 import { QuickText } from "../components/QuickText";
 import { findPreviewScreen, loadPreviewScreenId } from "../preview-screen";
 import { compactDate } from "../service-date";
+import { useSessionState } from "../session-state";
 
 const FALLBACK_FONTS: FontOption[] = [
   {
@@ -129,7 +130,7 @@ export default function LivePage({
     },
   );
   const [configSaving, setConfigSaving] = useState(false);
-  const [previewView, setPreviewView] = useState("full");
+  const [previewView, setPreviewView] = useSessionState("live:preview-view", "full");
   const [previewScreenId] = useState(loadPreviewScreenId);
   const previewScreen = findPreviewScreen(previewScreenId);
   const [queueHeight, setQueueHeight] = useState(initialQueueHeight);
