@@ -5058,10 +5058,21 @@ body.resizing-live-queue {
   color: #8ddcff;
 }
 
+.dedupe-diff-chip.chordless {
+  border-color: rgba(167, 139, 250, 0.32);
+  background: rgba(167, 139, 250, 0.14);
+  color: #c4b5fd;
+}
+
 .dedupe-diff-chip.same {
   border-color: rgba(74, 222, 128, 0.32);
   background: rgba(74, 222, 128, 0.14);
   color: #86efac;
+}
+
+.dedupe-diff-mode-note {
+  margin: -4px 0 0;
+  font-size: 0.7rem;
 }
 
 .dedupe-diff-chip-button {

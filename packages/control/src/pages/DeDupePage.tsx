@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   songHasChords,
-  songKeyWithoutChords,
+  songLyricsWithoutChords,
   type SongDuplicateCandidate,
   type SongDuplicateGroup,
 } from "@sm/shared";
@@ -38,28 +38,34 @@ function compareSongs(reference: SongDuplicateCandidate, candidate: SongDuplicat
     .map(([label]) => label);
   const diff = diffLyrics(reference.lyrics, candidate.lyrics);
   const changedLines = diff.filter((line) => line.type !== "same").length;
-  const referenceKey = songKeyWithoutChords(reference.lyrics);
-  const candidateKey = songKeyWithoutChords(candidate.lyrics);
+  const diffWithoutChords = diffLyrics(
+    songLyricsWithoutChords(reference.lyrics),
+    songLyricsWithoutChords(candidate.lyrics),
+  );
+  const changedLinesWithoutChords = diffWithoutChords.filter(
+    (line) => line.type !== "same",
+  ).length;
   return {
     metadata,
     changedFields,
     changedLines,
+    changedLinesWithoutChords,
     diff,
+    diffWithoutChords,
     referenceHasChords: songHasChords(reference.lyrics),
     candidateHasChords: songHasChords(candidate.lyrics),
-    sameWithoutChords: Boolean(referenceKey) && referenceKey === candidateKey,
   };
 }
 
 function DifferenceSummary({
   changedFields,
   changedLines,
-  sameWithoutChords = false,
+  changedLinesWithoutChords,
   onShowDiff,
 }: {
   changedFields: string[];
   changedLines: number;
-  sameWithoutChords?: boolean;
+  changedLinesWithoutChords: number;
   onShowDiff?: () => void;
 }) {
   return (
@@ -97,14 +103,13 @@ function DifferenceSummary({
       ) : (
         <span className="dedupe-same">Lyrics identical</span>
       )}
-      {sameWithoutChords && (
-        <span
-          className="dedupe-diff-chip same"
-          title="The lyric text matches when embedded chord symbols are ignored"
-        >
-          Same without chords
-        </span>
-      )}
+      <span
+        className={`dedupe-diff-chip chordless ${changedLinesWithoutChords === 0 ? "same" : ""}`}
+        title="Line count after ignoring chord symbols and section labels"
+      >
+        {changedLinesWithoutChords} line
+        {changedLinesWithoutChords === 1 ? " differs" : "s differ"} without chords
+      </span>
     </span>
   );
 }
@@ -118,6 +123,8 @@ function DuplicateDiffDialog({
   candidate: SongDuplicateCandidate;
   onClose: () => void;
 }) {
+  const [withoutChords, setWithoutChords] = useState(false);
+
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
@@ -130,11 +137,14 @@ function DuplicateDiffDialog({
     metadata,
     changedFields,
     changedLines,
+    changedLinesWithoutChords,
     diff,
+    diffWithoutChords,
     referenceHasChords,
     candidateHasChords,
-    sameWithoutChords,
   } = compareSongs(reference, candidate);
+  const displayedDiff = withoutChords ? diffWithoutChords : diff;
+  const displayedChangedLines = withoutChords ? changedLinesWithoutChords : changedLines;
 
   return (
     <div
@@ -153,15 +163,34 @@ function DuplicateDiffDialog({
               {candidateHasChords ? " · chords" : ""}
             </p>
           </div>
-          <button className="button ghost small" onClick={onClose} title="Close the comparison">
-            Close
-          </button>
+          <div className="button-row">
+            <button
+              type="button"
+              className={`button small ${withoutChords ? "primary" : "ghost"}`}
+              onClick={() => setWithoutChords((current) => !current)}
+              title={
+                withoutChords
+                  ? "Show the lyrics exactly as stored, including chord symbols"
+                  : "Hide chord symbols and section labels in the lyric comparison"
+              }
+            >
+              {withoutChords ? "Show diff with chords" : "Show diff without chords"}
+            </button>
+            <button className="button ghost small" onClick={onClose} title="Close the comparison">
+              Close
+            </button>
+          </div>
         </div>
         <DifferenceSummary
           changedFields={changedFields}
           changedLines={changedLines}
-          sameWithoutChords={sameWithoutChords}
+          changedLinesWithoutChords={changedLinesWithoutChords}
         />
+        <p className="hint dedupe-diff-mode-note">
+          {withoutChords
+            ? "Chord symbols and section labels are hidden in this lyric comparison."
+            : "Showing lyrics exactly as stored. Use the button above to ignore chords."}
+        </p>
         <div className="alt-diff">
           <table className="alt-diff-meta">
             <thead>
@@ -181,15 +210,18 @@ function DuplicateDiffDialog({
               ))}
             </tbody>
           </table>
-          {changedLines === 0 ? (
-            <p className="muted">Lyrics are identical.</p>
+          {displayedChangedLines === 0 ? (
+            <p className="muted">
+              {withoutChords ? "Lyrics are identical without chords." : "Lyrics are identical."}
+            </p>
           ) : (
             <div className="alt-diff-lines">
               <div className="alt-diff-summary">
-                {changedLines} changed or reordered lyric{" "}
-                {changedLines === 1 ? "line" : "lines"}
+                {displayedChangedLines} changed or reordered lyric{" "}
+                {displayedChangedLines === 1 ? "line" : "lines"}
+                {withoutChords ? " without chords" : ""}
               </div>
-              {diff.map((line, index) => (
+              {displayedDiff.map((line, index) => (
                 <div
                   key={`${index}-${line.type}`}
                   className={`alt-diff-line ${line.type}`}
@@ -349,7 +381,7 @@ export default function DeDupePage({
                             <DifferenceSummary
                               changedFields={comparison.changedFields}
                               changedLines={comparison.changedLines}
-                              sameWithoutChords={comparison.sameWithoutChords}
+                              changedLinesWithoutChords={comparison.changedLinesWithoutChords}
                               onShowDiff={() => setComparison({ reference, candidate: song })}
                             />
                           ) : (

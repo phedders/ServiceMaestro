@@ -168,15 +168,32 @@ export function songHasChords(lyrics: string): boolean {
 }
 
 /**
+ * Song lyrics with chord symbols and section labels removed, preserving line
+ * breaks for a line-level comparison.
+ */
+export function songLyricsWithoutChords(lyrics: string): string {
+  return lyrics
+    .replace(/\r\n?/g, "\n")
+    .split("\n")
+    .map((line) =>
+      line
+        .replace(/\[([^\]]+)\]/g, (full, token: string) =>
+          isSongChordToken(token) ? "" : full,
+        )
+        .replace(/\[[^\]]*\]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim(),
+    )
+    .filter(Boolean)
+    .join("\n");
+}
+
+/**
  * Normalized song text with chord symbols and section labels removed.
  * Used to estimate whether two versions differ only by their chords.
  */
 export function songKeyWithoutChords(lyrics: string): string {
-  return lyrics
-    .replace(/\[([^\]]+)\]/g, (full, token: string) =>
-      isSongChordToken(token) ? "" : full,
-    )
-    .replace(/\[[^\]]*\]/g, " ")
+  return songLyricsWithoutChords(lyrics)
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "");
 }

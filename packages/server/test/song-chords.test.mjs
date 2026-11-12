@@ -4,6 +4,7 @@ import {
   isSongChordToken,
   songHasChords,
   songKeyWithoutChords,
+  songLyricsWithoutChords,
 } from "@sm/shared";
 
 test("recognises embedded chords but not section labels", () => {
@@ -26,6 +27,10 @@ test("compares lyric text with chords and section labels removed", () => {
   const chords =
     "[Verse 1]\nA[C]mazing [G]grace how [Am]sweet the [F]sound\nThat [C]saved a [G]wretch like [C]me";
   assert.equal(songKeyWithoutChords(plain), songKeyWithoutChords(chords));
+  assert.equal(
+    songLyricsWithoutChords(chords),
+    "Amazing grace how sweet the sound\nThat saved a wretch like me",
+  );
 
   const different = "[Verse 1]\nAmazing grace how sweet the sound\nThat saved a soul like me";
   assert.notEqual(songKeyWithoutChords(plain), songKeyWithoutChords(different));
