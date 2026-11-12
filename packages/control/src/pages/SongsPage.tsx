@@ -12,7 +12,7 @@ import type {
 import { api, ApiError } from "../api";
 import { PageContentEditor } from "../components/PageContentEditor";
 import { SiteSongDownloadPanel } from "../components/SiteSongDownloadPanel";
-import { compactDate, pickCurrentSetlist } from "../service-date";
+import { compactDate, compactDateTime, pickCurrentSetlist } from "../service-date";
 
 const EMPTY = {
   title: "",
@@ -615,6 +615,14 @@ export default function SongsPage({
               value={form.verseOrder}
               onChange={(event) => setForm({ ...form, verseOrder: event.target.value })}
               placeholder="e.g. V1 C V2 C B C"
+            />
+          </label>
+          <label className="grow">
+            Last modified
+            <input
+              value={selectedSong ? compactDateTime(selectedSong.updatedAt) : "Not saved yet"}
+              readOnly
+              title="Date and time this song was last saved"
             />
           </label>
         </div>
