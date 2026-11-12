@@ -5,6 +5,7 @@ import {
   suggestSongPageId,
   type AppSettings,
   type BibleTranslationInfo,
+  type ControlTlsStatus,
   type FontOption,
   type GitSettings,
   type GitStatus,
@@ -56,6 +57,7 @@ export default function SettingsPage({
   const [bibleTranslations, setBibleTranslations] = useState<BibleTranslationInfo[]>([]);
   const [songselectWatch, setSongselectWatch] = useState<SongSelectWatchStatus | null>(null);
   const [scanningSongselect, setScanningSongselect] = useState(false);
+  const [sslStatus, setSslStatus] = useState<ControlTlsStatus | null>(null);
   const [pageNames, setPageNames] = useState<string[]>([]);
   const [pageIdDraft, setPageIdDraft] = useState<Record<string, string>>({});
   const [scanningPageIds, setScanningPageIds] = useState(false);
@@ -93,6 +95,10 @@ export default function SettingsPage({
     api
       .settings()
       .then((result) => setSettings(result.settings))
+      .catch(() => undefined);
+    api
+      .sslStatus()
+      .then((result) => setSslStatus(result.status))
       .catch(() => undefined);
     api
       .bibleTranslations()
@@ -492,6 +498,58 @@ export default function SettingsPage({
         the set lists repository. Keyboard shortcuts, credentials, SongSelect state and Git settings
         stay local to this server.
       </p>
+
+      {sslStatus && (
+        <section
+          className={`panel ssl-status-panel ${sslStatus.warnings.length ? "warning" : ""}`}
+        >
+          <div className="panel-heading">
+            <div>
+              <h2>Control HTTPS</h2>
+              <p className="muted">
+                The control interface is HTTPS-only. Display outputs remain plain HTTP on the
+                display port.
+              </p>
+            </div>
+            <span className={`ssl-badge ${sslStatus.selfSigned ? "self-signed" : "trusted"}`}>
+              {sslStatus.source === "generated"
+                ? "Self-signed · generated"
+                : sslStatus.selfSigned
+                  ? "Self-signed · provided"
+                  : "Provided certificate"}
+            </span>
+          </div>
+          {sslStatus.warnings.map((warning) => (
+            <p key={warning} className="ssl-warning">
+              {warning}
+            </p>
+          ))}
+          <div className="config-kv ssl-cert-details">
+            <div>
+              <span className="muted">Certificate</span>
+              <code>{sslStatus.certFile}</code>
+            </div>
+            <div>
+              <span className="muted">Private key</span>
+              <code>{sslStatus.keyFile}</code>
+            </div>
+            <div>
+              <span className="muted">Valid until</span>
+              <span>{compactDateTime(sslStatus.validTo)}</span>
+            </div>
+            <div>
+              <span className="muted">Days remaining</span>
+              <span>{sslStatus.daysRemaining}</span>
+            </div>
+          </div>
+          <p className="hint">
+            Provide a trusted certificate as <code>cert.pem</code> and <code>key.pem</code> in{" "}
+            <code>{sslStatus.sslDir}</code>, or set <code>SM_SSL_CERT_FILE</code> and{" "}
+            <code>SM_SSL_KEY_FILE</code>. Restart the server after replacing certificates.
+          </p>
+        </section>
+      )}
+
       <section className="panel">
         <div className="panel-heading">
           <div>

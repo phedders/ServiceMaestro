@@ -4,13 +4,19 @@ import { buildDisplayApp } from "./display-app.js";
 import { startHeartbeat } from "./heartbeat.js";
 import { shutdownGit } from "./git-store.js";
 import { startSongSelectWatcher } from "./songselect-watch.js";
+import { prepareControlTls } from "./tls.js";
 
 if (PORT === DISPLAY_PORT) {
   console.error("[sm] SM_PORT and SM_DISPLAY_PORT must be different ports");
   process.exit(1);
 }
 
-const { app, io, outputIo } = await buildApp();
+const tls = await prepareControlTls().catch((error: Error) => {
+  console.error(`[sm] Could not start HTTPS control interface: ${error.message}`);
+  process.exit(1);
+});
+const { app, io, outputIo } = await buildApp(tls);
+for (const warning of tls.status.warnings) app.log.warn(warning);
 const display = await buildDisplayApp();
 const stopHeartbeats = [
   startHeartbeat(io),
@@ -21,7 +27,7 @@ const stopSongSelectWatcher = startSongSelectWatcher();
 
 try {
   await app.listen({ host: HOST, port: PORT });
-  app.log.info(`Service Maestro control listening on http://${HOST}:${PORT}`);
+  app.log.info(`Service Maestro control listening on https://${HOST}:${PORT}`);
   await display.app.listen({ host: HOST, port: DISPLAY_PORT });
   display.app.log.info(`Service Maestro displays listening on http://${HOST}:${DISPLAY_PORT}/display/`);
 } catch (error) {

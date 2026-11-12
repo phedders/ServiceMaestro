@@ -73,6 +73,13 @@ interface FileChurchSuiteConfig {
   redirectUri?: unknown;
 }
 
+interface FileSslConfig {
+  dir?: unknown;
+  certFile?: unknown;
+  keyFile?: unknown;
+  hosts?: unknown;
+}
+
 interface FileGitConfig {
   enabled?: unknown;
   autoSave?: unknown;
@@ -90,6 +97,7 @@ interface FileConfig {
   paths?: FilePathsConfig;
   songselect?: FileSongSelectConfig;
   churchsuite?: FileChurchSuiteConfig;
+  ssl?: FileSslConfig;
   git?: FileGitConfig;
   /** Top-level form used by the documented configuration example. */
   repositories?: Record<string, FileRepoConfig>;
@@ -142,6 +150,7 @@ const serverConfig = fileConfig.server ?? {};
 const pathsConfig = fileConfig.paths ?? {};
 const songselectConfig = fileConfig.songselect ?? {};
 const churchsuiteConfig = fileConfig.churchsuite ?? {};
+const sslConfig = fileConfig.ssl ?? {};
 const gitConfig = fileConfig.git ?? {};
 const repositoryConfig = {
   ...(gitConfig.repositories ?? {}),
@@ -200,6 +209,19 @@ function optionalOptionString(name: string, fileValue: unknown): string | undefi
   return fileString(fileValue);
 }
 
+function optionList(name: string, fileValue: unknown): string[] {
+  const env = process.env[name];
+  const entries = env !== undefined
+    ? env.split(",")
+    : Array.isArray(fileValue)
+      ? fileValue
+      : fileString(fileValue)?.split(",") ?? [];
+  return entries
+    .filter((entry): entry is string => typeof entry === "string")
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+}
+
 function portOption(name: string, fileValue: unknown, fallback: number): number {
   const env = process.env[name];
   const value = env !== undefined && env.trim() !== "" ? Number(env) : fileNumber(fileValue);
@@ -253,10 +275,16 @@ export const HOST = optionString("SM_HOST", serverConfig.host, "0.0.0.0");
 export const PORT = portOption("SM_PORT", serverConfig.port, 8080);
 export const DISPLAY_PORT = portOption("SM_DISPLAY_PORT", serverConfig.displayPort, 8081);
 export const LOG_LEVEL = optionString("SM_LOG_LEVEL", serverConfig.logLevel, "info");
-export const SECURE_COOKIES = optionBool("SM_SECURE_COOKIES", serverConfig.secureCookies, false);
+export const SECURE_COOKIES = optionBool("SM_SECURE_COOKIES", serverConfig.secureCookies, true);
 export const DATA_DIR = path.resolve(
   optionString("SM_DATA_DIR", serverConfig.dataDir, path.join(packageRoot, "data")),
 );
+export const SSL_DIR = path.resolve(
+  optionString("SM_SSL_DIR", sslConfig.dir, path.join(DATA_DIR, "ssl")),
+);
+export const SSL_CERT_FILE = optionalOptionString("SM_SSL_CERT_FILE", sslConfig.certFile);
+export const SSL_KEY_FILE = optionalOptionString("SM_SSL_KEY_FILE", sslConfig.keyFile);
+export const SSL_HOSTS = optionList("SM_SSL_HOSTS", sslConfig.hosts);
 export const CONTROL_DIST = path.resolve(packageRoot, "../control/dist");
 export const DISPLAY_DIR = path.resolve(packageRoot, "../display");
 export const SONGS_DIR = path.resolve(

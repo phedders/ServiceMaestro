@@ -19,8 +19,18 @@ server:
   adminPassword: change-me
   outputToken: dev-output
   sessionDays: 7
-  secureCookies: false
+  secureCookies: true
   logLevel: info
+
+ssl:
+  # Control interface certificate files. Relative cert/key paths resolve
+  # against this directory. If both are absent, a local self-signed
+  # certificate is generated on first start.
+  dir: /data/ssl
+  certFile:
+  keyFile:
+  # Extra DNS names/IP addresses for the generated certificate's SAN.
+  hosts: []
 
 paths:
   songs: /library/songs

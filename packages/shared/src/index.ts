@@ -446,6 +446,20 @@ export interface FontDownloadReport {
   failed: FontDownloadFailure[];
 }
 
+export interface ControlTlsStatus {
+  source: "generated" | "provided";
+  selfSigned: boolean;
+  sslDir: string;
+  certFile: string;
+  keyFile: string;
+  subject: string;
+  issuer: string;
+  validFrom: string;
+  validTo: string;
+  daysRemaining: number;
+  warnings: string[];
+}
+
 export const DEFAULT_CHURCHSUITE_EMPTY_TYPES = [
   "Welcome",
   "Misc",

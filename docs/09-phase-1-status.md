@@ -8,7 +8,7 @@ Implemented and verified on 2026-11-10. This is the working foundation described
 npm install
 npm run build
 SM_ADMIN_PASSWORD='change-me' npm start
-# http://localhost:8080
+# https://localhost:8080  (self-signed certificate generated in data/ssl unless supplied)
 ```
 
 - Login: seeded `admin` / `SM_ADMIN_PASSWORD`.

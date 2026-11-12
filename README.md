@@ -35,19 +35,19 @@ npm run build
 SM_ADMIN_PASSWORD='change-me' npm start
 ```
 
-Open <http://localhost:8080> and sign in as `admin` with the password you set (default is `admin` if the variable is omitted — change it).
+Open <https://localhost:8080> and sign in as `admin` with the password you set (default is `admin` if the variable is omitted — change it). The control interface is HTTPS-only. If no certificate is supplied, a local self-signed certificate is generated in `data/ssl`; the browser will show a trust warning until you install a trusted certificate.
 
 ### Development
 
 ```sh
-# terminal 1: API + displays on :8080
+# terminal 1: HTTPS API + HTTP displays on :8080
 npm run dev -w @sm/server
 
-# terminal 2: React control UI on :5173 with API proxy
+# terminal 2: React control UI on :5173 with HTTPS API proxy
 npm run dev -w @sm/control
 ```
 
-Or `npm run dev` runs both (server on 8080, control on 5173).
+Or `npm run dev` runs both (HTTPS server on 8080, control dev UI on 5173).
 
 ### Display outputs (OBS Browser Sources)
 
@@ -58,17 +58,17 @@ Or `npm run dev` runs both (server on 8080, control on 5173).
 | Centered two-thirds | `/display/two-thirds?token=dev-output` | `/display/two_thirds`, `/obs-two-thirds` |
 | Stage monitor (lyrics) | `/display/stage?token=dev-output` | `/obs-stage` |
 
-The output token defaults to `dev-output`; set `SM_OUTPUT_TOKEN` in production. Displays receive a **full snapshot on connect**, so refreshing or reconnecting OBS never blanks the screen. The server sends a heartbeat every 15 seconds; a display that receives no heartbeat for 45 seconds reloads itself to recover the connection. The `/obs-*` aliases remain on the control port for compatibility; use the `/display/*` paths through a read-only proxy.
+The output token defaults to `dev-output`; set `SM_OUTPUT_TOKEN` in production. Displays receive a **full snapshot on connect**, so refreshing or reconnecting OBS never blanks the screen. The server sends a heartbeat every 15 seconds; a display that receives no heartbeat for 45 seconds reloads itself to recover the connection. The `/obs-*` aliases remain on the HTTPS control port for compatibility; use the `/display/*` paths through the plain-HTTP read-only display listener for OBS.
 
-The **Menu** button in the navigation opens an **External links** list for every view plus Settings. Displays are also served by a separate **read-only listener** on `SM_DISPLAY_PORT` (default `8081`). It serves only the `/display/*` tree — views, `/display/assets`, `/display/fonts`, `/display/images/file`, `/display/icon.svg` and the read-only `/display/socket.ro.io` — with no login, control UI or API. A forward proxy can expose only `/display/*` from this port without exposing the control server. These replace the old `/display-assets`, `/fonts` and `/api/images/file` paths.
+The **Menu** button in the navigation opens an **External links** list for every view plus Settings. Displays are also served by a separate **read-only listener** on `SM_DISPLAY_PORT` (default `8081`) over plain HTTP. It serves only the `/display/*` tree — views, `/display/assets`, `/display/fonts`, `/display/images/file`, `/display/icon.svg` and the read-only `/display/socket.ro.io` — with no login, control UI or API. A forward proxy can expose only `/display/*` from this port without exposing the control server. These replace the old `/display-assets`, `/fonts` and `/api/images/file` paths.
 
 ### Musicians view
 
-Open <http://localhost:8080/musicians> to see the read-only musician view. It defaults to the current/next dated service, lets each musician open the set list on their own device, and shows lyrics, notes, score PDFs and tabs without touching the live session.
+Open <https://localhost:8080/musicians> to see the read-only musician view. It defaults to the current/next dated service, lets each musician open the set list on their own device, and shows lyrics, notes, score PDFs and tabs without touching the live session.
 
 ## What works now
 
-- **Authentication** — local accounts, scrypt password hashing, HTTP-only sessions. One seeded `admin`; user management is next.
+- **Authentication** — local accounts, scrypt password hashing, secure HTTP-only sessions on the HTTPS-only control interface. One seeded `admin`; user management is next.
 - **Songs** — create/edit lyrics with inline chords (`A[C]mazing`), section labels (`[Verse 1]`), key, author, alternative titles, CCLI and copyright; optional inline Markdown styling; multiple named verse orders. Untagged lyrics receive sequential `[V1]`, `[V2]`, … labels split on blank lines when created or imported. **Simplify page IDs** on import or save converts spaced/long section names into unique compact IDs such as `[Verse 1]` → `[v1]`, using the conversion table in Settings. The song editor has **Add to current setlist** and **Add to live session** actions. The library has a multi-select mode for deleting songs in bulk, with a select-all-shown option and Git-safe batch deletion.
 - **Library import** — scan a folder for OpenLP/OpenLyrics XML, ChordPro and plain-text files; preview titles/formats/warnings, then import. Duplicate CCLI/title matches are detected during the scan and can be **skipped**, **replaced**, or imported as a **duplicate** with an edited title/alternative titles. OpenLP `verseOrder` and ChordPro `{comment: …}` sections are honoured; bare headings such as `Verse 2` or `Chorus:` are also recognised as section labels. SongSelect legal footers and bar markers are removed.
 - **Scores and tabs for musicians** — upload PDFs, ChordPro, lyrics or images to a song; the standalone `/musicians` view lists upcoming/current services, opens a service read-only and renders lyrics plus PDFs with a bundled PDF.js viewer (page navigation, zoom, fit-to-width), text and image assets. It never changes the live session.
@@ -124,7 +124,11 @@ Listener ports are set with `SM_PORT` and `SM_DISPLAY_PORT`; both are read at st
 | `SM_ADMIN_PASSWORD` | `admin` | Password for the seeded admin |
 | `SM_OUTPUT_TOKEN` | `dev-output` | Token required by display sockets |
 | `SM_LOG_LEVEL` | `info` | Fastify log level |
-| `SM_SECURE_COOKIES` | unset | Set to `1` when serving over HTTPS |
+| `SM_SECURE_COOKIES` | `true` | Marks session cookies Secure; set to `0` only for special proxy setups |
+| `SM_SSL_DIR` | `/data/ssl` | Control HTTPS certificate directory |
+| `SM_SSL_CERT_FILE` | `cert.pem` in `SM_SSL_DIR` | Trusted certificate/full-chain path |
+| `SM_SSL_KEY_FILE` | `key.pem` in `SM_SSL_DIR` | Private key path |
+| `SM_SSL_HOSTS` | unset | Extra comma-separated DNS names/IPs for a generated certificate |
 | `SM_GIT_ENABLED` | `true` | Enable local/remote Git persistence |
 | `SM_GIT_AUTO_SAVE` | `true` | Write + commit on each song/set-list change |
 | `SM_GIT_AUTO_PUSH` | `true` | Push after commit when a remote is configured |
@@ -150,6 +154,8 @@ docker run --rm -p 8080:8080 -p 8081:8081 \
   -v "$PWD/data:/data" \
   service-maestro
 ```
+
+Open the control interface at <https://localhost:8080>; the display listener remains at <http://localhost:8081/display/>. Certificates live in `./data/ssl` and a self-signed pair is generated automatically when needed.
 
 Or `docker compose up -d` / `podman-compose up -d`. The container runs as UID/GID 10001; ensure the mounted data directory is writable by that user (`chown -R 10001:10001 ./data`, or use Incus `shift=true`).
 

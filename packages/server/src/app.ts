@@ -20,6 +20,7 @@ import { sendHtmlFile } from "./send-html.js";
 import { live } from "./live.js";
 import { getDisplayConfig, saveDisplayConfig } from "./display-config.js";
 import { getGitSettings, saveGitSettings } from "./settings.js";
+import { getControlTlsStatus } from "./tls.js";
 import { authRoutes } from "./routes/auth.js";
 import { songRoutes } from "./routes/songs.js";
 import { setlistRoutes } from "./routes/setlists.js";
@@ -47,12 +48,12 @@ import {
   syncGitFromRemotes,
 } from "./git-store.js";
 
-export async function buildApp(): Promise<{
+export async function buildApp(tls: { key: Buffer; cert: Buffer }): Promise<{
   app: FastifyInstance;
   io: Server;
   outputIo: Server;
 }> {
-  const app = Fastify({ logger: { level: LOG_LEVEL } });
+  const app = Fastify({ logger: { level: LOG_LEVEL }, https: tls });
 
   await app.register(cookie);
   await app.register(multipart, { limits: { fileSize: 50 * 1024 * 1024, files: 1, fields: 10 } });
@@ -110,6 +111,10 @@ export async function buildApp(): Promise<{
   app.get("/obs-chords", async (_request, reply) => sendHtmlFile(reply, path.join(DISPLAY_DIR, "chords.html")));
 
   app.get("/api/health", async () => ({ ok: true, name: "service-maestro" }));
+
+  app.get("/api/ssl/status", { preHandler: requireAuth }, async () => ({
+    status: getControlTlsStatus(),
+  }));
 
   app.get("/api/display/views", { preHandler: requireAuth }, async () => {
     const token = encodeURIComponent(OUTPUT_TOKEN);

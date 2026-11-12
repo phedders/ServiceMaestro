@@ -10,7 +10,7 @@ RUN npm prune --omit=dev
 FROM node:24-trixie-slim
 
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends tini ca-certificates tzdata git git-lfs openssh-client \
+  && apt-get install -y --no-install-recommends tini ca-certificates tzdata git git-lfs openssh-client openssl \
   && rm -rf /var/lib/apt/lists/* \
   && groupadd -g 10001 sm \
   && useradd -u 10001 -g sm -M -s /usr/sbin/nologin sm
@@ -36,7 +36,7 @@ EXPOSE 8080 8081
 VOLUME ["/data"]
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
-  CMD node -e "fetch('http://127.0.0.1:'+(process.env.SM_PORT||'8080')+'/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+  CMD node -e "process.env.NODE_TLS_REJECT_UNAUTHORIZED='0'; fetch('https://127.0.0.1:'+(process.env.SM_PORT||'8080')+'/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 
 ENTRYPOINT ["/usr/bin/tini", "--"]
 CMD ["node", "packages/server/dist/index.js"]

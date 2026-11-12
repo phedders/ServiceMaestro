@@ -6,19 +6,36 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      "/api": "http://127.0.0.1:8080",
+      "/api": {
+        target: "https://127.0.0.1:8080",
+        secure: false,
+      },
       "/socket.io": {
-        target: "http://127.0.0.1:8080",
+        target: "https://127.0.0.1:8080",
+        secure: false,
         ws: true,
       },
       "/display": {
-        target: "http://127.0.0.1:8080",
+        target: "https://127.0.0.1:8080",
+        secure: false,
         ws: true,
       },
-      "/icon.svg": "http://127.0.0.1:8080",
-      "/obs-main": "http://127.0.0.1:8080",
-      "/obs-mainfull": "http://127.0.0.1:8080",
-      "/obs-stage": "http://127.0.0.1:8080",
+      "/icon.svg": {
+        target: "https://127.0.0.1:8080",
+        secure: false,
+      },
+      "/obs-main": {
+        target: "https://127.0.0.1:8080",
+        secure: false,
+      },
+      "/obs-mainfull": {
+        target: "https://127.0.0.1:8080",
+        secure: false,
+      },
+      "/obs-stage": {
+        target: "https://127.0.0.1:8080",
+        secure: false,
+      },
     },
   },
   build: {

@@ -3714,6 +3714,47 @@ body.resizing-live-queue {
   font-weight: 700;
 }
 
+.ssl-status-panel.warning {
+  border-color: rgba(251, 191, 36, 0.55);
+}
+
+.ssl-warning {
+  margin: 0 0 8px;
+  padding: 8px 10px;
+  border: 1px solid rgba(251, 191, 36, 0.45);
+  border-radius: 8px;
+  background: rgba(251, 191, 36, 0.07);
+  color: var(--warning);
+  font-size: 0.78rem;
+}
+
+.ssl-badge {
+  padding: 4px 9px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 0.7rem;
+  white-space: nowrap;
+}
+
+.ssl-badge.self-signed {
+  border-color: rgba(251, 191, 36, 0.55);
+  color: var(--warning);
+}
+
+.ssl-badge.trusted {
+  border-color: rgba(74, 222, 128, 0.45);
+  color: #4ade80;
+}
+
+.ssl-cert-details {
+  margin: 10px 0;
+}
+
+.ssl-cert-details > div {
+  display: grid;
+  gap: 2px;
+}
+
 .import-warning {
   color: var(--warning);  font-size: 0.7rem;
   cursor: help;

@@ -53,7 +53,7 @@ USER 10001:10001
 EXPOSE 8080 8081
 ENV NODE_ENV=production SM_PORT=8080 SM_DISPLAY_PORT=8081 SM_DATA_DIR=/data
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
-  CMD node -e "fetch('http://127.0.0.1:8080/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+  CMD node -e "process.env.NODE_TLS_REJECT_UNAUTHORIZED='0'; fetch('https://127.0.0.1:8080/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 ENTRYPOINT ["/usr/bin/tini", "--"]
 CMD ["node", "dist/server.js"]
 ```
@@ -85,10 +85,14 @@ Environment-first, with optional file values and `_FILE` secret support:
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `SM_PORT` | `8080` | Control HTTP/WS port |
+| `SM_PORT` | `8080` | HTTPS control HTTP/WS port |
 | `SM_DISPLAY_PORT` | `8081` | Read-only display HTTP/WS port; serves only `/display/*` |
 | `SM_HOST` | `0.0.0.0` | Bind address |
 | `SM_PUBLIC_URL` | — | Absolute URL used in generated links |
+| `SM_SSL_DIR` | `/data/ssl` | Control HTTPS certificate directory |
+| `SM_SSL_CERT_FILE` | `cert.pem` | Trusted certificate/full-chain path |
+| `SM_SSL_KEY_FILE` | `key.pem` | Private key path |
+| `SM_SSL_HOSTS` | unset | Extra comma-separated DNS names/IPs for generated certificates |
 | `SM_DATA_DIR` | `/data` | Writable state |
 | `SM_SONGS_DIR` | `/library/songs` | Song sources |
 | `SM_BIBLE_DIR` | `/library/bible` | Bible SQLite files |
@@ -113,7 +117,7 @@ Environment-first, with optional file values and `_FILE` secret support:
 | `SM_LOG_LEVEL` | `info` | `debug`/`info`/`warn`/`error` |
 | `SM_TRUST_PROXY` | `false` | Honour `X-Forwarded-*` behind TLS proxy |
 
-`SM_PORT` and `SM_DISPLAY_PORT` are read at startup, must be different, and accept values from `1` to `65535`. Secrets are never printed; `_FILE` variants allow Docker/Podman secrets and Incus/LXC files. Git repositories use `SM_GIT_*` remotes (`ssh://` or `https://token@…`), SSH key/known-hosts secrets, and optional Git LFS for Bibles — see [11-git-data-sync.md](11-git-data-sync.md).
+`SM_PORT` and `SM_DISPLAY_PORT` are read at startup, must be different, and accept values from `1` to `65535`. The control interface on `SM_PORT` is HTTPS-only; the display listener on `SM_DISPLAY_PORT` remains plain HTTP for OBS and display devices. Place `cert.pem` and `key.pem` in `SM_SSL_DIR` (default `/data/ssl`) or point `SM_SSL_CERT_FILE`/`SM_SSL_KEY_FILE` at a trusted certificate and key. If neither is present, a local self-signed certificate is generated and the Settings page shows a warning until it is replaced. Secrets are never printed; `_FILE` variants allow Docker/Podman secrets and Incus/LXC files. Git repositories use `SM_GIT_*` remotes (`ssh://` or `https://token@…`), SSH key/known-hosts secrets, and optional Git LFS for Bibles — see [11-git-data-sync.md](11-git-data-sync.md).
 
 The optional structured config can be YAML or JSON. Set `SM_CONFIG_FILE`, or mount it as `config.yaml` / `config.yml` / `config.json` in `/config/`. Environment variables remain the final override, so secrets and deployment-specific values can stay in `.env` or container secrets. Start from [`config.example.yaml`](../config.example.yaml).
 
@@ -252,7 +256,7 @@ LXC (without Incus) follows Option B: unprivileged container, `lxc.idmap`/subuid
 
 ## 7. Networking and OBS
 
-- Keep `8080` on the trusted control network. OBS Browser Sources can use `http://<host>:8081/display/lowerthird?token=…` and `/display/full?token=…` on the read-only listener.
+- Keep `8080` on the trusted control network and access it as `https://<host>:8080`. OBS Browser Sources can use `http://<host>:8081/display/lowerthird?token=…` and `/display/full?token=…` on the read-only listener.
 - The `8081` listener serves only `/display/*` and has no login, control UI or API. It includes `/display/assets`, `/display/fonts`, `/display/images/file` and the output-only `/display/socket.ro.io`. A forward proxy can therefore expose only that prefix.
 - Example nginx location for the read-only listener:
 
