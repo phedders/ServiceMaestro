@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import type { StingerAsset } from "@sm/shared";
 import { api, ApiError } from "../api";
+import { ReadOnlyFieldset, usePageAccess } from "../page-access";
 
 export default function StingersPage({
   notify,
 }: {
   notify: (text: string, kind?: "info" | "error") => void;
 }) {
+  const { canWrite } = usePageAccess();
   const [stingers, setStingers] = useState<StingerAsset[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -28,7 +30,7 @@ export default function StingersPage({
   }, []);
 
   async function uploadStinger() {
-    if (!file) return;
+    if (!file || !canWrite) return;
     setUploading(true);
     try {
       const uploaded = await api.uploadImage(file, "stingers");
@@ -50,7 +52,7 @@ export default function StingersPage({
   }
 
   async function remove(stinger: StingerAsset) {
-    if (!confirm(`Delete stinger “${stinger.name}”?`)) return;
+    if (!canWrite || !confirm(`Delete stinger “${stinger.name}”?`)) return;
     try {
       await api.deleteStinger(stinger.id);
       await load();
@@ -76,7 +78,7 @@ export default function StingersPage({
         </div>
       </section>
 
-      <section className="panel">
+      <ReadOnlyFieldset className="panel">
         <div className="panel-heading">
           <div>
             <h2>Add image stinger</h2>
@@ -118,7 +120,7 @@ export default function StingersPage({
             {uploading ? "Uploading…" : "Add image stinger"}
           </button>
         </div>
-      </section>
+      </ReadOnlyFieldset>
 
       <section className="panel">
         <div className="panel-heading">
@@ -146,7 +148,12 @@ export default function StingersPage({
                   <button
                     className="button ghost small danger-text"
                     onClick={() => remove(stinger)}
-                    title={`Delete “${stinger.name}”`}
+                    disabled={!canWrite}
+                    title={
+                      canWrite
+                        ? `Delete “${stinger.name}”`
+                        : "Read-only access to stingers"
+                    }
                   >
                     Delete
                   </button>

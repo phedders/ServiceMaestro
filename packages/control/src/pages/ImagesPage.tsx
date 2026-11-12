@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ImageAsset, LiveState, SetlistSummary } from "@sm/shared";
 import { api, ApiError } from "../api";
+import { usePageAccess } from "../page-access";
 import { compactDate, compactDateTime, pickCurrentSetlist } from "../service-date";
 import { useSessionState } from "../session-state";
 
@@ -84,6 +85,7 @@ export default function ImagesPage({
   notify: (text: string, kind?: "info" | "error") => void;
   onQuickImage: (path: string, title?: string) => Promise<void>;
 }) {
+  const { canWrite } = usePageAccess();
   const [images, setImages] = useState<ImageAsset[]>([]);
   const [setlists, setSetlists] = useState<SetlistSummary[]>([]);
   const [targetSetlist, setTargetSetlist] = useState("");
@@ -131,7 +133,7 @@ export default function ImagesPage({
   });
 
   async function upload() {
-    if (!file) return;
+    if (!file || !canWrite) return;
     setUploading(true);
     try {
       const result = await api.uploadImage(file, uploadFolder);
@@ -146,7 +148,7 @@ export default function ImagesPage({
   }
 
   async function remove(image: ImageAsset) {
-    if (!confirm(`Delete “${image.name}”?`)) return;
+    if (!canWrite || !confirm(`Delete “${image.name}”?`)) return;
     try {
       await api.deleteImage(image.path);
       await load();
@@ -157,7 +159,7 @@ export default function ImagesPage({
   }
 
   async function showLive(image: ImageAsset) {
-    if (live.status === "idle") return;
+    if (!canWrite || live.status === "idle") return;
     setLivePath(image.path);
     try {
       await onQuickImage(image.path, image.name);
@@ -167,7 +169,7 @@ export default function ImagesPage({
   }
 
   async function addToSetlist(image: ImageAsset) {
-    if (!targetSetlist) return;
+    if (!canWrite || !targetSetlist) return;
     setAddingPath(image.path);
     try {
       await api.addItem(targetSetlist, {
@@ -213,21 +215,25 @@ export default function ImagesPage({
               value={uploadFolder}
               onChange={(event) => setUploadFolder(event.target.value)}
               placeholder="e.g. backgrounds"
+              disabled={!canWrite}
             />
           </label>
           <input
             type="file"
             accept="image/png,image/jpeg,image/gif,image/webp,image/avif,image/svg+xml"
             onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+            disabled={!canWrite}
           />
           <button
             className="button primary"
             onClick={upload}
-            disabled={!file || uploading}
+            disabled={!canWrite || !file || uploading}
             title={
-              file
-                ? `Upload “${file.name}” to the chosen folder`
-                : "Choose an image file before uploading"
+              !canWrite
+                ? "Read-only access to images"
+                : file
+                  ? `Upload “${file.name}” to the chosen folder`
+                  : "Choose an image file before uploading"
             }
           >
             {uploading ? "Uploading…" : "Upload image"}
@@ -243,6 +249,7 @@ export default function ImagesPage({
             <select
               value={targetSetlist}
               onChange={(event) => setTargetSetlist(event.target.value)}
+              disabled={!canWrite}
             >
               {!setlists.length && <option value="">No set lists yet</option>}
               {setlists.map((setlist) => (
@@ -296,11 +303,13 @@ export default function ImagesPage({
                     <button
                       className="button danger small"
                       onClick={() => showLive(image)}
-                      disabled={live.status === "idle" || livePath === image.path}
+                      disabled={!canWrite || live.status === "idle" || livePath === image.path}
                       title={
-                        live.status === "idle"
-                          ? "Start a live session first"
-                          : `Show “${image.name}” immediately on all live outputs without changing the set list or live queue`
+                        !canWrite
+                          ? "Read-only access to images"
+                          : live.status === "idle"
+                            ? "Start a live session first"
+                            : `Show “${image.name}” immediately on all live outputs without changing the set list or live queue`
                       }
                     >
                       {livePath === image.path ? "Sending…" : "LIVE"}
@@ -308,11 +317,13 @@ export default function ImagesPage({
                     <button
                       className="button primary small"
                       onClick={() => addToSetlist(image)}
-                      disabled={!targetSetlist || addingPath === image.path}
+                      disabled={!canWrite || !targetSetlist || addingPath === image.path}
                       title={
-                        targetSetlist
-                          ? `Add “${image.name}” to the selected set list`
-                          : "Choose a target set list first"
+                        !canWrite
+                          ? "Read-only access to images"
+                          : targetSetlist
+                            ? `Add “${image.name}” to the selected set list`
+                            : "Choose a target set list first"
                       }
                     >
                       {addingPath === image.path ? "Adding…" : "+ setlist"}
@@ -330,7 +341,12 @@ export default function ImagesPage({
                     <button
                       className="button ghost small danger-text"
                       onClick={() => remove(image)}
-                      title={`Delete “${image.name}” from the image library`}
+                      disabled={!canWrite}
+                      title={
+                        canWrite
+                          ? `Delete “${image.name}” from the image library`
+                          : "Read-only access to images"
+                      }
                     >
                       Delete
                     </button>

@@ -7,6 +7,7 @@ import {
   type SongDuplicateGroup,
 } from "@sm/shared";
 import { api, ApiError } from "../api";
+import { usePageAccess } from "../page-access";
 import { DiffIcon, EyeIcon } from "../components/Icons";
 import { SongEditDialog } from "../components/SongEditDialog";
 import { SongLyricsDialog } from "../components/SongLyricsDialog";
@@ -152,6 +153,7 @@ function DuplicateDiffDialog({
   onEditCandidate: () => void;
   onClose: () => void;
 }) {
+  const { canWrite } = usePageAccess();
   const [withoutChords, setWithoutChords] = useState(false);
 
   useEffect(() => {
@@ -198,11 +200,13 @@ function DuplicateDiffDialog({
               type="button"
               className={`button small ${candidatePreferred ? "ghost" : "primary"}`}
               onClick={onPrefer}
-              disabled={candidatePreferred || busy}
+              disabled={!canWrite || candidatePreferred || busy}
               title={
-                candidatePreferred
-                  ? "This version already has the higher priority"
-                  : `Make “${candidate.title}” the higher priority version`
+                !canWrite
+                  ? "Read-only access to songs"
+                  : candidatePreferred
+                    ? "This version already has the higher priority"
+                    : `Make “${candidate.title}” the higher priority version`
               }
             >
               {candidatePreferred ? "Preferred" : "Higher priority"}
@@ -211,8 +215,12 @@ function DuplicateDiffDialog({
               type="button"
               className="button ghost small"
               onClick={onMarkDifferent}
-              disabled={busy}
-              title="Mark these two versions as different songs so they stop appearing as duplicates"
+              disabled={!canWrite || busy}
+              title={
+                canWrite
+                  ? "Mark these two versions as different songs so they stop appearing as duplicates"
+                  : "Read-only access to songs"
+              }
             >
               Mark as Different
             </button>
@@ -256,8 +264,10 @@ function DuplicateDiffDialog({
                       type="button"
                       className="button ghost small"
                       onClick={onEditReference}
-                      disabled={busy}
-                      title={`Edit “${reference.title}”`}
+                      disabled={!canWrite || busy}
+                      title={
+                        canWrite ? `Edit “${reference.title}”` : "Read-only access to songs"
+                      }
                     >
                       Edit
                     </button>
@@ -270,8 +280,10 @@ function DuplicateDiffDialog({
                       type="button"
                       className="button ghost small"
                       onClick={onEditCandidate}
-                      disabled={busy}
-                      title={`Edit “${candidate.title}”`}
+                      disabled={!canWrite || busy}
+                      title={
+                        canWrite ? `Edit “${candidate.title}”` : "Read-only access to songs"
+                      }
                     >
                       Edit
                     </button>
@@ -324,6 +336,7 @@ export default function DeDupePage({
 }: {
   notify: (text: string, kind?: "info" | "error") => void;
 }) {
+  const { canWrite } = usePageAccess();
   const [groups, setGroups] = useState<SongDuplicateGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [working, setWorking] = useState<{
@@ -355,6 +368,7 @@ export default function DeDupePage({
   }, []);
 
   async function prefer(group: SongDuplicateGroup, song: SongDuplicateCandidate): Promise<boolean> {
+    if (!canWrite) return false;
     setWorking({ id: song.id, action: "prefer" });
     try {
       await api.setSongPriority(song.id, 1);
@@ -379,6 +393,7 @@ export default function DeDupePage({
     second: SongDuplicateCandidate,
   ): Promise<boolean> {
     if (
+      !canWrite ||
       !window.confirm(
         `Mark “${first.title}” and “${second.title}” as different songs? They will stop appearing as duplicates.`,
       )
@@ -400,7 +415,10 @@ export default function DeDupePage({
   }
 
   async function remove(song: SongDuplicateCandidate) {
-    if (!window.confirm(`Delete “${song.title}”? This removes the song from the library.`)) {
+    if (
+      !canWrite ||
+      !window.confirm(`Delete “${song.title}”? This removes the song from the library.`)
+    ) {
       return;
     }
     setWorking({ id: song.id, action: "delete" });
@@ -549,7 +567,12 @@ export default function DeDupePage({
                             type="button"
                             className="button ghost small"
                             onClick={() => setEditingSongId(song.id)}
-                            title={`Edit “${song.title}” metadata and lyrics`}
+                            disabled={!canWrite}
+                            title={
+                              canWrite
+                                ? `Edit “${song.title}” metadata and lyrics`
+                                : "Read-only access to songs"
+                            }
                           >
                             Edit
                           </button>
@@ -557,9 +580,11 @@ export default function DeDupePage({
                             type="button"
                             className={`button small ${preferred ? "ghost" : "primary"}`}
                             onClick={() => void prefer(group, song)}
-                            disabled={preferred || working !== null}
+                            disabled={!canWrite || preferred || working !== null}
                             title={
-                              preferred
+                              !canWrite
+                                ? "Read-only access to songs"
+                                : preferred
                                 ? "This version already has the higher priority"
                                 : `Make “${song.title}” the higher priority version`
                             }
@@ -571,8 +596,12 @@ export default function DeDupePage({
                               type="button"
                               className="button ghost small"
                               onClick={() => void markDifferent(reference, song)}
-                              disabled={working !== null}
-                              title="Mark these two versions as different songs so they stop appearing as duplicates"
+                              disabled={!canWrite || working !== null}
+                              title={
+                                canWrite
+                                  ? "Mark these two versions as different songs so they stop appearing as duplicates"
+                                  : "Read-only access to songs"
+                              }
                             >
                               {markingDifferent ? "Saving…" : "Mark as Different"}
                             </button>
@@ -581,8 +610,12 @@ export default function DeDupePage({
                             type="button"
                             className="button danger small"
                             onClick={() => void remove(song)}
-                            disabled={working !== null}
-                            title={`Delete “${song.title}” from the song library`}
+                            disabled={!canWrite || working !== null}
+                            title={
+                              canWrite
+                                ? `Delete “${song.title}” from the song library`
+                                : "Read-only access to songs"
+                            }
                           >
                             {deleting ? "Deleting…" : "Delete"}
                           </button>

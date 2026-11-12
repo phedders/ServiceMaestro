@@ -6,6 +6,7 @@ import type {
   SongResourceKind,
 } from "@sm/shared";
 import { api, ApiError } from "../api";
+import { usePageAccess } from "../page-access";
 import { EyeIcon } from "./Icons";
 import { SongLyricsDialog } from "./SongLyricsDialog";
 import { downloadBlob, SITE_KIND_LABELS } from "../site-download";
@@ -23,6 +24,7 @@ export function SiteSongLookupDialog({
   onImported?: (song: SiteScraperImportResult["song"]) => void;
   onClose: () => void;
 }) {
+  const { canWrite } = usePageAccess();
   const [query, setQuery] = useState(initialQuery);
   const [results, setResults] = useState<SiteScraperSearchResult[]>([]);
   const [searching, setSearching] = useState(false);
@@ -95,6 +97,7 @@ export function SiteSongLookupDialog({
   }
 
   async function importAll(song: SiteScraperSearchResult) {
+    if (!canWrite) return;
     setImporting(song.songNumber);
     try {
       const result = await api.siteScraperImport(provider.id, song, song.availableKinds);
@@ -206,8 +209,12 @@ export function SiteSongLookupDialog({
                     <button
                       className="button primary small"
                       onClick={() => void importAll(song)}
-                      disabled={downloading !== null || importing !== null}
-                      title={`Import all available files for “${song.title}” into Service Maestro`}
+                      disabled={!canWrite || downloading !== null || importing !== null}
+                      title={
+                        canWrite
+                          ? `Import all available files for “${song.title}” into Service Maestro`
+                          : "Read-only access to this module"
+                      }
                     >
                       {importing === song.songNumber ? "Importing…" : "Import into Service Maestro"}
                     </button>

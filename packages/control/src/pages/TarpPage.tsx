@@ -11,6 +11,7 @@ import type {
   TarpThemeInput,
 } from "@sm/shared";
 import { api, ApiError } from "../api";
+import { ReadOnlyFieldset, usePageAccess } from "../page-access";
 import { useSessionState } from "../session-state";
 import TarpPageEditor from "./TarpPageEditor";
 
@@ -45,6 +46,7 @@ export default function TarpPage({
 }: {
   notify: (text: string, kind?: "info" | "error") => void;
 }) {
+  const { canWrite } = usePageAccess();
   const [themes, setThemes] = useState<TarpTheme[]>([]);
   const [presentations, setPresentations] = useState<TarpPresentationSummary[]>([]);
   const [selected, setSelected] = useState<TarpPresentationDetail | null>(null);
@@ -327,7 +329,8 @@ export default function TarpPage({
           <button
             className="button ghost"
             onClick={resetThemeEditor}
-            title="Start a new Tarp theme"
+            disabled={!canWrite}
+            title={canWrite ? "Start a new Tarp theme" : "Read-only access to Tarp"}
           >
             New theme
           </button>
@@ -352,7 +355,7 @@ export default function TarpPage({
             {!themes.length && <p className="muted">No themes yet.</p>}
           </div>
 
-          <div className="tarp-editor">
+          <ReadOnlyFieldset className="tarp-editor">
             <div className="tarp-form-grid">
               <label className="grow">
                 Name
@@ -462,7 +465,7 @@ export default function TarpPage({
                 </button>
               )}
             </div>
-          </div>
+          </ReadOnlyFieldset>
         </div>
       </section>
 
@@ -500,7 +503,7 @@ export default function TarpPage({
           </div>
 
           <div className="tarp-editor">
-            <div className="tarp-create-row">
+            <ReadOnlyFieldset className="tarp-create-row">
               <input
                 value={newPresentationName}
                 onChange={(event) => setNewPresentationName(event.target.value)}
@@ -533,11 +536,11 @@ export default function TarpPage({
               >
                 {creatingPresentation ? "Creating…" : "Create"}
               </button>
-            </div>
+            </ReadOnlyFieldset>
 
             {selected && (
               <>
-                <div className="tarp-form-grid">
+                <ReadOnlyFieldset className="tarp-form-grid">
                   <label className="grow">
                     Name
                     <input
@@ -572,8 +575,8 @@ export default function TarpPage({
                       ))}
                     </select>
                   </label>
-                </div>
-                <div className="button-row">
+                </ReadOnlyFieldset>
+                <ReadOnlyFieldset className="button-row">
                   <button
                     className="button"
                     onClick={savePresentation}
@@ -596,7 +599,7 @@ export default function TarpPage({
                   >
                     Delete presentation
                   </button>
-                </div>
+                </ReadOnlyFieldset>
                 <div className="tarp-page-list">
                   {selected.pages.map((page) => (
                     <div
@@ -621,7 +624,12 @@ export default function TarpPage({
                       <button
                         className="button ghost small danger-text"
                         onClick={() => removePage(page.id)}
-                        title={`Delete page “${page.name}”`}
+                        disabled={!canWrite}
+                        title={
+                          canWrite
+                            ? `Delete page “${page.name}”`
+                            : "Read-only access to Tarp"
+                        }
                       >
                         Remove
                       </button>
@@ -629,30 +637,32 @@ export default function TarpPage({
                   ))}
                 </div>
                 {selectedPage && (
-                  <TarpPageEditor
-                    key={selectedPage.id}
-                    page={selectedPage}
-                    presentation={selected}
-                    themes={themes}
-                    images={images}
-                    backgrounds={backgrounds}
-                    notify={notify}
-                    onDirtyChange={setPageDirty}
-                    onSaved={(saved: TarpPageModel) => {
-                      setPageDirty(false);
-                      setSelected((current) =>
-                        current
-                          ? {
-                              ...current,
-                              pages: current.pages.map((page) =>
-                                page.id === saved.id ? saved : page,
-                              ),
-                            }
-                          : current,
-                      );
-                      void loadPresentations(selected.id);
-                    }}
-                  />
+                  <ReadOnlyFieldset>
+                    <TarpPageEditor
+                      key={selectedPage.id}
+                      page={selectedPage}
+                      presentation={selected}
+                      themes={themes}
+                      images={images}
+                      backgrounds={backgrounds}
+                      notify={notify}
+                      onDirtyChange={setPageDirty}
+                      onSaved={(saved: TarpPageModel) => {
+                        setPageDirty(false);
+                        setSelected((current) =>
+                          current
+                            ? {
+                                ...current,
+                                pages: current.pages.map((page) =>
+                                  page.id === saved.id ? saved : page,
+                                ),
+                              }
+                            : current,
+                        );
+                        void loadPresentations(selected.id);
+                      }}
+                    />
+                  </ReadOnlyFieldset>
                 )}
               </>
             )}

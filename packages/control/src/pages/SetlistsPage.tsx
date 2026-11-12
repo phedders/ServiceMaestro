@@ -33,6 +33,7 @@ import { api, ApiError } from "../api";
 import { BibleLayoutButtons } from "../components/BibleLayoutButtons";
 import { IsoDateInput } from "../components/IsoDateInput";
 import { PageContentEditor } from "../components/PageContentEditor";
+import { ReadOnlyFieldset } from "../page-access";
 import { compactDate, compactDateTime, defaultSetlistName } from "../service-date";
 import { useSessionState } from "../session-state";
 import { loadActiveSiteProvider, updateSongFromSite as checkAndUpdateSongFromSite } from "../site-update";
@@ -1884,7 +1885,7 @@ export default function SetlistsPage({
           ))}
           {!setlists.length && <p className="muted">No set lists yet.</p>}
         </div>
-        <div className="new-setlist">
+        <ReadOnlyFieldset className="new-setlist">
           <h3>New set list</h3>
           <label>
             Name
@@ -1920,7 +1921,7 @@ export default function SetlistsPage({
           >
             Create
           </button>
-        </div>
+        </ReadOnlyFieldset>
 
         <div className="big-print-pdf">
           <h3>Big Print PDF</h3>
@@ -2062,7 +2063,7 @@ export default function SetlistsPage({
       </aside>
 
       {detail ? (
-        <section className="panel editor-panel">
+        <ReadOnlyFieldset className="panel editor-panel">
           <div className="panel-heading">
             <h2>{detail.name}</h2>
             <div className="button-row">
@@ -2666,7 +2667,7 @@ export default function SetlistsPage({
           >
             Delete set list
           </button>
-        </section>
+        </ReadOnlyFieldset>
       ) : (
         <section className="panel empty-state">Create a set list to get started.</section>
       )}

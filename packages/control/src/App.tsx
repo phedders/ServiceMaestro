@@ -10,6 +10,7 @@ import {
 } from "@sm/shared";
 import { api, ApiError } from "./api";
 import { EMPTY_LIVE } from "./empty";
+import { PageAccessProvider } from "./page-access";
 import Login from "./components/Login";
 import LivePage from "./pages/LivePage";
 import SetlistsPage from "./pages/SetlistsPage";
@@ -144,6 +145,8 @@ export default function App() {
     };
   }, []);
 
+  const canWriteLive = !user || user.role === "admin" || user.permissions.live === true;
+
   const notify = (text: string, kind: "info" | "error" = "info") => {
     const id = Date.now() + Math.random();
     setToasts((current) => [...current, { id, text, kind }]);
@@ -227,6 +230,7 @@ export default function App() {
   }, []);
 
   const command = async (payload: Record<string, unknown>) => {
+    if (!canWriteLive) return;
     try {
       const result = await api.command(payload);
       setLive(result.state);
@@ -240,6 +244,7 @@ export default function App() {
     if (!user || standaloneMusicians) return;
 
     const handler = (event: KeyboardEvent) => {
+      if (!canWriteLive) return;
       if (handleListNavigation(event)) return;
       if (event.repeat || isTypingTarget(event.target)) return;
       if (live.status === "idle") return;
@@ -276,9 +281,10 @@ export default function App() {
 
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [user, standaloneMusicians, shortcuts, live, command]);
+  }, [user, standaloneMusicians, shortcuts, live, command, canWriteLive]);
 
   const quickText = async (text: string) => {
+    if (!canWriteLive) return;
     try {
       const result = await api.quickText(text, "direct");
       setLive(result.state);
@@ -289,6 +295,7 @@ export default function App() {
   };
 
   const quickSong = async (songId: string) => {
+    if (!canWriteLive) return;
     try {
       const result = await api.quickSong(songId);
       setLive(result.state);
@@ -299,6 +306,7 @@ export default function App() {
   };
 
   const quickImage = async (path: string, title?: string) => {
+    if (!canWriteLive) return;
     try {
       const result = await api.quickImage(path, title);
       setLive(result.state);
@@ -685,7 +693,12 @@ export default function App() {
               <button
                 className="button danger"
                 onClick={stopLive}
-                title="End the live session and return all outputs to idle"
+                disabled={!canWriteLive}
+                title={
+                  canWriteLive
+                    ? "End the live session and return all outputs to idle"
+                    : "Read-only access to live control"
+                }
               >
                 End session
               </button>
@@ -700,49 +713,53 @@ export default function App() {
           </div>
         )}
 
-        {page === "live" && (
-          <LivePage
-            live={live}
-            displayViews={displayViews}
-            onCommand={command}
-            onQuickText={quickText}
-            onStarted={(state) => {
-              setLive(state);
-              notify("Live session started");
-            }}
-            notify={notify}
-          />
-        )}
-        {page === "setlists" && (
-          <SetlistsPage
-            live={live}
-            onStarted={(state) => {
-              setLive(state);
-              setPage("live");
-              notify("Live session started");
-            }}
-            notify={notify}
-          />
-        )}
-        {page === "songs" && <SongsPage live={live} onQuickSong={quickSong} notify={notify} />}
-        {page === "images" && (
-          <ImagesPage live={live} notify={notify} onQuickImage={quickImage} />
-        )}
-        {page === "tarp" && (
-          <Suspense fallback={<div className="panel">Loading Tarp…</div>}>
-            <TarpPage notify={notify} />
-          </Suspense>
-        )}
-        {page === "bible" && <BiblePage live={live} onQuickText={quickText} notify={notify} />}
-        {page === "churchsuite" && (
-          <ChurchsuitePage notify={notify} onOpenSetlists={() => setPage("setlists")} />
-        )}
-        {page === "settings" && <SettingsPage user={user} notify={notify} />}
-        {page === "dedupe" && <DeDupePage notify={notify} />}
-        {page === "users" && <UsersPage user={user} notify={notify} />}
-        {page === "backgrounds" && <BackgroundsPage notify={notify} />}
-        {page === "stingers" && <StingersPage notify={notify} />}
-        {page === "help" && <HelpPage onOpenSettings={() => setPage("settings")} />}
+        <PageAccessProvider
+          value={{ canWrite: canWritePage, moduleLabel: pageModuleLabel }}
+        >
+          {page === "live" && (
+            <LivePage
+              live={live}
+              displayViews={displayViews}
+              onCommand={command}
+              onQuickText={quickText}
+              onStarted={(state) => {
+                setLive(state);
+                notify("Live session started");
+              }}
+              notify={notify}
+            />
+          )}
+          {page === "setlists" && (
+            <SetlistsPage
+              live={live}
+              onStarted={(state) => {
+                setLive(state);
+                setPage("live");
+                notify("Live session started");
+              }}
+              notify={notify}
+            />
+          )}
+          {page === "songs" && <SongsPage live={live} onQuickSong={quickSong} notify={notify} />}
+          {page === "images" && (
+            <ImagesPage live={live} notify={notify} onQuickImage={quickImage} />
+          )}
+          {page === "tarp" && (
+            <Suspense fallback={<div className="panel">Loading Tarp…</div>}>
+              <TarpPage notify={notify} />
+            </Suspense>
+          )}
+          {page === "bible" && <BiblePage live={live} onQuickText={quickText} notify={notify} />}
+          {page === "churchsuite" && (
+            <ChurchsuitePage notify={notify} onOpenSetlists={() => setPage("setlists")} />
+          )}
+          {page === "settings" && <SettingsPage user={user} notify={notify} />}
+          {page === "dedupe" && <DeDupePage notify={notify} />}
+          {page === "users" && <UsersPage user={user} notify={notify} />}
+          {page === "backgrounds" && <BackgroundsPage notify={notify} />}
+          {page === "stingers" && <StingersPage notify={notify} />}
+          {page === "help" && <HelpPage onOpenSettings={() => setPage("settings")} />}
+        </PageAccessProvider>
       </main>
 
       <div className="toasts">

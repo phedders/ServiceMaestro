@@ -14,6 +14,7 @@ import type {
   SmartWrapModule,
 } from "@sm/shared";
 import { api, ApiError } from "../api";
+import { ReadOnlyFieldset } from "../page-access";
 import { ScaledPreviewFrame } from "../components/ScaledPreviewFrame";
 import { SlidePreview } from "../components/SlidePreview";
 import { Transport } from "../components/Transport";
@@ -257,7 +258,7 @@ export default function LivePage({
 
   if (live.status === "idle") {
     return (
-      <section className="panel start-panel">
+      <ReadOnlyFieldset className="panel start-panel">
         <div>
           <h2>Start a live session</h2>
           <p className="muted">
@@ -296,7 +297,7 @@ export default function LivePage({
         {!setlists.length && (
           <p className="hint">Create a set list first under “Set lists”, then add songs or text.</p>
         )}
-      </section>
+      </ReadOnlyFieldset>
     );
   }
 
@@ -351,7 +352,7 @@ export default function LivePage({
         )}
       </section>
 
-      <section className="panel">
+      <ReadOnlyFieldset className="panel">
         <div className="panel-heading">
           <h2>Transport</h2>
           <span className="muted">{live.setlistName}</span>
@@ -377,22 +378,22 @@ export default function LivePage({
             </button>
           </div>
         </label>
-      </section>
+      </ReadOnlyFieldset>
 
       <div
         className="live-queue-section"
         style={{ "--live-queue-height": `${queueHeight}px` } as CSSProperties}
       >
         <div className="live-queue-grid">
-          <section className="panel">
+          <ReadOnlyFieldset className="panel">
             <div className="panel-heading">
               <h2>Items</h2>
               <span className="muted">{live.items.length} in session</span>
             </div>
             <ItemList live={live} onCommand={onCommand} />
-          </section>
+          </ReadOnlyFieldset>
 
-          <section className="panel">
+          <ReadOnlyFieldset className="panel">
             <div className="panel-heading">
               <h2>Pages</h2>
               <span className="muted">
@@ -404,7 +405,7 @@ export default function LivePage({
               </span>
             </div>
             <PageList live={live} onCommand={onCommand} />
-          </section>
+          </ReadOnlyFieldset>
         </div>
         <button
           type="button"
@@ -422,15 +423,15 @@ export default function LivePage({
         </button>
       </div>
 
-      <section className="panel wide-panel">
+      <ReadOnlyFieldset className="panel wide-panel">
         <div className="panel-heading">
           <h2>Quick text</h2>
           <span className="muted">Display immediately</span>
         </div>
         <QuickText onSend={onQuickText} />
-      </section>
+      </ReadOnlyFieldset>
 
-      <section className="panel wide-panel">
+      <ReadOnlyFieldset className="panel wide-panel">
         <div className="panel-heading">
           <div>
             <h2>Display config</h2>
@@ -625,7 +626,7 @@ export default function LivePage({
           aspect ratio and are never stretched; their maximum height is a percentage of the screen,
           reduced by that padding.
         </p>
-      </section>
+      </ReadOnlyFieldset>
     </div>
   );
 }

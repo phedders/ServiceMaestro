@@ -1894,6 +1894,36 @@ body.resizing-live-queue {
   font-size: 0.78rem;
 }
 
+.read-only-fieldset {
+  display: block;
+  min-width: 0;
+  min-inline-size: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.config-page > .read-only-fieldset {
+  display: grid;
+  gap: 16px;
+}
+
+.read-only-fieldset.is-read-only {
+  opacity: 0.84;
+}
+
+.read-only-fieldset.is-read-only .drag-handle {
+  pointer-events: none;
+  opacity: 0.3;
+}
+
+.read-only-fieldset.is-read-only input,
+.read-only-fieldset.is-read-only select,
+.read-only-fieldset.is-read-only textarea,
+.read-only-fieldset.is-read-only button {
+  cursor: not-allowed;
+}
+
 .account-section {
   display: grid;
   gap: 10px;

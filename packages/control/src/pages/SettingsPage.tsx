@@ -16,6 +16,7 @@ import {
   type SongSelectWatchStatus,
 } from "@sm/shared";
 import { api, ApiError } from "../api";
+import { ReadOnlyFieldset } from "../page-access";
 import { AccountPanel } from "../components/AccountPanel";
 import { BrandingPanel } from "../components/BrandingPanel";
 import {
@@ -536,12 +537,14 @@ export default function SettingsPage({
       </p>
 
       <AccountPanel user={user} notify={notify} />
-      {user.role === "admin" && <BrandingPanel notify={notify} />}
 
-      <section className="panel">
-        <div className="panel-heading">
-          <div>
-            <h2>Big Print PDF</h2>
+      <ReadOnlyFieldset>
+        {user.role === "admin" && <BrandingPanel notify={notify} />}
+
+        <section className="panel">
+          <div className="panel-heading">
+            <div>
+              <h2>Big Print PDF</h2>
             <p className="muted">
               Defaults for the printable song sheet. The set-list page can override text size and
               columns for a single download.
@@ -1462,6 +1465,7 @@ export default function SettingsPage({
           </>
         )}
       </section>
+      </ReadOnlyFieldset>
     </div>
   );
 }

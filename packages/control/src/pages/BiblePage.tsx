@@ -11,6 +11,7 @@ import type {
 import { api, ApiError } from "../api";
 import { BibleLayoutButtons } from "../components/BibleLayoutButtons";
 import { compactDate, pickCurrentSetlist } from "../service-date";
+import { usePageAccess } from "../page-access";
 import { useSessionState } from "../session-state";
 
 export default function BiblePage({
@@ -22,6 +23,7 @@ export default function BiblePage({
   onQuickText: (text: string) => void;
   notify: (text: string, kind?: "info" | "error") => void;
 }) {
+  const { canWrite } = usePageAccess();
   const [translations, setTranslations] = useState<BibleTranslationInfo[]>([]);
   const [translation, setTranslation] = useSessionState("bible:translation", "");
   const [books, setBooks] = useState<BibleBook[]>([]);
@@ -128,11 +130,13 @@ export default function BiblePage({
   }
 
   function display() {
+    if (!canWrite) return;
     const body = passageBody();
     if (body) onQuickText(body);
   }
 
   async function addToSetlist() {
+    if (!canWrite) return;
     const body = passageBody();
     if (!targetSetlist || !body) return;
     setAdding(true);
@@ -253,7 +257,11 @@ export default function BiblePage({
           <div className="bible-target">
             <label>
               Current set list
-              <select value={targetSetlist} onChange={(event) => setTargetSetlist(event.target.value)}>
+              <select
+                value={targetSetlist}
+                onChange={(event) => setTargetSetlist(event.target.value)}
+                disabled={!canWrite}
+              >
                 {!setlists.length && <option value="">No set lists yet</option>}
                 {setlists.map((setlist) => (
                   <option key={setlist.id} value={setlist.id}>
@@ -278,16 +286,24 @@ export default function BiblePage({
               <button
                 className="button"
                 onClick={addToSetlist}
-                disabled={!targetSetlist || !verses.length || adding}
-                title="Adds a text item to the selected set list without changing the live output"
+                disabled={!canWrite || !targetSetlist || !verses.length || adding}
+                title={
+                  canWrite
+                    ? "Adds a text item to the selected set list without changing the live output"
+                    : "Read-only access to Bible"
+                }
               >
                 {adding ? "Adding…" : "Add to current setlist"}
               </button>
               <button
                 className="button primary"
                 onClick={display}
-                disabled={!verses.length || live.status === "idle"}
-                title="Shows the passage immediately; it is not saved to the set list"
+                disabled={!canWrite || !verses.length || live.status === "idle"}
+                title={
+                  canWrite
+                    ? "Shows the passage immediately; it is not saved to the set list"
+                    : "Read-only access to Bible"
+                }
               >
                 Add to live session
               </button>

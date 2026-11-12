@@ -15,6 +15,7 @@ import { api, ApiError } from "../api";
 import { ChordProUpdateDialog } from "../components/ChordProUpdateDialog";
 import { PageContentEditor } from "../components/PageContentEditor";
 import { SiteSongDownloadPanel } from "../components/SiteSongDownloadPanel";
+import { ReadOnlyFieldset, usePageAccess } from "../page-access";
 import { compactDate, compactDateTime, pickCurrentSetlist } from "../service-date";
 import { useSessionState } from "../session-state";
 import { loadActiveSiteProvider, updateSongFromSite } from "../site-update";
@@ -40,6 +41,7 @@ export default function SongsPage({
   onQuickSong: (songId: string) => Promise<void>;
   notify: (text: string, kind?: "info" | "error") => void;
 }) {
+  const { canWrite } = usePageAccess();
   const [songs, setSongs] = useState<Song[]>([]);
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useSessionState<string | null>("songs:selected", null);
@@ -524,7 +526,12 @@ export default function SongsPage({
           <button
             className="button primary small"
             onClick={newSong}
-            title="Start a new song in the editor"
+            disabled={!canWrite}
+            title={
+              canWrite
+                ? "Start a new song in the editor"
+                : "Read-only access to songs"
+            }
           >
             New
           </button>
@@ -535,7 +542,7 @@ export default function SongsPage({
           onChange={(event) => setSearch(event.target.value)}
           placeholder="Search title, alternative titles, author or lyrics…"
         />
-        <div className="song-list-actions">
+        {canWrite && <div className="song-list-actions">
           {!selectMode ? (
             <button
               className="button ghost small"
@@ -572,7 +579,7 @@ export default function SongsPage({
               </button>
             </>
           )}
-        </div>
+        </div>}
         <div className="song-list" data-key-list>
           {filtered.map((song) =>
             selectMode ? (
@@ -618,7 +625,7 @@ export default function SongsPage({
         </div>
       </aside>
 
-      <section className="panel editor-panel">
+      <ReadOnlyFieldset className="panel editor-panel">
         <div className="panel-heading">
           <h2>{selectedId ? "Edit song" : "New song"}</h2>
           <div className="button-row">
@@ -970,7 +977,7 @@ export default function SongsPage({
             <p className="muted">Save the song first, then attach PDF scores or tabs.</p>
           )}
         </div>
-      </section>
+      </ReadOnlyFieldset>
       </div>
 
       <section className="panel import-panel">
@@ -994,8 +1001,12 @@ export default function SongsPage({
             <button
               className="button primary"
               onClick={importAll}
-              disabled={importing || !scan?.files.length}
-              title="Import all scanned songs using the duplicate decisions"
+              disabled={!canWrite || importing || !scan?.files.length}
+              title={
+                canWrite
+                  ? "Import all scanned songs using the duplicate decisions"
+                  : "Read-only access to songs"
+              }
             >
               {importing ? "Importing…" : "Import all"}
             </button>

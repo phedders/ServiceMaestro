@@ -11,6 +11,7 @@ import { EyeIcon } from "../components/Icons";
 import { IsoDateInput } from "../components/IsoDateInput";
 import { SiteSongLookupDialog } from "../components/SiteSongLookupDialog";
 import { SongLyricsDialog } from "../components/SongLyricsDialog";
+import { ReadOnlyFieldset, usePageAccess } from "../page-access";
 import { compactDate } from "../service-date";
 import { useSessionState } from "../session-state";
 
@@ -38,6 +39,7 @@ export default function ChurchsuitePage({
   notify: (text: string, kind?: "info" | "error") => void;
   onOpenSetlists: () => void;
 }) {
+  const { canWrite } = usePageAccess();
   const range = defaultRange();
   const [from, setFrom] = useState(range.from);
   const [to, setTo] = useState(range.to);
@@ -192,7 +194,7 @@ export default function ChurchsuitePage({
   }
 
   async function createSetlist() {
-    if (!preview) return;
+    if (!preview || !canWrite) return;
     setImporting(true);
     setReport(null);
     try {
@@ -439,7 +441,7 @@ export default function ChurchsuitePage({
                 })}
               </div>
 
-              <div className="cs-import-form">
+              <ReadOnlyFieldset className="cs-import-form">
                 <label>
                   Set-list name
                   <input value={importName} onChange={(event) => setImportName(event.target.value)} />
@@ -464,7 +466,7 @@ export default function ChurchsuitePage({
                 >
                   {importing ? "Creating…" : "Create draft set list"}
                 </button>
-              </div>
+              </ReadOnlyFieldset>
               <p className="hint">
                 Matched songs link to the local song library. Unmatched songs and named non-song items
                 become editable text placeholders. The draft is not sent live automatically.

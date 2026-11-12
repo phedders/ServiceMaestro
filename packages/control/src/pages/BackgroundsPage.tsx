@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { BackgroundAsset, BackgroundColors } from "@sm/shared";
 import { api, ApiError } from "../api";
+import { ReadOnlyFieldset, usePageAccess } from "../page-access";
 
 const DEFAULT_COLORS: BackgroundColors = {
   background: "#07111f",
@@ -14,6 +15,7 @@ export default function BackgroundsPage({
 }: {
   notify: (text: string, kind?: "info" | "error") => void;
 }) {
+  const { canWrite } = usePageAccess();
   const [backgrounds, setBackgrounds] = useState<BackgroundAsset[]>([]);
   const [colors, setColors] = useState<BackgroundColors>(DEFAULT_COLORS);
   const [loading, setLoading] = useState(true);
@@ -51,7 +53,7 @@ export default function BackgroundsPage({
   }
 
   async function uploadBackground() {
-    if (!file) return;
+    if (!file || !canWrite) return;
     setUploading(true);
     try {
       const uploaded = await api.uploadImage(file, "backgrounds");
@@ -74,6 +76,7 @@ export default function BackgroundsPage({
   }
 
   async function toggleGlobalColors(background: BackgroundAsset) {
+    if (!canWrite) return;
     try {
       await api.updateBackground(background.id, {
         name: background.name,
@@ -90,7 +93,7 @@ export default function BackgroundsPage({
   }
 
   async function remove(background: BackgroundAsset) {
-    if (!confirm(`Delete background “${background.name}”?`)) return;
+    if (!canWrite || !confirm(`Delete background “${background.name}”?`)) return;
     try {
       await api.deleteBackground(background.id);
       await load();
@@ -104,7 +107,7 @@ export default function BackgroundsPage({
 
   return (
     <div className="backgrounds-page">
-      <section className="panel">
+      <ReadOnlyFieldset className="panel">
         <div className="panel-heading">
           <div>
             <h2>Global background colours</h2>
@@ -141,9 +144,9 @@ export default function BackgroundsPage({
             </label>
           ))}
         </div>
-      </section>
+      </ReadOnlyFieldset>
 
-      <section className="panel">
+      <ReadOnlyFieldset className="panel">
         <div className="panel-heading">
           <div>
             <h2>Add image background</h2>
@@ -170,7 +173,7 @@ export default function BackgroundsPage({
             {uploading ? "Uploading…" : "Add image background"}
           </button>
         </div>
-      </section>
+      </ReadOnlyFieldset>
 
       <section className="panel">
         <div className="panel-heading">
@@ -199,10 +202,13 @@ export default function BackgroundsPage({
                   <button
                     className="button ghost small"
                     onClick={() => toggleGlobalColors(background)}
+                    disabled={!canWrite}
                     title={
-                      background.useGlobalColors
-                        ? "Use this background's own preset colours"
-                        : "Use the global background colour theme"
+                      !canWrite
+                        ? "Read-only access to backgrounds"
+                        : background.useGlobalColors
+                          ? "Use this background's own preset colours"
+                          : "Use the global background colour theme"
                     }
                   >
                     {background.useGlobalColors ? "Use own colours" : "Use global colours"}
@@ -210,7 +216,12 @@ export default function BackgroundsPage({
                   <button
                     className="button ghost small danger-text"
                     onClick={() => remove(background)}
-                    title={`Delete “${background.name}”`}
+                    disabled={!canWrite}
+                    title={
+                      canWrite
+                        ? `Delete “${background.name}”`
+                        : "Read-only access to backgrounds"
+                    }
                   >
                     Delete
                   </button>

@@ -5,6 +5,7 @@ import type {
   SongResourceKind,
 } from "@sm/shared";
 import { api, ApiError } from "../api";
+import { usePageAccess } from "../page-access";
 import { EyeIcon } from "./Icons";
 import { SongLyricsDialog } from "./SongLyricsDialog";
 import { downloadBlob, SITE_KIND_LABELS as KIND_LABELS } from "../site-download";
@@ -16,6 +17,7 @@ export function SiteSongDownloadPanel({
   notify: (text: string, kind?: "info" | "error") => void;
   onImported?: () => void;
 }) {
+  const { canWrite } = usePageAccess();
   const [providers, setProviders] = useState<SiteScraperProviderSummary[]>([]);
   const [providerId, setProviderId] = useState("");
   const [query, setQuery] = useState("");
@@ -91,7 +93,7 @@ export function SiteSongDownloadPanel({
   }
 
   async function importAll(song: SiteScraperSearchResult) {
-    if (!provider) return;
+    if (!provider || !canWrite) return;
     setImporting(song.songNumber);
     try {
       const result = await api.siteScraperImport(provider.id, song, song.availableKinds);
@@ -205,8 +207,12 @@ export function SiteSongDownloadPanel({
                         <button
                           className="button primary small"
                           onClick={() => void importAll(song)}
-                          disabled={downloading !== null || importing !== null}
-                          title={`Import all available files for “${song.title}” into Service Maestro`}
+                          disabled={!canWrite || downloading !== null || importing !== null}
+                          title={
+                            canWrite
+                              ? `Import all available files for “${song.title}” into Service Maestro`
+                              : "Read-only access to songs"
+                          }
                         >
                           {importing === song.songNumber ? "Importing…" : "Import into Service Maestro"}
                         </button>
