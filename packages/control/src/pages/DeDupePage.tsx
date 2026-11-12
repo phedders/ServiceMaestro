@@ -214,7 +214,7 @@ function DuplicateDiffDialog({
               disabled={busy}
               title="Mark these two versions as different songs so they stop appearing as duplicates"
             >
-              Different songs
+              Mark as Different
             </button>
             <button
               type="button"
@@ -574,7 +574,7 @@ export default function DeDupePage({
                               disabled={working !== null}
                               title="Mark these two versions as different songs so they stop appearing as duplicates"
                             >
-                              {markingDifferent ? "Saving…" : "Different songs"}
+                              {markingDifferent ? "Saving…" : "Mark as Different"}
                             </button>
                           )}
                           <button
