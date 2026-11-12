@@ -130,6 +130,8 @@ Environment-first, with optional file values and `_FILE` secret support:
 
 For a forward proxy that terminates TLS, set `SM_SSL_ENABLED=false` so the control server accepts plain HTTP from the proxy. Never expose that port directly. Secure cookies remain enabled by default because the browser still reaches the proxy over HTTPS; keep `SM_SECURE_COOKIES=true` unless testing directly over HTTP. Secrets are never printed; `_FILE` variants allow Docker/Podman secrets and Incus/LXC files. Git repositories use `SM_GIT_*` remotes (`ssh://` or `https://token@…`), SSH key/known-hosts secrets, and optional Git LFS for Bibles — see [11-git-data-sync.md](11-git-data-sync.md).
 
+Passkeys require a browser-trusted HTTPS origin. Set `SM_WEBAUTHN_RP_ID` to the hostname only (for example `service.example.org`) and `SM_WEBAUTHN_ORIGIN` to the exact browser-facing URL including any port (for example `https://service.example.org` or `https://service.example.org:8443`). Self-signed certificates must be trusted by each device before passkey registration will work. Changing the RP ID or origin invalidates existing passkey credentials; registered users must add their passkeys again.
+
 The optional structured config can be YAML or JSON. Set `SM_CONFIG_FILE`, or mount it as `config.yaml` / `config.yml` / `config.json` in `/config/`. Environment variables remain the final override, so secrets and deployment-specific values can stay in `.env` or container secrets. Start from [`config.example.yaml`](../config.example.yaml).
 
 ## 5. Docker / Podman
