@@ -3568,6 +3568,20 @@ body.resizing-live-queue {
   letter-spacing: 0.04em;
 }
 
+.cs-site-lookup {
+  justify-self: start;
+  margin-top: 6px;
+}
+
+.site-lookup-modal {
+  width: min(1000px, 96vw);
+}
+
+.site-lookup-results {
+  max-height: 52vh;
+  margin-top: 12px;
+}
+
 .cs-match-wrap {
   overflow-x: auto;
   border: 1px solid var(--border);

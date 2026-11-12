@@ -3,10 +3,12 @@ import type {
   ChurchSuiteImportReport,
   ChurchSuitePlanPreview,
   ChurchSuitePlanSummary,
+  SiteScraperProviderSummary,
 } from "@sm/shared";
 import { api, ApiError } from "../api";
 import { EyeIcon } from "../components/Icons";
 import { IsoDateInput } from "../components/IsoDateInput";
+import { SiteSongLookupDialog } from "../components/SiteSongLookupDialog";
 import { SongLyricsDialog } from "../components/SongLyricsDialog";
 import { compactDate } from "../service-date";
 
@@ -57,6 +59,8 @@ export default function ChurchsuitePage({
     lyrics: string;
   } | null>(null);
   const [lyricsLoadingId, setLyricsLoadingId] = useState<string | null>(null);
+  const [siteProvider, setSiteProvider] = useState<SiteScraperProviderSummary | null>(null);
+  const [lookupQuery, setLookupQuery] = useState<string | null>(null);
 
   async function loadPlans() {
     setLoading(true);
@@ -77,6 +81,15 @@ export default function ChurchsuitePage({
 
   useEffect(() => {
     loadPlans();
+  }, []);
+
+  useEffect(() => {
+    api
+      .siteScrapingProviders()
+      .then((result) => {
+        setSiteProvider(result.providers.find((provider) => provider.activeSource) ?? null);
+      })
+      .catch(() => setSiteProvider(null));
   }, []);
 
   useEffect(() => {
@@ -252,6 +265,7 @@ export default function ChurchsuitePage({
                       (candidate) =>
                         candidate.id === (songSelections[item.id] ?? item.matchedSong?.id),
                     ) ?? item.matchCandidates[0];
+                  const canLookup = item.isSong && item.action !== "song" && Boolean(siteProvider);
                   return (
                     <div
                       key={item.id}
@@ -275,6 +289,18 @@ export default function ChurchsuitePage({
                             <span className="cs-match-count">
                               {item.matchCandidates.length} possible local matches
                             </span>
+                          )}
+                          {canLookup && (
+                            <button
+                              type="button"
+                              className="button ghost small cs-site-lookup"
+                              onClick={() =>
+                                setLookupQuery(item.name || item.typeName || "worship song")
+                              }
+                              title="Search SongSelect for this song and download its files"
+                            >
+                              Lookup song in SongSelect
+                            </button>
                           )}
                         </div>
                         <span className={`cs-action ${item.action}`}>
@@ -417,6 +443,14 @@ export default function ChurchsuitePage({
       </div>
 
       <SongLyricsDialog song={lyricsPreview} onClose={() => setLyricsPreview(null)} />
+      {lookupQuery !== null && siteProvider && (
+        <SiteSongLookupDialog
+          provider={siteProvider}
+          initialQuery={lookupQuery}
+          notify={notify}
+          onClose={() => setLookupQuery(null)}
+        />
+      )}
     </div>
   );
 }

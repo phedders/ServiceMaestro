@@ -5,25 +5,7 @@ import type {
   SongResourceKind,
 } from "@sm/shared";
 import { api, ApiError } from "../api";
-
-const KIND_LABELS: Record<SongResourceKind, string> = {
-  songpro: "SongPro",
-  chord: "ChordPro",
-  lead: "Lead PDF",
-  vocal: "Vocal PDF",
-  lyrics: "Lyrics",
-};
-
-function downloadBlob(blob: Blob, filename: string): void {
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
+import { downloadBlob, SITE_KIND_LABELS as KIND_LABELS } from "../site-download";
 
 export function SiteSongDownloadPanel({
   notify,
