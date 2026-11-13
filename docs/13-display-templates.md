@@ -12,7 +12,7 @@ Immediate changes implemented on 2026-11-10.
 | Stage monitor | `/display/stage` | `/obs-stage` | hidden |
 | Chords view | `/display/chords` | `/obs-chords` | visible |
 
-All routes take the usual `?token=…` output token.
+Control-origin routes take the usual `?token=…` output token. The plain-HTTP display listener is token-free by default; set `SM_DISPLAY_REQUIRE_TOKEN=true` to require the token there too.
 
 These are now **seeded default outputs**, not hard-coded routes. Manage them in **Menu → Outputs**. Each output has a stable ID and maps to `/display/<id>`. Aliases such as `main`, `twothirds`, `fullscreen` and `two_thirds` resolve through the output definitions. Removing an output removes its route and aliases on the display listener.
 

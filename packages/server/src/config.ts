@@ -40,6 +40,7 @@ interface FileServerConfig {
   host?: unknown;
   port?: unknown;
   displayPort?: unknown;
+  displayRequireToken?: unknown;
   dataDir?: unknown;
   adminPassword?: unknown;
   outputToken?: unknown;
@@ -302,6 +303,11 @@ export interface GitRepoConfig {
 export const HOST = optionString("SM_HOST", serverConfig.host, "0.0.0.0");
 export const PORT = portOption("SM_PORT", serverConfig.port, 8080);
 export const DISPLAY_PORT = portOption("SM_DISPLAY_PORT", serverConfig.displayPort, 8081);
+export const DISPLAY_REQUIRE_TOKEN = optionBool(
+  "SM_DISPLAY_REQUIRE_TOKEN",
+  serverConfig.displayRequireToken,
+  false,
+);
 export const LOG_LEVEL = optionString("SM_LOG_LEVEL", serverConfig.logLevel, "info");
 export const SECURE_COOKIES = optionBool("SM_SECURE_COOKIES", serverConfig.secureCookies, true);
 export const TRUST_PROXY = optionBool("SM_TRUST_PROXY", serverConfig.trustProxy, false);

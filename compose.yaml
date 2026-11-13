@@ -11,6 +11,7 @@ services:
       SM_TZ: Europe/London
       SM_PORT: ${SM_PORT:-8080}
       SM_DISPLAY_PORT: ${SM_DISPLAY_PORT:-8081}
+      SM_DISPLAY_REQUIRE_TOKEN: ${SM_DISPLAY_REQUIRE_TOKEN:-false}
       SM_ADMIN_PASSWORD: ${SM_ADMIN_PASSWORD:-change-me}
       SM_OUTPUT_TOKEN: ${SM_OUTPUT_TOKEN:-dev-output}
       SM_CONFIG_FILE: ${SM_CONFIG_FILE:-}

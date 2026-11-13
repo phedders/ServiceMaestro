@@ -87,6 +87,7 @@ Environment-first, with optional file values and `_FILE` secret support:
 | --- | --- | --- |
 | `SM_PORT` | `8080` | HTTPS control HTTP/WS port |
 | `SM_DISPLAY_PORT` | `8081` | Read-only display HTTP/WS port; serves only `/display/*` |
+| `SM_DISPLAY_REQUIRE_TOKEN` | `false` | Require a token on the display listener; defaults off for simple OBS/display setup |
 | `SM_HOST` | `0.0.0.0` | Bind address |
 | `SM_SECURE_COOKIES` | `true` | Mark session cookies Secure; keep enabled behind an HTTPS proxy |
 | `SM_TRUST_PROXY` | `false` | Honour `X-Forwarded-*` from a trusted reverse proxy |
@@ -126,7 +127,7 @@ Environment-first, with optional file values and `_FILE` secret support:
 | `SM_CHURCHSUITE_SCOPES` | `planning.read` | Requested ChurchSuite scopes |
 | `SM_LOG_LEVEL` | `info` | `debug`/`info`/`warn`/`error` |
 
-`SM_PORT` and `SM_DISPLAY_PORT` are read at startup, must be different, and accept values from `1` to `65535`. The control interface on `SM_PORT` is HTTPS-only by default; the display listener on `SM_DISPLAY_PORT` remains plain HTTP for OBS and display devices. Place `cert.pem` and `key.pem` in `SM_SSL_DIR` (default `/data/ssl`) or point `SM_SSL_CERT_FILE`/`SM_SSL_KEY_FILE` at a trusted certificate and key. If neither is present, a local self-signed certificate is generated and the Settings page shows a warning until it is replaced.
+`SM_PORT` and `SM_DISPLAY_PORT` are read at startup, must be different, and accept values from `1` to `65535`. The control interface on `SM_PORT` is HTTPS-only by default; the display listener on `SM_DISPLAY_PORT` remains plain HTTP for OBS and display devices. The display listener does not require `?token=` by default, so a simple `http://host:8081/display/stage` URL is enough. Set `SM_DISPLAY_REQUIRE_TOKEN=true` to restore token enforcement on that listener; control-origin `/display/*` routes remain token-protected. Place `cert.pem` and `key.pem` in `SM_SSL_DIR` (default `/data/ssl`) or point `SM_SSL_CERT_FILE`/`SM_SSL_KEY_FILE` at a trusted certificate and key. If neither is present, a local self-signed certificate is generated and the Settings page shows a warning until it is replaced.
 
 For a forward proxy that terminates TLS, set `SM_SSL_ENABLED=false` so the control server accepts plain HTTP from the proxy. Never expose that port directly. Secure cookies remain enabled by default because the browser still reaches the proxy over HTTPS; keep `SM_SECURE_COOKIES=true` unless testing directly over HTTP. Secrets are never printed; `_FILE` variants allow Docker/Podman secrets and Incus/LXC files. Git repositories use `SM_GIT_*` remotes (`ssh://` or `https://token@…`), SSH key/known-hosts secrets, and optional Git LFS for Bibles — see [11-git-data-sync.md](11-git-data-sync.md).
 
@@ -455,7 +456,7 @@ LXC (without Incus) follows Option B: unprivileged container, `lxc.idmap`/subuid
 
 ## 7. Networking and OBS
 
-- Keep `8080` on the trusted control network and access it as `https://<host>:8080`. OBS Browser Sources can use `http://<host>:8081/display/lowerthird?token=…` and `/display/full?token=…` on the read-only listener.
+- Keep `8080` on the trusted control network and access it as `https://<host>:8080`. OBS Browser Sources can use simple URLs such as `http://<host>:8081/display/lowerthird` and `/display/full` on the read-only listener. If `SM_DISPLAY_REQUIRE_TOKEN=true`, append `?token=…`.
 - The `8081` listener serves only `/display/*` and has no login, control UI or API. It includes `/display/assets`, `/display/fonts`, `/display/images/file` and the output-only `/display/socket.ro.io`. A forward proxy can therefore expose only that prefix.
 - Example nginx location for the read-only listener:
 
@@ -472,7 +473,7 @@ LXC (without Incus) follows Option B: unprivileged container, `lxc.idmap`/subuid
 - `/display/twothirds`, `/display/main`, `/display/lower`, `/display/fullscreen`, `/display/mainfull`, `/display/stage` and `/display/chords` work on the read-only listener. Legacy `/obs-*` aliases remain on the control port for existing local OBS sources.
 - WebSockets use normal HTTP upgrade; enable upgrade headers and set generous read timeouts for the long-lived output sockets.
 - TLS is optional and best terminated by Caddy/nginx/Traefik in front. Set `SM_TRUST_PROXY=true` when the proxy supplies `X-Forwarded-*` headers.
-- LAN-only deployments can skip TLS; output tokens still prevent casual access.
+- LAN-only deployments can skip TLS. The display listener is token-free by default; enable `SM_DISPLAY_REQUIRE_TOKEN` if casual display-port access is a concern.
 - No mDNS/discovery is required; outputs are plain URLs.
 - **Outbound HTTPS is optional** and only needed when a site scraping adapter is enabled: allow egress to the download site through `HTTPS_PROXY`/`NO_PROXY`, or use manual imports and the drop folder offline. Downloads are user-initiated; no background crawling.
 - OBS never talks to download sites directly; it only reaches the app on the LAN.
@@ -525,7 +526,7 @@ LXC (without Incus) follows Option B: unprivileged container, `lxc.idmap`/subuid
 - Startup warns if the default admin password or default output token is still in use.
 - The MQTT adapter is disabled by default. If enabled, use broker TLS and per-client ACLs, keep incoming API mappings least-privilege, and remember that MQTT source-client filters are application-level checks rather than authentication.
 - Keep the base image and Node patched; rebuild monthly and on CVEs.
-- Optional: run behind a reverse proxy with request limits and TLS; keep the control port private and expose only the read-only `/display/*` listener to wider audiences. Treat the output token as a secret: it appears in display URLs and OBS configuration.
+- Optional: run behind a reverse proxy with request limits and TLS; keep the control port private and expose only the read-only `/display/*` listener to wider audiences. The display listener is token-free by default; enable `SM_DISPLAY_REQUIRE_TOKEN=true` or restrict it at the network/proxy layer when exposing it beyond a trusted display network. Treat the control-origin output token as a secret because it appears in control display URLs.
 
 ## 12. Test matrix
 

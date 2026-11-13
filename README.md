@@ -54,12 +54,12 @@ Or `npm run dev` runs both (HTTPS server on 8080, control dev UI on 5173).
 
 | Output | Canonical URL | Aliases |
 | --- | --- | --- |
-| Lower-third / main (`lowerthird`) | `/display/lowerthird?token=dev-output` | `/display/twothirds`, `/display/main`, `/display/lower`, `/obs-main`, `/obs-lower`, `/obs-lowerthird`, `/obs-twothirds` |
-| Full screen (`full`) | `/display/full?token=dev-output` | `/display/fullscreen`, `/display/mainfull`, `/obs-mainfull`, `/obs-fullscreen` |
-| Centered two-thirds | `/display/two-thirds?token=dev-output` | `/display/two_thirds`, `/obs-two-thirds` |
-| Stage monitor (lyrics) | `/display/stage?token=dev-output` | `/obs-stage` |
+| Lower-third / main (`lowerthird`) | `/display/lowerthird` | `/display/twothirds`, `/display/main`, `/display/lower`, `/obs-main`, `/obs-lower`, `/obs-lowerthird`, `/obs-twothirds` |
+| Full screen (`full`) | `/display/full` | `/display/fullscreen`, `/display/mainfull`, `/obs-mainfull`, `/obs-fullscreen` |
+| Centered two-thirds | `/display/two-thirds` | `/display/two_thirds`, `/obs-two-thirds` |
+| Stage monitor (lyrics) | `/display/stage` | `/obs-stage` |
 
-These are seeded defaults. Use **Menu → Outputs** to create, remove or customise outputs; each output has its own `/display/<id>` URL and can define its own fade, background, layout, panel, text, page mode and image limits. Shared outputs live in `settings/shared.json`; local extras stay on this server. The output token defaults to `dev-output`; set `SM_OUTPUT_TOKEN` in production. Displays receive a **full snapshot on connect**, so refreshing or reconnecting OBS never blanks the screen. The server sends a heartbeat every 15 seconds; a display that receives no heartbeat for 45 seconds reloads itself to recover the connection. The `/obs-*` aliases remain on the HTTPS control port for compatibility; use the `/display/*` paths through the plain-HTTP read-only display listener for OBS.
+These are seeded defaults. Use **Menu → Outputs** to create, remove or customise outputs; each output has its own `/display/<id>` URL and can define its own fade, background, layout, panel, text, page mode and image limits. Shared outputs live in `settings/shared.json`; local extras stay on this server. The plain-HTTP display listener does **not** require a token by default, so `http://host:8081/display/stage` works directly. Set `SM_DISPLAY_REQUIRE_TOKEN=true` to require `?token=…`. The control-origin `/display/*` views remain token-protected. Displays receive a **full snapshot on connect**, so refreshing or reconnecting OBS never blanks the screen. The server sends a heartbeat every 15 seconds; a display that receives no heartbeat for 45 seconds reloads itself to recover the connection. The `/obs-*` aliases remain on the HTTPS control port for compatibility; use the `/display/*` paths through the plain-HTTP read-only display listener for OBS.
 
 The **Menu** button in the navigation opens an **External links** list for every view plus Settings. Displays are also served by a separate **read-only listener** on `SM_DISPLAY_PORT` (default `8081`) over plain HTTP. It serves only the `/display/*` tree — views, `/display/assets`, `/display/fonts`, `/display/images/file`, `/display/icon.svg` and the read-only `/display/socket.ro.io` — with no login, control UI or API. A forward proxy can expose only `/display/*` from this port without exposing the control server. These replace the old `/display-assets`, `/fonts` and `/api/images/file` paths.
 
@@ -128,6 +128,7 @@ Full setup commands for external certificates, local CA generation, device trust
 | --- | --- | --- |
 | `SM_PORT` | `8080` | Control HTTPS/WebSocket port (HTTP when TLS is disabled) |
 | `SM_DISPLAY_PORT` | `8081` | Read-only display HTTP/WebSocket port; serves only `/display/*` |
+| `SM_DISPLAY_REQUIRE_TOKEN` | `false` | Require `?token=` on the plain-HTTP display listener; control-origin `/display/*` remains token-protected |
 | `SM_HOST` | `0.0.0.0` | Bind address |
 | `SM_DATA_DIR` | `packages/server/data` | SQLite + runtime data |
 | `SM_SONGS_DIR` | `samples/` (local) | Source directory scanned for OpenLP/ChordPro/text imports |
@@ -137,7 +138,7 @@ Full setup commands for external certificates, local CA generation, device trust
 | `SM_SONGSELECT_WATCH_ENABLED` | `true` | Enable the background SongSelect drop-folder watcher |
 | `SM_SONGSELECT_WATCH_INTERVAL` | `10` | Seconds between watched-folder scans |
 | `SM_ADMIN_PASSWORD` | `admin` | Password for the seeded admin |
-| `SM_OUTPUT_TOKEN` | `dev-output` | Token required by display sockets |
+| `SM_OUTPUT_TOKEN` | `dev-output` | Token for control-origin display routes; display listener requires it only when `SM_DISPLAY_REQUIRE_TOKEN=true` |
 | `SM_SECRET_KEY` | generated `data/secret.key` | Master key for encrypted site credentials |
 | `SM_SONG_SCRAPING_PROVIDER` | `songselect` | Site scraping provider id |
 | `SM_SONG_SCRAPING_BASE_URL` | `https://songselect.ccli.com` | Download-site base URL |

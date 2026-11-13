@@ -7,6 +7,7 @@ import {
   CONTROL_DIST,
   COOKIE_NAME,
   DISPLAY_DIR,
+  DISPLAY_REQUIRE_TOKEN,
   FONTS_DIR,
   LOG_LEVEL,
   OUTPUT_TOKEN,
@@ -62,8 +63,9 @@ function outputShell(output: DisplayOutputEntry): string {
 
 export async function registerDisplayRoutes(
   app: FastifyInstance,
-  options: { allowSessionImages?: boolean } = {},
+  options: { allowSessionImages?: boolean; requireToken?: boolean } = {},
 ): Promise<void> {
+  const requireToken = options.requireToken !== false;
   await app.register(fastifyStatic, {
     root: DISPLAY_DIR,
     prefix: "/display/assets/",
@@ -113,7 +115,7 @@ export async function registerDisplayRoutes(
     const query = request.query as { path?: string; token?: string };
     const cookies = parseCookies(request.headers.cookie);
     const user = options.allowSessionImages ? userForToken(cookies[COOKIE_NAME]) : null;
-    if (!user && query.token !== OUTPUT_TOKEN) {
+    if (!user && requireToken && query.token !== OUTPUT_TOKEN) {
       return reply.code(401).send({ error: "Unauthorized" });
     }
     const absolute = query.path ? resolveImage(query.path) : null;
@@ -143,13 +145,21 @@ export async function registerDisplayRoutes(
   });
 }
 
-export function createOutputSocket(app: FastifyInstance): Server {
+export function createOutputSocket(
+  app: FastifyInstance,
+  options: { requireToken?: boolean } = {},
+): Server {
+  const requireToken = options.requireToken !== false;
   const io = new Server(app.server, {
     path: OUTPUT_SOCKET_PATH,
     cors: { origin: false, credentials: false },
   });
 
   io.use((socket, next) => {
+    if (!requireToken) {
+      socket.data.kind = "output";
+      return next();
+    }
     const auth = socket.handshake.auth as { outputToken?: string } | undefined;
     const query = socket.handshake.query as { token?: string } | undefined;
     const supplied = auth?.outputToken ?? query?.token;
@@ -172,12 +182,12 @@ export function createOutputSocket(app: FastifyInstance): Server {
 export async function buildDisplayApp(): Promise<{ app: FastifyInstance; io: Server }> {
   const app = Fastify({ logger: { level: LOG_LEVEL }, trustProxy: TRUST_PROXY });
   installSecurityHeaders(app, true);
-  await registerDisplayRoutes(app);
+  await registerDisplayRoutes(app, { requireToken: DISPLAY_REQUIRE_TOKEN });
 
   app.setNotFoundHandler(async (_request, reply) =>
     reply.code(404).send({ error: "Not found" }),
   );
 
-  const io = createOutputSocket(app);
+  const io = createOutputSocket(app, { requireToken: DISPLAY_REQUIRE_TOKEN });
   return { app, io };
 }
