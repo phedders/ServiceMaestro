@@ -501,9 +501,10 @@ export default function HelpPage({ onOpenSettings }: { onOpenSettings: () => voi
           such as <code>/display/twothirds</code>, <code>/display/main</code> and
           <code> /display/fullscreen</code> are attached to the default outputs. Displays receive a
           full snapshot on reconnect, so refreshing OBS does not lose the current screen. Add a
-          digital or analogue clock overlay to any output in <strong>Menu → Outputs</strong>; it
-          remains visible while content is blank or changing. Ask your administrator for the
-          production token; never publish it publicly.
+          digital or analogue clock overlay to any output in <strong>Menu → Outputs</strong>; the
+          digital clock defaults to 24-hour time and can switch to 12-hour, and the overlay remains
+          visible while content is blank or changing. Ask your administrator for the production
+          token; never publish it publicly.
         </p>
         <p className="hint">
           A separate read-only server, normally on port <code>8081</code>, serves the complete

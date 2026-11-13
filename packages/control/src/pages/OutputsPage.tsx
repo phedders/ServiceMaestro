@@ -809,16 +809,28 @@ export default function OutputsPage({
                 {draft.clock.mode === "analog" ? "Second hand" : "Show seconds"}
               </label>
               {draft.clock.mode === "digital" && (
-                <label className="grow">
-                  Font family override
-                  <input
-                    value={draft.clock.fontFamily ?? ""}
-                    onChange={(event) =>
-                      setClock("fontFamily", event.target.value.trim() || null)
-                    }
-                    placeholder="Inherit global font"
-                  />
-                </label>
+                <>
+                  <label>
+                    Time format
+                    <select
+                      value={draft.clock.hour12 ? "12" : "24"}
+                      onChange={(event) => setClock("hour12", event.target.value === "12")}
+                    >
+                      <option value="24">24-hour</option>
+                      <option value="12">12-hour</option>
+                    </select>
+                  </label>
+                  <label className="grow">
+                    Font family override
+                    <input
+                      value={draft.clock.fontFamily ?? ""}
+                      onChange={(event) =>
+                        setClock("fontFamily", event.target.value.trim() || null)
+                      }
+                      placeholder="Inherit global font"
+                    />
+                  </label>
+                </>
               )}
             </div>
             <p className="hint">

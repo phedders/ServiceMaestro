@@ -609,6 +609,7 @@ export interface DisplayClockSettings {
   position: DisplayClockPosition;
   shadow: boolean;
   seconds: boolean;
+  hour12: boolean;
 }
 
 export const DEFAULT_CLOCK_SETTINGS: DisplayClockSettings = {
@@ -620,6 +621,7 @@ export const DEFAULT_CLOCK_SETTINGS: DisplayClockSettings = {
   position: "top-right",
   shadow: true,
   seconds: false,
+  hour12: false,
 };
 
 export interface DisplayOutput {
@@ -1910,6 +1912,7 @@ const displayClockSchema = z.object({
     .default("top-right"),
   shadow: z.boolean().default(true),
   seconds: z.boolean().default(false),
+  hour12: z.boolean().default(false),
 });
 
 export const displayOutputSchema = z.object({

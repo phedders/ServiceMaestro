@@ -368,6 +368,7 @@ body.sm-output-configured.mode-image .sm-footer {
     clock.textContent = now.toLocaleTimeString(undefined, {
       hour: "2-digit",
       minute: "2-digit",
+      hour12: Boolean(clockSettings.hour12),
       ...(clockSettings.seconds ? { second: "2-digit" } : {}),
     });
   }
