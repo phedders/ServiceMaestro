@@ -1133,6 +1133,76 @@ export interface AppSettings {
 export interface IntegrationSettings {
   songSelectEnabled: boolean;
   churchSuiteEnabled: boolean;
+  mqttEnabled: boolean;
+}
+
+export type MqttProtocol = "" | "mqtt" | "mqtts" | "ws" | "wss";
+export type MqttHttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+
+export interface MqttIncomingMapping {
+  id: string;
+  enabled: boolean;
+  command: string;
+  method: MqttHttpMethod;
+  path: string;
+  bodyTemplate: string;
+  sourceClients: string[];
+}
+
+export interface MqttControlOption {
+  label: string;
+  payload: string;
+}
+
+export interface MqttControl {
+  id: string;
+  enabled: boolean;
+  label: string;
+  path: string;
+  type: "button" | "select";
+  payload: string;
+  options: MqttControlOption[];
+  placement: "live" | "menu";
+}
+
+export interface MqttSettings {
+  brokerUrl: string;
+  protocol: MqttProtocol;
+  username: string;
+  clientId: string;
+  hasPassword: boolean;
+  incomingPrefix: string;
+  mappings: MqttIncomingMapping[];
+  outgoingPrefix: string;
+  publishDebug: boolean;
+  publishInformation: boolean;
+  publishEvents: boolean;
+  controls: MqttControl[];
+}
+
+export interface MqttSettingsInput extends Omit<MqttSettings, "hasPassword"> {
+  password?: string;
+  clearPassword?: boolean;
+}
+
+export interface MqttStatus {
+  enabled: boolean;
+  configured: boolean;
+  connected: boolean;
+  brokerUrl: string;
+  clientId: string;
+  lastError: string | null;
+  lastConnectedAt: string | null;
+  lastMessageAt: string | null;
+  subscriptions: string[];
+}
+
+export interface MqttPublicControl {
+  id: string;
+  label: string;
+  type: "button" | "select";
+  placement: "live" | "menu";
+  options: Array<{ label: string }>;
 }
 
 export interface GitSettings {
@@ -2107,6 +2177,81 @@ export const appSettingsSchema = z.object({
 export const integrationSettingsSchema = z.object({
   songSelectEnabled: z.boolean(),
   churchSuiteEnabled: z.boolean(),
+  mqttEnabled: z.boolean(),
+});
+
+const mqttTopicPartSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(200)
+  .refine((value) => !/[+#\s]/.test(value), {
+    message: "MQTT topics cannot contain wildcards or whitespace",
+  });
+
+export const mqttIncomingMappingSchema = z.object({
+  id: z.string().trim().min(1).max(100),
+  enabled: z.boolean().default(true),
+  command: mqttTopicPartSchema,
+  method: z.enum(["GET", "POST", "PUT", "PATCH", "DELETE"]).default("POST"),
+  path: z
+    .string()
+    .trim()
+    .min(1)
+    .max(500)
+    .refine((value) => value.startsWith("/api/"), {
+      message: "The API path must start with /api/",
+    }),
+  bodyTemplate: z.string().max(4000).default(""),
+  sourceClients: z.array(z.string().trim().min(1).max(120)).max(30).default([]),
+});
+
+export const mqttControlOptionSchema = z.object({
+  label: z.string().trim().min(1).max(120),
+  payload: z.string().max(4000).default(""),
+});
+
+export const mqttControlSchema = z
+  .object({
+    id: z.string().trim().min(1).max(100),
+    enabled: z.boolean().default(true),
+    label: z.string().trim().min(1).max(120),
+    path: z
+      .string()
+      .trim()
+      .min(1)
+      .max(300)
+      .refine((value) => !/[+#\s]/.test(value), {
+        message: "MQTT control paths cannot contain wildcards or whitespace",
+      }),
+    type: z.enum(["button", "select"]).default("button"),
+    payload: z.string().max(4000).default(""),
+    options: z.array(mqttControlOptionSchema).max(50).default([]),
+    placement: z.enum(["live", "menu"]).default("live"),
+  })
+  .refine((value) => value.type !== "select" || value.options.length > 0, {
+    message: "Select controls need at least one option",
+    path: ["options"],
+  });
+
+export const mqttSettingsInputSchema = z.object({
+  brokerUrl: z.string().trim().max(500).default(""),
+  protocol: z.enum(["", "mqtt", "mqtts", "ws", "wss"]).default(""),
+  username: z.string().trim().max(200).default(""),
+  clientId: z.string().trim().max(120).default(""),
+  password: z.string().max(500).optional(),
+  clearPassword: z.boolean().optional(),
+  incomingPrefix: mqttTopicPartSchema.default("service-maestro/in"),
+  mappings: z.array(mqttIncomingMappingSchema).max(100).default([]),
+  outgoingPrefix: mqttTopicPartSchema.default("service-maestro/out"),
+  publishDebug: z.boolean().default(false),
+  publishInformation: z.boolean().default(true),
+  publishEvents: z.boolean().default(true),
+  controls: z.array(mqttControlSchema).max(100).default([]),
+});
+
+export const mqttControlPublishSchema = z.object({
+  optionIndex: z.number().int().min(0).max(49).optional(),
 });
 
 export const gitSettingsSchema = z.object({

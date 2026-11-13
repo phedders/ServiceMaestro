@@ -523,6 +523,7 @@ LXC (without Incus) follows Option B: unprivileged container, `lxc.idmap`/subuid
 - State-changing HTTP requests and the control Socket.IO handshake enforce same-origin/configured-origin checks. Wildcard Socket.IO CORS is disabled.
 - Uploaded SVG images are served as attachments with a sandbox CSP; other assets use `nosniff`.
 - Startup warns if the default admin password or default output token is still in use.
+- The MQTT adapter is disabled by default. If enabled, use broker TLS and per-client ACLs, keep incoming API mappings least-privilege, and remember that MQTT source-client filters are application-level checks rather than authentication.
 - Keep the base image and Node patched; rebuild monthly and on CVEs.
 - Optional: run behind a reverse proxy with request limits and TLS; keep the control port private and expose only the read-only `/display/*` listener to wider audiences. Treat the output token as a secret: it appears in display URLs and OBS configuration.
 

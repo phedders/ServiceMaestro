@@ -2,6 +2,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { integrationSettingsSchema } from "@sm/shared";
 import { requireAuth, requireRole } from "../auth.js";
 import { getIntegrationSettings, saveIntegrationSettings } from "../integrations.js";
+import { reloadMqttBridge } from "../mqtt-bridge.js";
 
 export async function integrationRoutes(app: FastifyInstance): Promise<void> {
   app.get("/api/integrations/settings", { preHandler: requireAuth }, async () => ({
@@ -16,7 +17,9 @@ export async function integrationRoutes(app: FastifyInstance): Promise<void> {
       if (!parsed.success) {
         return reply.code(400).send({ error: "Invalid adapter settings", issues: parsed.error.issues });
       }
-      return { settings: saveIntegrationSettings(parsed.data) };
+      const settings = saveIntegrationSettings(parsed.data);
+      reloadMqttBridge();
+      return { settings };
     },
   );
 }

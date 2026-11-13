@@ -12,6 +12,7 @@ const FILTER_MODULES = [
   ...MODULE_PERMISSIONS.map((module) => ({ id: module.id, label: module.label })),
   { id: "auth", label: "Authentication" },
   { id: "users", label: "Users" },
+  { id: "mqtt", label: "MQTT" },
 ];
 
 const RETENTION_OPTIONS = [0, 30, 90, 180, 365, 730, 1095, 1825, 3650];

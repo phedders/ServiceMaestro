@@ -36,6 +36,10 @@ import type {
   IntegrationSettings,
   LiveState,
   ModulePermissions,
+  MqttPublicControl,
+  MqttSettings,
+  MqttSettingsInput,
+  MqttStatus,
   PasskeySummary,
   PublicUser,
   Role,
@@ -327,6 +331,26 @@ export const api = {
       method: "PUT",
       body: JSON.stringify(settings),
     }),
+
+  mqttSettings: () =>
+    request<{ settings: MqttSettings; status: MqttStatus }>("/api/mqtt/settings"),
+  mqttStatus: () =>
+    request<{ status: MqttStatus }>("/api/mqtt/status"),
+  saveMqttSettings: (settings: MqttSettingsInput) =>
+    request<{ settings: MqttSettings; status: MqttStatus }>("/api/mqtt/settings", {
+      method: "PUT",
+      body: JSON.stringify(settings),
+    }),
+  mqttControls: () =>
+    request<{ controls: MqttPublicControl[] }>("/api/mqtt/controls"),
+  publishMqttControl: (id: string, optionIndex?: number) =>
+    request<{ ok: true; topic: string }>(
+      `/api/mqtt/controls/${encodeURIComponent(id)}/publish`,
+      {
+        method: "POST",
+        body: JSON.stringify(optionIndex === undefined ? {} : { optionIndex }),
+      },
+    ),
 
   gitStatus: () => request<GitStatus>("/api/git/status"),
   saveGitSettings: (settings: GitSettings) =>

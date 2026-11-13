@@ -30,6 +30,15 @@ interface ActivityInput {
   detail?: string | null;
 }
 
+type ActivityListener = (entry: ActivityEntry) => void;
+
+const activityListeners = new Set<ActivityListener>();
+
+export function onActivity(listener: ActivityListener): () => void {
+  activityListeners.add(listener);
+  return () => activityListeners.delete(listener);
+}
+
 function mapRow(row: ActivityRow): ActivityEntry {
   return {
     id: row.id,
@@ -64,6 +73,7 @@ export function moduleForPath(pathname: string): string | null {
   if (pathname.startsWith("/api/backgrounds")) return "backgrounds";
   if (pathname.startsWith("/api/stingers")) return "stingers";
   if (pathname.startsWith("/api/bible")) return "bible";
+  if (pathname.startsWith("/api/mqtt")) return "mqtt";
   if (pathname.startsWith("/api/integrations/churchsuite")) return "churchsuite";
   if (
     pathname.startsWith("/api/fonts") ||
@@ -85,26 +95,48 @@ export function logActivity(input: ActivityInput): void {
   const pathname = input.path ?? request?.url.split("?")[0] ?? null;
   const method = input.method ?? request?.method ?? null;
   const username = input.username ?? user?.username ?? "anonymous";
+  const entry: ActivityEntry = {
+    id: randomUUID(),
+    userId: user?.id ?? null,
+    username,
+    action: input.action,
+    module: input.module ?? (pathname ? moduleForPath(pathname) : null),
+    method,
+    path: pathname,
+    status: input.status ?? null,
+    detail: input.detail?.slice(0, 4000) ?? null,
+    ip: request?.ip ?? null,
+    userAgent:
+      typeof request?.headers["user-agent"] === "string"
+        ? request.headers["user-agent"].slice(0, 500)
+        : null,
+    createdAt: new Date().toISOString(),
+  };
   db.prepare(
     `INSERT INTO activity_log
        (id, user_id, username, action, module, method, path, status, detail, ip, user_agent, created_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   ).run(
-    randomUUID(),
-    user?.id ?? null,
-    username,
-    input.action,
-    input.module ?? (pathname ? moduleForPath(pathname) : null),
-    method,
-    pathname,
-    input.status ?? null,
-    input.detail?.slice(0, 4000) ?? null,
-    request?.ip ?? null,
-    typeof request?.headers["user-agent"] === "string"
-      ? request.headers["user-agent"].slice(0, 500)
-      : null,
-    new Date().toISOString(),
+    entry.id,
+    entry.userId,
+    entry.username,
+    entry.action,
+    entry.module,
+    entry.method,
+    entry.path,
+    entry.status,
+    entry.detail,
+    entry.ip,
+    entry.userAgent,
+    entry.createdAt,
   );
+  for (const listener of activityListeners) {
+    try {
+      listener(entry);
+    } catch {
+      // Audit persistence must not fail because an optional listener is broken.
+    }
+  }
 }
 
 export function logRequestActivity(request: FastifyRequest, status: number): void {

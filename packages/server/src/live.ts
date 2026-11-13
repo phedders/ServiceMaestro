@@ -320,6 +320,7 @@ function resolvedAutoplayConfig(
 
 class LiveService {
   private ios = new Set<Server>();
+  private listeners = new Set<(state: LiveState) => void>();
   private active: SessionRecord | null = null;
   private autoplayTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -331,8 +332,23 @@ class LiveService {
     this.ios.add(io);
   }
 
+  onChange(listener: (state: LiveState) => void): () => void {
+    this.listeners.add(listener);
+    return () => this.listeners.delete(listener);
+  }
+
   private emit(room: "control" | "outputs", state: LiveState): void {
     for (const io of this.ios) io.to(room).emit("live:snapshot", state);
+  }
+
+  private notify(state: LiveState): void {
+    for (const listener of this.listeners) {
+      try {
+        listener(state);
+      } catch {
+        // Optional integrations must not interrupt live control.
+      }
+    }
   }
 
   getState(): LiveState {
@@ -517,6 +533,7 @@ class LiveService {
     const state = idleState();
     this.emit("control", state);
     this.emit("outputs", state);
+    this.notify(state);
     return state;
   }
 
@@ -1102,6 +1119,7 @@ class LiveService {
     const state = this.getState();
     this.emit("control", state);
     this.emit("outputs", state);
+    this.notify(state);
     this.scheduleAutoplay();
   }
 }

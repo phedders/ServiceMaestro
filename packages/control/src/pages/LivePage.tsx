@@ -20,6 +20,7 @@ import { SlidePreview } from "../components/SlidePreview";
 import { Transport } from "../components/Transport";
 import { ItemList, PageList } from "../components/LivePanels";
 import { FontSelect } from "../components/FontSelect";
+import { MqttControls } from "../components/MqttControls";
 import { QuickText } from "../components/QuickText";
 import { findPreviewScreen, loadPreviewScreenId } from "../preview-screen";
 import { compactDate } from "../service-date";
@@ -425,6 +426,8 @@ export default function LivePage({
         </div>
         <QuickText onSend={onQuickText} />
       </ReadOnlyFieldset>
+
+      <MqttControls placement="live" notify={notify} />
 
       <ReadOnlyFieldset className="panel wide-panel">
         <div className="panel-heading">

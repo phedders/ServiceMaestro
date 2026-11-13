@@ -3,10 +3,12 @@ import { db } from "./db.js";
 
 const SONG_SELECT_KEY = "adapter_songselect_enabled";
 const CHURCH_SUITE_KEY = "adapter_churchsuite_enabled";
+const MQTT_KEY = "adapter_mqtt_enabled";
 
 const DEFAULTS: IntegrationSettings = {
   songSelectEnabled: true,
   churchSuiteEnabled: true,
+  mqttEnabled: false,
 };
 
 function readFlag(key: string, fallback: boolean): boolean {
@@ -21,6 +23,7 @@ export function getIntegrationSettings(): IntegrationSettings {
   return {
     songSelectEnabled: readFlag(SONG_SELECT_KEY, DEFAULTS.songSelectEnabled),
     churchSuiteEnabled: readFlag(CHURCH_SUITE_KEY, DEFAULTS.churchSuiteEnabled),
+    mqttEnabled: readFlag(MQTT_KEY, DEFAULTS.mqttEnabled),
   };
 }
 
@@ -33,6 +36,7 @@ export function saveIntegrationSettings(settings: IntegrationSettings): Integrat
   const apply = db.transaction(() => {
     write.run(SONG_SELECT_KEY, settings.songSelectEnabled ? "1" : "0", now);
     write.run(CHURCH_SUITE_KEY, settings.churchSuiteEnabled ? "1" : "0", now);
+    write.run(MQTT_KEY, settings.mqttEnabled ? "1" : "0", now);
   });
   apply();
   return getIntegrationSettings();
@@ -44,4 +48,8 @@ export function isSongSelectEnabled(): boolean {
 
 export function isChurchSuiteEnabled(): boolean {
   return getIntegrationSettings().churchSuiteEnabled;
+}
+
+export function isMqttEnabled(): boolean {
+  return getIntegrationSettings().mqttEnabled;
 }

@@ -35,7 +35,7 @@ function formatShortcut(value: string): string {
 }
 
 export default function HelpPage({ onOpenSettings }: { onOpenSettings: () => void }) {
-  const { songSelectEnabled, churchSuiteEnabled } = useAdapters();
+  const { songSelectEnabled, churchSuiteEnabled, mqttEnabled } = useAdapters();
   const [shortcuts, setShortcuts] = useState<KeyboardShortcuts>(loadKeyboardShortcuts);
 
   useEffect(() => {
@@ -438,6 +438,25 @@ export default function HelpPage({ onOpenSettings }: { onOpenSettings: () => voi
               </li>
             </ul>
           </article>
+          )}
+          {mqttEnabled && (
+            <article className="help-card">
+              <h3>MQTT controls</h3>
+              <ul className="help-list">
+                <li>
+                  Administrator-defined MQTT controls appear on the <strong>Live control</strong>{" "}
+                  page or under <strong>Menu → MQTT controls</strong>.
+                </li>
+                <li>
+                  Buttons publish their configured payload immediately. Dropdown controls choose an
+                  argument first and then send it.
+                </li>
+                <li>
+                  If a control reports that MQTT is not connected, check the broker settings under{" "}
+                  <strong>Menu → MQTT</strong>.
+                </li>
+              </ul>
+            </article>
           )}
         </div>
       </section>

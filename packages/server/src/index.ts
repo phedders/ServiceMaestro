@@ -11,6 +11,7 @@ import {
 import { buildDisplayApp } from "./display-app.js";
 import { startHeartbeat } from "./heartbeat.js";
 import { shutdownGit } from "./git-store.js";
+import { startMqttBridge, stopMqttBridge } from "./mqtt-bridge.js";
 import { startSongSelectWatcher } from "./songselect-watch.js";
 import { prepareControlTls } from "./tls.js";
 
@@ -44,6 +45,7 @@ if (tls) {
   );
 }
 const display = await buildDisplayApp();
+startMqttBridge(app);
 const stopHeartbeats = [
   startHeartbeat(io),
   startHeartbeat(outputIo),
@@ -70,6 +72,7 @@ async function shutdown(signal: string): Promise<void> {
   closing = true;
   app.log.info(`${signal} received, shutting down`);
   shutdownGit();
+  stopMqttBridge();
   stopSongSelectWatcher();
   stopActivityRetention();
   stopHeartbeats.forEach((stop) => stop());

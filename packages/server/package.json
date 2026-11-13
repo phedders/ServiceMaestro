@@ -21,6 +21,7 @@
     "fastify": "^5.2.1",
     "fflate": "^0.8.3",
     "marked": "^18.2.0",
+    "mqtt": "^5.16.1",
     "pdf-lib": "^1.17.1",
     "rst2html": "^1.0.4",
     "sanitize-html": "^2.18.1",

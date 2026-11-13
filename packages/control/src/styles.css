@@ -5508,3 +5508,203 @@ body.resizing-live-queue {
     justify-content: flex-start;
   }
 }
+
+/* MQTT adapter */
+.mqtt-connection-grid {
+  display: grid;
+  grid-template-columns: minmax(240px, 1.5fr) minmax(180px, 0.8fr) minmax(180px, 1fr) minmax(180px, 1fr);
+  gap: 10px;
+  align-items: end;
+  margin-bottom: 12px;
+}
+
+.mqtt-connection-grid > label:not(.checkbox) {
+  display: grid;
+  gap: 6px;
+}
+
+.mqtt-clear-password {
+  align-self: center;
+}
+
+.mqtt-table-wrap {
+  overflow-x: auto;
+  margin-top: 10px;
+}
+
+.mqtt-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 1120px;
+}
+
+.mqtt-table th,
+.mqtt-table td {
+  border-bottom: 1px solid var(--border);
+  padding: 7px 6px;
+  vertical-align: top;
+  text-align: left;
+}
+
+.mqtt-table th {
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.mqtt-table input:not([type="checkbox"]),
+.mqtt-table select,
+.mqtt-table textarea {
+  width: 100%;
+  min-width: 90px;
+}
+
+.mqtt-table td:nth-child(2) input {
+  min-width: 130px;
+}
+
+.mqtt-table td:nth-child(4) input {
+  min-width: 190px;
+}
+
+.mqtt-table td:nth-child(5) input {
+  min-width: 150px;
+}
+
+.mqtt-table td:nth-child(6) textarea {
+  min-width: 220px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.72rem;
+}
+
+.mqtt-control-list {
+  display: grid;
+  gap: 12px;
+}
+
+.mqtt-control-editor {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px;
+  background: var(--panel-2);
+}
+
+.mqtt-control-editor-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.mqtt-control-editor-head strong {
+  flex: 1;
+}
+
+.mqtt-control-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.mqtt-control-grid > label {
+  display: grid;
+  gap: 6px;
+}
+
+.mqtt-control-grid .span-2 {
+  grid-column: span 2;
+}
+
+.mqtt-options {
+  margin-top: 10px;
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+}
+
+.mqtt-options-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.mqtt-option-row {
+  display: grid;
+  grid-template-columns: minmax(130px, 0.8fr) minmax(200px, 1.5fr) auto;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.mqtt-save-row {
+  display: flex;
+  justify-content: flex-end;
+  padding-bottom: 16px;
+}
+
+.mqtt-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.mqtt-control {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mqtt-controls.menu {
+  display: grid;
+  gap: 6px;
+  padding: 2px 0 4px;
+}
+
+.mqtt-controls.menu .mqtt-control {
+  display: grid;
+  gap: 6px;
+  padding: 4px 10px;
+}
+
+.mqtt-controls.menu select,
+.mqtt-controls.menu button {
+  width: 100%;
+}
+
+@media (max-width: 900px) {
+  .mqtt-connection-grid,
+  .mqtt-control-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .mqtt-control-grid .span-2 {
+    grid-column: 1 / -1;
+  }
+
+  .mqtt-option-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .mqtt-connection-grid,
+  .mqtt-control-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .mqtt-control-grid .span-2 {
+    grid-column: auto;
+  }
+}
+
+.adapter-toggle-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px 24px;
+  margin-bottom: 10px;
+}

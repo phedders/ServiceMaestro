@@ -228,6 +228,7 @@ Rules:
 | `/api/outputs` | Shared/local display output definitions, aliases and per-output fade/layout/background/panel/text/image settings | settings write |
 | `/api/fonts`, `/api/fonts/import`, `/api/fonts/import-missing` | Imported Google Fonts cached under `/data/fonts`; shared font manifest and missing-font download | editor/admin |
 | `/api/integrations/churchsuite/*` | ChurchSuite status, connection test, plan exploration | editor/admin |
+| `/api/mqtt/*` | MQTT broker settings, incoming mappings, outbound controls and publish | admin; live write for controls |
 | `/collab/dashboards/:id` (WS) | Yjs collaborative layout editing + presence | edit permission |
 | `/api/text-items`, `/api/text-items/:id/versions`, `/preview` | Dynamic text authoring | editor |
 | `/api/themes`, `/api/themes/:id/versions`, `/preview` | Modular themes | editor/admin |

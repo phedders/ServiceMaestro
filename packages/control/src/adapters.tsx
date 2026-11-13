@@ -8,6 +8,7 @@ export interface AdapterAvailability extends IntegrationSettings {
 const AdapterContext = createContext<AdapterAvailability>({
   songSelectEnabled: false,
   churchSuiteEnabled: false,
+  mqttEnabled: false,
   refresh: async () => undefined,
 });
 

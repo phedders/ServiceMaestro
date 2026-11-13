@@ -90,9 +90,10 @@ never exported. Shared outputs can be removed or edited from **Menu → Outputs*
 outputs are available only on that server.
 
 Server-specific configuration stays local: ports, data paths, credentials, external
-adapter availability, site scraping credentials, SongSelect watched-folder state, local
-output extras and Git repository settings are not shared. Adapter availability can only
-be changed by an administrator and is stored in the instance database.
+adapter availability, MQTT broker settings and encrypted credentials, site scraping
+credentials, SongSelect watched-folder state, local output extras and Git repository
+settings are not shared. Adapter availability and MQTT command/control definitions can
+only be changed by an administrator and are stored in the instance database.
 
 `<setlist-id>.json`:
 

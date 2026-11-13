@@ -13,6 +13,7 @@ import { AdapterProvider } from "./adapters";
 import { api, ApiError } from "./api";
 import { EMPTY_LIVE } from "./empty";
 import { PageAccessProvider } from "./page-access";
+import { MqttControls } from "./components/MqttControls";
 import Login from "./components/Login";
 import LivePage from "./pages/LivePage";
 import SetlistsPage from "./pages/SetlistsPage";
@@ -28,6 +29,7 @@ import StingersPage from "./pages/StingersPage";
 import UsersPage from "./pages/UsersPage";
 import DeDupePage from "./pages/DeDupePage";
 import OutputsPage from "./pages/OutputsPage";
+import MqttPage from "./pages/MqttPage";
 
 const TarpPage = lazy(() => import("./pages/TarpPage"));
 import {
@@ -53,6 +55,7 @@ type Page =
   | "stingers"
   | "dedupe"
   | "users"
+  | "mqtt"
   | "help";
 
 interface Toast {
@@ -74,6 +77,7 @@ const PAGE_MODULE: Partial<Record<Page, PermissionModule>> = {
   backgrounds: "backgrounds",
   stingers: "stingers",
   dedupe: "songs",
+  mqtt: "settings",
 };
 
 export default function App() {
@@ -94,6 +98,7 @@ export default function App() {
   const [adapters, setAdapters] = useState<IntegrationSettings>({
     songSelectEnabled: false,
     churchSuiteEnabled: false,
+    mqttEnabled: false,
   });
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
@@ -191,7 +196,11 @@ export default function App() {
       const result = await api.integrationSettings();
       setAdapters(result.settings);
     } catch {
-      setAdapters({ songSelectEnabled: false, churchSuiteEnabled: false });
+      setAdapters({
+        songSelectEnabled: false,
+        churchSuiteEnabled: false,
+        mqttEnabled: false,
+      });
     }
   }
 
@@ -210,7 +219,13 @@ export default function App() {
   useEffect(() => {
     if (standaloneMusicians) return;
     if (page === "churchsuite" && !adapters.churchSuiteEnabled) setPage("live");
-  }, [page, adapters.churchSuiteEnabled, standaloneMusicians]);
+    if (page === "mqtt" && !adapters.mqttEnabled) setPage("live");
+  }, [
+    page,
+    adapters.churchSuiteEnabled,
+    adapters.mqttEnabled,
+    standaloneMusicians,
+  ]);
 
   const adapterContext = useMemo(
     () => ({ ...adapters, refresh: refreshAdapters }),
@@ -370,7 +385,11 @@ export default function App() {
     await api.logout().catch(() => undefined);
     setUser(null);
     setLive(EMPTY_LIVE);
-    setAdapters({ songSelectEnabled: false, churchSuiteEnabled: false });
+    setAdapters({
+      songSelectEnabled: false,
+      churchSuiteEnabled: false,
+      mqttEnabled: false,
+    });
   };
 
   function toggleMenu() {
@@ -424,6 +443,8 @@ export default function App() {
         return "DeDupe";
       case "users":
         return "Users";
+      case "mqtt":
+        return "MQTT";
       case "help":
         return "Help";
     }
@@ -497,9 +518,10 @@ export default function App() {
   }
 
   return (
-    <div
-      className={`app ${sidebarCollapsed ? "sidebar-collapsed" : ""} ${topbarMode ? "topbar-mode" : ""}`}
-    >
+    <AdapterProvider value={adapterContext}>
+      <div
+        className={`app ${sidebarCollapsed ? "sidebar-collapsed" : ""} ${topbarMode ? "topbar-mode" : ""}`}
+      >
       <aside className="sidebar">
         <div className="brand">
           <img
@@ -608,6 +630,13 @@ export default function App() {
                   </a>
                 ))}
                 {!displayViews.length && <span className="nav-dropdown-empty">No views available</span>}
+                {adapters.mqttEnabled && (
+                  <MqttControls
+                    placement="menu"
+                    notify={notify}
+                    onPublished={() => setMenuOpen(false)}
+                  />
+                )}
                 <div className="nav-dropdown-separator" />
                 <button
                   type="button"
@@ -668,6 +697,23 @@ export default function App() {
                     <span>Users</span>
                     <span className="nav-dropdown-external" aria-hidden="true">
                       ◉
+                    </span>
+                  </button>
+                )}
+                {user.role === "admin" && adapters.mqttEnabled && (
+                  <button
+                    type="button"
+                    className="nav-dropdown-link"
+                    role="menuitem"
+                    onClick={() => {
+                      setPage("mqtt");
+                      setMenuOpen(false);
+                    }}
+                    title="Configure MQTT broker, commands and outgoing controls"
+                  >
+                    <span>MQTT</span>
+                    <span className="nav-dropdown-external" aria-hidden="true">
+                      ⇄
                     </span>
                   </button>
                 )}
@@ -773,10 +819,9 @@ export default function App() {
           </div>
         )}
 
-        <AdapterProvider value={adapterContext}>
-          <PageAccessProvider
-            value={{ canWrite: canWritePage, moduleLabel: pageModuleLabel }}
-          >
+        <PageAccessProvider
+          value={{ canWrite: canWritePage, moduleLabel: pageModuleLabel }}
+        >
           {page === "live" && (
             <LivePage
               live={live}
@@ -820,11 +865,13 @@ export default function App() {
           )}
           {page === "dedupe" && <DeDupePage notify={notify} />}
           {page === "users" && <UsersPage user={user} notify={notify} />}
+          {page === "mqtt" && user.role === "admin" && adapters.mqttEnabled && (
+            <MqttPage notify={notify} />
+          )}
           {page === "backgrounds" && <BackgroundsPage notify={notify} />}
           {page === "stingers" && <StingersPage notify={notify} />}
           {page === "help" && <HelpPage onOpenSettings={() => setPage("settings")} />}
-          </PageAccessProvider>
-        </AdapterProvider>
+        </PageAccessProvider>
       </main>
 
       <div className="toasts">
@@ -834,6 +881,7 @@ export default function App() {
           </div>
         ))}
       </div>
-    </div>
+      </div>
+    </AdapterProvider>
   );
 }

@@ -46,6 +46,7 @@ export default function SettingsPage({
   const {
     songSelectEnabled,
     churchSuiteEnabled,
+    mqttEnabled,
     refresh: refreshAdapters,
   } = useAdapters();
   const [fonts, setFonts] = useState<FontOption[]>([]);
@@ -505,7 +506,7 @@ export default function SettingsPage({
   }
 
   async function updateAdapter(
-    key: "songSelectEnabled" | "churchSuiteEnabled",
+    key: "songSelectEnabled" | "churchSuiteEnabled" | "mqttEnabled",
     enabled: boolean,
   ) {
     setSavingAdapters(true);
@@ -515,9 +516,15 @@ export default function SettingsPage({
           key === "songSelectEnabled" ? enabled : songSelectEnabled,
         churchSuiteEnabled:
           key === "churchSuiteEnabled" ? enabled : churchSuiteEnabled,
+        mqttEnabled: key === "mqttEnabled" ? enabled : mqttEnabled,
       });
       await refreshAdapters();
-      const label = key === "songSelectEnabled" ? "SongSelect" : "ChurchSuite";
+      const label =
+        key === "songSelectEnabled"
+          ? "SongSelect"
+          : key === "churchSuiteEnabled"
+            ? "ChurchSuite"
+            : "MQTT";
       notify(`${label} adapter ${result.settings[key] ? "enabled" : "disabled"}`);
     } catch (error) {
       notify(
@@ -599,7 +606,7 @@ export default function SettingsPage({
               </div>
               {savingAdapters && <span className="muted">Saving…</span>}
             </div>
-            <div className="git-settings-grid">
+            <div className="adapter-toggle-grid">
               <label className="checkbox">
                 <input
                   type="checkbox"
@@ -622,10 +629,22 @@ export default function SettingsPage({
                 />
                 ChurchSuite adapter
               </label>
+              <label className="checkbox">
+                <input
+                  type="checkbox"
+                  checked={mqttEnabled}
+                  onChange={(event) =>
+                    void updateAdapter("mqttEnabled", event.target.checked)
+                  }
+                  disabled={savingAdapters}
+                />
+                MQTT adapter
+              </label>
             </div>
             <p className="hint">
               Disabling an adapter does not delete its credentials, permissions or imported data.
-              Re-enable it here to restore the related pages and buttons.
+              Re-enable it here to restore the related pages and buttons. When MQTT is enabled, its
+              broker and command workspace is available under <strong>Menu → MQTT</strong>.
             </p>
           </section>
         )}

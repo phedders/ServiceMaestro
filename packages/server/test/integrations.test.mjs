@@ -26,11 +26,11 @@ test("adapter availability is persisted and removes disabled SongSelect provider
 
     const initial = getIntegrationSettings();
     const initialProviders = listSiteScraperProviders("user-1");
-    saveIntegrationSettings({ songSelectEnabled: false, churchSuiteEnabled: false });
+    saveIntegrationSettings({ songSelectEnabled: false, churchSuiteEnabled: false, mqttEnabled: true });
     const disabled = getIntegrationSettings();
     const disabledProviders = listSiteScraperProviders("user-1");
     const disabledCredentials = resolveSiteCredentials("user-1", "songselect");
-    saveIntegrationSettings({ songSelectEnabled: true, churchSuiteEnabled: true });
+    saveIntegrationSettings({ songSelectEnabled: true, churchSuiteEnabled: true, mqttEnabled: false });
 
     console.log(JSON.stringify({
       initial,
@@ -59,6 +59,7 @@ test("adapter availability is persisted and removes disabled SongSelect provider
   assert.deepEqual(data.initial, {
     songSelectEnabled: true,
     churchSuiteEnabled: true,
+    mqttEnabled: false,
   });
   assert.deepEqual(data.initialProviderIds, ["songselect"]);
   assert.deepEqual(data.disabledProviders, []);
@@ -66,9 +67,11 @@ test("adapter availability is persisted and removes disabled SongSelect provider
   assert.deepEqual(data.disabled, {
     songSelectEnabled: false,
     churchSuiteEnabled: false,
+    mqttEnabled: true,
   });
   assert.deepEqual(data.restored, {
     songSelectEnabled: true,
     churchSuiteEnabled: true,
+    mqttEnabled: false,
   });
 });
