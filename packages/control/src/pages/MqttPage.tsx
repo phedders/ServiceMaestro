@@ -6,6 +6,7 @@ import type {
   MqttSettingsInput,
   MqttStatus,
 } from "@sm/shared";
+import { useAdapters } from "../adapters";
 import { api, ApiError } from "../api";
 import { compactDateTime } from "../service-date";
 
@@ -47,6 +48,7 @@ export default function MqttPage({
 }: {
   notify: (text: string, kind?: "info" | "error") => void;
 }) {
+  const { modes } = useAdapters();
   const [settings, setSettings] = useState<MqttSettings | null>(null);
   const [status, setStatus] = useState<MqttStatus | null>(null);
   const [password, setPassword] = useState("");
@@ -155,6 +157,12 @@ export default function MqttPage({
         The MQTT adapter connects this Service Maestro instance to a broker. Incoming commands can
         call protected Service Maestro API endpoints. Credentials are stored encrypted and are never
         returned to the browser.
+      </p>
+      <p className="hint">
+        Adapter mode: <strong>{modes.mqtt}</strong>.{" "}
+        {modes.mqtt === "shared"
+          ? "Broker, command mappings, outgoing categories and controls follow the team shared settings; the broker password and client ID remain local to this server."
+          : "This server uses its own local broker, command mappings, outgoing categories and controls."}
       </p>
 
       <section className="panel">

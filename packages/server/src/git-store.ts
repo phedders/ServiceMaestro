@@ -10,12 +10,15 @@ import {
   GIT_REPOS,
   type GitRepoConfig,
 } from "./config.js";
-import { getGitSettings } from "./settings.js";
+import { getAppSettings, getGitSettings } from "./settings.js";
 import { buildSetlistExport, parseSetlistFile, type SetlistManifest } from "./setlist-transfer.js";
 import { reloadBibleCatalog, setBibleDir } from "./bible.js";
 import { addDefaultVerseTags } from "./lyrics.js";
 import { getDisplayConfig } from "./display-config.js";
+import { sharedDisplayOutputs } from "./display-outputs.js";
+import { getBackgroundColors } from "./backgrounds.js";
 import { live } from "./live.js";
+import { reloadMqttBridge } from "./mqtt-bridge.js";
 import {
   exportTarpBundle,
   importTarpBundle,
@@ -26,6 +29,8 @@ import {
   applySharedSettings,
   legacyFontSettingsPath,
   localDownloadedFonts,
+  localSharedAdapterSettings,
+  mergeSharedAdapterSettings,
   mergeSharedFonts,
   readSharedSettings,
   sharedSettingsEqual,
@@ -542,10 +547,17 @@ async function exportAllTarp(runtime: RepoRuntime): Promise<void> {
 
 function importSharedSettingsFromRepo(runtime: RepoRuntime): void {
   const shared = readSharedSettings(runtime.config.path);
-  if (shared.appSettings || shared.displayConfig || shared.backgroundColors || shared.outputs) {
+  if (
+    shared.appSettings ||
+    shared.displayConfig ||
+    shared.backgroundColors ||
+    shared.outputs ||
+    shared.adapters
+  ) {
     try {
       applySharedSettings(shared);
       live.updateDisplayConfig(getDisplayConfig());
+      reloadMqttBridge();
     } catch (error) {
       console.error(
         `[sm] Could not apply shared settings: ${error instanceof Error ? error.message : String(error)}`,
@@ -559,7 +571,18 @@ async function exportSharedSettings(runtime: RepoRuntime): Promise<void> {
   const legacyFile = legacyFontSettingsPath(runtime.config.path);
   const existing = readSharedSettings(runtime.config.path);
   const merged = mergeSharedFonts(existing.fonts, localDownloadedFonts());
-  const payload = sharedSettingsPayload(merged);
+  const adapters = mergeSharedAdapterSettings(
+    existing.adapters,
+    localSharedAdapterSettings(),
+  );
+  const payload = sharedSettingsPayload(
+    merged,
+    getAppSettings(),
+    getDisplayConfig(),
+    getBackgroundColors(),
+    sharedDisplayOutputs(),
+    adapters,
+  );
   const unchanged =
     fs.existsSync(file) &&
     existing.appSettings !== null &&
@@ -573,6 +596,7 @@ async function exportSharedSettings(runtime: RepoRuntime): Promise<void> {
         existing.displayConfig,
         existing.backgroundColors,
         existing.outputs,
+        existing.adapters ?? {},
       ),
       payload,
     );

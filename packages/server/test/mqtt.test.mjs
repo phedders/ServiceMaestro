@@ -32,9 +32,9 @@ test("stores MQTT credentials encrypted and exposes only public controls", () =>
 
     const initialIntegrations = getIntegrationSettings();
     saveIntegrationSettings({
-      songSelectEnabled: true,
-      churchSuiteEnabled: true,
-      mqttEnabled: true,
+      songSelect: "local",
+      churchSuite: "local",
+      mqtt: "shared",
     });
     const saved = saveMqttSettings({
       brokerUrl: "broker.example.test:8883",
@@ -112,11 +112,11 @@ test("stores MQTT credentials encrypted and exposes only public controls", () =>
   const data = JSON.parse(result.stdout);
 
   assert.deepEqual(data.initialIntegrations, {
-    songSelectEnabled: true,
-    churchSuiteEnabled: true,
-    mqttEnabled: false,
+    songSelect: "local",
+    churchSuite: "local",
+    mqtt: "off",
   });
-  assert.equal(data.integrations.mqttEnabled, true);
+  assert.equal(data.integrations.mqtt, "shared");
   assert.equal(data.saved.hasPassword, true);
   assert.equal(data.saved.brokerUrl, "broker.example.test:8883");
   assert.equal(data.saved.protocol, "mqtts");

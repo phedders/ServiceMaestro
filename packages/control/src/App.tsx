@@ -96,9 +96,9 @@ export default function App() {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [displayViews, setDisplayViews] = useState<DisplayViewLink[]>([]);
   const [adapters, setAdapters] = useState<IntegrationSettings>({
-    songSelectEnabled: false,
-    churchSuiteEnabled: false,
-    mqttEnabled: false,
+    songSelect: "off",
+    churchSuite: "off",
+    mqtt: "off",
   });
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
@@ -196,11 +196,7 @@ export default function App() {
       const result = await api.integrationSettings();
       setAdapters(result.settings);
     } catch {
-      setAdapters({
-        songSelectEnabled: false,
-        churchSuiteEnabled: false,
-        mqttEnabled: false,
-      });
+      setAdapters({ songSelect: "off", churchSuite: "off", mqtt: "off" });
     }
   }
 
@@ -218,17 +214,18 @@ export default function App() {
 
   useEffect(() => {
     if (standaloneMusicians) return;
-    if (page === "churchsuite" && !adapters.churchSuiteEnabled) setPage("live");
-    if (page === "mqtt" && !adapters.mqttEnabled) setPage("live");
-  }, [
-    page,
-    adapters.churchSuiteEnabled,
-    adapters.mqttEnabled,
-    standaloneMusicians,
-  ]);
+    if (page === "churchsuite" && adapters.churchSuite === "off") setPage("live");
+    if (page === "mqtt" && adapters.mqtt === "off") setPage("live");
+  }, [page, adapters.churchSuite, adapters.mqtt, standaloneMusicians]);
 
   const adapterContext = useMemo(
-    () => ({ ...adapters, refresh: refreshAdapters }),
+    () => ({
+      songSelectEnabled: adapters.songSelect !== "off",
+      churchSuiteEnabled: adapters.churchSuite !== "off",
+      mqttEnabled: adapters.mqtt !== "off",
+      modes: adapters,
+      refresh: refreshAdapters,
+    }),
     [adapters],
   );
 
@@ -385,11 +382,7 @@ export default function App() {
     await api.logout().catch(() => undefined);
     setUser(null);
     setLive(EMPTY_LIVE);
-    setAdapters({
-      songSelectEnabled: false,
-      churchSuiteEnabled: false,
-      mqttEnabled: false,
-    });
+    setAdapters({ songSelect: "off", churchSuite: "off", mqtt: "off" });
   };
 
   function toggleMenu() {
@@ -578,7 +571,7 @@ export default function App() {
           >
             <span className="nav-icon">✝</span> Bible
           </button>
-          {adapters.churchSuiteEnabled && (
+          {adapterContext.churchSuiteEnabled && (
             <button
               className={page === "churchsuite" ? "active" : ""}
               onClick={() => setPage("churchsuite")}
@@ -630,7 +623,7 @@ export default function App() {
                   </a>
                 ))}
                 {!displayViews.length && <span className="nav-dropdown-empty">No views available</span>}
-                {adapters.mqttEnabled && (
+                {adapterContext.mqttEnabled && (
                   <MqttControls
                     placement="menu"
                     notify={notify}
@@ -700,7 +693,7 @@ export default function App() {
                     </span>
                   </button>
                 )}
-                {user.role === "admin" && adapters.mqttEnabled && (
+                {user.role === "admin" && adapterContext.mqttEnabled && (
                   <button
                     type="button"
                     className="nav-dropdown-link"
@@ -856,7 +849,7 @@ export default function App() {
             </Suspense>
           )}
           {page === "bible" && <BiblePage live={live} onQuickText={quickText} notify={notify} />}
-          {page === "churchsuite" && adapters.churchSuiteEnabled && (
+          {page === "churchsuite" && adapterContext.churchSuiteEnabled && (
             <ChurchsuitePage notify={notify} onOpenSetlists={() => setPage("setlists")} />
           )}
           {page === "settings" && <SettingsPage user={user} notify={notify} />}
@@ -865,7 +858,7 @@ export default function App() {
           )}
           {page === "dedupe" && <DeDupePage notify={notify} />}
           {page === "users" && <UsersPage user={user} notify={notify} />}
-          {page === "mqtt" && user.role === "admin" && adapters.mqttEnabled && (
+          {page === "mqtt" && user.role === "admin" && adapterContext.mqttEnabled && (
             <MqttPage notify={notify} />
           )}
           {page === "backgrounds" && <BackgroundsPage notify={notify} />}

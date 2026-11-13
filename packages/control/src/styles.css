@@ -5708,3 +5708,35 @@ body.resizing-live-queue {
   gap: 14px 24px;
   margin-bottom: 10px;
 }
+
+.adapter-mode-list {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.adapter-mode-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 150px;
+  gap: 12px;
+  align-items: center;
+  padding: 9px 10px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--panel-2);
+}
+
+.adapter-mode-row > div {
+  display: grid;
+  gap: 2px;
+}
+
+.adapter-mode-row .muted {
+  font-size: 0.72rem;
+}
+
+@media (max-width: 640px) {
+  .adapter-mode-row {
+    grid-template-columns: 1fr;
+  }
+}

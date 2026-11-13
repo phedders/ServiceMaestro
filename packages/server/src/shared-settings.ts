@@ -5,11 +5,13 @@ import {
   backgroundColorsSchema,
   displayConfigSchema,
   displayOutputSchema,
+  sharedAdapterSettingsSchema,
   type AppSettings,
   type BackgroundColors,
   type DisplayConfig,
   type DisplayOutput,
   type FontOption,
+  type SharedAdapterSettings,
   type SharedFontOption,
 } from "@sm/shared";
 import { db } from "./db.js";
@@ -18,6 +20,8 @@ import { getAppSettings, saveAppSettings } from "./settings.js";
 import { getDisplayConfig, saveDisplayConfig } from "./display-config.js";
 import { getBackgroundColors, saveBackgroundColors } from "./backgrounds.js";
 import { replaceSharedDisplayOutputs, sharedDisplayOutputs } from "./display-outputs.js";
+import { getIntegrationSettings } from "./integrations.js";
+import { getMqttSettings, saveMqttSettings } from "./mqtt-settings.js";
 
 export const SHARED_SETTINGS_RELATIVE_PATH = path.join("settings", "shared.json");
 export const LEGACY_FONT_SETTINGS_RELATIVE_PATH = path.join("settings", "fonts.json");
@@ -31,6 +35,7 @@ export interface SharedSettings {
   displayConfig: DisplayConfig | null;
   backgroundColors: BackgroundColors | null;
   outputs: DisplayOutput[] | null;
+  adapters: SharedAdapterSettings | null;
 }
 
 interface SharedFontRow {
@@ -48,6 +53,7 @@ interface SharedSettingsPayload {
   displayConfig: DisplayConfig;
   backgroundColors: BackgroundColors;
   outputs: DisplayOutput[];
+  adapters: SharedAdapterSettings;
 }
 
 function sharedPath(repoPath: string, relative: string): string {
@@ -56,6 +62,31 @@ function sharedPath(repoPath: string, relative: string): string {
 
 export function sharedSettingsPath(repoPath = GIT_REPOS.setlists.path): string {
   return sharedPath(repoPath, SHARED_SETTINGS_RELATIVE_PATH);
+}
+
+export function localSharedAdapterSettings(): SharedAdapterSettings {
+  const modes = getIntegrationSettings();
+  const mqtt = getMqttSettings();
+  const {
+    hasPassword: _hasPassword,
+    clientId: _clientId,
+    ...mqttSettings
+  } = mqtt;
+  return {
+    ...(modes.songSelect === "shared" ? { songSelect: true } : {}),
+    ...(modes.churchSuite === "shared" ? { churchSuite: true } : {}),
+    ...(modes.mqtt === "shared" ? { mqtt: mqttSettings } : {}),
+  };
+}
+
+export function mergeSharedAdapterSettings(
+  existing: SharedAdapterSettings | null,
+  local: SharedAdapterSettings,
+): SharedAdapterSettings {
+  return {
+    ...(existing ?? {}),
+    ...local,
+  };
 }
 
 export function legacyFontSettingsPath(repoPath = GIT_REPOS.setlists.path): string {
@@ -116,6 +147,7 @@ export function readSharedSettings(repoPath = GIT_REPOS.setlists.path): SharedSe
       displayConfig: null,
       backgroundColors: null,
       outputs: null,
+      adapters: null,
     };
   }
   try {
@@ -129,6 +161,7 @@ export function readSharedSettings(repoPath = GIT_REPOS.setlists.path): SharedSe
         displayConfig: null,
         backgroundColors: null,
         outputs: null,
+        adapters: null,
       };
     }
     const value = parsed as Record<string, unknown>;
@@ -137,6 +170,9 @@ export function readSharedSettings(repoPath = GIT_REPOS.setlists.path): SharedSe
     const backgroundColors = backgroundColorsSchema.safeParse(value.backgroundColors);
     const outputs = Array.isArray(value.outputs)
       ? displayOutputSchema.array().safeParse(value.outputs)
+      : null;
+    const adapters = value.adapters
+      ? sharedAdapterSettingsSchema.safeParse(value.adapters)
       : null;
     return {
       schemaVersion:
@@ -152,6 +188,7 @@ export function readSharedSettings(repoPath = GIT_REPOS.setlists.path): SharedSe
       displayConfig: displayConfig.success ? displayConfig.data : null,
       backgroundColors: backgroundColors.success ? backgroundColors.data : null,
       outputs: outputs?.success ? outputs.data : null,
+      adapters: adapters?.success ? adapters.data : null,
     };
   } catch {
     return {
@@ -162,6 +199,7 @@ export function readSharedSettings(repoPath = GIT_REPOS.setlists.path): SharedSe
       displayConfig: null,
       backgroundColors: null,
       outputs: null,
+      adapters: null,
     };
   }
 }
@@ -171,6 +209,16 @@ export function applySharedSettings(shared: SharedSettings): void {
   if (shared.displayConfig) saveDisplayConfig(shared.displayConfig);
   if (shared.backgroundColors) saveBackgroundColors(shared.backgroundColors);
   if (shared.outputs) replaceSharedDisplayOutputs(shared.outputs);
+  if (
+    shared.adapters?.mqtt &&
+    getIntegrationSettings().mqtt === "shared"
+  ) {
+    saveMqttSettings({
+      ...shared.adapters.mqtt,
+      clientId: getMqttSettings().clientId,
+      password: undefined,
+    });
+  }
 }
 
 export function localDownloadedFonts(): SharedFontOption[] {
@@ -205,6 +253,7 @@ export function sharedSettingsPayload(
   displayConfig = getDisplayConfig(),
   backgroundColors = getBackgroundColors(),
   outputs = sharedDisplayOutputs(),
+  adapters = localSharedAdapterSettings(),
 ): SharedSettingsPayload {
   return {
     schemaVersion: SHARED_SETTINGS_SCHEMA_VERSION,
@@ -213,6 +262,7 @@ export function sharedSettingsPayload(
     displayConfig,
     backgroundColors,
     outputs,
+    adapters,
   };
 }
 

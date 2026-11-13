@@ -1,7 +1,8 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { mqttControlPublishSchema, mqttSettingsInputSchema } from "@sm/shared";
 import { requireAuth, requirePermission, requireRole } from "../auth.js";
-import { isMqttEnabled } from "../integrations.js";
+import { saveSharedSettingsToGit } from "../git-store.js";
+import { getIntegrationSettings, isMqttEnabled } from "../integrations.js";
 import {
   getMqttStatus,
   isAllowedMqttApiPath,
@@ -70,6 +71,11 @@ export async function mqttRoutes(app: FastifyInstance): Promise<void> {
       }
       const settings = saveMqttSettings(parsed.data);
       const status = reloadMqttBridge();
+      if (getIntegrationSettings().mqtt === "shared") {
+        await saveSharedSettingsToGit().catch((error) =>
+          request.log.warn({ err: error }, "shared MQTT settings save failed"),
+        );
+      }
       return { settings, status };
     },
   );

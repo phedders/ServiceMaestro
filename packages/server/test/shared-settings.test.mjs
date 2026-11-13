@@ -20,6 +20,7 @@ test("reads, applies and merges the shared settings file", () => {
     const base = process.env.SM_MODULE_BASE;
     const {
       applySharedSettings,
+      localSharedAdapterSettings,
       mergeSharedFonts,
       missingSharedFonts,
       readSharedSettings,
@@ -29,6 +30,8 @@ test("reads, applies and merges the shared settings file", () => {
     const { getAppSettings } = await import(base + "settings.js");
     const { getDisplayConfig } = await import(base + "display-config.js");
     const { getBackgroundColors } = await import(base + "backgrounds.js");
+    const { saveIntegrationSettings } = await import(base + "integrations.js");
+    const { getMqttSettings, saveMqttSettings } = await import(base + "mqtt-settings.js");
 
     const existing = [{
       id: "google-inter",
@@ -79,6 +82,19 @@ test("reads, applies and merges the shared settings file", () => {
       secondary: "#070809",
       accent: "#0a0b0c",
     };
+    saveIntegrationSettings({
+      songSelect: "shared",
+      churchSuite: "local",
+      mqtt: "shared",
+    });
+    saveMqttSettings({
+      brokerUrl: "mqtt://shared.example:1883",
+      incomingPrefix: "team/in",
+      outgoingPrefix: "team/out",
+      mappings: [],
+      controls: [],
+    });
+    const adapters = localSharedAdapterSettings();
     const repo = path.join(process.env.SM_DATA_DIR, "repos", "setlists");
     fs.mkdirSync(path.join(repo, "settings"), { recursive: true });
     fs.writeFileSync(
@@ -90,6 +106,7 @@ test("reads, applies and merges the shared settings file", () => {
         appSettings,
         displayConfig,
         backgroundColors,
+        adapters,
       }),
     );
     const read = readSharedSettings();
@@ -98,6 +115,8 @@ test("reads, applies and merges the shared settings file", () => {
       appSettings: getAppSettings(),
       displayConfig: getDisplayConfig(),
       backgroundColors: getBackgroundColors(),
+      mqttBroker: getMqttSettings().brokerUrl,
+      adapters: localSharedAdapterSettings(),
     };
     const payload = sharedSettingsPayload(
       merged,
@@ -162,6 +181,10 @@ test("reads, applies and merges the shared settings file", () => {
   assert.equal(data.applied.appSettings.pageNavigation, "next-item");
   assert.equal(data.applied.displayConfig.maxWords, 70);
   assert.equal(data.applied.backgroundColors.accent, "#0a0b0c");
+  assert.equal(data.applied.mqttBroker, "mqtt://shared.example:1883");
+  assert.equal(data.applied.adapters.songSelect, true);
+  assert.equal(data.applied.adapters.churchSuite, undefined);
+  assert.equal(data.applied.adapters.mqtt.incomingPrefix, "team/in");
   assert.equal(data.equal, true);
   assert.deepEqual(
     data.missing.map((font) => font.id),

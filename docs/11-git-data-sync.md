@@ -89,11 +89,17 @@ Display outputs have a shared/local split: shared definitions are written to
 never exported. Shared outputs can be removed or edited from **Menu → Outputs**; local
 outputs are available only on that server.
 
-Server-specific configuration stays local: ports, data paths, credentials, external
-adapter availability, MQTT broker settings and encrypted credentials, site scraping
+External adapters also have a three-state scope. **Off** hides the adapter, **Local**
+uses the instance database, and **Shared** exports the adapter's non-secret
+configuration through `settings/shared.json`. Shared MQTT configuration includes broker
+URL, protocol, username, incoming mappings, outgoing categories and controls; the broker
+password and client ID remain local. Per-user site credentials, ChurchSuite secrets,
+SongSelect watched-folder state and adapter permissions stay local in every mode.
+
+Server-specific configuration stays local: ports, data paths, credentials, site scraping
 credentials, SongSelect watched-folder state, local output extras and Git repository
-settings are not shared. Adapter availability and MQTT command/control definitions can
-only be changed by an administrator and are stored in the instance database.
+settings. Adapter availability and MQTT command/control definitions can only be changed
+by an administrator.
 
 `<setlist-id>.json`:
 

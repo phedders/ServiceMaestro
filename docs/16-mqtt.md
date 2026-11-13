@@ -6,11 +6,21 @@ The bridge connects Service Maestro to an MQTT broker so other systems can drive
 
 ## 1. Enable and configure
 
-1. Open **Settings → External adapters** and enable **MQTT adapter**.
+Each adapter has an **Off / Local / Shared** mode under **Settings → External adapters**:
+
+- **Off** — MQTT is not connected and all MQTT UI and API routes are unavailable.
+- **Local** — this server uses its own broker, mappings, outgoing categories and controls.
+- **Shared** — non-secret MQTT configuration follows `settings/shared.json` in the set lists repository. The broker password, client ID and per-instance secrets stay local.
+
+To configure:
+
+1. Open **Settings → External adapters** and set **MQTT adapter** to **Local** or **Shared**.
 2. Open **Menu → MQTT**.
 3. Set the broker URL, optional protocol override, username/password and optional client ID.
 4. Configure incoming commands, outgoing categories and controls.
 5. Choose **Save MQTT settings**.
+
+In Shared mode, broker settings, mappings, outgoing categories and controls are exported through the shared settings repository. The password and client ID are never shared. Applying a shared file updates the saved MQTT configuration on instances whose MQTT mode is Shared.
 
 Broker passwords are encrypted with the instance secret key (AES-256-GCM) and are never returned to the browser. Leaving the password field blank preserves the stored password; **Remove stored password** clears it. The bridge connects with MQTT 5; older publishers can still use the broker normally and supply source restrictions in the JSON payload.
 

@@ -1130,10 +1130,12 @@ export interface AppSettings {
   songSheetColumns: number;
 }
 
+export type AdapterMode = "off" | "local" | "shared";
+
 export interface IntegrationSettings {
-  songSelectEnabled: boolean;
-  churchSuiteEnabled: boolean;
-  mqttEnabled: boolean;
+  songSelect: AdapterMode;
+  churchSuite: AdapterMode;
+  mqtt: AdapterMode;
 }
 
 export type MqttProtocol = "" | "mqtt" | "mqtts" | "ws" | "wss";
@@ -1203,6 +1205,12 @@ export interface MqttPublicControl {
   type: "button" | "select";
   placement: "live" | "menu";
   options: Array<{ label: string }>;
+}
+
+export interface SharedAdapterSettings {
+  songSelect?: boolean;
+  churchSuite?: boolean;
+  mqtt?: Omit<MqttSettings, "hasPassword" | "clientId"> | null;
 }
 
 export interface GitSettings {
@@ -2174,10 +2182,12 @@ export const appSettingsSchema = z.object({
   songSheetColumns: z.number().int().min(1).max(3).default(1),
 });
 
+export const adapterModeSchema = z.enum(["off", "local", "shared"]);
+
 export const integrationSettingsSchema = z.object({
-  songSelectEnabled: z.boolean(),
-  churchSuiteEnabled: z.boolean(),
-  mqttEnabled: z.boolean(),
+  songSelect: adapterModeSchema,
+  churchSuite: adapterModeSchema,
+  mqtt: adapterModeSchema,
 });
 
 const mqttTopicPartSchema = z
@@ -2252,6 +2262,15 @@ export const mqttSettingsInputSchema = z.object({
 
 export const mqttControlPublishSchema = z.object({
   optionIndex: z.number().int().min(0).max(49).optional(),
+});
+
+export const sharedAdapterSettingsSchema = z.object({
+  songSelect: z.boolean().optional(),
+  churchSuite: z.boolean().optional(),
+  mqtt: mqttSettingsInputSchema
+    .omit({ password: true, clearPassword: true, clientId: true })
+    .nullable()
+    .optional(),
 });
 
 export const gitSettingsSchema = z.object({

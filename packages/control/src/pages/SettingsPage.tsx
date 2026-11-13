@@ -4,7 +4,9 @@ import {
   DEFAULT_CHURCHSUITE_EMPTY_TYPES,
   SONG_SHEET_FONTS,
   suggestSongPageId,
+  type AdapterMode,
   type AppSettings,
+  type IntegrationSettings,
   type BibleTranslationInfo,
   type ControlTlsStatus,
   type FontOption,
@@ -47,6 +49,7 @@ export default function SettingsPage({
     songSelectEnabled,
     churchSuiteEnabled,
     mqttEnabled,
+    modes,
     refresh: refreshAdapters,
   } = useAdapters();
   const [fonts, setFonts] = useState<FontOption[]>([]);
@@ -505,27 +508,18 @@ export default function SettingsPage({
     );
   }
 
-  async function updateAdapter(
-    key: "songSelectEnabled" | "churchSuiteEnabled" | "mqttEnabled",
-    enabled: boolean,
-  ) {
+  async function updateAdapter(key: keyof IntegrationSettings, mode: AdapterMode) {
     setSavingAdapters(true);
     try {
-      const result = await api.saveIntegrationSettings({
-        songSelectEnabled:
-          key === "songSelectEnabled" ? enabled : songSelectEnabled,
-        churchSuiteEnabled:
-          key === "churchSuiteEnabled" ? enabled : churchSuiteEnabled,
-        mqttEnabled: key === "mqttEnabled" ? enabled : mqttEnabled,
-      });
+      const result = await api.saveIntegrationSettings({ ...modes, [key]: mode });
       await refreshAdapters();
       const label =
-        key === "songSelectEnabled"
+        key === "songSelect"
           ? "SongSelect"
-          : key === "churchSuiteEnabled"
+          : key === "churchSuite"
             ? "ChurchSuite"
             : "MQTT";
-      notify(`${label} adapter ${result.settings[key] ? "enabled" : "disabled"}`);
+      notify(`${label} adapter set to ${result.settings[key]}`);
     } catch (error) {
       notify(
         error instanceof ApiError ? error.message : "Could not save adapter settings",
@@ -586,8 +580,8 @@ export default function SettingsPage({
       <p className="hint">
         Team-wide settings — live navigation, default Bible, page IDs, display styling and
         background colours — sync through <code>settings/shared.json</code> in the set lists
-        repository. Keyboard shortcuts, credentials, adapter availability and Git settings stay
-        local to this server.
+        repository. Keyboard shortcuts, credentials, per-adapter mode choices and Git settings
+        stay local to this server.
       </p>
 
       <AccountPanel user={user} notify={notify} />
@@ -599,52 +593,65 @@ export default function SettingsPage({
               <div>
                 <h2>External adapters</h2>
                 <p className="muted">
-                  Enable only the integrations this installation uses. Availability is local to
-                  this server and only administrators can change it. Disabled adapters are removed
-                  from navigation, action buttons, help and settings immediately.
+                  Choose whether each integration is off, uses this server&apos;s local
+                  configuration, or follows shared team configuration. Only administrators can
+                  change these modes.
                 </p>
               </div>
               {savingAdapters && <span className="muted">Saving…</span>}
             </div>
-            <div className="adapter-toggle-grid">
-              <label className="checkbox">
-                <input
-                  type="checkbox"
-                  checked={songSelectEnabled}
-                  onChange={(event) =>
-                    void updateAdapter("songSelectEnabled", event.target.checked)
-                  }
-                  disabled={savingAdapters}
-                />
-                SongSelect adapter
-              </label>
-              <label className="checkbox">
-                <input
-                  type="checkbox"
-                  checked={churchSuiteEnabled}
-                  onChange={(event) =>
-                    void updateAdapter("churchSuiteEnabled", event.target.checked)
-                  }
-                  disabled={savingAdapters}
-                />
-                ChurchSuite adapter
-              </label>
-              <label className="checkbox">
-                <input
-                  type="checkbox"
-                  checked={mqttEnabled}
-                  onChange={(event) =>
-                    void updateAdapter("mqttEnabled", event.target.checked)
-                  }
-                  disabled={savingAdapters}
-                />
-                MQTT adapter
-              </label>
+            <div className="adapter-mode-list">
+              {(
+                [
+                  {
+                    key: "songSelect",
+                    label: "SongSelect",
+                    description:
+                      "Local account credentials and drop-folder watcher. Shared mode shares availability only.",
+                  },
+                  {
+                    key: "churchSuite",
+                    label: "ChurchSuite",
+                    description:
+                      "Planning credentials stay local. Shared empty-item settings follow the team settings file.",
+                  },
+                  {
+                    key: "mqtt",
+                    label: "MQTT",
+                    description:
+                      "Local or shared broker, incoming mappings and controls. The broker password always stays local.",
+                  },
+                ] as const
+              ).map((adapter) => (
+                <div className="adapter-mode-row" key={adapter.key}>
+                  <div>
+                    <strong>{adapter.label}</strong>
+                    <span className="muted">{adapter.description}</span>
+                  </div>
+                  <select
+                    value={modes[adapter.key]}
+                    onChange={(event) =>
+                      void updateAdapter(
+                        adapter.key,
+                        event.target.value as AdapterMode,
+                      )
+                    }
+                    disabled={savingAdapters}
+                    title={`${adapter.label} adapter mode`}
+                  >
+                    <option value="off">Off</option>
+                    <option value="local">Local</option>
+                    <option value="shared">Shared</option>
+                  </select>
+                </div>
+              ))}
             </div>
             <p className="hint">
-              Disabling an adapter does not delete its credentials, permissions or imported data.
-              Re-enable it here to restore the related pages and buttons. When MQTT is enabled, its
-              broker and command workspace is available under <strong>Menu → MQTT</strong>.
+              Off removes the adapter from navigation, action buttons, help and settings. Local
+              uses this server&apos;s configuration. Shared reads/writes non-secret adapter
+              configuration through <code>settings/shared.json</code>; credentials and permissions
+              remain local. When MQTT is not off, its workspace is available under{" "}
+              <strong>Menu → MQTT</strong>.
             </p>
           </section>
         )}
