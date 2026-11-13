@@ -79,7 +79,7 @@ export async function buildApp(
     ...(tls ? { https: tls } : {}),
   });
 
-  installSecurityHeaders(app, false);
+  installSecurityHeaders(app, false, true);
   app.addHook("onRequest", async (request, reply) => {
     if (["GET", "HEAD", "OPTIONS"].includes(request.method)) return;
     if (!requestOriginAllowed(request)) {

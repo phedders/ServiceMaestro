@@ -53,10 +53,17 @@ export function requestOriginAllowed(request: FastifyRequest): boolean {
   return originAllowed(origin, request.headers, request.protocol as "http" | "https");
 }
 
-export function installSecurityHeaders(app: FastifyInstance, display: boolean): void {
-  app.addHook("onSend", async (_request, reply, payload) => {
+export function installSecurityHeaders(
+  app: FastifyInstance,
+  display: boolean,
+  allowDisplayFrames = false,
+): void {
+  app.addHook("onSend", async (request, reply, payload) => {
+    const frameable =
+      display ||
+      (allowDisplayFrames && request.url.split("?")[0].startsWith("/display/"));
     reply.header("x-content-type-options", "nosniff");
-    reply.header("x-frame-options", display ? "SAMEORIGIN" : "DENY");
+    reply.header("x-frame-options", frameable ? "SAMEORIGIN" : "DENY");
     reply.header("referrer-policy", "no-referrer");
     reply.header(
       "permissions-policy",
@@ -78,7 +85,7 @@ export function installSecurityHeaders(app: FastifyInstance, display: boolean): 
           "object-src 'none'",
           "base-uri 'self'",
           "form-action 'self'",
-          `frame-ancestors ${display ? "'self'" : "'none'"}`,
+          `frame-ancestors ${frameable ? "'self'" : "'none'"}`,
         ].join("; "),
       );
     }
