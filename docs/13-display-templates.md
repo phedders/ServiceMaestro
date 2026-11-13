@@ -9,7 +9,7 @@ Immediate changes implemented on 2026-11-10.
 | Lower-third / main (`lowerthird`) | `/display/lowerthird` | `/display/twothirds`, `/display/main`, `/display/lower`, `/obs-main`, `/obs-lower`, `/obs-lowerthird`, `/obs-twothirds` | hidden |
 | Centered two-thirds | `/display/two-thirds` | `/display/two_thirds`, `/obs-two-thirds` | hidden |
 | Full screen (`full`) | `/display/full` | `/display/fullscreen`, `/display/mainfull`, `/obs-mainfull`, `/obs-fullscreen` | hidden |
-| Stage monitor | `/display/stage` | `/obs-stage` | visible |
+| Stage monitor | `/display/stage` | `/obs-stage` | hidden |
 | Chords view | `/display/chords` | `/obs-chords` | visible |
 
 All routes take the usual `?token=…` output token.
