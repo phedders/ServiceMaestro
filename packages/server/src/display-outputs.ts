@@ -7,6 +7,7 @@ import type {
 import { db } from "./db.js";
 
 const SEEDED_KEY = "display_outputs_seeded";
+const FULL_IMAGE_FILL_KEY = "display_outputs_full_image_fill_v1";
 
 interface OutputRow {
   id: string;
@@ -36,6 +37,35 @@ function normaliseOutput(output: DisplayOutput): DisplayOutput {
     id: output.id.trim().toLowerCase(),
     aliases: [...new Set(output.aliases.map((alias) => alias.trim().toLowerCase()).filter(Boolean))],
   };
+}
+
+function upgradeFullImageFill(output: DisplayOutput): DisplayOutput {
+  if (
+    output.id === "full" &&
+    output.template === "full" &&
+    output.image.maxHeightPercent === 78
+  ) {
+    return {
+      ...output,
+      image: { ...output.image, maxHeightPercent: 100 },
+    };
+  }
+  return output;
+}
+
+function markerFor(key: string): string | undefined {
+  return (
+    db.prepare("SELECT value FROM app_settings WHERE key = ?").get(key) as
+      | { value: string }
+      | undefined
+  )?.value;
+}
+
+function setMarkerFor(key: string): void {
+  db.prepare(
+    `INSERT INTO app_settings (key, value, updated_at) VALUES (?, '1', ?)
+     ON CONFLICT(key) DO UPDATE SET value = '1', updated_at = excluded.updated_at`,
+  ).run(key, new Date().toISOString());
 }
 
 function allRows(): OutputRow[] {
@@ -105,6 +135,29 @@ function ensureSeeded(): void {
 }
 
 ensureSeeded();
+
+function migrateFullImageFill(): void {
+  if (markerFor(FULL_IMAGE_FILL_KEY)) return;
+  const row = db
+    .prepare(
+      `SELECT id, label, template, scope, sort_order, config_json, created_at, updated_at
+       FROM display_outputs WHERE id = 'full'`,
+    )
+    .get() as OutputRow | undefined;
+  if (row) {
+    const existing = rowToEntry(row);
+    const { scope: _scope, ...output } = existing;
+    const upgraded = upgradeFullImageFill(output);
+    if (upgraded.image.maxHeightPercent !== output.image.maxHeightPercent) {
+      db.prepare(
+        "UPDATE display_outputs SET config_json = ?, updated_at = ? WHERE id = 'full'",
+      ).run(JSON.stringify(upgraded), new Date().toISOString());
+    }
+  }
+  setMarkerFor(FULL_IMAGE_FILL_KEY);
+}
+
+migrateFullImageFill();
 
 function conflict(
   output: DisplayOutput,
@@ -200,7 +253,9 @@ export function deleteDisplayOutput(id: string): boolean {
 }
 
 export function replaceSharedDisplayOutputs(outputs: DisplayOutput[]): void {
-  const parsed = outputs.map((output) => normaliseOutput(displayOutputSchema.parse(output)));
+  const parsed = outputs.map((output) =>
+    upgradeFullImageFill(normaliseOutput(displayOutputSchema.parse(output))),
+  );
   const ids = new Set<string>();
   for (const output of parsed) {
     if (ids.has(output.id)) throw new Error(`Duplicate shared output ID: ${output.id}`);

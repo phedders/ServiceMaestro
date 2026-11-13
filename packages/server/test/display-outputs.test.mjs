@@ -60,6 +60,7 @@ test("seeds, resolves and separates shared and local display outputs", () => {
     console.log(JSON.stringify({
       defaultCount: defaults.length,
       defaultScopes: [...new Set(defaults.map((entry) => entry.scope))],
+      fullImageHeight: defaults.find((entry) => entry.id === "full")?.image.maxHeightPercent,
       local: { id: local.id, scope: local.scope },
       updatedLabel: updated.label,
       conflict,
@@ -88,6 +89,7 @@ test("seeds, resolves and separates shared and local display outputs", () => {
 
   assert.equal(data.defaultCount, 5);
   assert.deepEqual(data.defaultScopes, ["shared"]);
+  assert.equal(data.fullImageHeight, 100);
   assert.deepEqual(data.local, { id: "youth-full", scope: "local" });
   assert.equal(data.updatedLabel, "Youth fullscreen");
   assert.match(data.conflict, /already in use: main/);

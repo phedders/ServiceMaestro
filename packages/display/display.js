@@ -106,6 +106,13 @@ body.sm-output-configured .sm-content .slide-image.fit-stretch {
 body.sm-output-configured .sm-content .slide-image img {
   max-height: 100%;
 }
+body[data-target="full"].sm-output-configured .sm-content .slide-image,
+body[data-target="full"].sm-output-configured .sm-content .slide-image.fit-actual,
+body[data-target="full"].sm-output-configured .sm-content .slide-image.fit-crop,
+body[data-target="full"].sm-output-configured .sm-content .slide-image.fit-stretch {
+  height: var(--sm-output-image-max-height, 100vh);
+  max-height: var(--sm-output-image-max-height, 100vh);
+}
 body.sm-output-configured .sm-template,
 body.sm-output-configured .sm-lowerthird-panel .sm-content,
 body.sm-output-configured .sm-lowerthird-panel .sm-footer {
@@ -274,7 +281,7 @@ body.sm-output-configured.mode-image .sm-footer {
       '"Clear Sans", "Segoe UI", system-ui, -apple-system, sans-serif';
     const imageMaxHeight =
       output.image.maxHeightPercent ??
-      (main ? config.lowerThirdImageMaxHeightPercent ?? 30 : 78);
+      (main ? config.lowerThirdImageMaxHeightPercent ?? 30 : target === "full" ? 100 : 78);
     const imagePadding =
       output.image.padding ?? (main ? config.lowerThirdImagePadding ?? 48 : 0);
     const alignItems =

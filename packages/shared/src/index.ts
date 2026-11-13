@@ -811,7 +811,7 @@ export const DEFAULT_DISPLAY_OUTPUTS: DisplayOutput[] = [
       showSectionLabels: false,
       showSplitWords: false,
     },
-    image: { maxHeightPercent: 78, padding: 0 },
+    image: { maxHeightPercent: 100, padding: 0 },
     clock: { ...DEFAULT_CLOCK_SETTINGS },
   },
   {

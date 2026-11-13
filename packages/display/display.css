@@ -505,6 +505,16 @@ body.display-main.mode-tarp .sm-lowerthird-panel {
   object-fit: fill;
 }
 
+body[data-target="full"] .slide-image img {
+  max-height: 100vh;
+}
+
+body[data-target="full"] .slide-image.fit-crop,
+body[data-target="full"] .slide-image.fit-stretch {
+  height: 100vh;
+  max-height: 100vh;
+}
+
 .text-html {
   display: block;
   text-align: left;

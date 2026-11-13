@@ -27,7 +27,7 @@ An output definition contains:
 - Lower-third panel: on/off, colour/alpha, padding, corner radius, border, max width/height.
 - Text overrides: font family, colour, scale multiplier and line height.
 - Content: current page only or current plus upcoming pages; meta/title, footer, chords, section labels and split-word visibility.
-- Image max height and padding. Blank image values inherit the global/lower-third display settings.
+- Image max height and padding. Blank image values inherit the global/lower-third display settings. The full-screen output defaults to 100% so images fill the screen; other outputs default to 78%.
 - Optional **clock overlay**: on/off, style **Analogue (no numbers)**, **Digital 24-hour** or **Digital 12-hour**, font, size in `vw`, colour, one of nine screen positions, shadow/highlight and seconds (digital) or second hand (analogue). The clock is independent of the live content and remains visible while pages are blank or changing, so a stage/confidence monitor can show the speaker the time.
 
 Definitions use `scope = "shared"` or `scope = "local"`. Shared definitions are written to `settings/shared.json` in the set lists repository and apply to every synced instance. Local definitions stay in this server’s database and are never written to the shared file. The Outputs page lists both and shows their scope.
