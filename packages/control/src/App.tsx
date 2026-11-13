@@ -103,6 +103,8 @@ export default function App() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
+  const [compactMenuOpen, setCompactMenuOpen] = useState(false);
+  const compactMenuRef = useRef<HTMLDivElement | null>(null);
   const [shortcuts, setShortcuts] = useState<KeyboardShortcuts>(loadKeyboardShortcuts);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     try {
@@ -249,6 +251,33 @@ export default function App() {
       window.removeEventListener("scroll", close, true);
     };
   }, [menuOpen]);
+
+  useEffect(() => {
+    if (!compactMenuOpen) return;
+    const onPointerDown = (event: PointerEvent) => {
+      if (!compactMenuRef.current?.contains(event.target as Node)) {
+        setCompactMenuOpen(false);
+      }
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setCompactMenuOpen(false);
+    };
+    const close = () => setCompactMenuOpen(false);
+    window.addEventListener("pointerdown", onPointerDown);
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("resize", close);
+    window.addEventListener("scroll", close, true);
+    return () => {
+      window.removeEventListener("pointerdown", onPointerDown);
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("resize", close);
+      window.removeEventListener("scroll", close, true);
+    };
+  }, [compactMenuOpen]);
+
+  useEffect(() => {
+    if (!sidebarCollapsed || topbarMode) setCompactMenuOpen(false);
+  }, [sidebarCollapsed, topbarMode]);
 
   useEffect(() => {
     if (!user || standaloneMusicians) return;
@@ -453,6 +482,218 @@ export default function App() {
     ? MODULE_PERMISSIONS.find((module) => module.id === pageModule)?.label ?? pageModule
     : null;
 
+  function renderMoreMenu(close: () => void) {
+    return (
+      <>
+        <div className="nav-dropdown-label">External links</div>
+        {displayViews.map((view) => (
+          <a
+            key={view.id}
+            className="nav-dropdown-link"
+            href={view.url}
+            target="_blank"
+            rel="noreferrer"
+            role="menuitem"
+            onClick={close}
+            title={`Open ${view.label} in a new tab`}
+          >
+            <span>{view.label}</span>
+            <span className="nav-dropdown-external" aria-hidden="true">
+              ↗
+            </span>
+          </a>
+        ))}
+        {!displayViews.length && <span className="nav-dropdown-empty">No views available</span>}
+        {adapterContext.mqttEnabled && (
+          <MqttControls placement="menu" notify={notify} onPublished={close} />
+        )}
+        <div className="nav-dropdown-separator" />
+        <button
+          type="button"
+          className="nav-dropdown-link"
+          role="menuitem"
+          onClick={() => {
+            setPage("backgrounds");
+            close();
+          }}
+          title="Open the global background library"
+        >
+          <span>Backgrounds</span>
+          <span className="nav-dropdown-external" aria-hidden="true">
+            ◫
+          </span>
+        </button>
+        <button
+          type="button"
+          className="nav-dropdown-link"
+          role="menuitem"
+          onClick={() => {
+            setPage("stingers");
+            close();
+          }}
+          title="Open the transition stinger library"
+        >
+          <span>Stingers</span>
+          <span className="nav-dropdown-external" aria-hidden="true">
+            ✦
+          </span>
+        </button>
+        <button
+          type="button"
+          className="nav-dropdown-link"
+          role="menuitem"
+          onClick={() => {
+            setPage("dedupe");
+            close();
+          }}
+          title="Find duplicate songs, preview differences and keep the best version"
+        >
+          <span>DeDupe</span>
+          <span className="nav-dropdown-external" aria-hidden="true">
+            ⧉
+          </span>
+        </button>
+        {user?.role === "admin" && (
+          <button
+            type="button"
+            className="nav-dropdown-link"
+            role="menuitem"
+            onClick={() => {
+              setPage("users");
+              close();
+            }}
+            title="Manage users, write permissions and activity"
+          >
+            <span>Users</span>
+            <span className="nav-dropdown-external" aria-hidden="true">
+              ◉
+            </span>
+          </button>
+        )}
+        {user?.role === "admin" && adapterContext.mqttEnabled && (
+          <button
+            type="button"
+            className="nav-dropdown-link"
+            role="menuitem"
+            onClick={() => {
+              setPage("mqtt");
+              close();
+            }}
+            title="Configure MQTT broker, commands and outgoing controls"
+          >
+            <span>MQTT</span>
+            <span className="nav-dropdown-external" aria-hidden="true">
+              ⇄
+            </span>
+          </button>
+        )}
+        <button
+          type="button"
+          className="nav-dropdown-link"
+          role="menuitem"
+          onClick={() => {
+            setPage("outputs");
+            close();
+          }}
+          title="Configure display outputs, templates and transitions"
+        >
+          <span>Outputs</span>
+          <span className="nav-dropdown-external" aria-hidden="true">
+            ▤
+          </span>
+        </button>
+        <button
+          type="button"
+          className="nav-dropdown-link"
+          role="menuitem"
+          onClick={() => {
+            setPage("settings");
+            close();
+          }}
+          title="Open adapter, display, keyboard and Git settings"
+        >
+          <span>Settings</span>
+          <span className="nav-dropdown-external" aria-hidden="true">
+            ⚙
+          </span>
+        </button>
+      </>
+    );
+  }
+
+  function renderCompactNav(close: () => void) {
+    const items: Array<{ page: Page; icon: string; label: string; title: string }> = [
+      {
+        page: "live",
+        icon: "▶",
+        label: "Live control",
+        title: "Open live control, transport and display settings",
+      },
+      {
+        page: "setlists",
+        icon: "▤",
+        label: "Set lists",
+        title: "Open set lists to plan and publish services",
+      },
+      {
+        page: "songs",
+        icon: "♫",
+        label: "Songs",
+        title: "Open the song library and import tools",
+      },
+      {
+        page: "images",
+        icon: "▣",
+        label: "Images",
+        title: "Browse, upload and add images to set lists",
+      },
+      {
+        page: "tarp",
+        icon: "▧",
+        label: "Tarp",
+        title: "Create Tarp themes and presentations",
+      },
+      {
+        page: "bible",
+        icon: "✝",
+        label: "Bible",
+        title: "Look up a Bible passage to display or add to a set list",
+      },
+      {
+        page: "help",
+        icon: "?",
+        label: "Help",
+        title: "Open the service-day guide and troubleshooting reference",
+      },
+    ];
+    if (adapterContext.churchSuiteEnabled) {
+      items.splice(6, 0, {
+        page: "churchsuite",
+        icon: "⛪",
+        label: "ChurchSuite",
+        title: "Pull ChurchSuite plans and create draft set lists",
+      });
+    }
+    return items.map((item) => (
+      <button
+        key={item.page}
+        type="button"
+        className={`nav-dropdown-link ${page === item.page ? "active" : ""}`}
+        role="menuitem"
+        onClick={() => {
+          setPage(item.page);
+          close();
+        }}
+        title={item.title}
+      >
+        <span>{item.label}</span>
+        <span className="nav-dropdown-external" aria-hidden="true">
+          {item.icon}
+        </span>
+      </button>
+    ));
+  }
+
   if (loading) {
     return <div className="boot">Loading Service Maestro…</div>;
   }
@@ -604,139 +845,7 @@ export default function App() {
                 role="menu"
                 style={{ top: menuPosition.top, left: menuPosition.left }}
               >
-                <div className="nav-dropdown-label">External links</div>
-                {displayViews.map((view) => (
-                  <a
-                    key={view.id}
-                    className="nav-dropdown-link"
-                    href={view.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    role="menuitem"
-                    onClick={() => setMenuOpen(false)}
-                    title={`Open ${view.label} in a new tab`}
-                  >
-                    <span>{view.label}</span>
-                    <span className="nav-dropdown-external" aria-hidden="true">
-                      ↗
-                    </span>
-                  </a>
-                ))}
-                {!displayViews.length && <span className="nav-dropdown-empty">No views available</span>}
-                {adapterContext.mqttEnabled && (
-                  <MqttControls
-                    placement="menu"
-                    notify={notify}
-                    onPublished={() => setMenuOpen(false)}
-                  />
-                )}
-                <div className="nav-dropdown-separator" />
-                <button
-                  type="button"
-                  className="nav-dropdown-link"
-                  role="menuitem"
-                  onClick={() => {
-                    setPage("backgrounds");
-                    setMenuOpen(false);
-                  }}
-                  title="Open the global background library"
-                >
-                  <span>Backgrounds</span>
-                  <span className="nav-dropdown-external" aria-hidden="true">
-                    ◫
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  className="nav-dropdown-link"
-                  role="menuitem"
-                  onClick={() => {
-                    setPage("stingers");
-                    setMenuOpen(false);
-                  }}
-                  title="Open the transition stinger library"
-                >
-                  <span>Stingers</span>
-                  <span className="nav-dropdown-external" aria-hidden="true">
-                    ✦
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  className="nav-dropdown-link"
-                  role="menuitem"
-                  onClick={() => {
-                    setPage("dedupe");
-                    setMenuOpen(false);
-                  }}
-                  title="Find duplicate songs, preview differences and keep the best version"
-                >
-                  <span>DeDupe</span>
-                  <span className="nav-dropdown-external" aria-hidden="true">
-                    ⧉
-                  </span>
-                </button>
-                {user.role === "admin" && (
-                  <button
-                    type="button"
-                    className="nav-dropdown-link"
-                    role="menuitem"
-                    onClick={() => {
-                      setPage("users");
-                      setMenuOpen(false);
-                    }}
-                    title="Manage users, write permissions and activity"
-                  >
-                    <span>Users</span>
-                    <span className="nav-dropdown-external" aria-hidden="true">
-                      ◉
-                    </span>
-                  </button>
-                )}
-                {user.role === "admin" && adapterContext.mqttEnabled && (
-                  <button
-                    type="button"
-                    className="nav-dropdown-link"
-                    role="menuitem"
-                    onClick={() => {
-                      setPage("mqtt");
-                      setMenuOpen(false);
-                    }}
-                    title="Configure MQTT broker, commands and outgoing controls"
-                  >
-                    <span>MQTT</span>
-                    <span className="nav-dropdown-external" aria-hidden="true">
-                      ⇄
-                    </span>
-                  </button>
-                )}
-                <button
-                  type="button"
-                  className="nav-dropdown-link"
-                  role="menuitem"
-                  onClick={() => {
-                    setPage("outputs");
-                    setMenuOpen(false);
-                  }}
-                  title="Configure display outputs, templates and transitions"
-                >
-                  <span>Outputs</span>
-                  <span className="nav-dropdown-external" aria-hidden="true">
-                    ▤
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  className="nav-dropdown-link"
-                  role="menuitem"
-                  onClick={openSettings}
-                  title="Open adapter, display, keyboard and Git settings"
-                >
-                  <span>Settings</span>
-                  <span className="nav-dropdown-external" aria-hidden="true">
-                    ⚙
-                  </span>
-                </button>
+                {renderMoreMenu(() => setMenuOpen(false))}
               </div>
             )}
           </div>
@@ -772,15 +881,72 @@ export default function App() {
             </p>
           </div>
           <div className="topbar-actions">
-            {!topbarMode && (
-              <button
-                className="button ghost small layout-toggle"
-                onClick={() => setSidebarCollapsed((current) => !current)}
-                title={sidebarCollapsed ? "Show navigation" : "Collapse the left navigation"}
-              >
-                {sidebarCollapsed ? "☰ Show menu" : "⇤ Hide menu"}
-              </button>
-            )}
+            {!topbarMode &&
+              (sidebarCollapsed ? (
+                <div className="topbar-menu" ref={compactMenuRef}>
+                  <button
+                    className="button ghost small compact-menu-toggle"
+                    onClick={() => setCompactMenuOpen((current) => !current)}
+                    aria-haspopup="menu"
+                    aria-expanded={compactMenuOpen}
+                    aria-label="Open navigation menu"
+                    title="Open navigation menu"
+                  >
+                    <span aria-hidden="true">☰</span>
+                  </button>
+                  {compactMenuOpen && (
+                    <div className="nav-dropdown compact-menu-dropdown" role="menu">
+                      <div className="nav-dropdown-label">Navigate</div>
+                      {renderCompactNav(() => setCompactMenuOpen(false))}
+                      <div className="nav-dropdown-separator" />
+                      {renderMoreMenu(() => setCompactMenuOpen(false))}
+                      <div className="nav-dropdown-separator" />
+                      <button
+                        type="button"
+                        className="nav-dropdown-link"
+                        role="menuitem"
+                        onClick={() => {
+                          setSidebarCollapsed(false);
+                          setCompactMenuOpen(false);
+                        }}
+                        title="Restore the sidebar navigation"
+                      >
+                        <span>Show sidebar</span>
+                        <span className="nav-dropdown-external" aria-hidden="true">
+                          ⇤
+                        </span>
+                      </button>
+                      <div className="compact-menu-status">
+                        <span className={`dot ${connected ? "online" : "offline"}`} />
+                        {connected ? "Connected" : "Reconnecting…"} · {user.username}
+                      </div>
+                      <button
+                        type="button"
+                        className="nav-dropdown-link danger-text"
+                        role="menuitem"
+                        onClick={() => {
+                          setCompactMenuOpen(false);
+                          void logout();
+                        }}
+                        title="Sign out of Service Maestro"
+                      >
+                        <span>Sign out</span>
+                        <span className="nav-dropdown-external" aria-hidden="true">
+                          ⏻
+                        </span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <button
+                  className="button ghost small layout-toggle"
+                  onClick={() => setSidebarCollapsed(true)}
+                  title="Collapse the left navigation"
+                >
+                  ⇤ Hide menu
+                </button>
+              ))}
             <button
               className="button ghost small layout-toggle"
               onClick={() => setTopbarMode((current) => !current)}
