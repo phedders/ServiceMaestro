@@ -219,6 +219,26 @@ export default function OutputsPage({
     );
   }
 
+  function clockStyleValue(clock: DisplayOutput["clock"]): "analog" | "digital24" | "digital12" {
+    if (clock.mode === "analog") return "analog";
+    return clock.hour12 ? "digital12" : "digital24";
+  }
+
+  function setClockStyle(value: "analog" | "digital24" | "digital12") {
+    setDraft((current) =>
+      current
+        ? {
+            ...current,
+            clock: {
+              ...current.clock,
+              mode: value === "analog" ? "analog" : "digital",
+              hour12: value === "digital12",
+            },
+          }
+        : current,
+    );
+  }
+
   const selectedEntry = outputs.find((entry) => entry.id === selectedId) ?? null;
   const scope: DisplayOutputScope | null = selectedEntry?.scope ?? creatingScope;
   const preview = selectedEntry
@@ -745,13 +765,16 @@ export default function OutputsPage({
               <label>
                 Clock style
                 <select
-                  value={draft.clock.mode}
+                  value={clockStyleValue(draft.clock)}
                   onChange={(event) =>
-                    setClock("mode", event.target.value as DisplayOutput["clock"]["mode"])
+                    setClockStyle(
+                      event.target.value as "analog" | "digital24" | "digital12",
+                    )
                   }
                 >
-                  <option value="digital">Digital</option>
                   <option value="analog">Analogue (no numbers)</option>
+                  <option value="digital24">Digital 24-hour</option>
+                  <option value="digital12">Digital 12-hour</option>
                 </select>
               </label>
               <label>
@@ -809,28 +832,16 @@ export default function OutputsPage({
                 {draft.clock.mode === "analog" ? "Second hand" : "Show seconds"}
               </label>
               {draft.clock.mode === "digital" && (
-                <>
-                  <label>
-                    Time format
-                    <select
-                      value={draft.clock.hour12 ? "12" : "24"}
-                      onChange={(event) => setClock("hour12", event.target.value === "12")}
-                    >
-                      <option value="24">24-hour</option>
-                      <option value="12">12-hour</option>
-                    </select>
-                  </label>
-                  <label className="grow">
-                    Font family override
-                    <input
-                      value={draft.clock.fontFamily ?? ""}
-                      onChange={(event) =>
-                        setClock("fontFamily", event.target.value.trim() || null)
-                      }
-                      placeholder="Inherit global font"
-                    />
-                  </label>
-                </>
+                <label className="grow">
+                  Font family override
+                  <input
+                    value={draft.clock.fontFamily ?? ""}
+                    onChange={(event) =>
+                      setClock("fontFamily", event.target.value.trim() || null)
+                    }
+                    placeholder="Inherit global font"
+                  />
+                </label>
               )}
             </div>
             <p className="hint">
