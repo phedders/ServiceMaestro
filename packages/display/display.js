@@ -1,5 +1,6 @@
 (() => {
   const target = document.body.dataset.target || "main";
+  const outputId = document.body.dataset.output || target;
   const params = new URLSearchParams(window.location.search);
   const token = params.get("token") || "dev-output";
   const root = document.getElementById("sm-root");
@@ -21,15 +22,243 @@
     reconnectionDelayMax: 4000,
   });
 
-  const FADE_MS = 240;
-  const FADE_CLASS = target === "main" ? "sm-text-fading" : "sm-fading";
+  let fadeMs = 240;
+  let fadeMode = target === "main" ? "text" : "template";
   const HEARTBEAT_TIMEOUT_MS = 45_000;
   const HEARTBEAT_CHECK_MS = 5_000;
   let lastHeartbeat = Date.now();
   let lastHtml = "";
-  let lastCss = "";
+  let lastCss = null;
   let lastBackground = "";
   let fadeTimer = null;
+
+  const OUTPUT_CSS = `
+body[data-target="main"] { --sm-output-base-font-size: clamp(2.2rem, 4.4vw, 5.5rem); }
+body[data-target="two_thirds"] { --sm-output-base-font-size: clamp(2rem, 4vw, 5.2rem); }
+body[data-target="full"] { --sm-output-base-font-size: clamp(2.8rem, 5.4vw, 6.6rem); }
+body[data-target="stage"] { --sm-output-base-font-size: clamp(1.6rem, 2.9vw, 3.6rem); }
+body[data-target="chords"] { --sm-output-base-font-size: clamp(1.7rem, 3.4vw, 4.4rem); }
+
+body.sm-output-configured {
+  background: var(--sm-output-bg, #000000);
+}
+body.sm-output-configured .sm-template {
+  padding: var(--sm-output-padding-top, 4vh) var(--sm-output-padding-x, 6vw) var(--sm-output-padding-bottom, 4vh);
+  align-items: var(--sm-output-align-items, center);
+  justify-content: var(--sm-output-justify, center);
+  text-align: var(--sm-output-text-align, center);
+}
+body.sm-output-configured .sm-content {
+  max-width: var(--sm-output-max-width, 100%);
+  max-height: var(--sm-output-max-height, 100%);
+  font-size: calc(var(--sm-output-base-font-size, 4vw) * var(--sm-output-text-scale, 1));
+  color: var(--sm-output-text-color, #ffffff);
+  font-family: var(--sm-output-font-family, inherit);
+  line-height: var(--sm-output-line-height, 1.18);
+}
+body.sm-output-configured .sm-footer,
+body.sm-output-configured .sm-meta {
+  max-width: var(--sm-output-max-width, 100%);
+}
+body.sm-output-configured .sm-meta {
+  display: var(--sm-output-meta-display, block);
+}
+body.sm-output-configured .sm-footer {
+  display: var(--sm-output-footer-display, block);
+}
+body.sm-output-configured .sm-content .chord {
+  display: var(--sm-output-chord-display, none);
+}
+body.sm-output-configured .sm-content .section-label {
+  display: var(--sm-output-section-display, none);
+}
+body.sm-output-configured .sm-content .lyric-split {
+  display: var(--sm-output-split-display, none);
+}
+body.sm-output-configured .sm-lowerthird-panel {
+  max-width: var(--sm-output-panel-max-width, 100%);
+  max-height: var(--sm-output-panel-max-height, 100%);
+  padding: var(--sm-output-panel-padding, 20px 28px);
+  border-radius: var(--sm-output-panel-radius, 18px);
+  background: var(--sm-output-panel-bg, rgba(6, 10, 16, 0.8));
+  border: var(--sm-output-panel-border, 1px solid rgba(255, 255, 255, 0.3));
+}
+body.sm-output-configured.output-panel-off .sm-lowerthird-panel {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+body.sm-output-configured .sm-content .slide-image,
+body.sm-output-configured .sm-content .slide-image.fit-actual,
+body.sm-output-configured .sm-content .slide-image.fit-crop,
+body.sm-output-configured .sm-content .slide-image.fit-stretch {
+  height: var(--sm-output-image-max-height, 78vh);
+  max-height: var(--sm-output-image-max-height, 78vh);
+  padding: var(--sm-output-image-padding, 0);
+}
+body.sm-output-configured .sm-content .slide-image img {
+  max-height: 100%;
+}
+body.sm-output-configured .sm-template,
+body.sm-output-configured .sm-lowerthird-panel .sm-content,
+body.sm-output-configured .sm-lowerthird-panel .sm-footer {
+  transition-duration: var(--sm-output-fade-ms, 240ms);
+}
+body.sm-output-configured.mode-image .sm-template {
+  padding: 0;
+}
+body.sm-output-configured.mode-image .sm-lowerthird-panel {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+body.sm-output-configured.mode-image .sm-footer {
+  display: none;
+}
+`;
+
+  function hexRgb(value, fallback) {
+    const match = String(value || "").match(/^#([0-9a-f]{6})$/i);
+    if (!match) return fallback;
+    const number = Number.parseInt(match[1], 16);
+    return `${(number >> 16) & 255}, ${(number >> 8) & 255}, ${number & 255}`;
+  }
+
+  function applyOutputConfig(state) {
+    const config = state.displayConfig || {};
+    const main = target === "main";
+    const baseScale = main
+      ? config.lowerThirdTextScale ?? config.textScale ?? 1
+      : config.textScale ?? 1;
+    const vars = document.documentElement.style;
+    vars.setProperty("--sm-text-scale", String(baseScale));
+    vars.setProperty("--sm-text-color", config.textColor || "#ffffff");
+    vars.setProperty(
+      "--sm-font-family",
+      (main ? config.lowerThirdFontFamily || config.fontFamily : config.fontFamily) ||
+        '"Clear Sans", "Segoe UI", system-ui, -apple-system, sans-serif',
+    );
+    vars.setProperty(
+      "--sm-lowerthird-image-max-height",
+      `${config.lowerThirdImageMaxHeightPercent ?? 30}vh`,
+    );
+    const lowerThirdPadding = `${config.lowerThirdImagePadding ?? 48}px`;
+    vars.setProperty("--sm-lowerthird-padding", lowerThirdPadding);
+    vars.setProperty("--sm-lowerthird-image-padding", lowerThirdPadding);
+
+    const output = state.outputs && state.outputs[outputId];
+    if (!output) {
+      document.body.classList.remove("sm-output-configured", "output-panel-off");
+      for (const property of [
+        "--sm-output-bg",
+        "--sm-output-text-scale",
+        "--sm-output-text-color",
+        "--sm-output-font-family",
+        "--sm-output-line-height",
+        "--sm-output-padding-x",
+        "--sm-output-padding-top",
+        "--sm-output-padding-bottom",
+        "--sm-output-align-items",
+        "--sm-output-justify",
+        "--sm-output-text-align",
+        "--sm-output-max-width",
+        "--sm-output-max-height",
+        "--sm-output-panel-bg",
+        "--sm-output-panel-padding",
+        "--sm-output-panel-radius",
+        "--sm-output-panel-border",
+        "--sm-output-panel-max-width",
+        "--sm-output-panel-max-height",
+        "--sm-output-image-max-height",
+        "--sm-output-image-padding",
+        "--sm-output-meta-display",
+        "--sm-output-footer-display",
+        "--sm-output-chord-display",
+        "--sm-output-section-display",
+        "--sm-output-split-display",
+        "--sm-output-fade-ms",
+      ]) {
+        vars.removeProperty(property);
+      }
+      fadeMs = 240;
+      fadeMode = target === "main" ? "text" : "template";
+      return;
+    }
+
+    const textScale = (output.text.scale ?? 1) * baseScale;
+    const fontFamily =
+      output.text.fontFamily ||
+      (main ? config.lowerThirdFontFamily || config.fontFamily : config.fontFamily) ||
+      '"Clear Sans", "Segoe UI", system-ui, -apple-system, sans-serif';
+    const imageMaxHeight =
+      output.image.maxHeightPercent ??
+      (main ? config.lowerThirdImageMaxHeightPercent ?? 30 : 78);
+    const imagePadding =
+      output.image.padding ?? (main ? config.lowerThirdImagePadding ?? 48 : 0);
+    const alignItems =
+      output.layout.align === "left" ? "flex-start" : "center";
+    const justifyContent =
+      output.layout.verticalAlign === "start"
+        ? "flex-start"
+        : output.layout.verticalAlign === "end"
+          ? "flex-end"
+          : "center";
+
+    document.body.classList.add("sm-output-configured");
+    document.body.classList.toggle("output-panel-off", !output.panel.enabled);
+    vars.setProperty(
+      "--sm-output-bg",
+      `rgba(${hexRgb(output.background, "0, 0, 0")}, ${output.backgroundAlpha})`,
+    );
+    vars.setProperty("--sm-output-text-scale", String(textScale));
+    vars.setProperty("--sm-output-text-color", output.text.textColor || config.textColor || "#ffffff");
+    vars.setProperty("--sm-output-font-family", fontFamily);
+    vars.setProperty("--sm-output-line-height", String(output.text.lineHeight ?? 1.1));
+    vars.setProperty("--sm-output-padding-x", `${output.layout.paddingX}vw`);
+    vars.setProperty("--sm-output-padding-top", `${output.layout.paddingTop}vh`);
+    vars.setProperty("--sm-output-padding-bottom", `${output.layout.paddingBottom}vh`);
+    vars.setProperty("--sm-output-align-items", alignItems);
+    vars.setProperty("--sm-output-justify", justifyContent);
+    vars.setProperty("--sm-output-text-align", output.layout.textAlign);
+    vars.setProperty("--sm-output-max-width", `${output.layout.maxWidthPercent}%`);
+    vars.setProperty("--sm-output-max-height", `${output.layout.maxHeightPercent}%`);
+    vars.setProperty(
+      "--sm-output-panel-bg",
+      `rgba(${hexRgb(output.panel.color, "6, 10, 16")}, ${output.panel.alpha})`,
+    );
+    vars.setProperty(
+      "--sm-output-panel-padding",
+      `${output.panel.paddingY}px ${output.panel.paddingX}px`,
+    );
+    vars.setProperty("--sm-output-panel-radius", `${output.panel.radius}px`);
+    vars.setProperty(
+      "--sm-output-panel-border",
+      output.panel.border ? "1px solid rgba(255, 255, 255, 0.3)" : "0",
+    );
+    vars.setProperty("--sm-output-panel-max-width", `${output.panel.maxWidthPercent}%`);
+    vars.setProperty("--sm-output-panel-max-height", `${output.panel.maxHeightPercent}%`);
+    vars.setProperty("--sm-output-image-max-height", `${imageMaxHeight}vh`);
+    vars.setProperty("--sm-output-image-padding", `${imagePadding}px`);
+    vars.setProperty("--sm-output-meta-display", output.content.showMeta ? "block" : "none");
+    vars.setProperty("--sm-output-footer-display", output.content.showFooter ? "block" : "none");
+    vars.setProperty(
+      "--sm-output-chord-display",
+      output.content.showChords ? "inline-block" : "none",
+    );
+    vars.setProperty(
+      "--sm-output-section-display",
+      output.content.showSectionLabels ? "block" : "none",
+    );
+    vars.setProperty(
+      "--sm-output-split-display",
+      output.content.showSplitWords ? "inline" : "none",
+    );
+    vars.setProperty("--sm-output-fade-ms", `${output.fadeDurationMs}ms`);
+    fadeMode = output.fade;
+    fadeMs = Math.max(0, output.fadeDurationMs);
+  }
   let stingerCommitTimer = null;
   let stingerEndTimer = null;
   let pendingStingerPage = "";
@@ -70,8 +299,12 @@
   function compose(state, template) {
     const page = state.pages && state.pages[state.pageIndex];
     const pageNumber = page ? state.pageIndex + 1 : 0;
+    const output = state.outputs && state.outputs[outputId];
+    const showUpcoming = output
+      ? output.content.pages === "upcoming"
+      : target === "stage" || target === "chords";
     const livePages =
-      target === "stage" || target === "chords"
+      showUpcoming
         ? (state.pages || [])
             .slice(state.pageIndex)
             .map((item, offset) => {
@@ -392,37 +625,7 @@
     const deferBackground = Boolean(pageChanged && stinger && root.innerHTML);
     if (!deferBackground) applyBackground();
 
-    const config = state.displayConfig || {};
-    if (target === "main" || target === "two_thirds" || target === "full") {
-      const lowerThird = target === "main";
-      root.style.setProperty(
-        "--sm-text-scale",
-        String(
-          lowerThird
-            ? config.lowerThirdTextScale ?? config.textScale ?? 1
-            : config.textScale ?? 1,
-        ),
-      );
-      root.style.setProperty("--sm-text-color", config.textColor || "#ffffff");
-      root.style.setProperty(
-        "--sm-font-family",
-        (lowerThird
-          ? config.lowerThirdFontFamily || config.fontFamily
-          : config.fontFamily) ||
-          '"Clear Sans", "Segoe UI", system-ui, -apple-system, sans-serif',
-      );
-      root.style.setProperty(
-        "--sm-lowerthird-image-max-height",
-        `${config.lowerThirdImageMaxHeightPercent ?? 30}vh`,
-      );
-      const lowerThirdPadding = `${config.lowerThirdImagePadding ?? 48}px`;
-      root.style.setProperty("--sm-lowerthird-padding", lowerThirdPadding);
-      root.style.setProperty("--sm-lowerthird-image-padding", lowerThirdPadding);
-    } else {
-      root.style.removeProperty("--sm-text-scale");
-      root.style.removeProperty("--sm-text-color");
-      root.style.removeProperty("--sm-font-family");
-    }
+    applyOutputConfig(state);
 
     const template = templateFor(state);
     const html = compose(state, template);
@@ -442,7 +645,7 @@
     const commit = () => {
       applyBackground();
       if (template.css !== lastCss) {
-        style.textContent = template.css;
+        style.textContent = `${template.css}\n${OUTPUT_CSS}`;
         lastCss = template.css;
       }
       swapHtml(html, tarpPageChange);
@@ -466,11 +669,11 @@
     }
 
     cancelStinger();
-    if (root.innerHTML) {
-      document.body.classList.add(FADE_CLASS);
+    if (root.innerHTML && fadeMode !== "none" && fadeMs > 0) {
+      document.body.classList.add(fadeMode === "text" ? "sm-text-fading" : "sm-fading");
       if (fadeTimer) clearTimeout(fadeTimer);
       // Wait for the fade-out to finish before swapping the text.
-      fadeTimer = setTimeout(commit, FADE_MS);
+      fadeTimer = setTimeout(commit, fadeMs);
     } else {
       commit();
     }

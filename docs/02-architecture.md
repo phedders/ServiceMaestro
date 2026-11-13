@@ -225,6 +225,7 @@ Rules:
 | `/api/usage/report` | CCLI usage export | admin |
 | `/api/widgets`, `/api/dashboards/*` | Dashboard layout registry, personal/shared layouts, publish | per dashboard role |
 | `/api/display/config` | Font, colour, size, max-lines/max-words and smart page-split display settings | operator |
+| `/api/outputs` | Shared/local display output definitions, aliases and per-output fade/layout/background/panel/text/image settings | settings write |
 | `/api/fonts`, `/api/fonts/import`, `/api/fonts/import-missing` | Imported Google Fonts cached under `/data/fonts`; shared font manifest and missing-font download | editor/admin |
 | `/api/integrations/churchsuite/*` | ChurchSuite status, connection test, plan exploration | editor/admin |
 | `/collab/dashboards/:id` (WS) | Yjs collaborative layout editing + presence | edit permission |

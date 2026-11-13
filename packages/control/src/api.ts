@@ -23,6 +23,9 @@ import type {
   ControlTlsReport,
   DashboardLayout,
   DisplayConfig,
+  DisplayOutput,
+  DisplayOutputEntry,
+  DisplayOutputScope,
   DisplayViewLink,
   FontDownloadReport,
   FontLibraryStatus,
@@ -743,6 +746,22 @@ export const api = {
       body: JSON.stringify({ pageIds }),
     }),
   displayViews: () => request<{ views: DisplayViewLink[] }>("/api/display/views"),
+  outputs: () => request<{ outputs: DisplayOutputEntry[] }>("/api/outputs"),
+  createOutput: (output: DisplayOutput, scope: DisplayOutputScope) =>
+    request<{ output: DisplayOutputEntry; outputs: DisplayOutputEntry[] }>("/api/outputs", {
+      method: "POST",
+      body: JSON.stringify({ output, scope }),
+    }),
+  updateOutput: (id: string, output: DisplayOutput) =>
+    request<{ output: DisplayOutputEntry; outputs: DisplayOutputEntry[] }>(
+      `/api/outputs/${encodeURIComponent(id)}`,
+      { method: "PUT", body: JSON.stringify({ output }) },
+    ),
+  deleteOutput: (id: string) =>
+    request<{ ok: true; outputs: DisplayOutputEntry[] }>(
+      `/api/outputs/${encodeURIComponent(id)}`,
+      { method: "DELETE" },
+    ),
   displayConfig: () => request<{ config: DisplayConfig }>("/api/display/config"),
   saveDisplayConfig: (config: DisplayConfig) =>
     request<{ config: DisplayConfig; state: LiveState }>("/api/display/config", {

@@ -22,6 +22,7 @@ import type {
 import { db } from "./db.js";
 import { buildPages, type RenderItem } from "./render.js";
 import { resolveTemplates } from "./templates.js";
+import { displayOutputsMap } from "./display-outputs.js";
 import { getDisplayConfig } from "./display-config.js";
 import { getAppSettings } from "./settings.js";
 import { resolveImage } from "./images.js";
@@ -341,6 +342,7 @@ class LiveService {
         ...idleState(),
         background: null,
         templates: resolveTemplates(null),
+        outputs: displayOutputsMap(),
         displayConfig: config,
       };
     }
@@ -355,6 +357,7 @@ class LiveService {
       pages: state.pages,
       background,
       templates: resolveTemplates(this.active.setlistId),
+      outputs: displayOutputsMap(),
       displayConfig: config,
       autoplay: this.currentAutoplayState(),
     };

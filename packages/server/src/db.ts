@@ -170,6 +170,20 @@ db.exec(`
     updated_at TEXT NOT NULL
   );
 
+  CREATE TABLE IF NOT EXISTS display_outputs (
+    id TEXT PRIMARY KEY,
+    label TEXT NOT NULL,
+    template TEXT NOT NULL,
+    scope TEXT NOT NULL CHECK(scope IN ('shared', 'local')),
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    config_json TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_display_outputs_scope
+    ON display_outputs(scope, sort_order);
+
   CREATE TABLE IF NOT EXISTS fonts (
     id TEXT PRIMARY KEY,
     label TEXT NOT NULL,

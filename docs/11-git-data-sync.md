@@ -79,13 +79,19 @@ setlists/
 
 `settings/shared.json` records values that should match across instances: page
 navigation, ChurchSuite empty-item types, the default Bible version, song page-ID
-shortcuts, display styling, the global background palette, and Google fonts downloaded
-by any instance. Font entries store the name, CSS family and original Google Fonts URL
-so another server can highlight fonts it is missing and download one or all of them
-from Settings.
+shortcuts, display styling, the global background palette, shared display-output
+definitions, and Google fonts downloaded by any instance. Font entries store the name,
+CSS family and original Google Fonts URL so another server can highlight fonts it is
+missing and download one or all of them from Settings.
+
+Display outputs have a shared/local split: shared definitions are written to
+`settings/shared.json`, while local output extras stay in the instance database and are
+never exported. Shared outputs can be removed or edited from **Menu → Outputs**; local
+outputs are available only on that server.
 
 Server-specific configuration stays local: ports, data paths, credentials, output
-site scraping credentials, SongSelect watched-folder state and Git repository settings are not shared.
+site scraping credentials, SongSelect watched-folder state, local output extras and Git
+repository settings are not shared.
 
 `<setlist-id>.json`:
 

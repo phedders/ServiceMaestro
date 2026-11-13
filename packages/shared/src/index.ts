@@ -574,7 +574,293 @@ export interface DisplayViewLink {
   id: string;
   label: string;
   url: string;
+  kind?: "display" | "app";
 }
+
+export const DISPLAY_OUTPUT_TEMPLATES = [
+  "main",
+  "two_thirds",
+  "full",
+  "stage",
+  "chords",
+] as const;
+export type DisplayOutputTemplate = (typeof DISPLAY_OUTPUT_TEMPLATES)[number];
+export type DisplayOutputFade = "none" | "text" | "template";
+export type DisplayOutputScope = "shared" | "local";
+
+export interface DisplayOutput {
+  id: string;
+  label: string;
+  description: string;
+  template: DisplayOutputTemplate;
+  enabled: boolean;
+  aliases: string[];
+  fade: DisplayOutputFade;
+  fadeDurationMs: number;
+  background: string;
+  backgroundAlpha: number;
+  layout: {
+    align: "left" | "center";
+    verticalAlign: "start" | "center" | "end";
+    textAlign: "left" | "center" | "right";
+    paddingX: number;
+    paddingTop: number;
+    paddingBottom: number;
+    maxWidthPercent: number;
+    maxHeightPercent: number;
+  };
+  panel: {
+    enabled: boolean;
+    color: string;
+    alpha: number;
+    paddingX: number;
+    paddingY: number;
+    radius: number;
+    border: boolean;
+    maxWidthPercent: number;
+    maxHeightPercent: number;
+  };
+  text: {
+    fontFamily: string | null;
+    textColor: string | null;
+    scale: number;
+    lineHeight: number;
+  };
+  content: {
+    pages: "current" | "upcoming";
+    showMeta: boolean;
+    showFooter: boolean;
+    showChords: boolean;
+    showSectionLabels: boolean;
+    showSplitWords: boolean;
+  };
+  image: {
+    maxHeightPercent: number | null;
+    padding: number | null;
+  };
+}
+
+export interface DisplayOutputEntry extends DisplayOutput {
+  scope: DisplayOutputScope;
+}
+
+export const DEFAULT_DISPLAY_OUTPUTS: DisplayOutput[] = [
+  {
+    id: "lowerthird",
+    label: "Lower third",
+    description: "Transparent lower-third panel for lyrics, text and lower-third images.",
+    template: "main",
+    enabled: true,
+    aliases: ["main", "lower", "lowerthird", "twothirds"],
+    fade: "text",
+    fadeDurationMs: 240,
+    background: "#000000",
+    backgroundAlpha: 0,
+    layout: {
+      align: "center",
+      verticalAlign: "end",
+      textAlign: "center",
+      paddingX: 6,
+      paddingTop: 0,
+      paddingBottom: 6,
+      maxWidthPercent: 100,
+      maxHeightPercent: 100,
+    },
+    panel: {
+      enabled: true,
+      color: "#060a10",
+      alpha: 0.8,
+      paddingX: 28,
+      paddingY: 20,
+      radius: 18,
+      border: true,
+      maxWidthPercent: 100,
+      maxHeightPercent: 100,
+    },
+    text: { fontFamily: null, textColor: null, scale: 1, lineHeight: 0.8 },
+    content: {
+      pages: "current",
+      showMeta: false,
+      showFooter: true,
+      showChords: false,
+      showSectionLabels: false,
+      showSplitWords: false,
+    },
+    image: { maxHeightPercent: null, padding: null },
+  },
+  {
+    id: "two-thirds",
+    label: "Centered two-thirds",
+    description: "Centered full-width lyrics without a lower-third panel.",
+    template: "two_thirds",
+    enabled: true,
+    aliases: ["two-thirds", "two_thirds"],
+    fade: "template",
+    fadeDurationMs: 240,
+    background: "#000000",
+    backgroundAlpha: 1,
+    layout: {
+      align: "center",
+      verticalAlign: "center",
+      textAlign: "center",
+      paddingX: 8,
+      paddingTop: 5,
+      paddingBottom: 5,
+      maxWidthPercent: 100,
+      maxHeightPercent: 100,
+    },
+    panel: {
+      enabled: false,
+      color: "#060a10",
+      alpha: 0.8,
+      paddingX: 28,
+      paddingY: 20,
+      radius: 18,
+      border: true,
+      maxWidthPercent: 100,
+      maxHeightPercent: 100,
+    },
+    text: { fontFamily: null, textColor: null, scale: 1, lineHeight: 1.2 },
+    content: {
+      pages: "current",
+      showMeta: false,
+      showFooter: true,
+      showChords: false,
+      showSectionLabels: false,
+      showSplitWords: false,
+    },
+    image: { maxHeightPercent: 78, padding: 0 },
+  },
+  {
+    id: "full",
+    label: "Full screen",
+    description: "Whole-screen lyrics for a dedicated projection or OBS source.",
+    template: "full",
+    enabled: true,
+    aliases: ["full", "fullscreen", "mainfull"],
+    fade: "template",
+    fadeDurationMs: 240,
+    background: "#000000",
+    backgroundAlpha: 1,
+    layout: {
+      align: "center",
+      verticalAlign: "center",
+      textAlign: "center",
+      paddingX: 2,
+      paddingTop: 2,
+      paddingBottom: 2,
+      maxWidthPercent: 100,
+      maxHeightPercent: 100,
+    },
+    panel: {
+      enabled: false,
+      color: "#060a10",
+      alpha: 0.8,
+      paddingX: 28,
+      paddingY: 20,
+      radius: 18,
+      border: true,
+      maxWidthPercent: 100,
+      maxHeightPercent: 100,
+    },
+    text: { fontFamily: null, textColor: null, scale: 1, lineHeight: 0.92 },
+    content: {
+      pages: "current",
+      showMeta: false,
+      showFooter: true,
+      showChords: false,
+      showSectionLabels: false,
+      showSplitWords: false,
+    },
+    image: { maxHeightPercent: 78, padding: 0 },
+  },
+  {
+    id: "stage",
+    label: "Stage",
+    description: "Left-aligned stage monitor with current and upcoming pages.",
+    template: "stage",
+    enabled: true,
+    aliases: ["stage"],
+    fade: "template",
+    fadeDurationMs: 240,
+    background: "#000000",
+    backgroundAlpha: 1,
+    layout: {
+      align: "left",
+      verticalAlign: "start",
+      textAlign: "left",
+      paddingX: 5,
+      paddingTop: 8,
+      paddingBottom: 4,
+      maxWidthPercent: 100,
+      maxHeightPercent: 100,
+    },
+    panel: {
+      enabled: false,
+      color: "#060a10",
+      alpha: 0.8,
+      paddingX: 28,
+      paddingY: 20,
+      radius: 18,
+      border: true,
+      maxWidthPercent: 100,
+      maxHeightPercent: 100,
+    },
+    text: { fontFamily: null, textColor: null, scale: 1, lineHeight: 0.9 },
+    content: {
+      pages: "upcoming",
+      showMeta: true,
+      showFooter: true,
+      showChords: false,
+      showSectionLabels: true,
+      showSplitWords: false,
+    },
+    image: { maxHeightPercent: 78, padding: 0 },
+  },
+  {
+    id: "chords",
+    label: "Chords",
+    description: "Chords and current/upcoming pages for musicians.",
+    template: "chords",
+    enabled: true,
+    aliases: ["chords"],
+    fade: "template",
+    fadeDurationMs: 240,
+    background: "#000000",
+    backgroundAlpha: 1,
+    layout: {
+      align: "center",
+      verticalAlign: "start",
+      textAlign: "center",
+      paddingX: 8,
+      paddingTop: 6,
+      paddingBottom: 4,
+      maxWidthPercent: 100,
+      maxHeightPercent: 100,
+    },
+    panel: {
+      enabled: false,
+      color: "#060a10",
+      alpha: 0.8,
+      paddingX: 28,
+      paddingY: 20,
+      radius: 18,
+      border: true,
+      maxWidthPercent: 100,
+      maxHeightPercent: 100,
+    },
+    text: { fontFamily: null, textColor: null, scale: 1, lineHeight: 0.9 },
+    content: {
+      pages: "upcoming",
+      showMeta: true,
+      showFooter: true,
+      showChords: true,
+      showSectionLabels: true,
+      showSplitWords: true,
+    },
+    image: { maxHeightPercent: 78, padding: 0 },
+  },
+];
 
 export type BackgroundKind = "image" | "css" | "svg";
 
@@ -959,6 +1245,7 @@ export interface LiveState {
   items: LiveItemSummary[];
   background?: BackgroundAsset | null;
   templates?: Record<string, DisplayTemplate>;
+  outputs?: Record<string, DisplayOutput>;
   displayConfig?: DisplayConfig;
   queuedItemIndex?: number | null;
   queuedTitle?: string | null;
@@ -1520,6 +1807,67 @@ export const displayConfigSchema = z.object({
   lowerThirdFontFamily: z.string().trim().min(1).max(200),
   lowerThirdTextScale: z.number().min(0.5).max(2.5),
 });
+
+const displayOutputHexColor = z.string().trim().regex(/^#[0-9a-f]{6}$/i);
+const displayOutputTextSchema = z.object({
+  fontFamily: z.string().trim().max(200).nullable().default(null),
+  textColor: displayOutputHexColor.nullable().default(null),
+  scale: z.number().min(0.5).max(2.5).default(1),
+  lineHeight: z.number().min(0.5).max(2).default(1.1),
+});
+const displayOutputLayoutSchema = z.object({
+  align: z.enum(["left", "center"]).default("center"),
+  verticalAlign: z.enum(["start", "center", "end"]).default("center"),
+  textAlign: z.enum(["left", "center", "right"]).default("center"),
+  paddingX: z.number().min(0).max(20).default(6),
+  paddingTop: z.number().min(0).max(20).default(4),
+  paddingBottom: z.number().min(0).max(20).default(4),
+  maxWidthPercent: z.number().min(10).max(100).default(100),
+  maxHeightPercent: z.number().min(10).max(100).default(100),
+});
+const displayOutputPanelSchema = z.object({
+  enabled: z.boolean().default(false),
+  color: displayOutputHexColor.default("#060a10"),
+  alpha: z.number().min(0).max(1).default(0.8),
+  paddingX: z.number().int().min(0).max(200).default(28),
+  paddingY: z.number().int().min(0).max(200).default(20),
+  radius: z.number().int().min(0).max(100).default(18),
+  border: z.boolean().default(true),
+  maxWidthPercent: z.number().min(10).max(100).default(100),
+  maxHeightPercent: z.number().min(10).max(100).default(100),
+});
+const displayOutputContentSchema = z.object({
+  pages: z.enum(["current", "upcoming"]).default("current"),
+  showMeta: z.boolean().default(false),
+  showFooter: z.boolean().default(true),
+  showChords: z.boolean().default(false),
+  showSectionLabels: z.boolean().default(false),
+  showSplitWords: z.boolean().default(false),
+});
+const displayOutputImageSchema = z.object({
+  maxHeightPercent: z.number().min(5).max(100).nullable().default(null),
+  padding: z.number().int().min(0).max(200).nullable().default(null),
+});
+
+export const displayOutputSchema = z.object({
+  id: z.string().trim().min(1).max(80).regex(/^[a-z0-9][a-z0-9-]*$/),
+  label: z.string().trim().min(1).max(80),
+  description: z.string().trim().max(300).default(""),
+  template: z.enum(DISPLAY_OUTPUT_TEMPLATES),
+  enabled: z.boolean().default(true),
+  aliases: z.array(z.string().trim().min(1).max(80)).max(30).default([]),
+  fade: z.enum(["none", "text", "template"]).default("template"),
+  fadeDurationMs: z.number().int().min(0).max(2000).default(240),
+  background: displayOutputHexColor.default("#000000"),
+  backgroundAlpha: z.number().min(0).max(1).default(1),
+  layout: displayOutputLayoutSchema.default({}),
+  panel: displayOutputPanelSchema.default({}),
+  text: displayOutputTextSchema.default({}),
+  content: displayOutputContentSchema.default({}),
+  image: displayOutputImageSchema.default({}),
+});
+
+export const displayOutputInputSchema = displayOutputSchema;
 
 const tarpColorSchema = z.string().trim().regex(/^#[0-9a-f]{6}$/i);
 

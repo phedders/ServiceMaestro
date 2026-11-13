@@ -4,9 +4,11 @@ import {
   appSettingsSchema,
   backgroundColorsSchema,
   displayConfigSchema,
+  displayOutputSchema,
   type AppSettings,
   type BackgroundColors,
   type DisplayConfig,
+  type DisplayOutput,
   type FontOption,
   type SharedFontOption,
 } from "@sm/shared";
@@ -15,6 +17,7 @@ import { GIT_REPOS } from "./config.js";
 import { getAppSettings, saveAppSettings } from "./settings.js";
 import { getDisplayConfig, saveDisplayConfig } from "./display-config.js";
 import { getBackgroundColors, saveBackgroundColors } from "./backgrounds.js";
+import { replaceSharedDisplayOutputs, sharedDisplayOutputs } from "./display-outputs.js";
 
 export const SHARED_SETTINGS_RELATIVE_PATH = path.join("settings", "shared.json");
 export const LEGACY_FONT_SETTINGS_RELATIVE_PATH = path.join("settings", "fonts.json");
@@ -27,6 +30,7 @@ export interface SharedSettings {
   appSettings: AppSettings | null;
   displayConfig: DisplayConfig | null;
   backgroundColors: BackgroundColors | null;
+  outputs: DisplayOutput[] | null;
 }
 
 interface SharedFontRow {
@@ -43,6 +47,7 @@ interface SharedSettingsPayload {
   appSettings: AppSettings;
   displayConfig: DisplayConfig;
   backgroundColors: BackgroundColors;
+  outputs: DisplayOutput[];
 }
 
 function sharedPath(repoPath: string, relative: string): string {
@@ -110,6 +115,7 @@ export function readSharedSettings(repoPath = GIT_REPOS.setlists.path): SharedSe
       appSettings: null,
       displayConfig: null,
       backgroundColors: null,
+      outputs: null,
     };
   }
   try {
@@ -122,12 +128,16 @@ export function readSharedSettings(repoPath = GIT_REPOS.setlists.path): SharedSe
         appSettings: null,
         displayConfig: null,
         backgroundColors: null,
+        outputs: null,
       };
     }
     const value = parsed as Record<string, unknown>;
     const appSettings = appSettingsSchema.safeParse(value.appSettings);
     const displayConfig = displayConfigSchema.safeParse(value.displayConfig);
     const backgroundColors = backgroundColorsSchema.safeParse(value.backgroundColors);
+    const outputs = Array.isArray(value.outputs)
+      ? displayOutputSchema.array().safeParse(value.outputs)
+      : null;
     return {
       schemaVersion:
         typeof value.schemaVersion === "number"
@@ -141,6 +151,7 @@ export function readSharedSettings(repoPath = GIT_REPOS.setlists.path): SharedSe
       appSettings: appSettings.success ? appSettings.data : null,
       displayConfig: displayConfig.success ? displayConfig.data : null,
       backgroundColors: backgroundColors.success ? backgroundColors.data : null,
+      outputs: outputs?.success ? outputs.data : null,
     };
   } catch {
     return {
@@ -150,6 +161,7 @@ export function readSharedSettings(repoPath = GIT_REPOS.setlists.path): SharedSe
       appSettings: null,
       displayConfig: null,
       backgroundColors: null,
+      outputs: null,
     };
   }
 }
@@ -158,6 +170,7 @@ export function applySharedSettings(shared: SharedSettings): void {
   if (shared.appSettings) saveAppSettings(shared.appSettings);
   if (shared.displayConfig) saveDisplayConfig(shared.displayConfig);
   if (shared.backgroundColors) saveBackgroundColors(shared.backgroundColors);
+  if (shared.outputs) replaceSharedDisplayOutputs(shared.outputs);
 }
 
 export function localDownloadedFonts(): SharedFontOption[] {
@@ -191,6 +204,7 @@ export function sharedSettingsPayload(
   appSettings = getAppSettings(),
   displayConfig = getDisplayConfig(),
   backgroundColors = getBackgroundColors(),
+  outputs = sharedDisplayOutputs(),
 ): SharedSettingsPayload {
   return {
     schemaVersion: SHARED_SETTINGS_SCHEMA_VERSION,
@@ -198,6 +212,7 @@ export function sharedSettingsPayload(
     appSettings,
     displayConfig,
     backgroundColors,
+    outputs,
   };
 }
 

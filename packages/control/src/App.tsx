@@ -25,6 +25,7 @@ import BackgroundsPage from "./pages/BackgroundsPage";
 import StingersPage from "./pages/StingersPage";
 import UsersPage from "./pages/UsersPage";
 import DeDupePage from "./pages/DeDupePage";
+import OutputsPage from "./pages/OutputsPage";
 
 const TarpPage = lazy(() => import("./pages/TarpPage"));
 import {
@@ -45,6 +46,7 @@ type Page =
   | "bible"
   | "churchsuite"
   | "settings"
+  | "outputs"
   | "backgrounds"
   | "stingers"
   | "dedupe"
@@ -66,6 +68,7 @@ const PAGE_MODULE: Partial<Record<Page, PermissionModule>> = {
   bible: "bible",
   churchsuite: "churchsuite",
   settings: "settings",
+  outputs: "settings",
   backgrounds: "backgrounds",
   stingers: "stingers",
   dedupe: "songs",
@@ -169,12 +172,16 @@ export default function App() {
       .catch(() => undefined);
   }, [user, standaloneMusicians]);
 
-  useEffect(() => {
+  function refreshDisplayViews() {
     if (!user || standaloneMusicians) return;
     api
       .displayViews()
       .then((result) => setDisplayViews(result.views))
       .catch(() => undefined);
+  }
+
+  useEffect(() => {
+    refreshDisplayViews();
   }, [user, standaloneMusicians]);
 
   useEffect(() => {
@@ -373,6 +380,8 @@ export default function App() {
         return "ChurchSuite";
       case "settings":
         return "Settings";
+      case "outputs":
+        return "Outputs";
       case "backgrounds":
         return "Backgrounds";
       case "stingers":
@@ -630,6 +639,21 @@ export default function App() {
                   type="button"
                   className="nav-dropdown-link"
                   role="menuitem"
+                  onClick={() => {
+                    setPage("outputs");
+                    setMenuOpen(false);
+                  }}
+                  title="Configure display outputs, templates and transitions"
+                >
+                  <span>Outputs</span>
+                  <span className="nav-dropdown-external" aria-hidden="true">
+                    ▤
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  className="nav-dropdown-link"
+                  role="menuitem"
                   onClick={openSettings}
                   title="Open keyboard, display, ChurchSuite and Git settings"
                 >
@@ -754,6 +778,9 @@ export default function App() {
             <ChurchsuitePage notify={notify} onOpenSetlists={() => setPage("setlists")} />
           )}
           {page === "settings" && <SettingsPage user={user} notify={notify} />}
+          {page === "outputs" && (
+            <OutputsPage notify={notify} onChanged={refreshDisplayViews} />
+          )}
           {page === "dedupe" && <DeDupePage notify={notify} />}
           {page === "users" && <UsersPage user={user} notify={notify} />}
           {page === "backgrounds" && <BackgroundsPage notify={notify} />}

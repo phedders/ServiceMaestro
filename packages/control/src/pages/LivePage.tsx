@@ -72,13 +72,7 @@ const DEFAULT_QUEUE_HEIGHT = 420;
 const MIN_QUEUE_HEIGHT = 220;
 const MAX_QUEUE_HEIGHT = 1000;
 const QUEUE_HEIGHT_STORAGE_KEY = "sm-live-queue-height";
-const PREVIEW_VIEWS = [
-  { id: "full", label: "Fullscreen" },
-  { id: "lowerthird", label: "Lowerthird" },
-  { id: "two-thirds", label: "Two-thirds" },
-  { id: "stage", label: "Stage" },
-  { id: "chords", label: "Chords" },
-] as const;
+
 
 function clampQueueHeight(value: number): number {
   return Math.max(MIN_QUEUE_HEIGHT, Math.min(MAX_QUEUE_HEIGHT, Math.round(value)));
@@ -252,9 +246,10 @@ export default function LivePage({
     }
   }
 
-  const previewLink = displayViews.find((view) => view.id === previewView);
-  const previewLabel =
-    PREVIEW_VIEWS.find((view) => view.id === previewView)?.label ?? PREVIEW_VIEWS[0].label;
+  const previewOptions = displayViews.filter((view) => view.kind !== "app");
+  const previewLink =
+    previewOptions.find((view) => view.id === previewView) ?? previewOptions[0];
+  const previewLabel = previewLink?.label ?? "Preview";
 
   if (live.status === "idle") {
     return (
@@ -321,14 +316,14 @@ export default function LivePage({
             </span>
           </div>
           <div className="preview-view-switcher" role="group" aria-label="Preview view">
-            {PREVIEW_VIEWS.map((view) => {
-              if (!displayViews.some((link) => link.id === view.id)) return null;
+            {previewOptions.map((view) => {
+              const active = previewLink?.id === view.id;
               return (
                 <button
                   key={view.id}
                   type="button"
-                  className={`preview-view-button ${previewView === view.id ? "active" : ""}`}
-                  aria-pressed={previewView === view.id}
+                  className={`preview-view-button ${active ? "active" : ""}`}
+                  aria-pressed={active}
                   onClick={() => setPreviewView(view.id)}
                   title={`Preview the ${view.label} live view`}
                 >

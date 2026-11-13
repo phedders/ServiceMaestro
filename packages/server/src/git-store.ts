@@ -542,9 +542,15 @@ async function exportAllTarp(runtime: RepoRuntime): Promise<void> {
 
 function importSharedSettingsFromRepo(runtime: RepoRuntime): void {
   const shared = readSharedSettings(runtime.config.path);
-  if (shared.appSettings || shared.displayConfig || shared.backgroundColors) {
-    applySharedSettings(shared);
-    live.updateDisplayConfig(getDisplayConfig());
+  if (shared.appSettings || shared.displayConfig || shared.backgroundColors || shared.outputs) {
+    try {
+      applySharedSettings(shared);
+      live.updateDisplayConfig(getDisplayConfig());
+    } catch (error) {
+      console.error(
+        `[sm] Could not apply shared settings: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
   }
 }
 
@@ -559,12 +565,14 @@ async function exportSharedSettings(runtime: RepoRuntime): Promise<void> {
     existing.appSettings !== null &&
     existing.displayConfig !== null &&
     existing.backgroundColors !== null &&
+    existing.outputs !== null &&
     sharedSettingsEqual(
       sharedSettingsPayload(
         existing.fonts,
         existing.appSettings,
         existing.displayConfig,
         existing.backgroundColors,
+        existing.outputs,
       ),
       payload,
     );

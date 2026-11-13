@@ -16,22 +16,48 @@ import {
 import { parseCookies, userForToken } from "./auth.js";
 import { imageMime, resolveImage } from "./images.js";
 import { live } from "./live.js";
+import { resolveDisplayOutput } from "./display-outputs.js";
+import type { DisplayOutputEntry, DisplayOutputTemplate } from "@sm/shared";
 
 export const OUTPUT_SOCKET_PATH = "/display/socket.ro.io";
 
-const DISPLAY_PAGES: Record<string, string> = {
+const OUTPUT_HTML_FILES: Record<DisplayOutputTemplate, string> = {
   main: "main.html",
-  lower: "main.html",
-  lowerthird: "main.html",
-  twothirds: "main.html",
-  "two-thirds": "two-thirds.html",
   two_thirds: "two-thirds.html",
   full: "full.html",
-  fullscreen: "full.html",
-  mainfull: "full.html",
   stage: "stage.html",
   chords: "chords.html",
 };
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function outputShell(output: DisplayOutputEntry): string {
+  const version = Math.max(
+    fs.statSync(path.join(DISPLAY_DIR, "display.js")).mtimeMs,
+    fs.statSync(path.join(DISPLAY_DIR, "display.css")).mtimeMs,
+  ).toString(36);
+  let html = fs
+    .readFileSync(path.join(DISPLAY_DIR, OUTPUT_HTML_FILES[output.template]), "utf8")
+    .replaceAll("/display/assets/display.js", `/display/assets/display.js?v=${version}`)
+    .replaceAll("/display/assets/display.css", `/display/assets/display.css?v=${version}`);
+  html = html.replace(
+    /<title>[\s\S]*?<\/title>/i,
+    `<title>Service Maestro — ${escapeHtml(output.label)}</title>`,
+  );
+  return html.replace(/<body\b([^>]*)>/i, (_match, attributes: string) => {
+    const cleaned = attributes
+      .replace(/\sdata-target="[^"]*"/i, "")
+      .replace(/\sdata-output="[^"]*"/i, "");
+    return `<body${cleaned} data-target="${output.template}" data-output="${escapeHtml(output.id)}">`;
+  });
+}
 
 export async function registerDisplayRoutes(
   app: FastifyInstance,
@@ -101,22 +127,12 @@ export async function registerDisplayRoutes(
 
   app.get("/display/:page", async (request, reply) => {
     const page = (request.params as { page: string }).page;
-    const file = DISPLAY_PAGES[page];
-    if (!file) return reply.code(404).send({ error: "Unknown display" });
-    const displayJs = path.join(DISPLAY_DIR, "display.js");
-    const displayCss = path.join(DISPLAY_DIR, "display.css");
-    const version = Math.max(
-      fs.statSync(displayJs).mtimeMs,
-      fs.statSync(displayCss).mtimeMs,
-    ).toString(36);
-    const html = fs
-      .readFileSync(path.join(DISPLAY_DIR, file), "utf8")
-      .replaceAll("/display/assets/display.js", `/display/assets/display.js?v=${version}`)
-      .replaceAll("/display/assets/display.css", `/display/assets/display.css?v=${version}`);
+    const output = resolveDisplayOutput(page);
+    if (!output) return reply.code(404).send({ error: "Unknown display" });
     return reply
       .type("text/html; charset=utf-8")
       .header("cache-control", "no-store")
-      .send(html);
+      .send(outputShell(output));
   });
 }
 

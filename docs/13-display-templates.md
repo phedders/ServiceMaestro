@@ -14,7 +14,24 @@ Immediate changes implemented on 2026-11-10.
 
 All routes take the usual `?token=…` output token.
 
-Template lookup accepts the new aliases: `lowerthird`/`twothirds`/`lower` for the main role and `fullscreen`/`mainfull` for the full role. Existing `main`/`full` template filenames still work.
+These are now **seeded default outputs**, not hard-coded routes. Manage them in **Menu → Outputs**. Each output has a stable ID and maps to `/display/<id>`. Aliases such as `main`, `twothirds`, `fullscreen` and `two_thirds` resolve through the output definitions. Removing an output removes its route and aliases on the display listener.
+
+### Output definitions
+
+An output definition contains:
+
+- ID, label, description, template role, enabled flag and aliases.
+- Fade mode (`none`, text-only or whole-template) and duration.
+- Background colour and alpha.
+- Layout: horizontal/vertical/text alignment, side/top/bottom padding, content max width and height.
+- Lower-third panel: on/off, colour/alpha, padding, corner radius, border, max width/height.
+- Text overrides: font family, colour, scale multiplier and line height.
+- Content: current page only or current plus upcoming pages; meta/title, footer, chords, section labels and split-word visibility.
+- Image max height and padding. Blank image values inherit the global/lower-third display settings.
+
+Definitions use `scope = "shared"` or `scope = "local"`. Shared definitions are written to `settings/shared.json` in the set lists repository and apply to every synced instance. Local definitions stay in this server’s database and are never written to the shared file. The Outputs page lists both and shows their scope.
+
+The display client receives the effective output map with every live snapshot and applies the definition as CSS variables and visibility rules. Template lookup still uses the template role, so existing custom `main`/`two_thirds`/`full`/`stage`/`chords` HTML/CSS overrides continue to work. Changing an output’s template changes the underlying structure; reload an already-open display after that change.
 
 ## 2. Templating
 
@@ -57,9 +74,15 @@ Available in HTML:
 
 Templates are trusted configuration (admin-controlled). Content is server-rendered and sanitized; text HTML/Markdown/RST is sanitized server-side.
 
-### Default fade
+### Fade behaviour
 
-The display client fades the composed tree out, swaps content, and fades it back in using the `.sm-fading` body class and a CSS transition on `.sm-template`. Blanking uses the same opacity transition. Custom templates should keep the `.sm-template` class to inherit the fade.
+Each output chooses its own fade mode:
+
+- **No fade** — swap immediately.
+- **Fade text only** — the default lower-third behaviour; the panel stays visible while its text/footer fade.
+- **Fade whole output** — the default for the other outputs; the composed template fades out, swaps and fades back in.
+
+The duration is configured per output. Blanking and idle states still use the template opacity transition. Custom templates should keep the `.sm-template` class and, for lower-third text fading, the `.sm-lowerthird-panel` wrapper.
 
 ## 3. Text item formats
 
@@ -132,9 +155,9 @@ A **Display config** panel on the Live page controls:
 
 Scope:
 
-- The global font and size apply to **centered two-thirds and full-screen**. The lower-third uses its own font and size; text colour remains global.
-- **Stage and chords always keep their fixed styling**, regardless of the lower-third/centered two-thirds config.
-- **Stage and chords show the current page at the top and all following pages of the current queue below it**, so musicians can see what is coming next. The content area scrolls if needed; lower-third/centered two-thirds/full show only the current page.
+- The global font, text colour and size act as defaults/fallbacks. Each output can override its font, colour, scale and line height in **Menu → Outputs**. The lower-third defaults to the separate lower-third font and text-size settings.
+- **Stage and chords** have their own output definitions. Their defaults keep the fixed stage/chords look, with stage hiding chords and chords showing them; either can be changed in Outputs.
+- **Stage and chords default to showing the current page at the top and all following pages of the current queue below it**, so musicians can see what is coming next. The content area scrolls if needed; lower-third/centered two-thirds/full default to the current page only. Every output can choose either page mode.
 - Page splitting (max lines, max words, smart estimates) and smart wrapping are shared by all outputs; `<!-- page -->` / `<!--- page --->` / `<hr class="page-break">` markers force additional breaks.
 - Settings persist in the database and are broadcast to outputs immediately.
 - The **Show** button reveals a blank screen. **Selecting a page** shows and fades it in; **selecting a set-list item** only queues its page list and leaves the current output unchanged.

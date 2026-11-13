@@ -24,6 +24,7 @@ import { live } from "./live.js";
 import { getDisplayConfig, saveDisplayConfig } from "./display-config.js";
 import { getGitSettings, saveGitSettings } from "./settings.js";
 import { getControlTlsStatus } from "./tls.js";
+import { listDisplayOutputs } from "./display-outputs.js";
 import { hasPermission } from "./users.js";
 import { logActivity, logRequestActivity } from "./activity.js";
 import { authRoutes } from "./routes/auth.js";
@@ -47,6 +48,7 @@ import { brandingRoutes } from "./routes/branding.js";
 import { stingerRoutes } from "./routes/stingers.js";
 import { songSelectRoutes } from "./routes/songselect.js";
 import { siteScrapingRoutes } from "./routes/site-scraping.js";
+import { outputRoutes } from "./routes/outputs.js";
 import {
   configureGitAutoSync,
   exportAllToGit,
@@ -109,6 +111,7 @@ export async function buildApp(
   await app.register(stingerRoutes);
   await app.register(songSelectRoutes);
   await app.register(siteScrapingRoutes);
+  await app.register(outputRoutes);
 
   app.get("/", async (_request, reply) => sendHtmlFile(reply, path.join(CONTROL_DIST, "index.html")));
   app.get("/login", async (_request, reply) => sendHtmlFile(reply, path.join(CONTROL_DIST, "index.html")));
@@ -154,12 +157,15 @@ export async function buildApp(
     const token = encodeURIComponent(OUTPUT_TOKEN);
     return {
       views: [
-        { id: "lowerthird", label: "Lower third", url: `/display/lowerthird?token=${token}` },
-        { id: "full", label: "Full screen", url: `/display/full?token=${token}` },
-        { id: "two-thirds", label: "Centered two-thirds", url: `/display/two-thirds?token=${token}` },
-        { id: "stage", label: "Stage", url: `/display/stage?token=${token}` },
-        { id: "chords", label: "Chords", url: `/display/chords?token=${token}` },
-        { id: "musicians", label: "Musicians view", url: "/musicians" },
+        ...listDisplayOutputs()
+          .filter((output) => output.enabled)
+          .map((output) => ({
+            id: output.id,
+            label: output.label,
+            url: `/display/${encodeURIComponent(output.id)}?token=${token}`,
+            kind: "display" as const,
+          })),
+        { id: "musicians", label: "Musicians view", url: "/musicians", kind: "app" as const },
       ],
     };
   });
