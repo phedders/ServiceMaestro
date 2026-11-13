@@ -17,6 +17,7 @@ import { parseCookies, userForToken } from "./auth.js";
 import { imageMime, resolveImage } from "./images.js";
 import { live } from "./live.js";
 import { resolveDisplayOutput } from "./display-outputs.js";
+import { installSecurityHeaders } from "./security.js";
 import type { DisplayOutputEntry, DisplayOutputTemplate } from "@sm/shared";
 
 export const OUTPUT_SOCKET_PATH = "/display/socket.ro.io";
@@ -119,9 +120,15 @@ export async function registerDisplayRoutes(
     if (!absolute || !fs.existsSync(absolute)) {
       return reply.code(404).send({ error: "Image not found" });
     }
-    reply
-      .type(imageMime(query.path!))
-      .header("cache-control", "private, max-age=300");
+    const mime = imageMime(query.path!);
+    reply.type(mime).header("cache-control", "private, max-age=300");
+    if (mime === "image/svg+xml") {
+      reply.header("content-security-policy", "sandbox");
+      reply.header(
+        "content-disposition",
+        `attachment; filename="${path.basename(absolute).replace(/["\\]/g, "_")}"`,
+      );
+    }
     return reply.send(fs.createReadStream(absolute));
   });
 
@@ -139,7 +146,7 @@ export async function registerDisplayRoutes(
 export function createOutputSocket(app: FastifyInstance): Server {
   const io = new Server(app.server, {
     path: OUTPUT_SOCKET_PATH,
-    cors: { origin: true, credentials: false },
+    cors: { origin: false, credentials: false },
   });
 
   io.use((socket, next) => {
@@ -164,6 +171,7 @@ export function createOutputSocket(app: FastifyInstance): Server {
 
 export async function buildDisplayApp(): Promise<{ app: FastifyInstance; io: Server }> {
   const app = Fastify({ logger: { level: LOG_LEVEL }, trustProxy: TRUST_PROXY });
+  installSecurityHeaders(app, true);
   await registerDisplayRoutes(app);
 
   app.setNotFoundHandler(async (_request, reply) =>

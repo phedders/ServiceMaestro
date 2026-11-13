@@ -25,6 +25,11 @@ import { getDisplayConfig, saveDisplayConfig } from "./display-config.js";
 import { getGitSettings, saveGitSettings } from "./settings.js";
 import { getControlTlsStatus } from "./tls.js";
 import { listDisplayOutputs } from "./display-outputs.js";
+import {
+  installSecurityHeaders,
+  originAllowed,
+  requestOriginAllowed,
+} from "./security.js";
 import { hasPermission } from "./users.js";
 import { logActivity, logRequestActivity } from "./activity.js";
 import { authRoutes } from "./routes/auth.js";
@@ -70,6 +75,14 @@ export async function buildApp(
     logger: { level: LOG_LEVEL },
     trustProxy: TRUST_PROXY,
     ...(tls ? { https: tls } : {}),
+  });
+
+  installSecurityHeaders(app, false);
+  app.addHook("onRequest", async (request, reply) => {
+    if (["GET", "HEAD", "OPTIONS"].includes(request.method)) return;
+    if (!requestOriginAllowed(request)) {
+      return reply.code(403).send({ error: "Cross-origin request rejected" });
+    }
   });
 
   app.addHook("onResponse", async (request, reply) => {
@@ -249,10 +262,19 @@ export async function buildApp(
 
   const io = new Server(app.server, {
     path: "/socket.io",
-    cors: { origin: true, credentials: true },
+    cors: { origin: false, credentials: true },
   });
 
   io.use((socket, next) => {
+    if (
+      !originAllowed(
+        socket.handshake.headers.origin,
+        socket.handshake.headers,
+        SSL_ENABLED ? "https" : "http",
+      )
+    ) {
+      return next(new Error("unauthorized"));
+    }
     const cookies = parseCookies(socket.handshake.headers.cookie);
     const user = userForToken(cookies[COOKIE_NAME]);
     if (!user) return next(new Error("unauthorized"));

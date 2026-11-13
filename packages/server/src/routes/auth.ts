@@ -27,6 +27,7 @@ import {
 } from "../auth.js";
 import { COOKIE_NAME } from "../config.js";
 import { logActivity } from "../activity.js";
+import { checkRateLimit, clearRateLimit, tooManyRequests } from "../rate-limit.js";
 import {
   getUserById,
   getUserByUsername,
@@ -47,8 +48,15 @@ import {
 
 export async function authRoutes(app: FastifyInstance): Promise<void> {
   app.post("/api/auth/login", async (request, reply) => {
+    const ipLimit = checkRateLimit(`login:ip:${request.ip}`, 30, 5 * 60_000);
+    if (!ipLimit.ok) return tooManyRequests(reply, ipLimit.retryAfterMs);
+
     const parsed = loginSchema.safeParse(request.body);
     if (!parsed.success) return reply.code(400).send({ error: "Invalid credentials" });
+
+    const usernameKey = `login:user:${parsed.data.username.trim().toLowerCase()}`;
+    const userLimit = checkRateLimit(usernameKey, 15, 15 * 60_000);
+    if (!userLimit.ok) return tooManyRequests(reply, userLimit.retryAfterMs);
 
     const row = getUserByUsername(parsed.data.username);
     if (!row || !verifyPassword(parsed.data.password, row.password_hash)) {
@@ -63,6 +71,7 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
       return reply.code(401).send({ error: "Invalid username or password" });
     }
 
+    clearRateLimit(usernameKey);
     const session = createSession(row.id);
     const cookie = makeSessionCookie(session.token);
     reply.setCookie(cookie.name, cookie.value, cookie.options);
@@ -79,15 +88,20 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
   });
 
   app.post("/api/auth/password", { preHandler: requireAuth }, async (request, reply) => {
+    const user = request.user!;
+    const passwordKey = `password:user:${user.id}`;
+    const passwordLimit = checkRateLimit(passwordKey, 10, 15 * 60_000);
+    if (!passwordLimit.ok) return tooManyRequests(reply, passwordLimit.retryAfterMs);
+
     const parsed = changePasswordSchema.safeParse(request.body);
     if (!parsed.success) {
       return reply.code(400).send({ error: "Invalid password change", issues: parsed.error.issues });
     }
-    const user = request.user!;
     const row = getUserByUsername(user.username);
     if (!row || !verifyPassword(parsed.data.currentPassword, row.password_hash)) {
       return reply.code(400).send({ error: "Current password is incorrect" });
     }
+    clearRateLimit(passwordKey);
     db.prepare("UPDATE users SET password_hash = ? WHERE id = ?").run(
       hashPassword(parsed.data.newPassword),
       user.id,
@@ -98,8 +112,13 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
   });
 
   app.post("/api/auth/passkey/login/options", async (request, reply) => {
+    const ipLimit = checkRateLimit(`passkey:ip:${request.ip}`, 30, 5 * 60_000);
+    if (!ipLimit.ok) return tooManyRequests(reply, ipLimit.retryAfterMs);
     const parsed = passkeyLoginOptionsSchema.safeParse(request.body);
     if (!parsed.success) return reply.code(400).send({ error: "Invalid passkey request" });
+    const usernameKey = `passkey:user:${parsed.data.username.trim().toLowerCase()}`;
+    const userLimit = checkRateLimit(usernameKey, 15, 15 * 60_000);
+    if (!userLimit.ok) return tooManyRequests(reply, userLimit.retryAfterMs);
     const row = getUserByUsername(parsed.data.username);
     if (!row) return reply.code(404).send({ error: "No passkey is registered for that username" });
     const passkeys = listPasskeyRows(row.id);
@@ -120,8 +139,13 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
   });
 
   app.post("/api/auth/passkey/login/verify", async (request, reply) => {
+    const ipLimit = checkRateLimit(`passkey:ip:${request.ip}`, 30, 5 * 60_000);
+    if (!ipLimit.ok) return tooManyRequests(reply, ipLimit.retryAfterMs);
     const parsed = passkeyLoginVerifySchema.safeParse(request.body);
     if (!parsed.success) return reply.code(400).send({ error: "Invalid passkey response" });
+    const usernameKey = `passkey:user:${parsed.data.username.trim().toLowerCase()}`;
+    const userLimit = checkRateLimit(usernameKey, 15, 15 * 60_000);
+    if (!userLimit.ok) return tooManyRequests(reply, userLimit.retryAfterMs);
     const row = getUserByUsername(parsed.data.username);
     if (!row) {
       logActivity({
@@ -185,6 +209,7 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
       });
       return reply.code(401).send({ error: "Passkey login failed" });
     }
+    clearRateLimit(usernameKey);
     const session = createSession(row.id);
     const cookie = makeSessionCookie(session.token);
     reply.setCookie(cookie.name, cookie.value, cookie.options);
