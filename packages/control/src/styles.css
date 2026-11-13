@@ -5740,3 +5740,8 @@ body.resizing-live-queue {
     grid-template-columns: 1fr;
   }
 }
+
+.mqtt-prefix-toggle {
+  align-self: end;
+  padding-bottom: 8px;
+}

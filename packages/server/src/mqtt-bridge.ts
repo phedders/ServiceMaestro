@@ -106,6 +106,14 @@ function joinTopic(prefix: string, path: string): string {
     .join("/");
 }
 
+export function mqttControlTopic(
+  outgoingPrefix: string,
+  path: string,
+  usePrefix: boolean,
+): string {
+  return usePrefix ? joinTopic(outgoingPrefix, path) : path.trim();
+}
+
 function publish(topic: string, payload: string, retain = false): boolean {
   if (!client || !status.connected || !runtime) return false;
   client.publish(topic, payload, { qos: 0, retain });
@@ -543,7 +551,11 @@ export async function publishMqttControl(
     if (!option) throw new Error("Choose a valid MQTT control option");
     payload = option.payload;
   }
-  const topic = joinTopic(runtime.outgoingPrefix, control.path);
+  const topic = mqttControlTopic(
+    runtime.outgoingPrefix,
+    control.path,
+    control.usePrefix,
+  );
   await client.publishAsync(topic, payload, { qos: 0, retain: false });
   publishDebug("MQTT control published", {
     control: control.label,

@@ -1161,6 +1161,7 @@ export interface MqttControl {
   enabled: boolean;
   label: string;
   path: string;
+  usePrefix: boolean;
   type: "button" | "select";
   payload: string;
   options: MqttControlOption[];
@@ -2234,6 +2235,7 @@ export const mqttControlSchema = z
       .refine((value) => !/[+#\s]/.test(value), {
         message: "MQTT control paths cannot contain wildcards or whitespace",
       }),
+    usePrefix: z.boolean().default(true),
     type: z.enum(["button", "select"]).default("button"),
     payload: z.string().max(4000).default(""),
     options: z.array(mqttControlOptionSchema).max(50).default([]),

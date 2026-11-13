@@ -28,6 +28,7 @@ test("stores MQTT credentials encrypted and exposes only public controls", () =>
     const {
       isAllowedMqttApiPath,
       listMqttControls,
+      mqttControlTopic,
     } = await import(process.env.SM_MODULE_BASE + "mqtt-bridge.js");
 
     const initialIntegrations = getIntegrationSettings();
@@ -61,6 +62,7 @@ test("stores MQTT credentials encrypted and exposes only public controls", () =>
         enabled: true,
         label: "Lights",
         path: "lights/scene",
+        usePrefix: true,
         type: "select",
         payload: "",
         options: [
@@ -94,6 +96,9 @@ test("stores MQTT credentials encrypted and exposes only public controls", () =>
       blockedUsers: isAllowedMqttApiPath("/api/users/abc"),
       blockedTraversal: isAllowedMqttApiPath("/api/live/../users"),
       blockedEncodedTraversal: isAllowedMqttApiPath("/api/live/%2e%2e/users"),
+      prefixedTopic: mqttControlTopic("sm/out", "lights/scene", true),
+      absoluteTopic: mqttControlTopic("sm/out", "/lighting/scene", false),
+      controlUsePrefix: saved.controls[0]?.usePrefix,
     }));
   `;
 
@@ -137,4 +142,7 @@ test("stores MQTT credentials encrypted and exposes only public controls", () =>
   assert.equal(data.blockedUsers, false);
   assert.equal(data.blockedTraversal, false);
   assert.equal(data.blockedEncodedTraversal, false);
+  assert.equal(data.prefixedTopic, "sm/out/lights/scene");
+  assert.equal(data.absoluteTopic, "/lighting/scene");
+  assert.equal(data.controlUsePrefix, true);
 });

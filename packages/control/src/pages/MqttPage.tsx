@@ -36,6 +36,7 @@ function newControl(): MqttControl {
     enabled: true,
     label: "Next",
     path: "next",
+    usePrefix: true,
     type: "button",
     payload: "next",
     options: [],
@@ -511,6 +512,17 @@ export default function MqttPage({
                     value={control.path}
                     onChange={(event) => updateControl(control.id, { path: event.target.value })}
                   />
+                </label>
+                <label className="checkbox mqtt-prefix-toggle">
+                  <input
+                    type="checkbox"
+                    checked={control.usePrefix}
+                    onChange={(event) =>
+                      updateControl(control.id, { usePrefix: event.target.checked })
+                    }
+                    title={`Publish under ${settings.outgoingPrefix} when enabled`}
+                  />
+                  +prefix
                 </label>
                 <label>
                   Type

@@ -110,16 +110,18 @@ Enable each category independently in the MQTT settings page.
 
 ## 4. Outgoing controls
 
-Controls publish a configured payload to:
+Control topics are either relative to the outgoing prefix or absolute:
 
 ```text
-<outgoingPrefix>/<control path>
+<outgoingPrefix>/<control path>     # +prefix enabled
+<control path>                      # +prefix disabled
 ```
 
 Each control has:
 
 - A button label.
-- A MQTT path.
+- A MQTT path or absolute topic.
+- A **+prefix** checkbox. Enabled uses the outgoing information prefix; disabled publishes the path exactly as the absolute topic.
 - A type: single button or dropdown with arguments.
 - A payload, or a list of labelled arguments with payloads.
 - A placement: **Live control page** or **Menu dropdown**.
