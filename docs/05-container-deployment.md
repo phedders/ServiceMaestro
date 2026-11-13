@@ -502,8 +502,13 @@ LXC (without Incus) follows Option B: unprivileged container, `lxc.idmap`/subuid
 - Imported archives are untrusted: size/entry caps, path traversal checks, sanitized HTML, decoded image validation.
 - Site credentials are encrypted with a master key, never logged and revocable; licensed score/tab assets are served only to authenticated roles through signed URLs.
 - Session cookies `HttpOnly`/`SameSite`/`Secure` behind TLS; output tokens hashed at rest.
+- Application security headers: CSP, `X-Content-Type-Options: nosniff`, `X-Frame-Options`, Referrer-Policy and Permissions-Policy. HSTS is emitted for the control interface when it is serving a non-self-signed HTTPS certificate.
+- Rate limits cover password login, passkey login and password changes (IP and username buckets); successful authentication clears the username bucket.
+- State-changing HTTP requests and the control Socket.IO handshake enforce same-origin/configured-origin checks. Wildcard Socket.IO CORS is disabled.
+- Uploaded SVG images are served as attachments with a sandbox CSP; other assets use `nosniff`.
+- Startup warns if the default admin password or default output token is still in use.
 - Keep the base image and Node patched; rebuild monthly and on CVEs.
-- Optional: run behind a reverse proxy with request limits and TLS; keep the control port private and expose only the read-only `/display/*` listener to wider audiences.
+- Optional: run behind a reverse proxy with request limits and TLS; keep the control port private and expose only the read-only `/display/*` listener to wider audiences. Treat the output token as a secret: it appears in display URLs and OBS configuration.
 
 ## 12. Test matrix
 

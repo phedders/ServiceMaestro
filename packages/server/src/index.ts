@@ -1,6 +1,13 @@
 import { buildApp } from "./app.js";
 import { startActivityRetention } from "./activity.js";
-import { DISPLAY_PORT, HOST, PORT, SSL_ENABLED } from "./config.js";
+import {
+  ADMIN_PASSWORD,
+  DISPLAY_PORT,
+  HOST,
+  OUTPUT_TOKEN,
+  PORT,
+  SSL_ENABLED,
+} from "./config.js";
 import { buildDisplayApp } from "./display-app.js";
 import { startHeartbeat } from "./heartbeat.js";
 import { shutdownGit } from "./git-store.js";
@@ -19,6 +26,16 @@ const tls = SSL_ENABLED
     })
   : null;
 const { app, io, outputIo } = await buildApp(tls);
+if (ADMIN_PASSWORD === "admin") {
+  app.log.warn(
+    "SM_ADMIN_PASSWORD is still the default value. Change the admin password before exposing this instance.",
+  );
+}
+if (OUTPUT_TOKEN === "dev-output") {
+  app.log.warn(
+    "SM_OUTPUT_TOKEN is still the default value. Set a strong output token before exposing displays.",
+  );
+}
 if (tls) {
   for (const warning of tls.status.warnings) app.log.warn(warning);
 } else {
