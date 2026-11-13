@@ -11,6 +11,8 @@ Source: <https://github.com/ChurchSuite/churchsuite-api/blob/master/src/planning
 > - This account primarily uses Planning **Worship** items (`type_id=4`, `ccli_tracking=true`) with song titles in `name` and `Key` / `Artist/Author` question responses, rather than `arrangement_id`/chart data.
 >
 > The ChurchSuite page now lists plans by date range, previews items, matches local songs by title/alternative title, and creates draft set lists; when multiple local songs match, the preview shows a selectable comparison table with author, CCLI, key, alternate titles and lyric first lines. Unmatched song and service items become editable text placeholders. Unmatched **song** items also show **Lookup song in SongSelect** when site credentials are configured, opening the SongSelect search dialog in place with lyric preview and download/import actions. Importing a song from that dialog automatically links the new or updated local song back to the ChurchSuite item and preselects it for the draft set list. Set-list song items also expose an **ALT** popup with similar local versions and a line-level difference view. Settings includes a global list of ChurchSuite plan object types that should become empty set-list items with no pages (seeded with Welcome, Misc, Countdown, Prayers and Announcement); their text is kept in the item notes.
+>
+> Administrators can disable the ChurchSuite adapter under **Settings → External adapters**. The ChurchSuite menu page, plan lookup, connection test, empty-item settings and ChurchSuite help are then hidden, and `/api/integrations/churchsuite/*` returns 404. Credentials, permissions and imported set lists are retained for when it is re-enabled.
 
 ## 1. What the API provides
 

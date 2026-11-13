@@ -1130,6 +1130,11 @@ export interface AppSettings {
   songSheetColumns: number;
 }
 
+export interface IntegrationSettings {
+  songSelectEnabled: boolean;
+  churchSuiteEnabled: boolean;
+}
+
 export interface GitSettings {
   autoSave: boolean;
   autoPush: boolean;
@@ -2097,6 +2102,11 @@ export const appSettingsSchema = z.object({
     .default("Helvetica"),
   songSheetFontSize: z.number().int().min(8).max(28).default(15),
   songSheetColumns: z.number().int().min(1).max(3).default(1),
+});
+
+export const integrationSettingsSchema = z.object({
+  songSelectEnabled: z.boolean(),
+  churchSuiteEnabled: z.boolean(),
 });
 
 export const gitSettingsSchema = z.object({

@@ -4,6 +4,7 @@ import type {
   SiteScraperSearchResult,
   SongResourceKind,
 } from "@sm/shared";
+import { useAdapters } from "../adapters";
 import { api, ApiError } from "../api";
 import { usePageAccess } from "../page-access";
 import { EyeIcon } from "./Icons";
@@ -18,6 +19,7 @@ export function SiteSongDownloadPanel({
   onImported?: () => void;
 }) {
   const { canWrite } = usePageAccess();
+  const { songSelectEnabled } = useAdapters();
   const [providers, setProviders] = useState<SiteScraperProviderSummary[]>([]);
   const [providerId, setProviderId] = useState("");
   const [query, setQuery] = useState("");
@@ -36,6 +38,11 @@ export function SiteSongDownloadPanel({
   const provider = providers.find((entry) => entry.id === providerId) ?? providers[0] ?? null;
 
   useEffect(() => {
+    if (!songSelectEnabled) {
+      setProviders([]);
+      setProviderId("");
+      return;
+    }
     api
       .siteScrapingProviders()
       .then((result) => {
@@ -43,7 +50,9 @@ export function SiteSongDownloadPanel({
         setProviderId(result.providers[0]?.id ?? "");
       })
       .catch(() => setProviders([]));
-  }, []);
+  }, [songSelectEnabled]);
+
+  if (!songSelectEnabled) return null;
 
   async function search() {
     if (!provider || !query.trim()) return;

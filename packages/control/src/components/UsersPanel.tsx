@@ -7,6 +7,7 @@ import {
   type Role,
   type UserManagementEntry,
 } from "@sm/shared";
+import { useAdapters } from "../adapters";
 import { api, ApiError } from "../api";
 
 interface UserDraft {
@@ -341,9 +342,12 @@ function PermissionChecks({
   permissions: ModulePermissions;
   onChange: (module: keyof ModulePermissions, checked: boolean) => void;
 }) {
+  const { churchSuiteEnabled } = useAdapters();
   return (
     <div className="permission-grid">
-      {MODULE_PERMISSIONS.map((module) => (
+      {MODULE_PERMISSIONS.filter(
+        (module) => module.id !== "churchsuite" || churchSuiteEnabled,
+      ).map((module) => (
         <label key={module.id} className="permission-check" title={module.description}>
           <input
             type="checkbox"

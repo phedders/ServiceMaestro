@@ -33,6 +33,7 @@ import type {
   GitSettings,
   GitStatus,
   ImageAsset,
+  IntegrationSettings,
   LiveState,
   ModulePermissions,
   PasskeySummary,
@@ -316,6 +317,13 @@ export const api = {
   sslStatus: () => request<ControlTlsReport>("/api/ssl/status"),
   saveSettings: (settings: AppSettings) =>
     request<{ settings: AppSettings }>("/api/settings", {
+      method: "PUT",
+      body: JSON.stringify(settings),
+    }),
+  integrationSettings: () =>
+    request<{ settings: IntegrationSettings }>("/api/integrations/settings"),
+  saveIntegrationSettings: (settings: IntegrationSettings) =>
+    request<{ settings: IntegrationSettings }>("/api/integrations/settings", {
       method: "PUT",
       body: JSON.stringify(settings),
     }),

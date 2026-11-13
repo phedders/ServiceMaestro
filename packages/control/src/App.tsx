@@ -4,10 +4,12 @@ import {
   MODULE_PERMISSIONS,
   type BrandingSettings,
   type DisplayViewLink,
+  type IntegrationSettings,
   type LiveState,
   type PermissionModule,
   type PublicUser,
 } from "@sm/shared";
+import { AdapterProvider } from "./adapters";
 import { api, ApiError } from "./api";
 import { EMPTY_LIVE } from "./empty";
 import { PageAccessProvider } from "./page-access";
@@ -89,6 +91,10 @@ export default function App() {
   const [connected, setConnected] = useState(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [displayViews, setDisplayViews] = useState<DisplayViewLink[]>([]);
+  const [adapters, setAdapters] = useState<IntegrationSettings>({
+    songSelectEnabled: false,
+    churchSuiteEnabled: false,
+  });
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
@@ -180,9 +186,36 @@ export default function App() {
       .catch(() => undefined);
   }
 
+  async function refreshAdapters() {
+    try {
+      const result = await api.integrationSettings();
+      setAdapters(result.settings);
+    } catch {
+      setAdapters({ songSelectEnabled: false, churchSuiteEnabled: false });
+    }
+  }
+
   useEffect(() => {
     refreshDisplayViews();
   }, [user, standaloneMusicians]);
+
+  useEffect(() => {
+    if (!user || standaloneMusicians) return;
+    void refreshAdapters();
+    const refresh = () => void refreshAdapters();
+    window.addEventListener("focus", refresh);
+    return () => window.removeEventListener("focus", refresh);
+  }, [user, standaloneMusicians]);
+
+  useEffect(() => {
+    if (standaloneMusicians) return;
+    if (page === "churchsuite" && !adapters.churchSuiteEnabled) setPage("live");
+  }, [page, adapters.churchSuiteEnabled, standaloneMusicians]);
+
+  const adapterContext = useMemo(
+    () => ({ ...adapters, refresh: refreshAdapters }),
+    [adapters],
+  );
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -337,6 +370,7 @@ export default function App() {
     await api.logout().catch(() => undefined);
     setUser(null);
     setLive(EMPTY_LIVE);
+    setAdapters({ songSelectEnabled: false, churchSuiteEnabled: false });
   };
 
   function toggleMenu() {
@@ -522,13 +556,15 @@ export default function App() {
           >
             <span className="nav-icon">✝</span> Bible
           </button>
-          <button
-            className={page === "churchsuite" ? "active" : ""}
-            onClick={() => setPage("churchsuite")}
-            title="Pull ChurchSuite plans and create draft set lists"
-          >
-            <span className="nav-icon">⛪</span> ChurchSuite
-          </button>
+          {adapters.churchSuiteEnabled && (
+            <button
+              className={page === "churchsuite" ? "active" : ""}
+              onClick={() => setPage("churchsuite")}
+              title="Pull ChurchSuite plans and create draft set lists"
+            >
+              <span className="nav-icon">⛪</span> ChurchSuite
+            </button>
+          )}
           <button
             className={page === "help" ? "active" : ""}
             onClick={() => setPage("help")}
@@ -655,7 +691,7 @@ export default function App() {
                   className="nav-dropdown-link"
                   role="menuitem"
                   onClick={openSettings}
-                  title="Open keyboard, display, ChurchSuite and Git settings"
+                  title="Open adapter, display, keyboard and Git settings"
                 >
                   <span>Settings</span>
                   <span className="nav-dropdown-external" aria-hidden="true">
@@ -737,9 +773,10 @@ export default function App() {
           </div>
         )}
 
-        <PageAccessProvider
-          value={{ canWrite: canWritePage, moduleLabel: pageModuleLabel }}
-        >
+        <AdapterProvider value={adapterContext}>
+          <PageAccessProvider
+            value={{ canWrite: canWritePage, moduleLabel: pageModuleLabel }}
+          >
           {page === "live" && (
             <LivePage
               live={live}
@@ -774,7 +811,7 @@ export default function App() {
             </Suspense>
           )}
           {page === "bible" && <BiblePage live={live} onQuickText={quickText} notify={notify} />}
-          {page === "churchsuite" && (
+          {page === "churchsuite" && adapters.churchSuiteEnabled && (
             <ChurchsuitePage notify={notify} onOpenSetlists={() => setPage("setlists")} />
           )}
           {page === "settings" && <SettingsPage user={user} notify={notify} />}
@@ -786,7 +823,8 @@ export default function App() {
           {page === "backgrounds" && <BackgroundsPage notify={notify} />}
           {page === "stingers" && <StingersPage notify={notify} />}
           {page === "help" && <HelpPage onOpenSettings={() => setPage("settings")} />}
-        </PageAccessProvider>
+          </PageAccessProvider>
+        </AdapterProvider>
       </main>
 
       <div className="toasts">

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useAdapters } from "../adapters";
 import {
   SHORTCUT_CHANGE_EVENT,
   SHORTCUT_LABELS,
@@ -34,6 +35,7 @@ function formatShortcut(value: string): string {
 }
 
 export default function HelpPage({ onOpenSettings }: { onOpenSettings: () => void }) {
+  const { songSelectEnabled, churchSuiteEnabled } = useAdapters();
   const [shortcuts, setShortcuts] = useState<KeyboardShortcuts>(loadKeyboardShortcuts);
 
   useEffect(() => {
@@ -391,7 +393,7 @@ export default function HelpPage({ onOpenSettings }: { onOpenSettings: () => voi
             </ul>
           </article>
           <article className="help-card">
-            <h3>Bible and ChurchSuite</h3>
+            <h3>{churchSuiteEnabled ? "Bible and ChurchSuite" : "Bible"}</h3>
             <ul className="help-list">
               <li>
                 Choose a translation, book, chapter and verse range. <strong>Include reference</strong>
@@ -406,16 +408,19 @@ export default function HelpPage({ onOpenSettings }: { onOpenSettings: () => voi
                 <strong>Add to current setlist</strong> saves the passage; <strong>Add to live
                 session</strong> displays it now without saving.
               </li>
-              <li>
-                ChurchSuite plans can be reviewed and turned into a draft set list. Matched songs
-                link to the library. When several local songs match, compare their metadata and
-                lyrics and choose the right version before importing. Unmatched named items become
-                editable text placeholders. Plan object
-                types listed under <strong>Settings → ChurchSuite empty items</strong> become empty
-                items with no pages, keeping their text in the notes.
-              </li>
+              {churchSuiteEnabled && (
+                <li>
+                  ChurchSuite plans can be reviewed and turned into a draft set list. Matched songs
+                  link to the library. When several local songs match, compare their metadata and
+                  lyrics and choose the right version before importing. Unmatched named items become
+                  editable text placeholders. Plan object types listed under{" "}
+                  <strong>Settings → ChurchSuite empty items</strong> become empty items with no
+                  pages, keeping their text in the notes.
+                </li>
+              )}
             </ul>
           </article>
+          {songSelectEnabled && (
           <article className="help-card">
             <h3>SongSelect drop folder</h3>
             <ul className="help-list">
@@ -433,6 +438,7 @@ export default function HelpPage({ onOpenSettings }: { onOpenSettings: () => voi
               </li>
             </ul>
           </article>
+          )}
         </div>
       </section>
 
@@ -602,16 +608,18 @@ export default function HelpPage({ onOpenSettings }: { onOpenSettings: () => voi
               </li>
             </ul>
           </details>
-          <details className="help-details">
-            <summary>A ChurchSuite song did not match</summary>
-            <ul className="help-list">
-              <li>Matching uses CCLI and song title against the local library.</li>
-              <li>
-                Unmatched songs and named service items become text placeholders so nothing is lost;
-                convert them to songs or edit the draft afterwards.
-              </li>
-            </ul>
-          </details>
+          {churchSuiteEnabled && (
+            <details className="help-details">
+              <summary>A ChurchSuite song did not match</summary>
+              <ul className="help-list">
+                <li>Matching uses CCLI and song title against the local library.</li>
+                <li>
+                  Unmatched songs and named service items become text placeholders so nothing is
+                  lost; convert them to songs or edit the draft afterwards.
+                </li>
+              </ul>
+            </details>
+          )}
         </div>
       </section>
     </div>

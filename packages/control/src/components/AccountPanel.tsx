@@ -6,6 +6,7 @@ import {
   type PublicUser,
   type SiteScraperProviderSummary,
 } from "@sm/shared";
+import { useAdapters } from "../adapters";
 import { api, ApiError } from "../api";
 import { compactDateTime } from "../service-date";
 
@@ -16,6 +17,7 @@ export function AccountPanel({
   user: PublicUser;
   notify: (text: string, kind?: "info" | "error") => void;
 }) {
+  const { songSelectEnabled, churchSuiteEnabled } = useAdapters();
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [changingPassword, setChangingPassword] = useState(false);
@@ -64,8 +66,13 @@ export function AccountPanel({
   }
 
   useEffect(() => {
+    if (!songSelectEnabled) {
+      setSiteProviders([]);
+      setSiteForms({});
+      return;
+    }
     void loadSiteProviders();
-  }, []);
+  }, [songSelectEnabled]);
 
   function updateSiteForm(
     providerId: string,
@@ -273,6 +280,7 @@ export function AccountPanel({
         </div>
       </div>
 
+      {songSelectEnabled && (
       <div className="account-section">
         <div className="panel-heading">
           <div>
@@ -377,11 +385,14 @@ export function AccountPanel({
         })}
         {!siteProviders.length && <p className="muted">No site scraper providers are available.</p>}
       </div>
+      )}
 
       <div className="account-section">
         <h3>Write access</h3>
         <div className="permission-summary">
-          {MODULE_PERMISSIONS.map((module) => (
+          {MODULE_PERMISSIONS.filter(
+            (module) => module.id !== "churchsuite" || churchSuiteEnabled,
+          ).map((module) => (
             <span
               key={module.id}
               className={`permission-chip ${user.permissions[module.id] ? "allowed" : ""}`}

@@ -6,6 +6,7 @@ import {
   CHURCHSUITE_SCOPES,
   CHURCHSUITE_TOKEN_URL,
 } from "./config.js";
+import { isChurchSuiteEnabled } from "./integrations.js";
 
 interface TokenResponse {
   access_token?: string;
@@ -26,6 +27,9 @@ function redact(message: string): string {
 }
 
 async function tokenRequest(): Promise<string> {
+  if (!isChurchSuiteEnabled()) {
+    throw new Error("ChurchSuite adapter is disabled.");
+  }
   if (!configured()) {
     throw new Error(
       "ChurchSuite is not configured. Set SM_CHURCHSUITE_CLIENT_ID and SM_CHURCHSUITE_CLIENT_SECRET.",

@@ -6,6 +6,7 @@ import type {
   SiteScraperImportResult,
   SiteScraperProviderSummary,
 } from "@sm/shared";
+import { useAdapters } from "../adapters";
 import { api, ApiError } from "../api";
 import { EyeIcon } from "../components/Icons";
 import { IsoDateInput } from "../components/IsoDateInput";
@@ -40,6 +41,7 @@ export default function ChurchsuitePage({
   onOpenSetlists: () => void;
 }) {
   const { canWrite } = usePageAccess();
+  const { songSelectEnabled } = useAdapters();
   const range = defaultRange();
   const [from, setFrom] = useState(range.from);
   const [to, setTo] = useState(range.to);
@@ -95,13 +97,17 @@ export default function ChurchsuitePage({
   }, []);
 
   useEffect(() => {
+    if (!songSelectEnabled) {
+      setSiteProvider(null);
+      return;
+    }
     api
       .siteScrapingProviders()
       .then((result) => {
         setSiteProvider(result.providers.find((provider) => provider.activeSource) ?? null);
       })
       .catch(() => setSiteProvider(null));
-  }, []);
+  }, [songSelectEnabled]);
 
   useEffect(() => {
     if (!lyricsPreview) return;
@@ -314,7 +320,11 @@ export default function ChurchsuitePage({
                       (candidate) =>
                         candidate.id === (songSelections[item.id] ?? item.matchedSong?.id),
                     ) ?? item.matchCandidates[0];
-                  const canLookup = item.isSong && item.action !== "song" && Boolean(siteProvider);
+                  const canLookup =
+                    songSelectEnabled &&
+                    item.isSong &&
+                    item.action !== "song" &&
+                    Boolean(siteProvider);
                   return (
                     <div
                       key={item.id}
@@ -495,7 +505,7 @@ export default function ChurchsuitePage({
       </div>
 
       <SongLyricsDialog song={lyricsPreview} onClose={() => setLyricsPreview(null)} />
-      {lookup && siteProvider && (
+      {lookup && songSelectEnabled && siteProvider && (
         <SiteSongLookupDialog
           provider={siteProvider}
           initialQuery={lookup.query}

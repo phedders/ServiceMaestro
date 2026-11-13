@@ -15,6 +15,7 @@ import {
   type SongPageIdFixScan,
   type SongSelectWatchStatus,
 } from "@sm/shared";
+import { useAdapters } from "../adapters";
 import { api, ApiError } from "../api";
 import { ReadOnlyFieldset } from "../page-access";
 import { AccountPanel } from "../components/AccountPanel";
@@ -42,6 +43,11 @@ export default function SettingsPage({
   user: PublicUser;
   notify: (text: string, kind?: "info" | "error") => void;
 }) {
+  const {
+    songSelectEnabled,
+    churchSuiteEnabled,
+    refresh: refreshAdapters,
+  } = useAdapters();
   const [fonts, setFonts] = useState<FontOption[]>([]);
   const [sharedFonts, setSharedFonts] = useState<SharedFontOption[]>([]);
   const [missingFonts, setMissingFonts] = useState<SharedFontOption[]>([]);
@@ -84,6 +90,7 @@ export default function SettingsPage({
   const [applyingPageIdFixes, setApplyingPageIdFixes] = useState(false);
   const [emptyType, setEmptyType] = useState("");
   const [savingSettings, setSavingSettings] = useState(false);
+  const [savingAdapters, setSavingAdapters] = useState(false);
   const [git, setGit] = useState<GitStatus | null>(null);
   const [gitForm, setGitForm] = useState<GitSettings | null>(null);
   const [gitSaving, setGitSaving] = useState(false);
@@ -107,10 +114,6 @@ export default function SettingsPage({
   useEffect(() => {
     loadFonts();
     api
-      .churchsuiteStatus()
-      .then((result) => setChurchsuite(result.status))
-      .catch(() => undefined);
-    api
       .settings()
       .then((result) => setSettings(result.settings))
       .catch(() => undefined);
@@ -124,10 +127,6 @@ export default function SettingsPage({
     api
       .bibleTranslations()
       .then((result) => setBibleTranslations(result.translations))
-      .catch(() => undefined);
-    api
-      .songselectWatch()
-      .then((result) => setSongselectWatch(result.status))
       .catch(() => undefined);
     api
       .songPageNames()
@@ -146,6 +145,29 @@ export default function SettingsPage({
       })
       .catch(() => undefined);
   }, []);
+
+  useEffect(() => {
+    if (!churchSuiteEnabled) {
+      setChurchsuite(null);
+      setTestResult(null);
+      return;
+    }
+    api
+      .churchsuiteStatus()
+      .then((result) => setChurchsuite(result.status))
+      .catch(() => undefined);
+  }, [churchSuiteEnabled]);
+
+  useEffect(() => {
+    if (!songSelectEnabled) {
+      setSongselectWatch(null);
+      return;
+    }
+    api
+      .songselectWatch()
+      .then((result) => setSongselectWatch(result.status))
+      .catch(() => undefined);
+  }, [songSelectEnabled]);
 
   async function importFont() {
     if (!family.trim() && !cssUrl.trim()) return;
@@ -482,6 +504,31 @@ export default function SettingsPage({
     );
   }
 
+  async function updateAdapter(
+    key: "songSelectEnabled" | "churchSuiteEnabled",
+    enabled: boolean,
+  ) {
+    setSavingAdapters(true);
+    try {
+      const result = await api.saveIntegrationSettings({
+        songSelectEnabled:
+          key === "songSelectEnabled" ? enabled : songSelectEnabled,
+        churchSuiteEnabled:
+          key === "churchSuiteEnabled" ? enabled : churchSuiteEnabled,
+      });
+      await refreshAdapters();
+      const label = key === "songSelectEnabled" ? "SongSelect" : "ChurchSuite";
+      notify(`${label} adapter ${result.settings[key] ? "enabled" : "disabled"}`);
+    } catch (error) {
+      notify(
+        error instanceof ApiError ? error.message : "Could not save adapter settings",
+        "error",
+      );
+    } finally {
+      setSavingAdapters(false);
+    }
+  }
+
   async function saveGit() {
     if (!gitForm) return;
     setGitSaving(true);
@@ -530,15 +577,59 @@ export default function SettingsPage({
   return (
     <div className="config-page">
       <p className="hint">
-        Team-wide settings — live navigation, default Bible, ChurchSuite empty items, song page IDs,
-        display styling and background colours — sync through <code>settings/shared.json</code> in
-        the set lists repository. Keyboard shortcuts, credentials, SongSelect state and Git settings
-        stay local to this server.
+        Team-wide settings — live navigation, default Bible, page IDs, display styling and
+        background colours — sync through <code>settings/shared.json</code> in the set lists
+        repository. Keyboard shortcuts, credentials, adapter availability and Git settings stay
+        local to this server.
       </p>
 
       <AccountPanel user={user} notify={notify} />
 
       <ReadOnlyFieldset>
+        {user.role === "admin" && (
+          <section className="panel">
+            <div className="panel-heading">
+              <div>
+                <h2>External adapters</h2>
+                <p className="muted">
+                  Enable only the integrations this installation uses. Availability is local to
+                  this server and only administrators can change it. Disabled adapters are removed
+                  from navigation, action buttons, help and settings immediately.
+                </p>
+              </div>
+              {savingAdapters && <span className="muted">Saving…</span>}
+            </div>
+            <div className="git-settings-grid">
+              <label className="checkbox">
+                <input
+                  type="checkbox"
+                  checked={songSelectEnabled}
+                  onChange={(event) =>
+                    void updateAdapter("songSelectEnabled", event.target.checked)
+                  }
+                  disabled={savingAdapters}
+                />
+                SongSelect adapter
+              </label>
+              <label className="checkbox">
+                <input
+                  type="checkbox"
+                  checked={churchSuiteEnabled}
+                  onChange={(event) =>
+                    void updateAdapter("churchSuiteEnabled", event.target.checked)
+                  }
+                  disabled={savingAdapters}
+                />
+                ChurchSuite adapter
+              </label>
+            </div>
+            <p className="hint">
+              Disabling an adapter does not delete its credentials, permissions or imported data.
+              Re-enable it here to restore the related pages and buttons.
+            </p>
+          </section>
+        )}
+
         {user.role === "admin" && <BrandingPanel notify={notify} />}
 
         <section className="panel">
@@ -974,10 +1065,11 @@ export default function SettingsPage({
         )}
       </section>
 
-      <section className="panel">
-        <div className="panel-heading">
-          <div>
-            <h2>SongSelect drop folder</h2>
+      {songSelectEnabled && (
+        <section className="panel">
+          <div className="panel-heading">
+            <div>
+              <h2>SongSelect drop folder</h2>
             <p className="muted">
               Point the CCLI downloader’s output folder here. New text files are imported into the
               song library automatically and recorded in the list below.
@@ -1066,12 +1158,14 @@ export default function SettingsPage({
           the same filename updates its song. A file that matches an existing song title or CCLI
           number is skipped until you use <strong>Force rescan</strong>.
         </p>
-      </section>
+        </section>
+      )}
 
-      <section className="panel">
-        <div className="panel-heading">
-          <div>
-            <h2>ChurchSuite empty items</h2>
+      {churchSuiteEnabled && (
+        <section className="panel">
+          <div className="panel-heading">
+            <div>
+              <h2>ChurchSuite empty items</h2>
             <p className="muted">
               Plan object types in this list become empty set-list items during import. They have no
               pages, so their text never reaches a display; any ChurchSuite text is kept in the
@@ -1119,10 +1213,11 @@ export default function SettingsPage({
             <span className="muted">No empty-item types configured.</span>
           )}
         </div>
-        <p className="hint">
-          Defaults: {DEFAULT_CHURCHSUITE_EMPTY_TYPES.join(", ")}.
-        </p>
-      </section>
+          <p className="hint">
+            Defaults: {DEFAULT_CHURCHSUITE_EMPTY_TYPES.join(", ")}.
+          </p>
+        </section>
+      )}
 
       <section className="panel">
         <div className="panel-heading">
@@ -1236,10 +1331,11 @@ export default function SettingsPage({
         </div>
       </section>
 
-      <section className="panel">
-        <div className="panel-heading">
-          <div>
-            <h2>ChurchSuite</h2>
+      {churchSuiteEnabled && (
+        <section className="panel">
+          <div className="panel-heading">
+            <div>
+              <h2>ChurchSuite</h2>
             <p className="muted">
               Planning credentials are read from the container environment. Secrets are never stored
               in the database or exposed to the browser.
@@ -1277,12 +1373,13 @@ export default function SettingsPage({
           <p className="muted">Could not read ChurchSuite status.</p>
         )}
         {testResult && <pre className="config-result">{testResult}</pre>}
-        <p className="hint">
-          Set <code>SM_CHURCHSUITE_CLIENT_ID</code> and{" "}
-          <code>SM_CHURCHSUITE_CLIENT_SECRET</code> in the project&apos;s <code>.env</code> file
-          next to <code>compose.yaml</code>, then restart the container.
-        </p>
-      </section>
+          <p className="hint">
+            Set <code>SM_CHURCHSUITE_CLIENT_ID</code> and{" "}
+            <code>SM_CHURCHSUITE_CLIENT_SECRET</code> in the project&apos;s <code>.env</code> file
+            next to <code>compose.yaml</code>, then restart the container.
+          </p>
+        </section>
+      )}
 
       <section className="panel">
         <div className="panel-heading">

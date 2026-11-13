@@ -1,6 +1,7 @@
-import type { FastifyInstance } from "fastify";
+import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { churchsuiteImportSchema } from "@sm/shared";
 import { requireAuth, requirePermission } from "../auth.js";
+import { isChurchSuiteEnabled } from "../integrations.js";
 import {
   churchsuiteStatus,
   listChurchsuitePlanItems,
@@ -12,14 +13,27 @@ import {
   previewChurchsuitePlan,
 } from "../churchsuite-import.js";
 
+async function requireChurchSuite(
+  _request: FastifyRequest,
+  reply: FastifyReply,
+): Promise<void> {
+  if (!isChurchSuiteEnabled()) {
+    await reply.code(404).send({ error: "ChurchSuite adapter is disabled" });
+  }
+}
+
 export async function churchsuiteRoutes(app: FastifyInstance): Promise<void> {
-  app.get("/api/integrations/churchsuite/status", { preHandler: requireAuth }, async () => ({
-    status: churchsuiteStatus(),
-  }));
+  app.get(
+    "/api/integrations/churchsuite/status",
+    { preHandler: [requireAuth, requireChurchSuite] },
+    async () => ({
+      status: churchsuiteStatus(),
+    }),
+  );
 
   app.post(
     "/api/integrations/churchsuite/test",
-    { preHandler: [requireAuth, requirePermission("churchsuite")] },
+    { preHandler: [requireAuth, requireChurchSuite, requirePermission("churchsuite")] },
     async (_request, reply) => {
       try {
         return await testChurchsuite();
@@ -31,7 +45,7 @@ export async function churchsuiteRoutes(app: FastifyInstance): Promise<void> {
 
   app.get(
     "/api/integrations/churchsuite/plans",
-    { preHandler: requireAuth },
+    { preHandler: [requireAuth, requireChurchSuite] },
     async (request, reply) => {
       const query = request.query as { from?: string; to?: string; status?: string };
       try {
@@ -44,7 +58,7 @@ export async function churchsuiteRoutes(app: FastifyInstance): Promise<void> {
 
   app.get(
     "/api/integrations/churchsuite/plans/:id/items",
-    { preHandler: requireAuth },
+    { preHandler: [requireAuth, requireChurchSuite] },
     async (request, reply) => {
       const id = Number((request.params as { id: string }).id);
       if (!Number.isInteger(id) || id <= 0) {
@@ -60,7 +74,7 @@ export async function churchsuiteRoutes(app: FastifyInstance): Promise<void> {
 
   app.get(
     "/api/integrations/churchsuite/plans/:id/preview",
-    { preHandler: requireAuth },
+    { preHandler: [requireAuth, requireChurchSuite] },
     async (request, reply) => {
       const id = Number((request.params as { id: string }).id);
       if (!Number.isInteger(id) || id <= 0) {
@@ -76,7 +90,7 @@ export async function churchsuiteRoutes(app: FastifyInstance): Promise<void> {
 
   app.post(
     "/api/integrations/churchsuite/plans/:id/import",
-    { preHandler: [requireAuth, requirePermission("churchsuite")] },
+    { preHandler: [requireAuth, requireChurchSuite, requirePermission("churchsuite")] },
     async (request, reply) => {
       const id = Number((request.params as { id: string }).id);
       if (!Number.isInteger(id) || id <= 0) {

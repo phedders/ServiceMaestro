@@ -13,6 +13,7 @@ import {
   SONG_SCRAPING_USERNAME,
 } from "./config.js";
 import { db } from "./db.js";
+import { isSongSelectEnabled } from "./integrations.js";
 import { decryptSecret, encryptSecret } from "./secrets.js";
 
 interface SiteScraperProviderDefinition {
@@ -81,8 +82,13 @@ export function registerSiteScraperAdapter(adapter: SiteScraperAdapter): void {
   adapters.set(adapter.id, adapter);
 }
 
+function providerAvailable(providerId: string): boolean {
+  return providerId !== SONG_SCRAPING_PROVIDER || isSongSelectEnabled();
+}
+
 function providerDefinition(providerId: string): SiteScraperProviderDefinition | null {
-  return PROVIDERS.find((provider) => provider.id === providerId) ?? null;
+  const provider = PROVIDERS.find((entry) => entry.id === providerId) ?? null;
+  return provider && providerAvailable(provider.id) ? provider : null;
 }
 
 function providerBaseUrl(providerId: string): string {
@@ -104,6 +110,7 @@ function decryptedSecret(row: SiteCredentialRow | null): StoredSiteSecret | null
 }
 
 function serverCredentials(providerId: string): SiteScraperCredentials | null {
+  if (!providerAvailable(providerId)) return null;
   if (providerId !== SONG_SCRAPING_PROVIDER) return null;
   if (!SONG_SCRAPING_USERNAME && !SONG_SCRAPING_PASSWORD && !SONG_SCRAPING_COOKIE) {
     return null;
@@ -121,6 +128,7 @@ export function resolveSiteCredentials(
   userId: string,
   providerId: string,
 ): SiteScraperCredentials | null {
+  if (!providerAvailable(providerId)) return null;
   const row = credentialRow(userId, providerId);
   const secret = decryptedSecret(row);
   if (row && secret) {
@@ -136,7 +144,7 @@ export function resolveSiteCredentials(
 }
 
 export function listSiteScraperProviders(userId: string): SiteScraperProviderSummary[] {
-  return PROVIDERS.map((provider) => {
+  return PROVIDERS.filter((provider) => providerAvailable(provider.id)).map((provider) => {
     const row = credentialRow(userId, provider.id);
     const server = serverCredentials(provider.id);
     return {

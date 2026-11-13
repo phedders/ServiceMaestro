@@ -89,9 +89,10 @@ Display outputs have a shared/local split: shared definitions are written to
 never exported. Shared outputs can be removed or edited from **Menu → Outputs**; local
 outputs are available only on that server.
 
-Server-specific configuration stays local: ports, data paths, credentials, output
-site scraping credentials, SongSelect watched-folder state, local output extras and Git
-repository settings are not shared.
+Server-specific configuration stays local: ports, data paths, credentials, external
+adapter availability, site scraping credentials, SongSelect watched-folder state, local
+output extras and Git repository settings are not shared. Adapter availability can only
+be changed by an administrator and is stored in the instance database.
 
 `<setlist-id>.json`:
 

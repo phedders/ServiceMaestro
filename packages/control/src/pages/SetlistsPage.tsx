@@ -29,6 +29,7 @@ import {
   type TarpPresentationSummary,
   type TextFormat,
 } from "@sm/shared";
+import { useAdapters } from "../adapters";
 import { api, ApiError } from "../api";
 import { BibleLayoutButtons } from "../components/BibleLayoutButtons";
 import { IsoDateInput } from "../components/IsoDateInput";
@@ -215,6 +216,7 @@ function ItemRow({
   onDrop: () => void;
   notify: (text: string, kind?: "info" | "error") => void;
 }) {
+  const { songSelectEnabled } = useAdapters();
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState(item.title);
   const initial = initialTextState(item);
@@ -599,7 +601,7 @@ function ItemRow({
               ALT
             </button>
           )}
-          {item.kind === "song" && song && siteProvider && (
+          {item.kind === "song" && song && songSelectEnabled && siteProvider && (
             <button
               className="button ghost small"
               onClick={() => void onUpdateFromSite(song)}
@@ -1279,6 +1281,7 @@ export default function SetlistsPage({
   notify: (text: string, kind?: "info" | "error") => void;
 }) {
   const { canWrite } = usePageAccess();
+  const { songSelectEnabled } = useAdapters();
   const [setlists, setSetlists] = useState<SetlistSummary[]>([]);
   const [selectedId, setSelectedId] = useSessionState<string | null>(
     "setlists:selected",
@@ -1406,7 +1409,6 @@ export default function SetlistsPage({
       setLoading(false);
     });
     api.songs().then((result) => setSongs(result.songs)).catch(() => undefined);
-    void loadActiveSiteProvider().then(setSiteProvider);
     api.images().then((result) => setImages(result.images)).catch(() => undefined);
     api
       .backgrounds()
@@ -1428,6 +1430,14 @@ export default function SetlistsPage({
       })
       .catch(() => undefined);
   }, []);
+
+  useEffect(() => {
+    if (!songSelectEnabled) {
+      setSiteProvider(null);
+      return;
+    }
+    void loadActiveSiteProvider().then(setSiteProvider);
+  }, [songSelectEnabled]);
 
   useEffect(() => {
     if (addKind !== "bible" || bibleTranslations.length) return;

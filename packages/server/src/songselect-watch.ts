@@ -8,6 +8,7 @@ import {
   SONGSELECT_WATCH_INTERVAL,
 } from "./config.js";
 import { db } from "./db.js";
+import { isSongSelectEnabled } from "./integrations.js";
 import { parseCcliText } from "./importers/ccli.js";
 import { saveSongToGit } from "./git-store.js";
 
@@ -168,6 +169,16 @@ function listFilesSafe(): string[] {
 }
 
 export async function runSongSelectWatch(force = false): Promise<SongSelectWatchReport | null> {
+  if (!isSongSelectEnabled()) {
+    return {
+      scanned: 0,
+      imported: 0,
+      updated: 0,
+      skipped: 0,
+      errors: 0,
+      files: [],
+    };
+  }
   if (running) return null;
   running = true;
   lastError = null;
@@ -296,10 +307,12 @@ export async function runSongSelectWatch(force = false): Promise<SongSelectWatch
 
 export function startSongSelectWatcher(): () => void {
   if (!SONGSELECT_WATCH_ENABLED) return () => undefined;
-  try {
-    ensureDirectory();
-  } catch (error) {
-    lastError = (error as Error).message;
+  if (isSongSelectEnabled()) {
+    try {
+      ensureDirectory();
+    } catch (error) {
+      lastError = (error as Error).message;
+    }
   }
   const initial = setTimeout(() => void runSongSelectWatch(), 1500);
   const timer = setInterval(

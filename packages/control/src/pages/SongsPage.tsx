@@ -11,6 +11,7 @@ import type {
   SongImportReport,
   SongImportScan,
 } from "@sm/shared";
+import { useAdapters } from "../adapters";
 import { api, ApiError } from "../api";
 import { ChordProUpdateDialog } from "../components/ChordProUpdateDialog";
 import { PageContentEditor } from "../components/PageContentEditor";
@@ -42,6 +43,7 @@ export default function SongsPage({
   notify: (text: string, kind?: "info" | "error") => void;
 }) {
   const { canWrite } = usePageAccess();
+  const { songSelectEnabled } = useAdapters();
   const [songs, setSongs] = useState<Song[]>([]);
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useSessionState<string | null>("songs:selected", null);
@@ -92,8 +94,12 @@ export default function SongsPage({
   }, []);
 
   useEffect(() => {
+    if (!songSelectEnabled) {
+      setSiteProvider(null);
+      return;
+    }
     void loadActiveSiteProvider().then(setSiteProvider);
-  }, []);
+  }, [songSelectEnabled]);
 
   useEffect(() => {
     if (restoredSelection.current || !songs.length) return;
@@ -629,7 +635,7 @@ export default function SongsPage({
         <div className="panel-heading">
           <h2>{selectedId ? "Edit song" : "New song"}</h2>
           <div className="button-row">
-            {selectedId && siteProvider && selectedSong && (
+            {selectedId && songSelectEnabled && siteProvider && selectedSong && (
               <button
                 className="button ghost"
                 onClick={() => void updateFromSite(selectedSong)}
@@ -1194,14 +1200,16 @@ export default function SongsPage({
             key: form.key,
             lyrics: form.lyrics,
           }}
-          provider={siteProvider}
+          provider={songSelectEnabled ? siteProvider : null}
           notify={notify}
           onApply={applyChordPro}
           onClose={() => setChordProOpen(false)}
         />
       )}
 
-      <SiteSongDownloadPanel notify={notify} onImported={() => void load()} />
+      {songSelectEnabled && (
+        <SiteSongDownloadPanel notify={notify} onImported={() => void load()} />
+      )}
     </div>
   );
 }

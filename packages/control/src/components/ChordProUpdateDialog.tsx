@@ -3,6 +3,7 @@ import type {
   ChordProFilePreview,
   SiteScraperProviderSummary,
 } from "@sm/shared";
+import { useAdapters } from "../adapters";
 import { api, ApiError } from "../api";
 import { sideBySideDiff } from "../song-diff";
 
@@ -31,6 +32,7 @@ export function ChordProUpdateDialog({
   onApply: (preview: ChordProFilePreview) => void;
   onClose: () => void;
 }) {
+  const { songSelectEnabled } = useAdapters();
   const [preview, setPreview] = useState<ChordProFilePreview | null>(null);
   const [source, setSource] = useState("");
   const [loading, setLoading] = useState<"file" | "site" | null>(null);
@@ -149,7 +151,7 @@ export function ChordProUpdateDialog({
               }}
             />
           </label>
-          {provider && (
+          {songSelectEnabled && provider && (
             <button
               type="button"
               className="button ghost small"
@@ -162,7 +164,7 @@ export function ChordProUpdateDialog({
           )}
           {source && <span className="muted">Source: {source}</span>}
         </div>
-        {!provider && (
+        {songSelectEnabled && !provider && (
           <p className="hint">
             No active SongSelect credentials were found. Download the ChordPro file from SongSelect
             and choose it here, or configure credentials in Settings.
@@ -172,7 +174,8 @@ export function ChordProUpdateDialog({
         {error && <p className="form-error">{error}</p>}
         {!preview && loading === null && !error && (
           <p className="muted">
-            Choose a downloaded `.cho`/`.chordpro` file or fetch the ChordPro file from SongSelect.
+            Choose a downloaded `.cho`/`.chordpro` file
+            {songSelectEnabled ? " or fetch the ChordPro file from SongSelect." : "."}
           </p>
         )}
 

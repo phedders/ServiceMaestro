@@ -2,7 +2,7 @@
 
 Design for bringing SongPro, lead-sheet, chord, lyric and score files into the song library, and for presenting ChordPro, PDF scores and guitar tabs to musicians.
 
-> Implementation status: ChordPro import, per-song asset uploads (PDF/ChordPro/lyrics/image), authenticated asset serving, the musician PDF viewer and the SongSelect drop-folder watcher are implemented. Encrypted per-user site credentials are implemented. The SongSelect adapter is implemented and verified live for search, lyrics, ChordPro, lead-sheet PDF and vocal-sheet PDF downloads. Other site adapters are not implemented yet.
+> Implementation status: ChordPro import, per-song asset uploads (PDF/ChordPro/lyrics/image), authenticated asset serving, the musician PDF viewer and the SongSelect drop-folder watcher are implemented. Encrypted per-user site credentials are implemented. The SongSelect adapter is implemented and verified live for search, lyrics, ChordPro, lead-sheet PDF and vocal-sheet PDF downloads. Administrators can disable the SongSelect adapter under **Settings → External adapters**; this hides the drop folder, site-download panel, per-song update actions, credentials panel and SongSelect help, and the related API routes return 404. Other site adapters are not implemented yet.
 
 ## 1. Scope and constraints
 

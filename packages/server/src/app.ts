@@ -45,6 +45,7 @@ import { assetRoutes } from "./routes/assets.js";
 import { transferRoutes } from "./routes/transfer.js";
 import { fontRoutes } from "./routes/fonts.js";
 import { churchsuiteRoutes } from "./routes/churchsuite.js";
+import { integrationRoutes } from "./routes/integrations.js";
 import { settingsRoutes } from "./routes/settings.js";
 import { imageRoutes } from "./routes/images.js";
 import { tarpRoutes } from "./routes/tarp.js";
@@ -116,6 +117,7 @@ export async function buildApp(
   await app.register(transferRoutes);
   await app.register(fontRoutes);
   await app.register(churchsuiteRoutes);
+  await app.register(integrationRoutes);
   await app.register(settingsRoutes);
   await app.register(imageRoutes);
   await app.register(tarpRoutes);
