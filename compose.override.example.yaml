@@ -1,0 +1,36 @@
+# Local deployment override example.
+#
+# Copy this file to compose.override.yaml and edit it for this host:
+#
+#   cp compose.override.example.yaml compose.override.yaml
+#
+# compose.override.yaml is git-ignored. It is the right place for local
+# library paths, published ports, hostnames and WebAuthn settings.
+#
+# The values below are examples; replace them with your real paths and URL.
+# The library volumes are commented out so copying this file does not replace
+# the safe ./library defaults until you deliberately uncomment them.
+services:
+  service-maestro:
+    environment:
+      # Optional YAML/JSON config inside the container.
+      SM_CONFIG_FILE: /data/config.yaml
+
+      # Browser-facing HTTPS settings. The RP ID is the hostname only; the
+      # origin is the exact URL, including any non-standard port.
+      SM_SSL_HOSTS: ${SM_SSL_HOSTS:-service-maestro.local}
+      SM_WEBAUTHN_RP_ID: ${SM_WEBAUTHN_RP_ID:-service-maestro.local}
+      SM_WEBAUTHN_ORIGIN: ${SM_WEBAUTHN_ORIGIN:-https://service-maestro.local:8443}
+
+    ports:
+      # Change the host ports without editing compose.yaml.
+      - "8899:${SM_PORT:-8080}"
+      - "8898:${SM_DISPLAY_PORT:-8081}"
+
+    # Uncomment and edit these to replace the base compose library binds at
+    # the same container paths. While commented out, the ./library defaults
+    # from compose.yaml are used.
+    # volumes:
+    #   - /srv/service-maestro/songs:/library/songs:ro
+    #   - /srv/service-maestro/bible:/library/bible:ro
+    #   - /srv/service-maestro/images:/library/images

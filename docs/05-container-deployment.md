@@ -303,7 +303,11 @@ typeof PublicKeyCredential !== "undefined"
 
 Both must be truthy before passkey registration can work. If registration still fails, check that the browser URL exactly matches `SM_WEBAUTHN_ORIGIN`, the certificate SAN contains that hostname, and the device trusts the issuing CA.
 
-The current deployment-specific settings live in `compose.override.yaml` (`brix.foo`, control `8899`, display `8898`). Change those values when deploying under a different hostname or port.
+For host-specific ports, library paths and WebAuthn settings, copy
+[`compose.override.example.yaml`](../compose.override.example.yaml) to
+`compose.override.yaml` and edit it. The real override is git-ignored so each
+host can keep its own values without committing them. The example includes
+placeholder hostname/origin values and library bind paths.
 
 ## 5. Docker / Podman
 
@@ -338,6 +342,18 @@ services:
     mem_limit: 512m
     cpus: 1.0
 ```
+
+For host-specific ports, library paths and WebAuthn settings, copy the
+example override and edit it:
+
+```sh
+cp compose.override.example.yaml compose.override.yaml
+```
+
+`compose.override.yaml` is git-ignored, so each host can keep its own bind
+mounts and published ports. The base `compose.yaml` ports remain enabled; add or
+change host ports in the override, or edit `compose.yaml` if you want a single
+canonical set.
 
 Notes:
 

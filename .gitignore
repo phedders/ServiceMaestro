@@ -11,6 +11,8 @@ build/
 config.yaml
 config.yml
 config.json
+compose.override.yaml
+compose.override.yml
 data/
 packages/*/data/
 *.sqlite

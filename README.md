@@ -183,7 +183,7 @@ docker run --rm -p 8080:8080 -p 8081:8081 \
 
 Open the control interface at <https://localhost:8080>; the display listener remains at <http://localhost:8081/display/>. Certificates live in `./data/ssl` and a self-signed pair is generated automatically when needed.
 
-Or `docker compose up -d` / `podman-compose up -d`. The container runs as UID/GID 10001; ensure the mounted data directory is writable by that user (`chown -R 10001:10001 ./data`, or use Incus `shift=true`).
+Or `docker compose up -d` / `podman-compose up -d`. The container runs as UID/GID 10001; ensure the mounted data directory is writable by that user (`chown -R 10001:10001 ./data`, or use Incus `shift=true`). For host-specific ports or library paths, copy `compose.override.example.yaml` to `compose.override.yaml` and edit it. The real override is git-ignored.
 
 Copy `.env.example` to `.env` next to `compose.yaml` for local credentials. Docker Compose reads that file automatically; never commit it. ChurchSuite credentials belong under `SM_CHURCHSUITE_CLIENT_ID` and `SM_CHURCHSUITE_CLIENT_SECRET`, and the Settings page can test the connection.
 
