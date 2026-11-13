@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import {
   DEFAULT_DISPLAY_OUTPUTS,
   DISPLAY_OUTPUT_TEMPLATES,
+  type DisplayClockPosition,
   type DisplayOutput,
   type DisplayOutputEntry,
   type DisplayOutputScope,
@@ -206,6 +207,15 @@ export default function OutputsPage({
   ) {
     setDraft((current) =>
       current ? { ...current, image: { ...current.image, [key]: value } } : current,
+    );
+  }
+
+  function setClock<K extends keyof DisplayOutput["clock"]>(
+    key: K,
+    value: DisplayOutput["clock"][K],
+  ) {
+    setDraft((current) =>
+      current ? { ...current, clock: { ...current.clock, [key]: value } } : current,
     );
   }
 
@@ -719,6 +729,103 @@ export default function OutputsPage({
                 ))}
               </div>
             </div>
+          </section>
+
+          <section className="output-form-section">
+            <h3>Clock overlay</h3>
+            <div className="output-form-grid">
+              <label className="checkbox output-checkbox">
+                <input
+                  type="checkbox"
+                  checked={draft.clock.enabled}
+                  onChange={(event) => setClock("enabled", event.target.checked)}
+                />
+                Show clock
+              </label>
+              <label>
+                Clock style
+                <select
+                  value={draft.clock.mode}
+                  onChange={(event) =>
+                    setClock("mode", event.target.value as DisplayOutput["clock"]["mode"])
+                  }
+                >
+                  <option value="digital">Digital</option>
+                  <option value="analog">Analogue (no numbers)</option>
+                </select>
+              </label>
+              <label>
+                Size (vw)
+                <input
+                  type="number"
+                  min={1}
+                  max={30}
+                  step={0.5}
+                  value={draft.clock.size}
+                  onChange={(event) => setClock("size", numberValue(event.target.value, 8))}
+                />
+              </label>
+              <label>
+                Position
+                <select
+                  value={draft.clock.position}
+                  onChange={(event) =>
+                    setClock("position", event.target.value as DisplayClockPosition)
+                  }
+                >
+                  <option value="top-left">Top left</option>
+                  <option value="top-center">Top centre</option>
+                  <option value="top-right">Top right</option>
+                  <option value="center-left">Centre left</option>
+                  <option value="center">Centre</option>
+                  <option value="center-right">Centre right</option>
+                  <option value="bottom-left">Bottom left</option>
+                  <option value="bottom-center">Bottom centre</option>
+                  <option value="bottom-right">Bottom right</option>
+                </select>
+              </label>
+              <label>
+                Text colour
+                <input
+                  type="color"
+                  value={draft.clock.color}
+                  onChange={(event) => setClock("color", event.target.value)}
+                />
+              </label>
+              <label className="checkbox output-checkbox">
+                <input
+                  type="checkbox"
+                  checked={draft.clock.shadow}
+                  onChange={(event) => setClock("shadow", event.target.checked)}
+                />
+                Shadow / highlight
+              </label>
+              <label className="checkbox output-checkbox">
+                <input
+                  type="checkbox"
+                  checked={draft.clock.seconds}
+                  onChange={(event) => setClock("seconds", event.target.checked)}
+                />
+                {draft.clock.mode === "analog" ? "Second hand" : "Show seconds"}
+              </label>
+              {draft.clock.mode === "digital" && (
+                <label className="grow">
+                  Font family override
+                  <input
+                    value={draft.clock.fontFamily ?? ""}
+                    onChange={(event) =>
+                      setClock("fontFamily", event.target.value.trim() || null)
+                    }
+                    placeholder="Inherit global font"
+                  />
+                </label>
+              )}
+            </div>
+            <p className="hint">
+              The clock is an overlay on this output, independent of the live content. It is useful
+              on a stage/confidence monitor where the speaker needs the time while lyrics are blank
+              or changing.
+            </p>
           </section>
 
           <section className="output-form-section">

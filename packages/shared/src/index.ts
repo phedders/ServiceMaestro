@@ -587,6 +587,40 @@ export const DISPLAY_OUTPUT_TEMPLATES = [
 export type DisplayOutputTemplate = (typeof DISPLAY_OUTPUT_TEMPLATES)[number];
 export type DisplayOutputFade = "none" | "text" | "template";
 export type DisplayOutputScope = "shared" | "local";
+export type DisplayClockPosition =
+  | "top-left"
+  | "top-center"
+  | "top-right"
+  | "center-left"
+  | "center"
+  | "center-right"
+  | "bottom-left"
+  | "bottom-center"
+  | "bottom-right";
+
+export type DisplayClockMode = "digital" | "analog";
+
+export interface DisplayClockSettings {
+  enabled: boolean;
+  mode: DisplayClockMode;
+  fontFamily: string | null;
+  size: number;
+  color: string;
+  position: DisplayClockPosition;
+  shadow: boolean;
+  seconds: boolean;
+}
+
+export const DEFAULT_CLOCK_SETTINGS: DisplayClockSettings = {
+  enabled: false,
+  mode: "digital",
+  fontFamily: null,
+  size: 8,
+  color: "#ffffff",
+  position: "top-right",
+  shadow: true,
+  seconds: false,
+};
 
 export interface DisplayOutput {
   id: string;
@@ -638,6 +672,7 @@ export interface DisplayOutput {
     maxHeightPercent: number | null;
     padding: number | null;
   };
+  clock: DisplayClockSettings;
 }
 
 export interface DisplayOutputEntry extends DisplayOutput {
@@ -687,6 +722,7 @@ export const DEFAULT_DISPLAY_OUTPUTS: DisplayOutput[] = [
       showSplitWords: false,
     },
     image: { maxHeightPercent: null, padding: null },
+    clock: { ...DEFAULT_CLOCK_SETTINGS },
   },
   {
     id: "two-thirds",
@@ -730,6 +766,7 @@ export const DEFAULT_DISPLAY_OUTPUTS: DisplayOutput[] = [
       showSplitWords: false,
     },
     image: { maxHeightPercent: 78, padding: 0 },
+    clock: { ...DEFAULT_CLOCK_SETTINGS },
   },
   {
     id: "full",
@@ -773,6 +810,7 @@ export const DEFAULT_DISPLAY_OUTPUTS: DisplayOutput[] = [
       showSplitWords: false,
     },
     image: { maxHeightPercent: 78, padding: 0 },
+    clock: { ...DEFAULT_CLOCK_SETTINGS },
   },
   {
     id: "stage",
@@ -816,6 +854,7 @@ export const DEFAULT_DISPLAY_OUTPUTS: DisplayOutput[] = [
       showSplitWords: false,
     },
     image: { maxHeightPercent: 78, padding: 0 },
+    clock: { ...DEFAULT_CLOCK_SETTINGS },
   },
   {
     id: "chords",
@@ -859,6 +898,7 @@ export const DEFAULT_DISPLAY_OUTPUTS: DisplayOutput[] = [
       showSplitWords: true,
     },
     image: { maxHeightPercent: 78, padding: 0 },
+    clock: { ...DEFAULT_CLOCK_SETTINGS },
   },
 ];
 
@@ -1849,6 +1889,29 @@ const displayOutputImageSchema = z.object({
   padding: z.number().int().min(0).max(200).nullable().default(null),
 });
 
+const displayClockSchema = z.object({
+  enabled: z.boolean().default(false),
+  mode: z.enum(["digital", "analog"]).default("digital"),
+  fontFamily: z.string().trim().max(200).nullable().default(null),
+  size: z.number().min(1).max(30).default(8),
+  color: displayOutputHexColor.default("#ffffff"),
+  position: z
+    .enum([
+      "top-left",
+      "top-center",
+      "top-right",
+      "center-left",
+      "center",
+      "center-right",
+      "bottom-left",
+      "bottom-center",
+      "bottom-right",
+    ])
+    .default("top-right"),
+  shadow: z.boolean().default(true),
+  seconds: z.boolean().default(false),
+});
+
 export const displayOutputSchema = z.object({
   id: z.string().trim().min(1).max(80).regex(/^[a-z0-9][a-z0-9-]*$/),
   label: z.string().trim().min(1).max(80),
@@ -1865,6 +1928,7 @@ export const displayOutputSchema = z.object({
   text: displayOutputTextSchema.default({}),
   content: displayOutputContentSchema.default({}),
   image: displayOutputImageSchema.default({}),
+  clock: displayClockSchema.default({}),
 });
 
 export const displayOutputInputSchema = displayOutputSchema;

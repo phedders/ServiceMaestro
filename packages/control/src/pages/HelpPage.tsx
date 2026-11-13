@@ -500,8 +500,10 @@ export default function HelpPage({ onOpenSettings }: { onOpenSettings: () => voi
           define its own fade, background, layout, panel, text and page visibility. Legacy aliases
           such as <code>/display/twothirds</code>, <code>/display/main</code> and
           <code> /display/fullscreen</code> are attached to the default outputs. Displays receive a
-          full snapshot on reconnect, so refreshing OBS does not lose the current screen. Ask your
-          administrator for the production token; never publish it publicly.
+          full snapshot on reconnect, so refreshing OBS does not lose the current screen. Add a
+          digital or analogue clock overlay to any output in <strong>Menu → Outputs</strong>; it
+          remains visible while content is blank or changing. Ask your administrator for the
+          production token; never publish it publicly.
         </p>
         <p className="hint">
           A separate read-only server, normally on port <code>8081</code>, serves the complete

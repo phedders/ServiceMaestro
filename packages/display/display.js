@@ -10,6 +10,9 @@
   const stingerLayer = document.createElement("div");
   stingerLayer.id = "sm-stinger-layer";
   document.body.appendChild(stingerLayer);
+  const clockLayer = document.createElement("div");
+  clockLayer.id = "sm-clock-layer";
+  document.body.appendChild(clockLayer);
   const style = document.createElement("style");
   style.id = "sm-template-style";
   document.head.appendChild(style);
@@ -31,6 +34,9 @@
   let lastCss = null;
   let lastBackground = "";
   let fadeTimer = null;
+  let clockSettings = null;
+  let clockMode = "";
+  let clockTimer = null;
 
   const OUTPUT_CSS = `
 body[data-target="main"] { --sm-output-base-font-size: clamp(2.2rem, 4.4vw, 5.5rem); }
@@ -116,6 +122,80 @@ body.sm-output-configured.mode-image .sm-lowerthird-panel {
 }
 body.sm-output-configured.mode-image .sm-footer {
   display: none;
+}
+
+#sm-clock-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: none;
+  pointer-events: none;
+}
+#sm-clock-layer.visible {
+  display: block;
+}
+.sm-clock {
+  position: absolute;
+  font-size: var(--sm-clock-size, 8vw);
+  font-family: var(--sm-clock-font, inherit);
+  color: var(--sm-clock-color, #ffffff);
+  line-height: 1;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  text-shadow: var(--sm-clock-shadow, none);
+}
+#sm-clock-layer[data-position="top-left"] .sm-clock { top: 4vh; left: 4vw; }
+#sm-clock-layer[data-position="top-center"] .sm-clock { top: 4vh; left: 50%; transform: translateX(-50%); }
+#sm-clock-layer[data-position="top-right"] .sm-clock { top: 4vh; right: 4vw; }
+#sm-clock-layer[data-position="center-left"] .sm-clock { top: 50%; left: 4vw; transform: translateY(-50%); }
+#sm-clock-layer[data-position="center"] .sm-clock { top: 50%; left: 50%; transform: translate(-50%, -50%); }
+#sm-clock-layer[data-position="center-right"] .sm-clock { top: 50%; right: 4vw; transform: translateY(-50%); }
+#sm-clock-layer[data-position="bottom-left"] .sm-clock { bottom: 4vh; left: 4vw; }
+#sm-clock-layer[data-position="bottom-center"] .sm-clock { bottom: 4vh; left: 50%; transform: translateX(-50%); }
+#sm-clock-layer[data-position="bottom-right"] .sm-clock { bottom: 4vh; right: 4vw; }
+.sm-clock-analog {
+  width: 1em;
+  height: 1em;
+  text-shadow: none;
+  filter: var(--sm-clock-filter, none);
+}
+.sm-clock-face {
+  position: absolute;
+  inset: 0;
+  border: 0.055em solid currentColor;
+  border-radius: 50%;
+}
+.sm-clock-face::before {
+  content: "";
+  position: absolute;
+  inset: 0.075em;
+  border-radius: 50%;
+  background: repeating-conic-gradient(from -0.5deg, currentColor 0 1.1deg, transparent 1.1deg 30deg);
+  -webkit-mask: radial-gradient(circle, transparent 0 84%, #000 85%);
+  mask: radial-gradient(circle, transparent 0 84%, #000 85%);
+  opacity: 0.55;
+}
+.sm-clock-hand {
+  position: absolute;
+  left: 50%;
+  bottom: 50%;
+  transform-origin: 50% 100%;
+  border-radius: 99px;
+  background: currentColor;
+}
+.sm-clock-hour { width: 0.055em; height: 0.28em; margin-left: -0.0275em; }
+.sm-clock-minute { width: 0.04em; height: 0.4em; margin-left: -0.02em; }
+.sm-clock-second { width: 0.018em; height: 0.44em; margin-left: -0.009em; }
+.sm-clock-analog:not(.with-seconds) .sm-clock-second { display: none; }
+.sm-clock-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0.075em;
+  height: 0.075em;
+  margin: -0.0375em 0 0 -0.0375em;
+  border-radius: 50%;
+  background: currentColor;
 }
 `;
 
@@ -259,6 +339,84 @@ body.sm-output-configured.mode-image .sm-footer {
     fadeMode = output.fade;
     fadeMs = Math.max(0, output.fadeDurationMs);
   }
+
+  function clockMarkup(mode) {
+    if (mode === "analog") {
+      return '<div class="sm-clock sm-clock-analog" aria-label="Clock"><div class="sm-clock-face"><span class="sm-clock-hand sm-clock-hour"></span><span class="sm-clock-hand sm-clock-minute"></span><span class="sm-clock-hand sm-clock-second"></span><span class="sm-clock-center"></span></div></div>';
+    }
+    return '<div class="sm-clock sm-clock-digital"></div>';
+  }
+
+  function renderClock() {
+    if (!clockSettings?.enabled) return;
+    const now = new Date();
+    if (clockSettings.mode === "analog") {
+      const seconds = now.getSeconds() + now.getMilliseconds() / 1000;
+      const minutes = now.getMinutes() + seconds / 60;
+      const hours = (now.getHours() % 12) + minutes / 60;
+      const setHand = (selector, degrees) => {
+        const hand = clockLayer.querySelector(selector);
+        if (hand) hand.style.transform = `rotate(${degrees}deg)`;
+      };
+      setHand(".sm-clock-hour", hours * 30);
+      setHand(".sm-clock-minute", minutes * 6);
+      setHand(".sm-clock-second", seconds * 6);
+      return;
+    }
+    const clock = clockLayer.querySelector(".sm-clock-digital");
+    if (!clock) return;
+    clock.textContent = now.toLocaleTimeString(undefined, {
+      hour: "2-digit",
+      minute: "2-digit",
+      ...(clockSettings.seconds ? { second: "2-digit" } : {}),
+    });
+  }
+
+  function applyClock(state) {
+    const output = state.outputs && state.outputs[outputId];
+    const clock = output?.clock ?? null;
+    clockSettings = clock;
+    if (!clock?.enabled) {
+      clockLayer.classList.remove("visible", "with-seconds");
+      clockLayer.innerHTML = "";
+      clockLayer.removeAttribute("data-position");
+      clockMode = "";
+      if (clockTimer) {
+        clearInterval(clockTimer);
+        clockTimer = null;
+      }
+      return;
+    }
+    const config = state.displayConfig || {};
+    clockLayer.classList.add("visible");
+    clockLayer.classList.toggle("with-seconds", clock.seconds);
+    clockLayer.dataset.position = clock.position;
+    clockLayer.style.setProperty("--sm-clock-size", `${clock.size}vw`);
+    clockLayer.style.setProperty("--sm-clock-color", clock.color);
+    clockLayer.style.setProperty(
+      "--sm-clock-font",
+      clock.fontFamily ||
+        config.fontFamily ||
+        '"Clear Sans", "Segoe UI", system-ui, -apple-system, sans-serif',
+    );
+    clockLayer.style.setProperty(
+      "--sm-clock-shadow",
+      clock.shadow
+        ? "0 0.06em 0.18em rgba(0, 0, 0, 0.8), 0 0 0.03em rgba(0, 0, 0, 0.9)"
+        : "none",
+    );
+    clockLayer.style.setProperty(
+      "--sm-clock-filter",
+      clock.shadow ? "drop-shadow(0 0.04em 0.08em rgba(0, 0, 0, 0.8))" : "none",
+    );
+    if (clockMode !== clock.mode) {
+      clockMode = clock.mode;
+      clockLayer.innerHTML = clockMarkup(clock.mode);
+    }
+    renderClock();
+    if (!clockTimer) clockTimer = setInterval(renderClock, 500);
+  }
+
   let stingerCommitTimer = null;
   let stingerEndTimer = null;
   let pendingStingerPage = "";
@@ -626,6 +784,7 @@ body.sm-output-configured.mode-image .sm-footer {
     if (!deferBackground) applyBackground();
 
     applyOutputConfig(state);
+    applyClock(state);
 
     const template = templateFor(state);
     const html = compose(state, template);
