@@ -273,7 +273,7 @@ Future PDFs may be scanned images or have no text layer, so the viewer must not 
 - PDF.js bundled locally (no CDN), rendered in the musician UI.
 - Page navigation, jump-to-page, **Fit width / Fit height / 1:1** zoom, manual zoom, rotate, fullscreen, print/download (if enabled by an admin), remember last page per user.
 - When the viewer is wider than several pages at the current zoom, consecutive pages are shown side by side and page navigation advances by the visible spread.
-- The musicians view pane can switch to browser fullscreen, covering lyrics, scores, images and text without changing the live session.
+- The musicians view pane can switch to browser fullscreen, covering lyrics, scores, images and text without changing the live session. The PDF toolbar also has its own fullscreen button beside the zoom controls.
 - Tablet-friendly controls; keyboard shortcuts; dark background.
 - If no score exists for the selected key, show available keys, then fall back to the transposed ChordPro/lyrics with a warning — never silently show the wrong key.
 - Scores are for the musician UI only; they are not sent to congregation outputs.

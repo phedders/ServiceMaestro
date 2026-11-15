@@ -4839,6 +4839,28 @@ body.resizing-live-queue {
   gap: 10px;
 }
 
+.pdf-viewer:fullscreen {
+  width: 100vw;
+  height: 100vh;
+  padding: 16px;
+  background: var(--bg);
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: auto;
+}
+
+.pdf-viewer:fullscreen .pdf-canvas-wrap {
+  max-height: none;
+  flex: 1;
+  min-height: 0;
+}
+
+.fullscreen-button-compact {
+  min-width: 32px;
+  padding: 4px 7px;
+  font-size: 0.9rem;
+  line-height: 1;
+}
+
 .pdf-toolbar {
   display: flex;
   justify-content: space-between;

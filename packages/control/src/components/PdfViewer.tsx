@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import * as pdfjs from "pdfjs-dist";
 import workerSrc from "pdfjs-dist/build/pdf.worker.min.mjs?url";
+import { FullscreenButton } from "./FullscreenButton";
 
 pdfjs.GlobalWorkerOptions.workerSrc = workerSrc;
 
@@ -9,6 +10,7 @@ const PAGE_GAP = 16;
 export function PdfViewer({ assetId, title }: { assetId: string; title: string }) {
   const canvasRefs = useRef<Map<number, HTMLCanvasElement>>(new Map());
   const wrapRef = useRef<HTMLDivElement | null>(null);
+  const viewerRef = useRef<HTMLDivElement | null>(null);
   const pdfRef = useRef<pdfjs.PDFDocumentProxy | null>(null);
   const taskRef = useRef<ReturnType<typeof pdfjs.getDocument> | null>(null);
   const [page, setPage] = useState(1);
@@ -168,7 +170,7 @@ export function PdfViewer({ assetId, title }: { assetId: string; title: string }
   if (loading) return <div className="pdf-loading">Loading {title}…</div>;
 
   return (
-    <div className="pdf-viewer">
+    <div className="pdf-viewer" ref={viewerRef}>
       <div className="pdf-toolbar">
         <div className="button-row">
           <button
@@ -229,6 +231,11 @@ export function PdfViewer({ assetId, title }: { assetId: string; title: string }
           >
             +
           </button>
+          <FullscreenButton
+            targetRef={viewerRef}
+            compact
+            title="Fullscreen PDF viewer"
+          />
         </div>
       </div>
       <div className="pdf-canvas-wrap" ref={wrapRef}>

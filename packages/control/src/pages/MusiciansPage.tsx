@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   parseImageListContent,
   type SetlistDetail,
@@ -8,6 +8,7 @@ import {
   type SongAsset,
 } from "@sm/shared";
 import { api, ApiError } from "../api";
+import { FullscreenButton } from "../components/FullscreenButton";
 import { PdfViewer } from "../components/PdfViewer";
 import { compactDate, pickCurrentSetlist } from "../service-date";
 
@@ -34,40 +35,6 @@ function AssetViewer({ asset }: { asset: SongAsset }) {
 
 function serviceLabel(setlist: SetlistSummary): string {
   return `${compactDate(setlist.serviceDate)}${setlist.serviceTime ? ` · ${setlist.serviceTime}` : ""}`;
-}
-
-function FullscreenButton({ targetRef }: { targetRef: RefObject<HTMLElement | null> }) {
-  const [active, setActive] = useState(false);
-
-  useEffect(() => {
-    const update = () => setActive(document.fullscreenElement === targetRef.current);
-    document.addEventListener("fullscreenchange", update);
-    update();
-    return () => document.removeEventListener("fullscreenchange", update);
-  }, [targetRef]);
-
-  async function toggle() {
-    try {
-      if (document.fullscreenElement === targetRef.current) {
-        await document.exitFullscreen();
-      } else {
-        await targetRef.current?.requestFullscreen();
-      }
-    } catch {
-      // Fullscreen can be blocked by the browser or unavailable on this device.
-    }
-  }
-
-  return (
-    <button
-      type="button"
-      className="button ghost small"
-      onClick={() => void toggle()}
-      title={active ? "Leave fullscreen" : "Show this view pane fullscreen"}
-    >
-      {active ? "Exit fullscreen" : "Fullscreen"}
-    </button>
-  );
 }
 
 function SongFiles({
