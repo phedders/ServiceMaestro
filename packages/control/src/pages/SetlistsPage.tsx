@@ -1374,6 +1374,20 @@ export default function SetlistsPage({
     setLoading(false);
   }
 
+  async function archiveCurrentSetlist() {
+    if (!detail) return;
+    if (!confirm(`Archive “${detail.name}”? You can restore it from Archives.`)) return;
+    try {
+      await api.archiveSetlist(detail.id);
+      setDetail(null);
+      setSelectedId(null);
+      await loadList();
+      notify("Set list archived");
+    } catch (error) {
+      notify(error instanceof ApiError ? error.message : "Could not archive set list", "error");
+    }
+  }
+
   async function loadDetail(id: string) {
     const result = await api.setlist(id);
     setDetail(result.setlist);
@@ -2671,24 +2685,33 @@ export default function SetlistsPage({
             </div>
           </div>
 
-          <button
-            className="button danger-text"
-            onClick={async () => {
-              if (!confirm(`Delete “${detail.name}”?`)) return;
-              await api.deleteSetlist(detail.id);
-              setDetail(null);
-              setSelectedId(null);
-              const result = await api.setlists();
-              setSetlists(result.setlists);
-              if (result.setlists[0]) {
-                setSelectedId(result.setlists[0].id);
-                await loadDetail(result.setlists[0].id);
-              }
-            }}
-            title="Delete this set list permanently"
-          >
-            Delete set list
-          </button>
+          <div className="button-row">
+            <button
+              className="button ghost"
+              onClick={() => void archiveCurrentSetlist()}
+              title="Archive this set list and remove it from the list; restore it later from Archives"
+            >
+              Archive set list
+            </button>
+            <button
+              className="button danger-text"
+              onClick={async () => {
+                if (!confirm(`Delete “${detail.name}”?`)) return;
+                await api.deleteSetlist(detail.id);
+                setDetail(null);
+                setSelectedId(null);
+                const result = await api.setlists();
+                setSetlists(result.setlists);
+                if (result.setlists[0]) {
+                  setSelectedId(result.setlists[0].id);
+                  await loadDetail(result.setlists[0].id);
+                }
+              }}
+              title="Delete this set list permanently"
+            >
+              Delete set list
+            </button>
+          </div>
         </ReadOnlyFieldset>
       ) : (
         <section className="panel empty-state">Create a set list to get started.</section>

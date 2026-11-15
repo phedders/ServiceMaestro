@@ -96,14 +96,18 @@ function record(
 
 function findDuplicate(ccli: string | null, title: string): { id: string; title: string } | null {
   if (ccli) {
-    const byCcli = db.prepare("SELECT id, title FROM songs WHERE ccli = ? LIMIT 1").get(ccli) as
-      | { id: string; title: string }
-      | undefined;
+    const byCcli = db
+      .prepare(
+        "SELECT id, title FROM songs WHERE ccli = ? AND archived_at IS NULL LIMIT 1",
+      )
+      .get(ccli) as { id: string; title: string } | undefined;
     if (byCcli) return byCcli;
   }
   return (
     (db
-      .prepare("SELECT id, title FROM songs WHERE lower(title) = lower(?) LIMIT 1")
+      .prepare(
+        "SELECT id, title FROM songs WHERE lower(title) = lower(?) AND archived_at IS NULL LIMIT 1",
+      )
       .get(title) as { id: string; title: string } | undefined) ?? null
   );
 }

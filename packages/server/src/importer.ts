@@ -103,12 +103,14 @@ function findDuplicate(
 ): { songId: string; title: string; reason: "ccli" | "title" } | null {
   if (preview.ccli) {
     const byCcli = db
-      .prepare("SELECT id, title FROM songs WHERE ccli = ? LIMIT 1")
+      .prepare("SELECT id, title FROM songs WHERE ccli = ? AND archived_at IS NULL LIMIT 1")
       .get(preview.ccli) as { id: string; title: string } | undefined;
     if (byCcli) return { songId: byCcli.id, title: byCcli.title, reason: "ccli" };
   }
   const byTitle = db
-    .prepare("SELECT id, title FROM songs WHERE lower(title) = lower(?) LIMIT 1")
+    .prepare(
+      "SELECT id, title FROM songs WHERE lower(title) = lower(?) AND archived_at IS NULL LIMIT 1",
+    )
     .get(preview.title) as { id: string; title: string } | undefined;
   if (byTitle) return { songId: byTitle.id, title: byTitle.title, reason: "title" };
   return null;

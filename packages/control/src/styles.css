@@ -5833,3 +5833,49 @@ body.resizing-live-queue {
 .cs-reading .button-row {
   justify-content: flex-start;
 }
+
+.archives-page {
+  display: grid;
+  gap: 16px;
+}
+
+.archive-table-wrap {
+  overflow-x: auto;
+}
+
+.archive-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+}
+
+.archive-table th,
+.archive-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.archive-table th {
+  color: var(--muted);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.archive-table th:first-child,
+.archive-table td:first-child {
+  width: 34px;
+  text-align: center;
+}
+
+.archive-table input[type="checkbox"] {
+  width: auto;
+}
+
+.archive-table tr:hover {
+  background: var(--panel-2);
+}

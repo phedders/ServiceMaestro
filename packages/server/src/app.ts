@@ -32,6 +32,7 @@ import {
 } from "./security.js";
 import { hasPermission } from "./users.js";
 import { logActivity, logRequestActivity } from "./activity.js";
+import { archiveRoutes } from "./routes/archives.js";
 import { authRoutes } from "./routes/auth.js";
 import { userRoutes } from "./routes/users.js";
 import { activityRoutes } from "./routes/activity.js";
@@ -107,6 +108,7 @@ export async function buildApp(
 
   await app.register(authRoutes);
   await app.register(userRoutes);
+  await app.register(archiveRoutes);
   await app.register(activityRoutes);
   await app.register(songRoutes);
   await app.register(setlistRoutes);

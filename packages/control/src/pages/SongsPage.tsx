@@ -428,6 +428,22 @@ export default function SongsPage({
     }
   }
 
+  async function archiveSong() {
+    if (!selectedId || !selectedSong) return;
+    if (!confirm(`Archive “${selectedSong.title}”? You can restore it from Archives.`)) return;
+    setSaving(true);
+    try {
+      await api.archiveSong(selectedId);
+      newSong();
+      await load();
+      notify("Song archived");
+    } catch (error) {
+      notify(error instanceof ApiError ? error.message : "Could not archive song", "error");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   async function uploadAsset() {
     if (!selectedId || !assetFile) return;
     setUploadingAsset(true);
@@ -643,6 +659,16 @@ export default function SongsPage({
                 title={`Update from ${siteProvider.label} — check for missing files or changes`}
               >
                 {siteUpdatingId === selectedSong.id ? "Checking…" : "Update from SongSelect"}
+              </button>
+            )}
+            {selectedId && (
+              <button
+                className="button ghost"
+                onClick={() => void archiveSong()}
+                disabled={saving}
+                title="Archive this song and remove it from the library; restore it later from Archives"
+              >
+                Archive
               </button>
             )}
             {selectedId && (

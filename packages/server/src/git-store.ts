@@ -67,6 +67,7 @@ const songFileSchema = z.object({
   priority: z.number().int().min(0).max(10).optional(),
   differentFromIds: z.array(z.string()).optional(),
   verseOrders: z.array(z.object({ name: z.string(), order: z.string() })).optional(),
+  archivedAt: z.string().nullable().optional(),
   createdAt: z.string().optional(),
   updatedAt: z.string().optional(),
 });
@@ -199,6 +200,7 @@ function songJson(id: string): string | null {
         lyrics_markdown: number;
         priority: number;
         different_from_ids: string | null;
+        archived_at: string | null;
         created_at: string;
         updated_at: string;
       }
@@ -234,6 +236,7 @@ function songJson(id: string): string | null {
         }
       })(),
       verseOrders,
+      archivedAt: row.archived_at ?? null,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     },
@@ -294,7 +297,7 @@ function importSetlist(manifest: SetlistManifest): void {
   if (existing) {
     db.prepare(
       `UPDATE setlists SET name = ?, service_date = ?, service_time = ?, notes = ?,
-       background_id = ?, stinger_id = ?, updated_at = ? WHERE id = ?`,
+       background_id = ?, stinger_id = ?, archived_at = ?, updated_at = ? WHERE id = ?`,
     ).run(
       manifest.setlist.name,
       manifest.setlist.serviceDate,
@@ -302,6 +305,7 @@ function importSetlist(manifest: SetlistManifest): void {
       manifest.setlist.notes ?? null,
       manifest.setlist.backgroundId ?? null,
       manifest.setlist.stingerId ?? null,
+      manifest.setlist.archivedAt ?? null,
       now,
       id,
     );
@@ -310,8 +314,8 @@ function importSetlist(manifest: SetlistManifest): void {
     db.prepare(
       `INSERT INTO setlists
        (id, name, service_date, service_time, notes, background_id, stinger_id,
-        created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        archived_at, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     ).run(
       id,
       manifest.setlist.name,
@@ -320,6 +324,7 @@ function importSetlist(manifest: SetlistManifest): void {
       manifest.setlist.notes ?? null,
       manifest.setlist.backgroundId ?? null,
       manifest.setlist.stingerId ?? null,
+      manifest.setlist.archivedAt ?? null,
       now,
       now,
     );
@@ -408,7 +413,7 @@ function importSongsFromRepo(runtime: RepoRuntime): number {
       if (existing) {
         db.prepare(
           `UPDATE songs SET title = ?, alternate_titles = ?, author = ?, copyright = ?, ccli = ?, key = ?, lyrics = ?,
-             verse_order = ?, lyrics_markdown = ?, priority = ?, different_from_ids = ?, updated_at = ? WHERE id = ?`,
+             verse_order = ?, lyrics_markdown = ?, priority = ?, different_from_ids = ?, archived_at = ?, updated_at = ? WHERE id = ?`,
         ).run(
           song.title,
           song.alternateTitles ?? null,
@@ -421,6 +426,7 @@ function importSongsFromRepo(runtime: RepoRuntime): number {
           song.lyricsMarkdown ? 1 : 0,
           song.priority ?? 0,
           JSON.stringify(song.differentFromIds ?? []),
+          song.archivedAt ?? null,
           song.updatedAt ?? new Date().toISOString(),
           song.id,
         );
@@ -428,8 +434,9 @@ function importSongsFromRepo(runtime: RepoRuntime): number {
         db.prepare(
           `INSERT INTO songs
            (id, title, alternate_titles, author, copyright, ccli, key, lyrics, verse_order,
-            lyrics_markdown, priority, different_from_ids, source_format, source_path, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'git', NULL, ?, ?)`,
+            lyrics_markdown, priority, different_from_ids, source_format, source_path, archived_at,
+            created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'git', NULL, ?, ?, ?)`,
         ).run(
           song.id,
           song.title,
@@ -443,6 +450,7 @@ function importSongsFromRepo(runtime: RepoRuntime): number {
           song.lyricsMarkdown ? 1 : 0,
           song.priority ?? 0,
           JSON.stringify(song.differentFromIds ?? []),
+          song.archivedAt ?? null,
           song.createdAt ?? new Date().toISOString(),
           song.updatedAt ?? new Date().toISOString(),
         );

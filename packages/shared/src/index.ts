@@ -491,6 +491,31 @@ export interface SetlistSummary {
   updatedAt: string;
 }
 
+export interface ArchivedSongSummary {
+  id: string;
+  title: string;
+  author: string | null;
+  ccli: string | null;
+  key: string | null;
+  updatedAt: string;
+  archivedAt: string;
+}
+
+export interface ArchivedSetlistSummary {
+  id: string;
+  name: string;
+  serviceDate: string;
+  serviceTime: string | null;
+  itemCount: number;
+  updatedAt: string;
+  archivedAt: string;
+}
+
+export interface ArchivesData {
+  songs: ArchivedSongSummary[];
+  setlists: ArchivedSetlistSummary[];
+}
+
 export interface SetlistDetail extends SetlistSummary {
   items: SetlistItem[];
 }
@@ -1807,6 +1832,10 @@ export const songInputSchema = z.object({
 });
 
 export const songBulkDeleteSchema = z.object({
+  ids: z.array(z.string().trim().min(1).max(100)).min(1).max(1000),
+});
+
+export const archiveBulkSchema = z.object({
   ids: z.array(z.string().trim().min(1).max(100)).min(1).max(1000),
 });
 

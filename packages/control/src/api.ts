@@ -7,6 +7,7 @@ import type {
 import type {
   ActivityPage,
   AppSettings,
+  ArchivesData,
   BackgroundAsset,
   BackgroundColors,
   BackgroundInput,
@@ -243,6 +244,8 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ ids }),
     }),
+  archiveSong: (id: string) =>
+    request<{ ok: true }>(`/api/songs/${id}/archive`, { method: "POST" }),
   songPageNames: () => request<{ names: string[] }>("/api/songs/page-names"),
   songPageIdFixes: () => request<SongPageIdFixScan>("/api/songs/page-id-fixes"),
   applySongPageIdFixes: (songIds?: string[]) =>
@@ -576,6 +579,29 @@ export const api = {
       body: JSON.stringify(payload),
     }),
   deleteSetlist: (id: string) => request<{ ok: true }>(`/api/setlists/${id}`, { method: "DELETE" }),
+  archiveSetlist: (id: string) =>
+    request<{ ok: true }>(`/api/setlists/${id}/archive`, { method: "POST" }),
+  archives: () => request<ArchivesData>("/api/archives"),
+  restoreArchivedSongs: (ids: string[]) =>
+    request<{ ok: true; restored: number; ids: string[] }>("/api/archives/songs/restore", {
+      method: "POST",
+      body: JSON.stringify({ ids }),
+    }),
+  deleteArchivedSongs: (ids: string[]) =>
+    request<{ ok: true; deleted: number; ids: string[] }>("/api/archives/songs/delete", {
+      method: "POST",
+      body: JSON.stringify({ ids }),
+    }),
+  restoreArchivedSetlists: (ids: string[]) =>
+    request<{ ok: true; restored: number; ids: string[] }>("/api/archives/setlists/restore", {
+      method: "POST",
+      body: JSON.stringify({ ids }),
+    }),
+  deleteArchivedSetlists: (ids: string[]) =>
+    request<{ ok: true; deleted: number; ids: string[] }>("/api/archives/setlists/delete", {
+      method: "POST",
+      body: JSON.stringify({ ids }),
+    }),
   addItem: (id: string, payload: Record<string, unknown>) =>
     request<{ setlist: SetlistDetail }>(`/api/setlists/${id}/items`, {
       method: "POST",

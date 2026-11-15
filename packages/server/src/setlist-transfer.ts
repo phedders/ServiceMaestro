@@ -81,6 +81,7 @@ const manifestSchema = z.object({
     notes: z.string().nullable().optional(),
     backgroundId: z.string().nullable().optional(),
     stingerId: z.string().nullable().optional(),
+    archivedAt: z.string().nullable().optional(),
   }),
   items: z.array(itemSchema).max(1000),
   assets: z.array(assetSchema).max(1000).optional(),
@@ -206,6 +207,7 @@ export function buildSetlistExport(
         notes: string | null;
         background_id: string | null;
         stinger_id: string | null;
+        archived_at: string | null;
       }
     | undefined;
   if (!setlist) throw new Error("Set list not found");
@@ -362,6 +364,7 @@ export function buildSetlistExport(
       notes: setlist.notes,
       backgroundId: setlist.background_id,
       stingerId: setlist.stinger_id,
+      archivedAt: setlist.archived_at ?? null,
     },
     items,
     assets: assets.length ? assets : undefined,

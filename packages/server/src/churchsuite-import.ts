@@ -204,7 +204,7 @@ function responseValue(item: ChurchsuitePlanItem, name: string): string | null {
 
 function localSongs(): LocalSong[] {
   return db
-    .prepare("SELECT * FROM songs")
+    .prepare("SELECT * FROM songs WHERE archived_at IS NULL")
     .all() as LocalSong[];
 }
 

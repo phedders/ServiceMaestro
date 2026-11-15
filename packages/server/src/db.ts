@@ -82,6 +82,7 @@ db.exec(`
     different_from_ids TEXT NOT NULL DEFAULT '[]',
     source_format TEXT,
     source_path TEXT,
+    archived_at TEXT,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
   );
@@ -94,6 +95,7 @@ db.exec(`
     notes TEXT,
     background_id TEXT,
     stinger_id TEXT,
+    archived_at TEXT,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
   );
@@ -313,6 +315,7 @@ ensureColumn("songs", "source_path", "TEXT");
 ensureColumn("songs", "verse_order", "TEXT");
 ensureColumn("songs", "alternate_titles", "TEXT");
 ensureColumn("songs", "lyrics_markdown", "INTEGER NOT NULL DEFAULT 0");
+ensureColumn("songs", "archived_at", "TEXT");
 ensureColumn("setlist_items", "verse_order", "TEXT");
 ensureColumn("setlist_items", "text_format", "TEXT");
 ensureColumn("setlist_items", "text_align", "TEXT");
@@ -323,6 +326,7 @@ ensureColumn("setlist_items", "stinger_id", "TEXT");
 ensureColumn("setlist_items", "stinger_overrides_json", "TEXT");
 ensureColumn("setlists", "background_id", "TEXT");
 ensureColumn("setlists", "stinger_id", "TEXT");
+ensureColumn("setlists", "archived_at", "TEXT");
 ensureColumn("service_sessions", "revision_id", "TEXT");
 ensureColumn("service_sessions", "pending_json", "TEXT");
 ensureColumn("display_config", "max_words", "INTEGER NOT NULL DEFAULT 90");

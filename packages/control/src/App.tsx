@@ -30,6 +30,7 @@ import UsersPage from "./pages/UsersPage";
 import DeDupePage from "./pages/DeDupePage";
 import OutputsPage from "./pages/OutputsPage";
 import MqttPage from "./pages/MqttPage";
+import ArchivesPage from "./pages/ArchivesPage";
 
 const TarpPage = lazy(() => import("./pages/TarpPage"));
 import {
@@ -56,6 +57,7 @@ type Page =
   | "dedupe"
   | "users"
   | "mqtt"
+  | "archives"
   | "help";
 
 interface Toast {
@@ -467,6 +469,8 @@ export default function App() {
         return "Users";
       case "mqtt":
         return "MQTT";
+      case "archives":
+        return "Archives";
       case "help":
         return "Help";
     }
@@ -481,6 +485,10 @@ export default function App() {
   const pageModuleLabel = pageModule
     ? MODULE_PERMISSIONS.find((module) => module.id === pageModule)?.label ?? pageModule
     : null;
+  const canUseArchives =
+    user?.role === "admin" ||
+    user?.permissions.songs === true ||
+    user?.permissions.setlists === true;
 
   function renderMoreMenu(close: () => void) {
     return (
@@ -567,6 +575,23 @@ export default function App() {
             <span>Users</span>
             <span className="nav-dropdown-external" aria-hidden="true">
               ◉
+            </span>
+          </button>
+        )}
+        {canUseArchives && (
+          <button
+            type="button"
+            className="nav-dropdown-link"
+            role="menuitem"
+            onClick={() => {
+              setPage("archives");
+              close();
+            }}
+            title="Restore or permanently delete archived songs and set lists"
+          >
+            <span>Archives</span>
+            <span className="nav-dropdown-external" aria-hidden="true">
+              ⌸
             </span>
           </button>
         )}
@@ -1024,6 +1049,9 @@ export default function App() {
           )}
           {page === "dedupe" && <DeDupePage notify={notify} />}
           {page === "users" && <UsersPage user={user} notify={notify} />}
+          {page === "archives" && canUseArchives && (
+            <ArchivesPage user={user} notify={notify} />
+          )}
           {page === "mqtt" && user.role === "admin" && adapterContext.mqttEnabled && (
             <MqttPage notify={notify} />
           )}

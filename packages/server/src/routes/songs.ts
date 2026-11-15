@@ -112,10 +112,12 @@ function pageIdFixScan(songIds?: string[]): SongPageIdFixScan {
     ? db
         .prepare(
           `SELECT id, title, lyrics, verse_order FROM songs
-           WHERE id IN (${songIds.map(() => "?").join(",")})`,
+           WHERE archived_at IS NULL AND id IN (${songIds.map(() => "?").join(",")})`,
         )
         .all(...songIds)
-    : db.prepare("SELECT id, title, lyrics, verse_order FROM songs").all()) as Array<{
+    : db
+        .prepare("SELECT id, title, lyrics, verse_order FROM songs WHERE archived_at IS NULL")
+        .all()) as Array<{
     id: string;
     title: string;
     lyrics: string;
@@ -147,11 +149,16 @@ export async function songRoutes(app: FastifyInstance): Promise<void> {
       ? (db
           .prepare(
             `SELECT * FROM songs
-             WHERE title LIKE ? OR alternate_titles LIKE ? OR author LIKE ? OR lyrics LIKE ?
+             WHERE archived_at IS NULL
+               AND (title LIKE ? OR alternate_titles LIKE ? OR author LIKE ? OR lyrics LIKE ?)
              ORDER BY title COLLATE NOCASE ASC LIMIT 500`,
           )
           .all(`%${query}%`, `%${query}%`, `%${query}%`, `%${query}%`) as SongRow[])
-      : (db.prepare("SELECT * FROM songs ORDER BY title COLLATE NOCASE ASC LIMIT 500").all() as SongRow[]);
+      : (db
+          .prepare(
+            "SELECT * FROM songs WHERE archived_at IS NULL ORDER BY title COLLATE NOCASE ASC LIMIT 500",
+          )
+          .all() as SongRow[]);
     return { songs: rows.map(mapSong) };
   });
 
@@ -160,12 +167,16 @@ export async function songRoutes(app: FastifyInstance): Promise<void> {
     const current = db.prepare("SELECT * FROM songs WHERE id = ?").get(id) as SongRow | undefined;
     if (!current) return reply.code(404).send({ error: "Song not found" });
     const query = (request.query as { q?: string }).q?.trim() || null;
-    const songs = db.prepare("SELECT * FROM songs").all() as SongRow[];
+    const songs = db
+      .prepare("SELECT * FROM songs WHERE archived_at IS NULL")
+      .all() as SongRow[];
     return { alternatives: findSongAlternatives(current, songs, query) };
   });
 
   app.get("/api/songs/page-names", { preHandler: requireAuth }, async () => {
-    const rows = db.prepare("SELECT lyrics FROM songs").all() as Array<{ lyrics: string }>;
+    const rows = db
+      .prepare("SELECT lyrics FROM songs WHERE archived_at IS NULL")
+      .all() as Array<{ lyrics: string }>;
     const names = new Map<string, string>();
     for (const row of rows) {
       for (const name of songPageNameCandidates(row.lyrics)) {
@@ -203,7 +214,9 @@ export async function songRoutes(app: FastifyInstance): Promise<void> {
   );
 
   app.get("/api/songs/duplicates", { preHandler: requireAuth }, async () => {
-    const rows = db.prepare("SELECT * FROM songs").all() as SongRow[];
+    const rows = db
+      .prepare("SELECT * FROM songs WHERE archived_at IS NULL")
+      .all() as SongRow[];
     return { groups: findDuplicateGroups(rows) };
   });
 
@@ -482,6 +495,28 @@ export async function songRoutes(app: FastifyInstance): Promise<void> {
       if (!result.changes) return reply.code(404).send({ error: "Verse order not found" });
       await saveSongToGit(songId).catch((error) =>
         request.log.warn({ err: error }, "git save failed"),
+      );
+      return { ok: true };
+    },
+  );
+
+  app.post(
+    "/api/songs/:id/archive",
+    { preHandler: [requireAuth, requirePermission("songs")] },
+    async (request, reply) => {
+      const id = (request.params as { id: string }).id;
+      const now = new Date().toISOString();
+      const result = db
+        .prepare(
+          "UPDATE songs SET archived_at = ?, updated_at = ? WHERE id = ? AND archived_at IS NULL",
+        )
+        .run(now, now, id);
+      if (!result.changes) {
+        const exists = db.prepare("SELECT id FROM songs WHERE id = ?").get(id);
+        if (!exists) return reply.code(404).send({ error: "Song not found" });
+      }
+      await saveSongToGit(id).catch((error) =>
+        request.log.warn({ err: error }, "git song archive save failed"),
       );
       return { ok: true };
     },

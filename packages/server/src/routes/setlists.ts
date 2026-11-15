@@ -137,7 +137,8 @@ export async function setlistRoutes(app: FastifyInstance): Promise<void> {
     const rows = db
       .prepare(
         `SELECT s.*, (SELECT COUNT(*) FROM setlist_items i WHERE i.setlist_id = s.id) AS item_count
-         FROM setlists s ORDER BY s.service_date DESC, s.service_time DESC, s.name COLLATE NOCASE`,
+         FROM setlists s WHERE s.archived_at IS NULL
+         ORDER BY s.service_date DESC, s.service_time DESC, s.name COLLATE NOCASE`,
       )
       .all() as SetlistRow[];
     return { setlists: rows.map(mapSetlist) };
@@ -203,6 +204,26 @@ export async function setlistRoutes(app: FastifyInstance): Promise<void> {
       );
       await persistGit(id, request);
       return { setlist: detail(id) };
+    },
+  );
+
+  app.post(
+    "/api/setlists/:id/archive",
+    { preHandler: [requireAuth, requirePermission("setlists")] },
+    async (request, reply) => {
+      const id = (request.params as { id: string }).id;
+      const now = new Date().toISOString();
+      const result = db
+        .prepare(
+          "UPDATE setlists SET archived_at = ?, updated_at = ? WHERE id = ? AND archived_at IS NULL",
+        )
+        .run(now, now, id);
+      if (!result.changes) {
+        const exists = db.prepare("SELECT id FROM setlists WHERE id = ?").get(id);
+        if (!exists) return reply.code(404).send({ error: "Set list not found" });
+      }
+      await persistGit(id, request);
+      return { ok: true };
     },
   );
 
