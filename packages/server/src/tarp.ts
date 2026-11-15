@@ -27,6 +27,7 @@ interface PresentationRow {
   name: string;
   aspect: TarpAspect;
   theme_id: string | null;
+  archived_at?: string | null;
   created_at: string;
   updated_at: string;
   page_count?: number;
@@ -148,6 +149,7 @@ function mapSummary(row: PresentationRow): TarpPresentationSummary {
     aspect: row.aspect,
     themeId: row.theme_id,
     pageCount: row.page_count ?? 0,
+    archivedAt: row.archived_at ?? null,
     updatedAt: row.updated_at,
   };
 }
@@ -205,12 +207,13 @@ export function deleteTarpTheme(id: string): boolean {
   return db.prepare("DELETE FROM tarp_themes WHERE id = ?").run(id).changes > 0;
 }
 
-export function listTarpPresentations(): TarpPresentationSummary[] {
+export function listTarpPresentations(includeArchived = false): TarpPresentationSummary[] {
   return (
     db
       .prepare(
         `SELECT p.*, (SELECT COUNT(*) FROM tarp_pages pg WHERE pg.presentation_id = p.id) AS page_count
          FROM tarp_presentations p
+         ${includeArchived ? "" : "WHERE p.archived_at IS NULL"}
          ORDER BY p.updated_at DESC, p.name COLLATE NOCASE`,
       )
       .all() as PresentationRow[]
@@ -292,6 +295,27 @@ export function updateTarpPresentation(
     id,
   );
   return getTarpPresentation(id);
+}
+
+export function archiveTarpPresentation(id: string): boolean {
+  const timestamp = now();
+  return (
+    db
+      .prepare(
+        "UPDATE tarp_presentations SET archived_at = ?, updated_at = ? WHERE id = ? AND archived_at IS NULL",
+      )
+      .run(timestamp, timestamp, id).changes > 0
+  );
+}
+
+export function restoreTarpPresentation(id: string): boolean {
+  return (
+    db
+      .prepare(
+        "UPDATE tarp_presentations SET archived_at = NULL, updated_at = ? WHERE id = ? AND archived_at IS NOT NULL",
+      )
+      .run(now(), id).changes > 0
+  );
 }
 
 export function deleteTarpPresentation(id: string): boolean {

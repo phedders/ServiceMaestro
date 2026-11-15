@@ -514,6 +514,7 @@ export interface ArchivedSetlistSummary {
 export interface ArchivesData {
   songs: ArchivedSongSummary[];
   setlists: ArchivedSetlistSummary[];
+  tarpPresentations: TarpPresentationSummary[];
 }
 
 export interface SetlistDetail extends SetlistSummary {
@@ -1066,6 +1067,7 @@ export interface TarpPresentationSummary {
   aspect: TarpAspect;
   themeId: string | null;
   pageCount: number;
+  archivedAt: string | null;
   updatedAt: string;
 }
 

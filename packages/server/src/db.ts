@@ -251,6 +251,7 @@ db.exec(`
     name TEXT NOT NULL,
     aspect TEXT NOT NULL DEFAULT '16:9',
     theme_id TEXT REFERENCES tarp_themes(id) ON DELETE SET NULL,
+    archived_at TEXT,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
   );
@@ -327,6 +328,7 @@ ensureColumn("setlist_items", "stinger_overrides_json", "TEXT");
 ensureColumn("setlists", "background_id", "TEXT");
 ensureColumn("setlists", "stinger_id", "TEXT");
 ensureColumn("setlists", "archived_at", "TEXT");
+ensureColumn("tarp_presentations", "archived_at", "TEXT");
 ensureColumn("service_sessions", "revision_id", "TEXT");
 ensureColumn("service_sessions", "pending_json", "TEXT");
 ensureColumn("display_config", "max_words", "INTEGER NOT NULL DEFAULT 90");

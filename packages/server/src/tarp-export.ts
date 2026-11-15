@@ -38,6 +38,7 @@ const tarpPresentationBundleSchema = z.object({
   name: z.string(),
   aspect: z.enum(["16:9", "16:10", "flex"]),
   themeId: z.string().nullable().optional(),
+  archivedAt: z.string().nullable().optional(),
   createdAt: z.string().optional(),
   updatedAt: z.string().optional(),
   pages: z.array(tarpPageBundleSchema).max(500),
@@ -55,7 +56,7 @@ export function exportTarpBundle(presentationIds?: string[]): TarpBundle {
     ? presentationIds
         .map((id) => getTarpPresentation(id))
         .filter((item): item is TarpPresentationDetail => item !== null)
-    : listTarpPresentations()
+    : listTarpPresentations(true)
         .map((item) => getTarpPresentation(item.id))
         .filter((item): item is TarpPresentationDetail => item !== null);
   const themeIds = new Set<string>();
@@ -104,10 +105,12 @@ export function importTarpBundle(input: unknown): {
     }
 
     const upsertPresentation = db.prepare(
-      `INSERT INTO tarp_presentations (id, name, aspect, theme_id, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?)
+      `INSERT INTO tarp_presentations
+       (id, name, aspect, theme_id, archived_at, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(id) DO UPDATE SET name = excluded.name, aspect = excluded.aspect,
-         theme_id = excluded.theme_id, updated_at = excluded.updated_at`,
+         theme_id = excluded.theme_id, archived_at = excluded.archived_at,
+         updated_at = excluded.updated_at`,
     );
     const upsertPage = db.prepare(
       `INSERT INTO tarp_pages
@@ -127,6 +130,7 @@ export function importTarpBundle(input: unknown): {
         presentation.name,
         presentation.aspect,
         presentation.themeId ?? null,
+        presentation.archivedAt ?? null,
         presentation.createdAt ?? timestamp,
         presentation.updatedAt ?? timestamp,
       );

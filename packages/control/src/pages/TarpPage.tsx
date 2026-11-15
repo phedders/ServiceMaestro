@@ -261,6 +261,27 @@ export default function TarpPage({
     }
   }
 
+  async function archivePresentation() {
+    if (!selected) return;
+    if (
+      !confirm(
+        `Archive Tarp presentation “${selected.name}”? You can restore it from Archives.`,
+      )
+    ) {
+      return;
+    }
+    try {
+      await api.archiveTarpPresentation(selected.id);
+      setSelected(null);
+      setSelectedPresentationId(null);
+      setSelectedPageId(null);
+      await loadPresentations();
+      notify("Tarp presentation archived");
+    } catch (error) {
+      notify(error instanceof ApiError ? error.message : "Could not archive presentation", "error");
+    }
+  }
+
   async function removePresentation() {
     if (!selected || !confirm(`Delete Tarp presentation “${selected.name}”?`)) return;
     try {
@@ -591,6 +612,13 @@ export default function TarpPage({
                     title="Add a blank page to this presentation"
                   >
                     Add page
+                  </button>
+                  <button
+                    className="button ghost"
+                    onClick={() => void archivePresentation()}
+                    title="Archive this Tarp presentation and remove it from the list; restore it later from Archives"
+                  >
+                    Archive presentation
                   </button>
                   <button
                     className="button ghost danger-text"

@@ -7,7 +7,13 @@ import {
   deleteSongsFromGit,
   saveSetlistToGit,
   saveSongToGit,
+  saveTarpLibraryToGit,
 } from "../git-store.js";
+import {
+  deleteTarpPresentation,
+  listTarpPresentations,
+  restoreTarpPresentation,
+} from "../tarp.js";
 
 function archivedSongs(): ArchivesData["songs"] {
   return (
@@ -70,6 +76,9 @@ export async function archiveRoutes(app: FastifyInstance): Promise<void> {
   app.get("/api/archives", { preHandler: requireAuth }, async () => ({
     songs: archivedSongs(),
     setlists: archivedSetlists(),
+    tarpPresentations: listTarpPresentations(true).filter(
+      (presentation) => presentation.archivedAt !== null,
+    ),
   }));
 
   app.post(
@@ -176,6 +185,61 @@ export async function archiveRoutes(app: FastifyInstance): Promise<void> {
       for (const id of deleted) {
         await deleteSetlistFromGit(id).catch((error) =>
           request.log.warn({ err: error }, "git archived setlist delete failed"),
+        );
+      }
+      return { ok: true, deleted: deleted.length, ids: deleted };
+    },
+  );
+
+  app.post(
+    "/api/archives/tarp/restore",
+    { preHandler: [requireAuth, requirePermission("tarp")] },
+    async (request, reply) => {
+      const parsed = archiveBulkSchema.safeParse(request.body ?? {});
+      if (!parsed.success) {
+        return reply.code(400).send({ error: "Invalid archive selection", issues: parsed.error.issues });
+      }
+      const ids = [...new Set(parsed.data.ids)];
+      const restored: string[] = [];
+      const restore = db.transaction(() => {
+        for (const id of ids) {
+          if (restoreTarpPresentation(id)) restored.push(id);
+        }
+      });
+      restore();
+      if (restored.length) {
+        await saveTarpLibraryToGit().catch((error) =>
+          request.log.warn({ err: error }, "git Tarp restore save failed"),
+        );
+      }
+      return { ok: true, restored: restored.length, ids: restored };
+    },
+  );
+
+  app.post(
+    "/api/archives/tarp/delete",
+    { preHandler: [requireAuth, requirePermission("tarp")] },
+    async (request, reply) => {
+      const parsed = archiveBulkSchema.safeParse(request.body ?? {});
+      if (!parsed.success) {
+        return reply.code(400).send({ error: "Invalid archive selection", issues: parsed.error.issues });
+      }
+      const ids = [...new Set(parsed.data.ids)];
+      const deleted: string[] = [];
+      const remove = db.transaction(() => {
+        for (const id of ids) {
+          const row = db
+            .prepare(
+              "SELECT id FROM tarp_presentations WHERE id = ? AND archived_at IS NOT NULL",
+            )
+            .get(id);
+          if (row && deleteTarpPresentation(id)) deleted.push(id);
+        }
+      });
+      remove();
+      if (deleted.length) {
+        await saveTarpLibraryToGit().catch((error) =>
+          request.log.warn({ err: error }, "git Tarp delete save failed"),
         );
       }
       return { ok: true, deleted: deleted.length, ids: deleted };

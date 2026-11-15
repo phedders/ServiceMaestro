@@ -7,7 +7,7 @@ import { spawnSync } from "node:child_process";
 
 const moduleBase = new URL("../dist/", import.meta.url).href;
 
-test("archives hide songs and set lists, then restore and delete them", () => {
+test("archives hide songs, set lists and Tarp presentations, then restore and delete them", () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "sm-archives-"));
   const emptyEnv = path.join(dir, "empty.env");
   const config = path.join(dir, "config.yaml");
@@ -23,6 +23,7 @@ test("archives hide songs and set lists, then restore and delete them", () => {
     const { songRoutes } = await import(base + "routes/songs.js");
     const { setlistRoutes } = await import(base + "routes/setlists.js");
     const { archiveRoutes } = await import(base + "routes/archives.js");
+    const { tarpRoutes } = await import(base + "routes/tarp.js");
 
     const now = new Date().toISOString();
     const admin = db.prepare("SELECT id FROM users WHERE role = 'admin' LIMIT 1").get();
@@ -40,11 +41,18 @@ test("archives hide songs and set lists, then restore and delete them", () => {
     db.prepare(
       "INSERT INTO setlists (id, name, service_date, archived_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
     ).run("archived-setlist", "Archived set list", "2026-11-08", now, now, now);
+    db.prepare(
+      "INSERT INTO tarp_presentations (id, name, aspect, archived_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
+    ).run("active-tarp", "Active Tarp", "16:9", null, now, now);
+    db.prepare(
+      "INSERT INTO tarp_presentations (id, name, aspect, archived_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
+    ).run("archived-tarp", "Archived Tarp", "16:9", now, now, now);
 
     const app = Fastify();
     await app.register(songRoutes);
     await app.register(setlistRoutes);
     await app.register(archiveRoutes);
+    await app.register(tarpRoutes);
     const auth = { cookie };
     const get = async (url) => {
       const response = await app.inject({ method: "GET", url, headers: auth });
@@ -64,13 +72,24 @@ test("archives hide songs and set lists, then restore and delete them", () => {
     const archivesBefore = await get("/api/archives");
     const archivedSong = await post("/api/songs/active-song/archive");
     const archivedSetlist = await post("/api/setlists/active-setlist/archive");
-    const afterArchive = { songs: (await get("/api/songs")).songs, setlists: (await get("/api/setlists")).setlists };
+    const archivedTarp = await post("/api/tarp/presentations/active-tarp/archive");
+    const afterArchive = {
+      songs: (await get("/api/songs")).songs,
+      setlists: (await get("/api/setlists")).setlists,
+      tarpPresentations: (await get("/api/tarp/presentations")).presentations,
+    };
     const archivesAfterArchive = await get("/api/archives");
     const restoredSongs = await post("/api/archives/songs/restore", { ids: ["active-song"] });
     const restoredSetlists = await post("/api/archives/setlists/restore", { ids: ["active-setlist"] });
-    const afterRestore = { songs: (await get("/api/songs")).songs, setlists: (await get("/api/setlists")).setlists };
+    const restoredTarp = await post("/api/archives/tarp/restore", { ids: ["active-tarp"] });
+    const afterRestore = {
+      songs: (await get("/api/songs")).songs,
+      setlists: (await get("/api/setlists")).setlists,
+      tarpPresentations: (await get("/api/tarp/presentations")).presentations,
+    };
     const deletedSongs = await post("/api/archives/songs/delete", { ids: ["archived-song"] });
     const deletedSetlists = await post("/api/archives/setlists/delete", { ids: ["archived-setlist"] });
+    const deletedTarp = await post("/api/archives/tarp/delete", { ids: ["archived-tarp"] });
     const finalArchives = await get("/api/archives");
 
     await app.close();
@@ -79,13 +98,16 @@ test("archives hide songs and set lists, then restore and delete them", () => {
       archivesBefore,
       archivedSong,
       archivedSetlist,
+      archivedTarp,
       afterArchive,
       archivesAfterArchive,
       restoredSongs,
       restoredSetlists,
+      restoredTarp,
       afterRestore,
       deletedSongs,
       deletedSetlists,
+      deletedTarp,
       finalArchives,
     }));
   `;
@@ -108,10 +130,16 @@ test("archives hide songs and set lists, then restore and delete them", () => {
   assert.deepEqual(data.before.setlists.map((setlist) => setlist.id), ["active-setlist"]);
   assert.deepEqual(data.archivesBefore.songs.map((song) => song.id), ["archived-song"]);
   assert.deepEqual(data.archivesBefore.setlists.map((setlist) => setlist.id), ["archived-setlist"]);
+  assert.deepEqual(
+    data.archivesBefore.tarpPresentations.map((presentation) => presentation.id),
+    ["archived-tarp"],
+  );
   assert.equal(data.archivedSong.status, 200);
   assert.equal(data.archivedSetlist.status, 200);
+  assert.equal(data.archivedTarp.status, 200);
   assert.deepEqual(data.afterArchive.songs, []);
   assert.deepEqual(data.afterArchive.setlists, []);
+  assert.deepEqual(data.afterArchive.tarpPresentations, []);
   assert.deepEqual(
     data.archivesAfterArchive.songs.map((song) => song.id).sort(),
     ["active-song", "archived-song"],
@@ -120,11 +148,21 @@ test("archives hide songs and set lists, then restore and delete them", () => {
     data.archivesAfterArchive.setlists.map((setlist) => setlist.id).sort(),
     ["active-setlist", "archived-setlist"],
   );
+  assert.deepEqual(
+    data.archivesAfterArchive.tarpPresentations.map((presentation) => presentation.id).sort(),
+    ["active-tarp", "archived-tarp"],
+  );
   assert.equal(data.restoredSongs.body.restored, 1);
   assert.equal(data.restoredSetlists.body.restored, 1);
+  assert.equal(data.restoredTarp.body.restored, 1);
   assert.deepEqual(data.afterRestore.songs.map((song) => song.id), ["active-song"]);
   assert.deepEqual(data.afterRestore.setlists.map((setlist) => setlist.id), ["active-setlist"]);
+  assert.deepEqual(
+    data.afterRestore.tarpPresentations.map((presentation) => presentation.id),
+    ["active-tarp"],
+  );
   assert.equal(data.deletedSongs.body.deleted, 1);
   assert.equal(data.deletedSetlists.body.deleted, 1);
-  assert.deepEqual(data.finalArchives, { songs: [], setlists: [] });
+  assert.equal(data.deletedTarp.body.deleted, 1);
+  assert.deepEqual(data.finalArchives, { songs: [], setlists: [], tarpPresentations: [] });
 });

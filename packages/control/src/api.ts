@@ -602,6 +602,18 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ ids }),
     }),
+  archiveTarpPresentation: (id: string) =>
+    request<{ ok: true }>(`/api/tarp/presentations/${id}/archive`, { method: "POST" }),
+  restoreArchivedTarp: (ids: string[]) =>
+    request<{ ok: true; restored: number; ids: string[] }>("/api/archives/tarp/restore", {
+      method: "POST",
+      body: JSON.stringify({ ids }),
+    }),
+  deleteArchivedTarp: (ids: string[]) =>
+    request<{ ok: true; deleted: number; ids: string[] }>("/api/archives/tarp/delete", {
+      method: "POST",
+      body: JSON.stringify({ ids }),
+    }),
   addItem: (id: string, payload: Record<string, unknown>) =>
     request<{ setlist: SetlistDetail }>(`/api/setlists/${id}/items`, {
       method: "POST",

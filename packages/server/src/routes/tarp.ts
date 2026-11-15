@@ -8,6 +8,7 @@ import {
 import { requireAuth, requirePermission } from "../auth.js";
 import {
   addTarpPage,
+  archiveTarpPresentation,
   createTarpPresentation,
   createTarpTheme,
   deleteTarpPage,
@@ -115,6 +116,20 @@ export async function tarpRoutes(app: FastifyInstance): Promise<void> {
       if (!presentation) return reply.code(404).send({ error: "Tarp presentation not found" });
       await persistTarp(request);
       return { presentation };
+    },
+  );
+
+  app.post(
+    "/api/tarp/presentations/:id/archive",
+    { preHandler: [requireAuth, requirePermission("tarp")] },
+    async (request, reply) => {
+      const id = (request.params as { id: string }).id;
+      const archived = archiveTarpPresentation(id);
+      if (!archived && !getTarpPresentation(id)) {
+        return reply.code(404).send({ error: "Tarp presentation not found" });
+      }
+      await persistTarp(request);
+      return { ok: true };
     },
   );
 

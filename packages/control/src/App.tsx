@@ -488,7 +488,8 @@ export default function App() {
   const canUseArchives =
     user?.role === "admin" ||
     user?.permissions.songs === true ||
-    user?.permissions.setlists === true;
+    user?.permissions.setlists === true ||
+    user?.permissions.tarp === true;
 
   function renderMoreMenu(close: () => void) {
     return (
@@ -587,7 +588,7 @@ export default function App() {
               setPage("archives");
               close();
             }}
-            title="Restore or permanently delete archived songs and set lists"
+            title="Restore or permanently delete archived songs, set lists and Tarp presentations"
           >
             <span>Archives</span>
             <span className="nav-dropdown-external" aria-hidden="true">

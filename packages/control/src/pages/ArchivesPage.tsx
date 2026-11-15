@@ -17,14 +17,20 @@ export default function ArchivesPage({
   user: PublicUser;
   notify: (text: string, kind?: "info" | "error") => void;
 }) {
-  const [archives, setArchives] = useState<ArchivesData>({ songs: [], setlists: [] });
+  const [archives, setArchives] = useState<ArchivesData>({
+    songs: [],
+    setlists: [],
+    tarpPresentations: [],
+  });
   const [selectedSongs, setSelectedSongs] = useState<Set<string>>(() => new Set());
   const [selectedSetlists, setSelectedSetlists] = useState<Set<string>>(() => new Set());
+  const [selectedTarp, setSelectedTarp] = useState<Set<string>>(() => new Set());
   const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState<"songs" | "setlists" | null>(null);
+  const [busy, setBusy] = useState<"songs" | "setlists" | "tarp" | null>(null);
 
   const canSongs = user.role === "admin" || user.permissions.songs === true;
   const canSetlists = user.role === "admin" || user.permissions.setlists === true;
+  const canTarp = user.role === "admin" || user.permissions.tarp === true;
 
   async function load() {
     setLoading(true);
@@ -39,6 +45,10 @@ export default function ArchivesPage({
         const ids = new Set(result.setlists.map((setlist) => setlist.id));
         return new Set([...current].filter((id) => ids.has(id)));
       });
+      setSelectedTarp((current) => {
+        const ids = new Set(result.tarpPresentations.map((presentation) => presentation.id));
+        return new Set([...current].filter((id) => ids.has(id)));
+      });
     } catch (error) {
       notify(error instanceof ApiError ? error.message : "Could not load archives", "error");
     } finally {
@@ -50,22 +60,27 @@ export default function ArchivesPage({
     void load();
   }, []);
 
-  async function restore(kind: "songs" | "setlists") {
-    const ids = kind === "songs" ? [...selectedSongs] : [...selectedSetlists];
+  async function restore(kind: "songs" | "setlists" | "tarp") {
+    const ids =
+      kind === "songs"
+        ? [...selectedSongs]
+        : kind === "setlists"
+          ? [...selectedSetlists]
+          : [...selectedTarp];
     if (!ids.length) return;
     setBusy(kind);
     try {
       const result =
         kind === "songs"
           ? await api.restoreArchivedSongs(ids)
-          : await api.restoreArchivedSetlists(ids);
-      notify(
-        `Restored ${result.restored} archived ${kind === "songs" ? "song" : "set list"}${
-          result.restored === 1 ? "" : "s"
-        }`,
-      );
+          : kind === "setlists"
+            ? await api.restoreArchivedSetlists(ids)
+            : await api.restoreArchivedTarp(ids);
+      const label = kind === "songs" ? "song" : kind === "setlists" ? "set list" : "Tarp presentation";
+      notify(`Restored ${result.restored} archived ${label}${result.restored === 1 ? "" : "s"}`);
       if (kind === "songs") setSelectedSongs(new Set());
-      else setSelectedSetlists(new Set());
+      else if (kind === "setlists") setSelectedSetlists(new Set());
+      else setSelectedTarp(new Set());
       await load();
     } catch (error) {
       notify(error instanceof ApiError ? error.message : "Could not restore archived items", "error");
@@ -74,10 +89,15 @@ export default function ArchivesPage({
     }
   }
 
-  async function remove(kind: "songs" | "setlists") {
-    const ids = kind === "songs" ? [...selectedSongs] : [...selectedSetlists];
+  async function remove(kind: "songs" | "setlists" | "tarp") {
+    const ids =
+      kind === "songs"
+        ? [...selectedSongs]
+        : kind === "setlists"
+          ? [...selectedSetlists]
+          : [...selectedTarp];
     if (!ids.length) return;
-    const label = kind === "songs" ? "song" : "set list";
+    const label = kind === "songs" ? "song" : kind === "setlists" ? "set list" : "Tarp presentation";
     if (!confirm(`Permanently delete ${ids.length} archived ${label}${ids.length === 1 ? "" : "s"}?`)) {
       return;
     }
@@ -86,12 +106,13 @@ export default function ArchivesPage({
       const result =
         kind === "songs"
           ? await api.deleteArchivedSongs(ids)
-          : await api.deleteArchivedSetlists(ids);
-      notify(
-        `Deleted ${result.deleted} archived ${label}${result.deleted === 1 ? "" : "s"}`,
-      );
+          : kind === "setlists"
+            ? await api.deleteArchivedSetlists(ids)
+            : await api.deleteArchivedTarp(ids);
+      notify(`Deleted ${result.deleted} archived ${label}${result.deleted === 1 ? "" : "s"}`);
       if (kind === "songs") setSelectedSongs(new Set());
-      else setSelectedSetlists(new Set());
+      else if (kind === "setlists") setSelectedSetlists(new Set());
+      else setSelectedTarp(new Set());
       await load();
     } catch (error) {
       notify(error instanceof ApiError ? error.message : "Could not delete archived items", "error");
@@ -195,6 +216,94 @@ export default function ArchivesPage({
       <section className="panel">
         <div className="panel-heading">
           <div>
+            <h2>Archived Tarp presentations</h2>
+            <p className="muted">
+              Archived Tarp presentations are hidden from the Tarp page and set-list pickers.
+            </p>
+          </div>
+          <div className="button-row">
+            <button
+              className="button ghost small"
+              onClick={() => void restore("tarp")}
+              disabled={!canTarp || !selectedTarp.size || busy !== null}
+              title="Restore the selected archived Tarp presentations"
+            >
+              Restore selected
+            </button>
+            <button
+              className="button danger small"
+              onClick={() => void remove("tarp")}
+              disabled={!canTarp || !selectedTarp.size || busy !== null}
+              title="Permanently delete the selected archived Tarp presentations"
+            >
+              Delete selected
+            </button>
+          </div>
+        </div>
+        {archives.tarpPresentations.length ? (
+          <div className="archive-table-wrap">
+            <table className="archive-table">
+              <thead>
+                <tr>
+                  <th>
+                    <input
+                      type="checkbox"
+                      checked={
+                        archives.tarpPresentations.length > 0 &&
+                        selectedTarp.size === archives.tarpPresentations.length
+                      }
+                      onChange={(event) =>
+                        setSelectedTarp(
+                          event.target.checked
+                            ? new Set(
+                                archives.tarpPresentations.map((presentation) => presentation.id),
+                              )
+                            : new Set(),
+                        )
+                      }
+                      aria-label="Select all archived Tarp presentations"
+                    />
+                  </th>
+                  <th>Presentation</th>
+                  <th>Aspect</th>
+                  <th>Pages</th>
+                  <th>Archived</th>
+                </tr>
+              </thead>
+              <tbody>
+                {archives.tarpPresentations.map((presentation) => (
+                  <tr key={presentation.id}>
+                    <td>
+                      <input
+                        type="checkbox"
+                        checked={selectedTarp.has(presentation.id)}
+                        onChange={() =>
+                          setSelectedTarp((current) => toggle(current, presentation.id))
+                        }
+                        aria-label={`Select ${presentation.name}`}
+                      />
+                    </td>
+                    <td>
+                      <strong>{presentation.name}</strong>
+                    </td>
+                    <td>{presentation.aspect === "flex" ? "Flex" : presentation.aspect}</td>
+                    <td>{presentation.pageCount}</td>
+                    <td>
+                      {presentation.archivedAt ? compactDateTime(presentation.archivedAt) : "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="muted">No archived Tarp presentations.</p>
+        )}
+      </section>
+
+      <section className="panel">
+        <div className="panel-heading">
+          <div>
             <h2>Archived songs</h2>
             <p className="muted">
               Archived songs stay available to existing set-list items and can be restored here.
@@ -275,8 +384,10 @@ export default function ArchivesPage({
         )}
       </section>
 
-      {!canSongs && !canSetlists && (
-        <p className="hint">You need write access to Songs or Set lists to restore or delete archived items.</p>
+      {!canSongs && !canSetlists && !canTarp && (
+        <p className="hint">
+          You need write access to Songs, Set lists or Tarp to restore or delete archived items.
+        </p>
       )}
     </div>
   );
