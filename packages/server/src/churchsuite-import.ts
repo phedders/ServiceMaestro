@@ -1,10 +1,15 @@
 import { randomUUID } from "node:crypto";
-import type {
-  ChurchSuiteImportReport,
-  ChurchSuiteItemPreview,
-  ChurchSuitePlanPreview,
-  ChurchSuitePlanSummary,
+import {
+  formatBibleVerses,
+  type BibleBook,
+  type BibleLayout,
+  type ChurchSuiteBibleReading,
+  type ChurchSuiteImportReport,
+  type ChurchSuiteItemPreview,
+  type ChurchSuitePlanPreview,
+  type ChurchSuitePlanSummary,
 } from "@sm/shared";
+import { getBooks, getPassage, listTranslations } from "./bible.js";
 import { db } from "./db.js";
 import { getChurchsuitePlan, listChurchsuitePlanItems, listChurchsuiteTypes } from "./churchsuite.js";
 import { saveSetlistToGit } from "./git-store.js";
@@ -56,6 +61,115 @@ function normalize(value: string): string {
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "");
+}
+
+function normalizeBookName(value: string): string {
+  return value
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/\./g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+    .replace(/^psalm$/, "psalms")
+    .replace(/^song of songs$/, "song of solomon")
+    .replace(/^revelation of john$/, "revelation");
+}
+
+interface ParsedBibleReference {
+  bookName: string;
+  chapter: number;
+  from: number | null;
+  to: number | null;
+}
+
+function parseBibleReference(value: string): ParsedBibleReference | null {
+  const cleaned = value
+    .replace(/^reading\s*:\s*/i, "")
+    .replace(/\s*\([^)]*\)\s*$/, "")
+    .trim();
+  const match = cleaned.match(
+    /^((?:[1-3]\s*)?[A-Za-z][A-Za-z .'-]*?)\s+(\d{1,3})(?:\s*[:.]\s*(\d{1,3})(?:\s*[-–—]\s*(\d{1,3}))?)?$/,
+  );
+  if (!match) return null;
+  const chapter = Number(match[2]);
+  if (!Number.isInteger(chapter) || chapter <= 0) return null;
+  const from = match[3] ? Number(match[3]) : null;
+  const to = match[4] ? Number(match[4]) : from;
+  return {
+    bookName: match[1].trim(),
+    chapter,
+    from: from && from > 0 ? from : null,
+    to: to && to > 0 ? to : null,
+  };
+}
+
+function readingTexts(item: ChurchsuitePlanItem): string[] {
+  return [
+    item.name,
+    item.comment,
+    notesText(item.notes),
+    ...(item.question_responses ?? []).map((response) => response.value),
+  ]
+    .map((value) => value?.trim())
+    .filter((value): value is string => Boolean(value));
+}
+
+function readingForItem(
+  item: ChurchsuitePlanItem,
+  typeName: string,
+): ChurchSuiteBibleReading | null {
+  if (!normalize(typeName).includes("reading")) return null;
+  const translation =
+    listTranslations().find(
+      (entry) => entry.code === getAppSettings().defaultBibleTranslation,
+    ) ?? listTranslations()[0];
+  if (!translation) return null;
+  const books = getBooks(translation.code);
+  if (!books?.length) return null;
+  const bookByName = new Map<string, BibleBook>(
+    books.map((book) => [normalizeBookName(book.name), book]),
+  );
+  let parsed: ParsedBibleReference | null = null;
+  for (const text of readingTexts(item)) {
+    parsed = parseBibleReference(text);
+    if (parsed && bookByName.has(normalizeBookName(parsed.bookName))) break;
+    parsed = null;
+  }
+  if (!parsed) return null;
+  const book = bookByName.get(normalizeBookName(parsed.bookName));
+  if (!book) return null;
+  const passage = getPassage(
+    translation.code,
+    book.number,
+    parsed.chapter,
+    parsed.from ?? undefined,
+    parsed.to ?? undefined,
+  );
+  if (!passage) return null;
+  const reference = `${passage.bookName} ${passage.chapter}${
+    parsed.from ? `:${passage.from}${passage.to !== passage.from ? `–${passage.to}` : ""}` : ""
+  }`;
+  const preview = passage.verses
+    .slice(0, 2)
+    .map((verse) => `${verse.number} ${verse.text}`)
+    .join(" ")
+    .slice(0, 240);
+  return {
+    reference,
+    translation: passage.translation,
+    translationName: passage.translationName,
+    book: passage.book,
+    bookName: passage.bookName,
+    chapter: passage.chapter,
+    from: passage.from,
+    to: passage.to,
+    verseCount: passage.verses.length,
+    summary: `${reference} · ${passage.verses.length} verse${
+      passage.verses.length === 1 ? "" : "s"
+    } · ${passage.translationName}`,
+    preview,
+  };
 }
 
 function notesText(value: unknown): string | null {
@@ -149,6 +263,7 @@ export async function previewChurchsuitePlan(planId: number): Promise<ChurchSuit
         author,
         notes,
         duration: item.duration ?? null,
+        reading: readingForItem(item, typeName),
         matchedSong: matched
           ? { id: matched.id, title: matched.title, key: matched.key }
           : null,
@@ -190,10 +305,17 @@ export async function importChurchsuitePlan(
     serviceDate?: string;
     serviceTime?: string | null;
     songSelections?: Record<string, string>;
+    bibleLayouts?: Record<string, BibleLayout>;
+    includeSkipped?: number[];
   } = {},
 ): Promise<{ report: ChurchSuiteImportReport; setlist: unknown }> {
   const preview = await previewChurchsuitePlan(planId);
-  if (!preview.items.some((item) => item.action !== "skip")) {
+  const includedSkipped = new Set(input.includeSkipped ?? []);
+  if (
+    !preview.items.some(
+      (item) => item.action !== "skip" || includedSkipped.has(item.id),
+    )
+  ) {
     throw new Error("This plan has no importable items");
   }
   const id = randomUUID();
@@ -225,9 +347,9 @@ export async function importChurchsuitePlan(
 
   const insert = db.prepare(
     `INSERT INTO setlist_items
-     (id, setlist_id, position, kind, song_id, title, content, text_format, text_align,
-      key_override, transpose, max_lines, verse_order, notes)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     (id, setlist_id, position, kind, song_id, title, content, content_source,
+      text_format, text_align, key_override, transpose, max_lines, verse_order, notes)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   );
   const findSong = db.prepare("SELECT id, title FROM songs WHERE id = ?");
 
@@ -237,7 +359,7 @@ export async function importChurchsuitePlan(
   let emptyItems = 0;
   let skipped = 0;
   for (const item of preview.items) {
-    if (item.action === "skip") {
+    if (item.action === "skip" && !includedSkipped.has(item.id)) {
       skipped += 1;
       continue;
     }
@@ -254,6 +376,7 @@ export async function importChurchsuitePlan(
         selectedSong.id,
         selectedSong.title,
         null,
+        "text",
         null,
         null,
         item.key,
@@ -272,6 +395,7 @@ export async function importChurchsuitePlan(
         item.matchedSong.id,
         item.matchedSong.title,
         null,
+        "text",
         null,
         null,
         item.key,
@@ -281,6 +405,57 @@ export async function importChurchsuitePlan(
         item.notes,
       );
       songsMatched += 1;
+    } else if (item.reading) {
+      const layout = input.bibleLayouts?.[String(item.id)] ?? "verses";
+      const passage = getPassage(
+        item.reading.translation,
+        item.reading.book,
+        item.reading.chapter,
+        item.reading.from,
+        item.reading.to,
+      );
+      if (passage) {
+        insert.run(
+          randomUUID(),
+          id,
+          position,
+          "text",
+          null,
+          item.reading.reference,
+          `${item.reading.reference} (${item.reading.translationName})\n${formatBibleVerses(
+            passage.verses,
+            layout,
+          )}`,
+          "bible",
+          "text",
+          "left",
+          null,
+          0,
+          4,
+          null,
+          item.notes,
+        );
+        placeholders += 1;
+      } else {
+        insert.run(
+          randomUUID(),
+          id,
+          position,
+          "text",
+          null,
+          item.name || item.typeName || "ChurchSuite item",
+          placeholderContent(item),
+          "text",
+          "text",
+          "left",
+          null,
+          0,
+          4,
+          null,
+          item.notes,
+        );
+        placeholders += 1;
+      }
     } else if (item.action === "empty") {
       insert.run(
         randomUUID(),
@@ -290,6 +465,7 @@ export async function importChurchsuitePlan(
         null,
         item.name || item.typeName || "ChurchSuite item",
         "",
+        "text",
         "text",
         "left",
         null,
@@ -308,6 +484,7 @@ export async function importChurchsuitePlan(
         null,
         item.name || item.typeName || "ChurchSuite item",
         placeholderContent(item),
+        "text",
         "text",
         "left",
         null,

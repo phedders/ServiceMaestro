@@ -514,6 +514,8 @@ export const api = {
       serviceDate?: string;
       serviceTime?: string | null;
       songSelections?: Record<string, string>;
+      bibleLayouts?: Record<string, "paragraph" | "verses">;
+      includeSkipped?: number[];
     },
   ) =>
     request<{ report: ChurchSuiteImportReport; setlist: unknown }>(

@@ -5785,3 +5785,51 @@ body.resizing-live-queue {
 .compact-menu-dropdown .danger-text {
   color: #ffb2b2;
 }
+
+.cs-item-wrap.included .cs-item.skip {
+  opacity: 1;
+  border-color: rgba(74, 222, 128, 0.45);
+}
+
+.cs-item-wrap.included .cs-action.skip {
+  color: var(--success);
+}
+
+.cs-include-button {
+  justify-self: start;
+  margin-top: 6px;
+}
+
+.cs-include-button.active {
+  border-color: rgba(74, 222, 128, 0.55);
+  color: #86efac;
+}
+
+.cs-reading {
+  display: grid;
+  gap: 8px;
+  border: 1px solid var(--border);
+  border-top: 0;
+  padding: 10px 12px;
+  background: rgba(5, 10, 18, 0.45);
+}
+
+.cs-reading-summary {
+  display: grid;
+  gap: 3px;
+}
+
+.cs-reading-summary strong {
+  color: #a5e8ff;
+  font-size: 0.78rem;
+}
+
+.cs-reading-summary span {
+  color: var(--muted);
+  font-size: 0.72rem;
+  line-height: 1.45;
+}
+
+.cs-reading .button-row {
+  justify-content: flex-start;
+}

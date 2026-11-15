@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import type {
+  BibleLayout,
   ChurchSuiteImportReport,
   ChurchSuitePlanPreview,
   ChurchSuitePlanSummary,
@@ -60,6 +61,8 @@ export default function ChurchsuitePage({
   const [importing, setImporting] = useState(false);
   const [report, setReport] = useState<ChurchSuiteImportReport | null>(null);
   const [songSelections, setSongSelections] = useState<Record<number, string>>({});
+  const [bibleLayouts, setBibleLayouts] = useState<Record<number, BibleLayout>>({});
+  const [includedSkipped, setIncludedSkipped] = useState<Set<number>>(() => new Set());
   const [lyricsPreview, setLyricsPreview] = useState<{
     title: string;
     author: string | null;
@@ -151,6 +154,14 @@ export default function ChurchsuitePage({
             .map((item) => [item.id, item.matchedSong!.id]),
         ),
       );
+      setBibleLayouts(
+        Object.fromEntries(
+          result.preview.items
+            .filter((item) => item.reading)
+            .map((item) => [item.id, "verses" as BibleLayout]),
+        ),
+      );
+      setIncludedSkipped(new Set());
       setImportName(`${compactDate(result.preview.plan.date)}-${result.preview.plan.name}`.slice(0, 200));
       setImportDate(result.preview.plan.date);
       setImportTime(result.preview.plan.time?.slice(0, 5) ?? "");
@@ -199,6 +210,15 @@ export default function ChurchsuitePage({
     });
   }
 
+  function toggleSkippedItem(id: number) {
+    setIncludedSkipped((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
   async function createSetlist() {
     if (!preview || !canWrite) return;
     setImporting(true);
@@ -211,6 +231,10 @@ export default function ChurchsuitePage({
         songSelections: Object.fromEntries(
           Object.entries(songSelections).map(([itemId, songId]) => [itemId, songId]),
         ),
+        bibleLayouts: Object.fromEntries(
+          Object.entries(bibleLayouts).map(([itemId, layout]) => [itemId, layout]),
+        ),
+        includeSkipped: [...includedSkipped],
       });
       setReport(result.report);
       notify(`Created set list “${result.report.setlistName}”`);
@@ -325,6 +349,8 @@ export default function ChurchsuitePage({
                     item.isSong &&
                     item.action !== "song" &&
                     Boolean(siteProvider);
+                  const included = includedSkipped.has(item.id);
+                  const readingLayout = bibleLayouts[item.id] ?? "verses";
                   return (
                     <div
                       key={item.id}
@@ -332,7 +358,7 @@ export default function ChurchsuitePage({
                         item.action === "song" && item.matchCandidates.length > 1
                           ? "has-matches"
                           : ""
-                      }`}
+                      } ${item.action === "skip" && included ? "included" : ""}`}
                     >
                       <div className={`cs-item ${item.action}`}>
                         <span className="cs-order">{item.order}</span>
@@ -364,19 +390,79 @@ export default function ChurchsuitePage({
                               Lookup song in SongSelect
                             </button>
                           )}
+                          {item.action === "skip" && (
+                            <button
+                              type="button"
+                              className={`button ghost small cs-include-button ${
+                                included ? "active" : ""
+                              }`}
+                              onClick={() => toggleSkippedItem(item.id)}
+                              title={
+                                included
+                                  ? "Include this otherwise skipped ChurchSuite item in the draft"
+                                  : "Override the skip and include this ChurchSuite item as a text placeholder"
+                              }
+                            >
+                              {included ? "Included ✓" : "Include"}
+                            </button>
+                          )}
                         </div>
                         <span className={`cs-action ${item.action}`}>
                           {item.action === "song"
                             ? `Song: ${selected?.title ?? item.matchedSong?.title ?? ""}`
                             : item.action === "empty"
                               ? "Empty item"
-                              : item.action === "placeholder"
-                                ? item.isSong
-                                  ? "No local match"
-                                  : "Text placeholder"
-                                : "Skipped"}
+                              : item.action === "placeholder" && item.reading
+                                ? "Bible reading"
+                                : item.action === "placeholder"
+                                  ? item.isSong
+                                    ? "No local match"
+                                    : "Text placeholder"
+                                  : included
+                                    ? "Included"
+                                    : "Skipped"}
                         </span>
                       </div>
+                      {item.reading && (
+                        <div className="cs-reading">
+                          <div className="cs-reading-summary">
+                            <strong>{item.reading.summary}</strong>
+                            <span>{item.reading.preview}</span>
+                          </div>
+                          <div className="button-row">
+                            <button
+                              type="button"
+                              className={`button small ${
+                                readingLayout === "verses" ? "primary" : "ghost"
+                              }`}
+                              onClick={() =>
+                                setBibleLayouts((current) => ({
+                                  ...current,
+                                  [item.id]: "verses",
+                                }))
+                              }
+                              title="Import this Bible reading with each verse on its own line"
+                            >
+                              Add as line per verse
+                            </button>
+                            <button
+                              type="button"
+                              className={`button small ${
+                                readingLayout === "paragraph" ? "primary" : "ghost"
+                              }`}
+                              onClick={() =>
+                                setBibleLayouts((current) => ({
+                                  ...current,
+                                  [item.id]: "paragraph",
+                                }))
+                              }
+                              title="Import this Bible reading as a continuous paragraph"
+                            >
+                              Add as paragraph
+                            </button>
+                          </div>
+                        </div>
+                      )}
                       {item.action === "song" && item.matchCandidates.length > 1 && (
                         <div className="cs-match-wrap">
                           <table className="cs-match-table">

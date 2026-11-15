@@ -1273,6 +1273,20 @@ export interface SongAlternative extends SongMatchSummary {
   lyricsMarkdown: boolean;
 }
 
+export interface ChurchSuiteBibleReading {
+  reference: string;
+  translation: string;
+  translationName: string;
+  book: number;
+  bookName: string;
+  chapter: number;
+  from: number;
+  to: number;
+  verseCount: number;
+  summary: string;
+  preview: string;
+}
+
 export interface ChurchSuiteItemPreview {
   id: number;
   order: number;
@@ -1284,6 +1298,7 @@ export interface ChurchSuiteItemPreview {
   author: string | null;
   notes: string | null;
   duration: number | null;
+  reading: ChurchSuiteBibleReading | null;
   action: "song" | "placeholder" | "empty" | "skip";
   matchedSong: {
     id: string;
@@ -2287,6 +2302,10 @@ export const churchsuiteImportSchema = z.object({
   serviceDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   serviceTime: z.string().trim().max(10).optional().nullable(),
   songSelections: z.record(z.string(), z.string().min(1).max(100)).optional(),
+  bibleLayouts: z
+    .record(z.string(), z.enum(["paragraph", "verses"]))
+    .optional(),
+  includeSkipped: z.array(z.number().int().positive()).max(200).optional(),
 });
 
 export const activityRetentionSchema = z.object({
