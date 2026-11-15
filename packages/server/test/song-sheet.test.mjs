@@ -121,6 +121,13 @@ test("builds a chords PDF and rejects set lists without chord songs", () => {
     const parsed = chordSheetLines(chords);
     const result = await buildChordSheetPdf("setlist-chords");
     const pdf = await PDFDocument.load(result.buffer);
+    const portraitSize = pdf.getPage(0).getSize();
+    const allSongs = await buildChordSheetPdf("setlist-no-chords", {
+      orientation: "landscape",
+      chordsOnly: false,
+    });
+    const allSongsPdf = await PDFDocument.load(allSongs.buffer);
+    const landscapeSize = allSongsPdf.getPage(0).getSize();
     let noChordError = null;
     try {
       await buildChordSheetPdf("setlist-no-chords");
@@ -132,6 +139,9 @@ test("builds a chords PDF and rejects set lists without chord songs", () => {
       filename: result.filename,
       header: result.buffer.subarray(0, 5).toString("utf8"),
       pageCount: pdf.getPageCount(),
+      portraitSize,
+      landscapeSize,
+      allSongsPages: allSongsPdf.getPageCount(),
       noChordError,
     }));
   `;
@@ -168,6 +178,11 @@ test("builds a chords PDF and rejects set lists without chord songs", () => {
   assert.equal(data.filename, "chord-service-2026-11-15-chords.pdf");
   assert.equal(data.header, "%PDF-");
   assert.ok(data.pageCount >= 1);
+  assert.ok(Math.abs(data.portraitSize.width - 595.28) < 0.01);
+  assert.ok(Math.abs(data.portraitSize.height - 841.89) < 0.01);
+  assert.ok(Math.abs(data.landscapeSize.width - 841.89) < 0.01);
+  assert.ok(Math.abs(data.landscapeSize.height - 595.28) < 0.01);
+  assert.ok(data.allSongsPages >= 1);
   assert.equal(data.noChordError, "This set list has no songs with chords");
 });
 

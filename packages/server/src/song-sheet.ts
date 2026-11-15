@@ -330,6 +330,11 @@ export interface SongSheetOptions {
   columns?: number;
 }
 
+export interface ChordSheetOptions extends SongSheetOptions {
+  orientation?: "portrait" | "landscape";
+  chordsOnly?: boolean;
+}
+
 export async function buildSongSheetPdf(
   setlistId: string,
   options: SongSheetOptions = {},
@@ -504,16 +509,21 @@ export async function buildSongSheetPdf(
 
 /**
  * Printable chord charts for musicians. Keeps chord symbols and section
- * labels, applies each set-list item's transpose value, and omits songs
- * without chords.
+ * labels, applies each set-list item's transpose value, and can omit songs
+ * without chords. Supports portrait and landscape pages.
  */
 export async function buildChordSheetPdf(
   setlistId: string,
-  options: SongSheetOptions = {},
+  options: ChordSheetOptions = {},
 ): Promise<{ buffer: Buffer; filename: string }> {
   const { setlist, songs } = loadSongs(setlistId);
-  const chordSongs = songs.filter((song) => songHasChords(song.lyrics));
-  if (!chordSongs.length) throw new Error("This set list has no songs with chords");
+  const chordsOnly = options.chordsOnly !== false;
+  const chordSongs = chordsOnly ? songs.filter((song) => songHasChords(song.lyrics)) : songs;
+  if (!chordSongs.length) {
+    throw new Error(
+      chordsOnly ? "This set list has no songs with chords" : "This set list has no songs",
+    );
+  }
   const settings = getAppSettings();
   const baseSize = Math.max(
     8,
@@ -523,6 +533,9 @@ export async function buildChordSheetPdf(
     1,
     Math.min(3, Math.round(options.columns ?? settings.songSheetColumns)),
   );
+  const landscape = options.orientation === "landscape";
+  const pageWidth = landscape ? PAGE_HEIGHT : PAGE_WIDTH;
+  const pageHeight = landscape ? PAGE_WIDTH : PAGE_HEIGHT;
   const fontChoice = PDF_FONTS[settings.songSheetFontFamily];
   const titleSize = baseSize + 7;
   const titleLineHeight = titleSize * 1.22;
@@ -533,8 +546,8 @@ export async function buildChordSheetPdf(
   const chordGap = Math.max(4, chordSize * 0.4);
   const sectionSize = Math.max(8.5, baseSize * 0.72);
   const paragraphGap = baseSize * 0.6;
-  const contentTop = PAGE_HEIGHT - MARGIN - 8;
-  const contentWidth = PAGE_WIDTH - MARGIN * 2;
+  const contentTop = pageHeight - MARGIN - 8;
+  const contentWidth = pageWidth - MARGIN * 2;
   const columnWidth = (contentWidth - COLUMN_GAP * (columnCount - 1)) / columnCount;
   const columnX = (index: number) => MARGIN + index * (columnWidth + COLUMN_GAP);
 
@@ -547,21 +560,21 @@ export async function buildChordSheetPdf(
   const muted = rgb(0.38, 0.42, 0.48);
   const rule = rgb(0.82, 0.84, 0.87);
 
-  let page: PDFPage = pdf.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
+  let page: PDFPage = pdf.addPage([pageWidth, pageHeight]);
   let column = 0;
   let y = contentTop;
 
   const pageHeader = (target: PDFPage) => {
     target.drawText(pdfSafe(`${setlist.name}  ·  ${date}  ·  Chords`), {
       x: MARGIN,
-      y: PAGE_HEIGHT - MARGIN + 22,
+      y: pageHeight - MARGIN + 22,
       size: HEADER_SIZE,
       font,
       color: muted,
     });
     target.drawLine({
-      start: { x: MARGIN, y: PAGE_HEIGHT - MARGIN + 12 },
-      end: { x: PAGE_WIDTH - MARGIN, y: PAGE_HEIGHT - MARGIN + 12 },
+      start: { x: MARGIN, y: pageHeight - MARGIN + 12 },
+      end: { x: pageWidth - MARGIN, y: pageHeight - MARGIN + 12 },
       thickness: 0.6,
       color: rule,
     });
@@ -572,7 +585,7 @@ export async function buildChordSheetPdf(
     if (column + 1 < columnCount) {
       column += 1;
     } else {
-      page = pdf.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
+      page = pdf.addPage([pageWidth, pageHeight]);
       pageHeader(page);
       column = 0;
     }
@@ -727,7 +740,7 @@ export async function buildChordSheetPdf(
   const pages = pdf.getPages();
   pages.forEach((target, index) => {
     target.drawText(`${index + 1} / ${pages.length}`, {
-      x: PAGE_WIDTH - MARGIN - 34,
+      x: pageWidth - MARGIN - 34,
       y: 24,
       size: 8,
       font,

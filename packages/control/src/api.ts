@@ -104,15 +104,24 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   return data as T;
 }
 
+interface SetlistPdfOptions {
+  fontSize?: number;
+  columns?: number;
+  orientation?: "portrait" | "landscape";
+  chordsOnly?: boolean;
+}
+
 async function downloadSetlistPdf(
   id: string,
   file: "songs.pdf" | "chords.pdf",
   fallbackFilename: string,
-  options: { fontSize?: number; columns?: number } = {},
+  options: SetlistPdfOptions = {},
 ): Promise<{ blob: Blob; filename: string }> {
   const params = new URLSearchParams();
   if (options.fontSize !== undefined) params.set("fontSize", String(options.fontSize));
   if (options.columns !== undefined) params.set("columns", String(options.columns));
+  if (options.orientation !== undefined) params.set("orientation", options.orientation);
+  if (options.chordsOnly !== undefined) params.set("chordsOnly", String(options.chordsOnly));
   const response = await fetch(`/api/setlists/${id}/${file}${params.size ? `?${params}` : ""}`, {
     credentials: "include",
   });
@@ -687,10 +696,8 @@ export const api = {
     id: string,
     options: { fontSize?: number; columns?: number } = {},
   ) => downloadSetlistPdf(id, "songs.pdf", "service-songs.pdf", options),
-  downloadSetlistChordsPdf: (
-    id: string,
-    options: { fontSize?: number; columns?: number } = {},
-  ) => downloadSetlistPdf(id, "chords.pdf", "service-chords.pdf", options),
+  downloadSetlistChordsPdf: (id: string, options: SetlistPdfOptions = {}) =>
+    downloadSetlistPdf(id, "chords.pdf", "service-chords.pdf", options),
   previewSetlistImport: async (file: File): Promise<{ preview: SetlistImportPreview }> => {
     const form = new FormData();
     form.append("file", file);

@@ -1390,6 +1390,13 @@ body.resizing-live-queue {
   gap: 9px;
 }
 
+.chord-pdf-options {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 14px;
+}
+
 .big-print-controls {
   display: grid;
   grid-template-columns: 90px minmax(110px, 1fr);

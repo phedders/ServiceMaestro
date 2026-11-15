@@ -1304,6 +1304,10 @@ export default function SetlistsPage({
   const [creatingChordPdf, setCreatingChordPdf] = useState(false);
   const [chordPdfFontSize, setChordPdfFontSize] = useState(15);
   const [chordPdfColumns, setChordPdfColumns] = useState(1);
+  const [chordPdfOrientation, setChordPdfOrientation] = useState<"portrait" | "landscape">(
+    "portrait",
+  );
+  const [chordPdfChordsOnly, setChordPdfChordsOnly] = useState(true);
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
   const [dragId, setDragId] = useState<string | null>(null);
@@ -1802,6 +1806,8 @@ export default function SetlistsPage({
       const { blob, filename } = await api.downloadSetlistChordsPdf(detail.id, {
         fontSize: chordPdfFontSize,
         columns: chordPdfColumns,
+        orientation: chordPdfOrientation,
+        chordsOnly: chordPdfChordsOnly,
       });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
@@ -1893,6 +1899,9 @@ export default function SetlistsPage({
     biblePassage?.verses.filter(
       (verse) => verse.number >= bibleFrom && verse.number <= bibleTo,
     ) ?? [];
+  const songItemCount = detail
+    ? detail.items.filter((item) => item.kind === "song").length
+    : 0;
   const chordSongCount = detail
     ? detail.items.filter((item) => {
         if (item.kind !== "song") return false;
@@ -1900,6 +1909,7 @@ export default function SetlistsPage({
         return songHasChords(item.content ?? song?.lyrics ?? "");
       }).length
     : 0;
+  const chordPdfSongCount = chordPdfChordsOnly ? chordSongCount : songItemCount;
   const addKindLabels: Record<typeof addKind, string> = {
     song: "Add song",
     text: "Add text",
@@ -2039,9 +2049,49 @@ export default function SetlistsPage({
         <div className="big-print-pdf">
           <h3>Chords Print PDF</h3>
           <p className="hint">
-            Printable chord charts for musicians. Chord symbols and section labels are kept, and
-            only songs containing chords are included. Size and columns apply only to this download.
+            Printable chord charts for musicians. Chord symbols and section labels are kept. Choose
+            portrait or landscape, and include only songs that contain chords or every song in the
+            set list. Size and columns apply only to this download.
           </p>
+          <div className="chord-pdf-options">
+            <div className="bible-layout-options">
+              <span className="field-label">Orientation</span>
+              <div
+                className="segmented-buttons"
+                role="group"
+                aria-label="Chords PDF page orientation"
+              >
+                <button
+                  type="button"
+                  className={`button ghost small ${
+                    chordPdfOrientation === "portrait" ? "active" : ""
+                  }`}
+                  aria-pressed={chordPdfOrientation === "portrait"}
+                  onClick={() => setChordPdfOrientation("portrait")}
+                >
+                  Portrait
+                </button>
+                <button
+                  type="button"
+                  className={`button ghost small ${
+                    chordPdfOrientation === "landscape" ? "active" : ""
+                  }`}
+                  aria-pressed={chordPdfOrientation === "landscape"}
+                  onClick={() => setChordPdfOrientation("landscape")}
+                >
+                  Landscape
+                </button>
+              </div>
+            </div>
+            <label className="checkbox">
+              <input
+                type="checkbox"
+                checked={chordPdfChordsOnly}
+                onChange={(event) => setChordPdfChordsOnly(event.target.checked)}
+              />
+              Songs with Chords only
+            </label>
+          </div>
           <div className="big-print-controls">
             <label>
               Text size
@@ -2071,22 +2121,28 @@ export default function SetlistsPage({
             <button
               className="button primary small"
               onClick={createChordPdf}
-              disabled={!detail || creatingChordPdf || chordSongCount === 0}
+              disabled={!detail || creatingChordPdf || chordPdfSongCount === 0}
               title={
-                chordSongCount
-                  ? `Download a chord chart containing ${chordSongCount} song${
-                      chordSongCount === 1 ? "" : "s"
-                    } with chords`
-                  : "Add a song containing chords to create a chord chart"
+                chordPdfSongCount
+                  ? `Download a ${chordPdfOrientation} chord chart containing ${chordPdfSongCount} song${
+                      chordPdfSongCount === 1 ? "" : "s"
+                    }${chordPdfChordsOnly ? " with chords" : ""}`
+                  : chordPdfChordsOnly
+                    ? "Add a song containing chords to create a chord chart"
+                    : "Add at least one song to create a chord chart"
               }
             >
               {creatingChordPdf ? "Creating PDF…" : "Create chords PDF"}
             </button>
           </div>
           <p className="hint">
-            {chordSongCount
-              ? `${chordSongCount} song${chordSongCount === 1 ? "" : "s"} with chords will be included.`
-              : "No songs with chords in this set list."}
+            {chordPdfSongCount
+              ? `${chordPdfSongCount} song${chordPdfSongCount === 1 ? "" : "s"} will be included${
+                  chordPdfChordsOnly ? " (songs with chords only)" : ""
+                }.`
+              : chordPdfChordsOnly
+                ? "No songs with chords in this set list."
+                : "No songs in this set list."}
           </p>
         </div>
 

@@ -69,13 +69,24 @@ export async function transferRoutes(app: FastifyInstance): Promise<void> {
     { preHandler: requireAuth },
     async (request, reply) => {
       const id = (request.params as { id: string }).id;
-      const query = request.query as { fontSize?: string; columns?: string };
+      const query = request.query as {
+        fontSize?: string;
+        columns?: string;
+        orientation?: string;
+        chordsOnly?: string;
+      };
       const fontSize = query.fontSize === undefined ? undefined : Number(query.fontSize);
       const columns = query.columns === undefined ? undefined : Number(query.columns);
+      const orientation = query.orientation === "landscape" ? "landscape" : "portrait";
+      const chordsOnly =
+        query.chordsOnly === undefined ||
+        !["0", "false", "no", "off"].includes(query.chordsOnly.toLowerCase());
       try {
         const result = await buildChordSheetPdf(id, {
           fontSize: Number.isFinite(fontSize) ? fontSize : undefined,
           columns: Number.isFinite(columns) ? columns : undefined,
+          orientation,
+          chordsOnly,
         });
         logActivity({
           request,
@@ -83,7 +94,7 @@ export async function transferRoutes(app: FastifyInstance): Promise<void> {
           action: "download_pdf",
           module: "setlists",
           status: 200,
-          detail: `Chords Print PDF${fontSize ? ` · ${fontSize}pt` : ""}${columns ? ` · ${columns} columns` : ""}`,
+          detail: `Chords Print PDF${fontSize ? ` · ${fontSize}pt` : ""}${columns ? ` · ${columns} columns` : ""} · ${orientation}${chordsOnly ? "" : " · all songs"}`,
         });
         return reply
           .type("application/pdf")
