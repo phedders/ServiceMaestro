@@ -73,6 +73,7 @@ import type {
   TarpThemeInput,
   UserManagementEntry,
 } from "@sm/shared";
+import { sortSetlistsForSelection } from "./service-date";
 
 export class ApiError extends Error {
   status: number;
@@ -559,7 +560,10 @@ export const api = {
       }),
     }),
 
-  setlists: () => request<{ setlists: SetlistSummary[] }>("/api/setlists"),
+  setlists: async () => {
+    const result = await request<{ setlists: SetlistSummary[] }>("/api/setlists");
+    return { setlists: sortSetlistsForSelection(result.setlists) };
+  },
   setlist: (id: string) => request<{ setlist: SetlistDetail }>(`/api/setlists/${id}`),
   createSetlist: (payload: { name: string; serviceDate: string; serviceTime?: string; notes?: string }) =>
     request<{ setlist: SetlistDetail }>("/api/setlists", {

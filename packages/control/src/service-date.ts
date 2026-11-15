@@ -41,6 +41,41 @@ export function serviceDateTime(setlist: Pick<SetlistSummary, "serviceDate" | "s
 }
 
 /**
+ * Sort set lists for selection controls: services dated today through the
+ * next two weeks first (soonest first), then all remaining set lists newest
+ * first.
+ */
+export function sortSetlistsForSelection(
+  setlists: SetlistSummary[],
+  now: Date = new Date(),
+  upcomingDays = 14,
+): SetlistSummary[] {
+  const today = compactDate(now);
+  const end = new Date(now.getFullYear(), now.getMonth(), now.getDate() + upcomingDays);
+  const lastUpcoming = compactDate(end);
+  const upcoming: SetlistSummary[] = [];
+  const others: SetlistSummary[] = [];
+
+  for (const setlist of setlists) {
+    const date = compactDate(setlist.serviceDate);
+    if (date >= today && date <= lastUpcoming) upcoming.push(setlist);
+    else others.push(setlist);
+  }
+
+  upcoming.sort(
+    (a, b) =>
+      serviceDateTime(a).getTime() - serviceDateTime(b).getTime() ||
+      a.name.localeCompare(b.name, undefined, { sensitivity: "base" }),
+  );
+  others.sort(
+    (a, b) =>
+      serviceDateTime(b).getTime() - serviceDateTime(a).getTime() ||
+      a.name.localeCompare(b.name, undefined, { sensitivity: "base" }),
+  );
+  return [...upcoming, ...others];
+}
+
+/**
  * Pick the service that is running now, then the next one, then the most
  * recent past service. Used by the Bible page and the musician view.
  */
