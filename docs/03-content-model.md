@@ -527,7 +527,7 @@ Library
   Downloads      site scraping credential status and download framework
 
 Musicians
-  By setlist     standalone /musicians: current/next set lists, items, lyrics, scores and tabs; read-only
+  By setlist     standalone /musicians: service selected at the top, its items, lyrics, scores and tabs; read-only
   All songs      standalone /musicians: full active song library with search, lyrics, scores and tabs; read-only
 
 Set Lists

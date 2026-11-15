@@ -293,29 +293,6 @@ export default function MusiciansPage({
       </section>
 
       {viewMode === "setlist" ? (
-      <div className="musicians-grid">
-        <aside className="panel musicians-songs musicians-setlists" data-key-list>
-          <div className="panel-heading">
-            <h3>Set lists</h3>
-            <span className="muted">{setlists.length}</span>
-          </div>
-          {setlists.map((setlist) => (
-            <button
-              key={setlist.id}
-              data-key-list-item
-              className={`musician-song ${setlist.id === selectedSetlist ? "current" : ""}`}
-              onClick={() => setSelectedSetlist(setlist.id)}
-              title={`Open set list “${setlist.name}”`}
-            >
-              <strong>{setlist.name}</strong>
-              <span>
-                {serviceLabel(setlist)} · {setlist.itemCount} item{setlist.itemCount === 1 ? "" : "s"}
-              </span>
-            </button>
-          ))}
-          {!setlists.length && <p className="muted">No set lists yet.</p>}
-        </aside>
-
         <section className="panel musicians-viewer">
           {detail ? (
             <>
@@ -403,10 +380,9 @@ export default function MusiciansPage({
               </div>
             </>
           ) : (
-            <p className="muted">Choose a set list to open it.</p>
+            <p className="muted">Choose a service to open it.</p>
           )}
         </section>
-      </div>
       ) : (
         <div className="musicians-grid">
           <aside className="panel musicians-songs musicians-setlists" data-key-list>
