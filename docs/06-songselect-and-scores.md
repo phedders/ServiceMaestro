@@ -279,7 +279,8 @@ Future PDFs may be scanned images or have no text layer, so the viewer must not 
 ### Musician UI
 
 - Route `/musicians` (role `musician`, or a scoped service link).
-- Shows the current service/set list, current and next item, and one-tap access to the score PDF, ChordPro view, tabs and item notes.
+- Top-level **By setlist | All songs** toggle. **By setlist** shows the current service/set list, current and next item, and one-tap access to the score PDF, ChordPro view, tabs and item notes. **All songs** browses the full active song library with title/author/CCLI search and opens each song's lyrics, scores and tabs.
+- Song assets are loaded on demand per selected song; all-songs mode pages through `/api/songs?limit=&offset=` so the list is not truncated by the normal 500-song response cap.
 - Big touch targets, works on tablets, optional PWA/offline cache of the current service's assets.
 - Readiness indicator for set-list items missing score/tab assets.
 

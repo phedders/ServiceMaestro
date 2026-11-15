@@ -247,7 +247,13 @@ export const api = {
       body: JSON.stringify({ retentionDays }),
     }),
 
-  songs: (q = "") => request<{ songs: Song[] }>(`/api/songs${q ? `?q=${encodeURIComponent(q)}` : ""}`),
+  songs: (q = "", options: { limit?: number; offset?: number } = {}) => {
+    const params = new URLSearchParams();
+    if (q) params.set("q", q);
+    if (options.limit !== undefined) params.set("limit", String(options.limit));
+    if (options.offset !== undefined) params.set("offset", String(options.offset));
+    return request<{ songs: Song[] }>(`/api/songs${params.size ? `?${params}` : ""}`);
+  },
   song: (id: string) => request<{ song: Song }>(`/api/songs/${id}`),
   songAlternatives: (id: string, q = "") =>
     request<{ alternatives: SongAlternative[] }>(

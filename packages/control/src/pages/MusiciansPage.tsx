@@ -36,6 +36,42 @@ function serviceLabel(setlist: SetlistSummary): string {
   return `${compactDate(setlist.serviceDate)}${setlist.serviceTime ? ` · ${setlist.serviceTime}` : ""}`;
 }
 
+function SongFiles({
+  assets,
+  selectedAsset,
+  onSelect,
+}: {
+  assets: SongAsset[];
+  selectedAsset: string;
+  onSelect: (assetId: string) => void;
+}) {
+  const current = assets.find((asset) => asset.id === selectedAsset);
+  if (!assets.length) {
+    return <p className="muted">No score, ChordPro file or tab attached to this song.</p>;
+  }
+  return (
+    <div className="musician-score">
+      <div className="panel-heading">
+        <h3>Scores &amp; tabs</h3>
+        <div className="asset-tabs">
+          {assets.map((asset) => (
+            <button
+              key={asset.id}
+              className={`button small ${asset.id === selectedAsset ? "primary" : "ghost"}`}
+              onClick={() => onSelect(asset.id)}
+              title={`View ${asset.kind.replace("_", " ")} “${asset.title}”`}
+            >
+              {asset.title || asset.kind.replace("_", " ")}
+              {asset.key ? ` · ${asset.key}` : ""}
+            </button>
+          ))}
+        </div>
+      </div>
+      {current ? <AssetViewer asset={current} /> : <p className="muted">Choose a file to view.</p>}
+    </div>
+  );
+}
+
 export default function MusiciansPage({
   notify,
 }: {
@@ -49,6 +85,15 @@ export default function MusiciansPage({
   const [songs, setSongs] = useState<Record<string, Song>>({});
   const [selectedAsset, setSelectedAsset] = useState("");
   const [loading, setLoading] = useState(true);
+  const [viewMode, setViewMode] = useState<"setlist" | "songs">("setlist");
+  const [allSongs, setAllSongs] = useState<Song[]>([]);
+  const [allSongsLoading, setAllSongsLoading] = useState(false);
+  const [allSongsLoaded, setAllSongsLoaded] = useState(false);
+  const [songSearch, setSongSearch] = useState("");
+  const [selectedSongId, setSelectedSongId] = useState("");
+  const [allSongAssets, setAllSongAssets] = useState<Record<string, SongAsset[]>>({});
+  const [loadingAllSongAssets, setLoadingAllSongAssets] = useState<Record<string, boolean>>({});
+  const [selectedAllAsset, setSelectedAllAsset] = useState("");
 
   useEffect(() => {
     api
@@ -106,12 +151,81 @@ export default function MusiciansPage({
       .catch((error) => notify(error instanceof ApiError ? error.message : "Could not load service", "error"));
   }, [selectedSetlist]);
 
+  useEffect(() => {
+    if (viewMode !== "songs" || allSongsLoaded) return;
+    setAllSongsLoading(true);
+    const pageSize = 500;
+    const loadAll = async () => {
+      const found = new Map<string, Song>();
+      for (let offset = 0; offset < 20_000; offset += pageSize) {
+        const result = await api.songs("", { limit: pageSize, offset });
+        for (const song of result.songs) found.set(song.id, song);
+        if (result.songs.length < pageSize) break;
+      }
+      return [...found.values()];
+    };
+    loadAll()
+      .then((result) => {
+        setAllSongs(result);
+        setAllSongsLoaded(true);
+        setSelectedSongId((current) => current || result[0]?.id || "");
+      })
+      .catch((error) => {
+        setAllSongsLoaded(true);
+        notify(error instanceof ApiError ? error.message : "Could not load songs", "error");
+      })
+      .finally(() => setAllSongsLoading(false));
+  }, [viewMode, allSongsLoaded]);
+
+  useEffect(() => {
+    if (viewMode !== "songs" || !selectedSongId) return;
+    if (allSongAssets[selectedSongId] || loadingAllSongAssets[selectedSongId]) return;
+    setLoadingAllSongAssets((current) => ({ ...current, [selectedSongId]: true }));
+    api
+      .songAssets(selectedSongId)
+      .then((result) =>
+        setAllSongAssets((current) => ({ ...current, [selectedSongId]: result.assets })),
+      )
+      .catch((error) => {
+        setAllSongAssets((current) => ({ ...current, [selectedSongId]: [] }));
+        notify(error instanceof ApiError ? error.message : "Could not load song files", "error");
+      })
+      .finally(() =>
+        setLoadingAllSongAssets((current) => ({ ...current, [selectedSongId]: false })),
+      );
+  }, [viewMode, selectedSongId, allSongAssets, loadingAllSongAssets]);
+
+  useEffect(() => {
+    if (viewMode !== "songs" || !selectedSongId) return;
+    const list = allSongAssets[selectedSongId] ?? [];
+    if (list.some((asset) => asset.id === selectedAllAsset)) return;
+    setSelectedAllAsset(list[0]?.id ?? "");
+  }, [viewMode, selectedSongId, allSongAssets, selectedAllAsset]);
+
   const selected = useMemo(
     () => detail?.items.find((item) => item.id === selectedItem) ?? null,
     [detail, selectedItem],
   );
   const selectedSongAssets = selected?.songId ? assets[selected.songId] ?? [] : [];
-  const currentAsset = selectedSongAssets.find((asset) => asset.id === selectedAsset);
+  const selectedAllSong = useMemo(
+    () => allSongs.find((song) => song.id === selectedSongId) ?? null,
+    [allSongs, selectedSongId],
+  );
+  const selectedAllSongAssets = selectedSongId ? allSongAssets[selectedSongId] ?? [] : [];
+  const filteredAllSongs = useMemo(() => {
+    const query = songSearch.trim().toLowerCase();
+    if (!query) return allSongs;
+    return allSongs.filter((song) =>
+      [song.title, song.alternateTitles ?? "", song.author ?? "", song.ccli ?? ""].some((value) =>
+        value.toLowerCase().includes(query),
+      ),
+    );
+  }, [allSongs, songSearch]);
+
+  function selectAllSong(song: Song) {
+    setSelectedSongId(song.id);
+    setSelectedAllAsset("");
+  }
 
   function selectItem(item: SetlistItem) {
     setSelectedItem(item.id);
@@ -128,24 +242,57 @@ export default function MusiciansPage({
     <div className="musicians-page musicians-standalone-page">
       <section className="panel musicians-toolbar">
         <div>
-          <h2>Service set lists</h2>
+          <h2>{viewMode === "setlist" ? "Service set lists" : "All songs"}</h2>
           <p className="muted">
-            Open a service to view its songs, lyrics, scores and tabs. This view is read-only and never
-            changes the live session.
+            {viewMode === "setlist"
+              ? "Open a service to view its songs, lyrics, scores and tabs."
+              : "Browse the song library for lyrics, scores and tabs."}{" "}
+            This view is read-only and never changes the live session.
           </p>
+          <div className="segmented-buttons musicians-view-toggle" role="group" aria-label="Musicians view">
+            <button
+              type="button"
+              className={`button ghost small ${viewMode === "setlist" ? "active" : ""}`}
+              aria-pressed={viewMode === "setlist"}
+              onClick={() => setViewMode("setlist")}
+            >
+              By setlist
+            </button>
+            <button
+              type="button"
+              className={`button ghost small ${viewMode === "songs" ? "active" : ""}`}
+              aria-pressed={viewMode === "songs"}
+              onClick={() => setViewMode("songs")}
+            >
+              All songs
+            </button>
+          </div>
         </div>
-        <label>
-          Service
-          <select value={selectedSetlist} onChange={(event) => setSelectedSetlist(event.target.value)}>
-            {setlists.map((setlist) => (
-              <option key={setlist.id} value={setlist.id}>
-                {setlist.name} — {serviceLabel(setlist)}
-              </option>
-            ))}
-          </select>
-        </label>
+        {viewMode === "setlist" ? (
+          <label>
+            Service
+            <select value={selectedSetlist} onChange={(event) => setSelectedSetlist(event.target.value)}>
+              {setlists.map((setlist) => (
+                <option key={setlist.id} value={setlist.id}>
+                  {setlist.name} — {serviceLabel(setlist)}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : (
+          <label>
+            Search songs
+            <input
+              type="search"
+              value={songSearch}
+              onChange={(event) => setSongSearch(event.target.value)}
+              placeholder="Title, author, CCLI…"
+            />
+          </label>
+        )}
       </section>
 
+      {viewMode === "setlist" ? (
       <div className="musicians-grid">
         <aside className="panel musicians-songs musicians-setlists" data-key-list>
           <div className="panel-heading">
@@ -232,34 +379,11 @@ export default function MusiciansPage({
                               <pre className="lyrics-view">
                                 {item.content ?? song?.lyrics ?? "Lyrics are not available for this song."}
                               </pre>
-                              {songAssets.length > 0 && (
-                                <div className="musician-score">
-                                  <div className="panel-heading">
-                                    <h3>Scores &amp; tabs</h3>
-                                    <div className="asset-tabs">
-                                      {songAssets.map((asset) => (
-                                        <button
-                                          key={asset.id}
-                                          className={`button small ${asset.id === selectedAsset ? "primary" : "ghost"}`}
-                                          onClick={() => setSelectedAsset(asset.id)}
-                                          title={`View ${asset.kind.replace("_", " ")} “${asset.title}”`}
-                                        >
-                                          {asset.title || asset.kind.replace("_", " ")}
-                                          {asset.key ? ` · ${asset.key}` : ""}
-                                        </button>
-                                      ))}
-                                    </div>
-                                  </div>
-                                  {currentAsset ? (
-                                    <AssetViewer asset={currentAsset} />
-                                  ) : (
-                                    <p className="muted">Choose a file to view.</p>
-                                  )}
-                                </div>
-                              )}
-                              {!songAssets.length && (
-                                <p className="muted">No score, ChordPro file or tab attached to this song.</p>
-                              )}
+                              <SongFiles
+                                assets={songAssets}
+                                selectedAsset={selectedAsset}
+                                onSelect={setSelectedAsset}
+                              />
                             </>
                           ) : item.kind === "image_list" ? (
                             <p className="muted">
@@ -283,6 +407,88 @@ export default function MusiciansPage({
           )}
         </section>
       </div>
+      ) : (
+        <div className="musicians-grid">
+          <aside className="panel musicians-songs musicians-setlists" data-key-list>
+            <div className="panel-heading">
+              <h3>All songs</h3>
+              <span className="muted">
+                {songSearch ? `${filteredAllSongs.length} / ${allSongs.length}` : allSongs.length}
+              </span>
+            </div>
+            {allSongsLoading || !allSongsLoaded ? (
+              <p className="muted">Loading songs…</p>
+            ) : (
+              <>
+                {filteredAllSongs.map((song) => (
+                  <button
+                    key={song.id}
+                    data-key-list-item
+                    className={`musician-song ${song.id === selectedSongId ? "current" : ""}`}
+                    onClick={() => selectAllSong(song)}
+                    title={`Open “${song.title}”`}
+                  >
+                    <strong>{song.title}</strong>
+                    <span>
+                      {[
+                        song.author,
+                        song.key ? `key ${song.key}` : "",
+                        allSongAssets[song.id]?.length
+                          ? `${allSongAssets[song.id].length} file${
+                              allSongAssets[song.id].length === 1 ? "" : "s"
+                            }`
+                          : "",
+                      ]
+                        .filter(Boolean)
+                        .join(" · ") || "Song"}
+                    </span>
+                  </button>
+                ))}
+                {!filteredAllSongs.length && (
+                  <p className="muted">
+                    {songSearch ? `No songs match “${songSearch}”.` : "No songs in the library."}
+                  </p>
+                )}
+              </>
+            )}
+          </aside>
+
+          <section className="panel musicians-viewer">
+            {selectedAllSong ? (
+              <>
+                <div className="panel-heading">
+                  <div>
+                    <h2>{selectedAllSong.title}</h2>
+                    <p className="muted">
+                      {[
+                        selectedAllSong.author,
+                        selectedAllSong.ccli ? `CCLI ${selectedAllSong.ccli}` : "",
+                        selectedAllSong.key ? `key ${selectedAllSong.key}` : "",
+                      ]
+                        .filter(Boolean)
+                        .join(" · ") || "Song"}
+                    </p>
+                  </div>
+                </div>
+                <pre className="lyrics-view">
+                  {selectedAllSong.lyrics || "Lyrics are not available for this song."}
+                </pre>
+                {loadingAllSongAssets[selectedSongId] ? (
+                  <p className="muted">Loading scores and tabs…</p>
+                ) : (
+                  <SongFiles
+                    assets={selectedAllSongAssets}
+                    selectedAsset={selectedAllAsset}
+                    onSelect={setSelectedAllAsset}
+                  />
+                )}
+              </>
+            ) : (
+              <p className="muted">Choose a song to open it.</p>
+            )}
+          </section>
+        </div>
+      )}
     </div>
   );
 }

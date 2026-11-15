@@ -144,21 +144,38 @@ function pageIdFixScan(songIds?: string[]): SongPageIdFixScan {
 
 export async function songRoutes(app: FastifyInstance): Promise<void> {
   app.get("/api/songs", { preHandler: requireAuth }, async (request) => {
-    const query = (request.query as { q?: string }).q?.trim();
+    const params = request.query as { q?: string; limit?: string; offset?: string };
+    const query = params.q?.trim();
+    const requestedLimit = Number(params.limit);
+    const requestedOffset = Number(params.offset);
+    const limit =
+      Number.isInteger(requestedLimit) && requestedLimit > 0
+        ? Math.min(2000, requestedLimit)
+        : 500;
+    const offset =
+      Number.isInteger(requestedOffset) && requestedOffset > 0 ? requestedOffset : 0;
     const rows = query
       ? (db
           .prepare(
             `SELECT * FROM songs
              WHERE archived_at IS NULL
                AND (title LIKE ? OR alternate_titles LIKE ? OR author LIKE ? OR lyrics LIKE ?)
-             ORDER BY title COLLATE NOCASE ASC LIMIT 500`,
+             ORDER BY title COLLATE NOCASE ASC LIMIT ? OFFSET ?`,
           )
-          .all(`%${query}%`, `%${query}%`, `%${query}%`, `%${query}%`) as SongRow[])
+          .all(
+            `%${query}%`,
+            `%${query}%`,
+            `%${query}%`,
+            `%${query}%`,
+            limit,
+            offset,
+          ) as SongRow[])
       : (db
           .prepare(
-            "SELECT * FROM songs WHERE archived_at IS NULL ORDER BY title COLLATE NOCASE ASC LIMIT 500",
+            `SELECT * FROM songs WHERE archived_at IS NULL
+             ORDER BY title COLLATE NOCASE ASC LIMIT ? OFFSET ?`,
           )
-          .all() as SongRow[]);
+          .all(limit, offset) as SongRow[]);
     return { songs: rows.map(mapSong) };
   });
 

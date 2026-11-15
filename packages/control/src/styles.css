@@ -4680,6 +4680,10 @@ body.resizing-live-queue {
   min-width: 280px;
 }
 
+.musicians-view-toggle {
+  margin-top: 10px;
+}
+
 .musicians-grid {
   display: grid;
   grid-template-columns: 300px minmax(0, 1fr);
