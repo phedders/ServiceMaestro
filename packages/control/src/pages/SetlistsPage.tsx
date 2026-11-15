@@ -7,6 +7,7 @@ import {
   parseTarpItemContent,
   serializeImageListContent,
   serializeTarpItemContent,
+  songHasChords,
   songPageOrder,
   type BackgroundAsset,
   type BibleBook,
@@ -1300,6 +1301,9 @@ export default function SetlistsPage({
   const [creatingSongPdf, setCreatingSongPdf] = useState(false);
   const [songPdfFontSize, setSongPdfFontSize] = useState(15);
   const [songPdfColumns, setSongPdfColumns] = useState(1);
+  const [creatingChordPdf, setCreatingChordPdf] = useState(false);
+  const [chordPdfFontSize, setChordPdfFontSize] = useState(15);
+  const [chordPdfColumns, setChordPdfColumns] = useState(1);
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
   const [dragId, setDragId] = useState<string | null>(null);
@@ -1441,6 +1445,8 @@ export default function SetlistsPage({
       .then((result) => {
         setSongPdfFontSize(result.settings.songSheetFontSize);
         setSongPdfColumns(result.settings.songSheetColumns);
+        setChordPdfFontSize(result.settings.songSheetFontSize);
+        setChordPdfColumns(result.settings.songSheetColumns);
       })
       .catch(() => undefined);
   }, []);
@@ -1789,6 +1795,33 @@ export default function SetlistsPage({
     }
   }
 
+  async function createChordPdf() {
+    if (!detail) return;
+    setCreatingChordPdf(true);
+    try {
+      const { blob, filename } = await api.downloadSetlistChordsPdf(detail.id, {
+        fontSize: chordPdfFontSize,
+        columns: chordPdfColumns,
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.append(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      notify("Chords PDF downloaded");
+    } catch (error) {
+      notify(
+        error instanceof ApiError ? error.message : "Could not create the chords PDF",
+        "error",
+      );
+    } finally {
+      setCreatingChordPdf(false);
+    }
+  }
+
   async function chooseImport(file: File | null) {
     if (!canWrite) return;
     setImportFile(file);
@@ -1860,6 +1893,13 @@ export default function SetlistsPage({
     biblePassage?.verses.filter(
       (verse) => verse.number >= bibleFrom && verse.number <= bibleTo,
     ) ?? [];
+  const chordSongCount = detail
+    ? detail.items.filter((item) => {
+        if (item.kind !== "song") return false;
+        const song = item.songId ? songs.find((candidate) => candidate.id === item.songId) : null;
+        return songHasChords(item.content ?? song?.lyrics ?? "");
+      }).length
+    : 0;
   const addKindLabels: Record<typeof addKind, string> = {
     song: "Add song",
     text: "Add text",
@@ -1994,6 +2034,60 @@ export default function SetlistsPage({
               {creatingSongPdf ? "Creating PDF…" : "Create PDF of the songs"}
             </button>
           </div>
+        </div>
+
+        <div className="big-print-pdf">
+          <h3>Chords Print PDF</h3>
+          <p className="hint">
+            Printable chord charts for musicians. Chord symbols and section labels are kept, and
+            only songs containing chords are included. Size and columns apply only to this download.
+          </p>
+          <div className="big-print-controls">
+            <label>
+              Text size
+              <input
+                type="number"
+                min={8}
+                max={28}
+                value={chordPdfFontSize}
+                onChange={(event) =>
+                  setChordPdfFontSize(
+                    Math.max(8, Math.min(28, Number(event.target.value) || 15)),
+                  )
+                }
+              />
+            </label>
+            <label>
+              Columns
+              <select
+                value={chordPdfColumns}
+                onChange={(event) => setChordPdfColumns(Number(event.target.value))}
+              >
+                <option value={1}>1 column</option>
+                <option value={2}>2 columns</option>
+                <option value={3}>3 columns</option>
+              </select>
+            </label>
+            <button
+              className="button primary small"
+              onClick={createChordPdf}
+              disabled={!detail || creatingChordPdf || chordSongCount === 0}
+              title={
+                chordSongCount
+                  ? `Download a chord chart containing ${chordSongCount} song${
+                      chordSongCount === 1 ? "" : "s"
+                    } with chords`
+                  : "Add a song containing chords to create a chord chart"
+              }
+            >
+              {creatingChordPdf ? "Creating PDF…" : "Create chords PDF"}
+            </button>
+          </div>
+          <p className="hint">
+            {chordSongCount
+              ? `${chordSongCount} song${chordSongCount === 1 ? "" : "s"} with chords will be included.`
+              : "No songs with chords in this set list."}
+          </p>
         </div>
 
         <div className="transfer-panel">

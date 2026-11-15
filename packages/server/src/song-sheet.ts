@@ -1,6 +1,11 @@
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "pdf-lib";
-import type { SongSheetFont } from "@sm/shared";
+import {
+  isSongChordToken,
+  songHasChords,
+  type SongSheetFont,
+} from "@sm/shared";
 import { db } from "./db.js";
+import { transposeChord } from "./render.js";
 import { getAppSettings } from "./settings.js";
 
 const PAGE_WIDTH = 595.28;
@@ -50,6 +55,7 @@ const MONTHS = [
 interface SongSheetRow {
   item_title: string;
   item_content: string | null;
+  item_transpose: number;
   song_title: string | null;
   author: string | null;
   copyright: string | null;
@@ -69,6 +75,8 @@ interface SongForPdf {
   author: string | null;
   copyright: string | null;
   ccli: string | null;
+  transpose: number;
+  lyrics: string;
   lines: string[];
 }
 
@@ -165,6 +173,108 @@ function wrapLine(
   return lines.length ? lines : [""];
 }
 
+function plainChordSegment(value: string): string {
+  return decodeEntities(
+    value
+      .replace(/<br\s*\/?>/gi, " ")
+      .replace(/<[^>]+>/g, "")
+      .replace(/!\[([^\]]*)\]\([^)]+\)/g, "$1")
+      .replace(/\*\*(.*?)\*\*/g, "$1")
+      .replace(/__(.*?)__/g, "$1")
+      .replace(/~~(.*?)~~/g, "$1")
+      .replace(/==(.*?)==/g, "$1")
+      .replace(/`([^`]*)`/g, "$1")
+      .replace(/^#{1,6}\s+/, ""),
+  ).replace(/[ \t]+/g, " ");
+}
+
+export interface ChordSheetLine {
+  text: string;
+  chords: Array<{ index: number; chord: string }>;
+  section: string | null;
+}
+
+/** Parse ChordPro-style lyrics into text, positioned chord marks and section labels. */
+export function chordSheetLines(lyrics: string): ChordSheetLine[] {
+  const lines: ChordSheetLine[] = [];
+  for (const raw of lyrics.replace(/\r\n?/g, "\n").split("\n")) {
+    const sectionMatch = raw.match(/^\s*\[([^\]]+)\]\s*$/);
+    if (sectionMatch && !isSongChordToken(sectionMatch[1])) {
+      lines.push({ text: "", chords: [], section: sectionMatch[1].trim() });
+      continue;
+    }
+
+    let text = "";
+    const chords: Array<{ index: number; chord: string }> = [];
+    let last = 0;
+    const re = /\[([^\]]+)\]/g;
+    let match: RegExpExecArray | null;
+    while ((match = re.exec(raw))) {
+      text += plainChordSegment(raw.slice(last, match.index));
+      const token = match[1].trim();
+      if (isSongChordToken(token)) {
+        chords.push({ index: text.length, chord: token });
+      } else {
+        text += `[${token}]`;
+      }
+      last = match.index + match[0].length;
+    }
+    text += plainChordSegment(raw.slice(last));
+    text = text.replace(/[ \t]+$/, "");
+
+    if (!text && !chords.length) {
+      const previous = lines[lines.length - 1];
+      if (previous && (previous.text || previous.chords.length || previous.section)) {
+        lines.push({ text: "", chords: [], section: null });
+      }
+      continue;
+    }
+    lines.push({ text, chords, section: null });
+  }
+  while (lines.length && !lines[lines.length - 1].text && !lines[lines.length - 1].chords.length) {
+    if (!lines[lines.length - 1].section) lines.pop();
+    else break;
+  }
+  return lines;
+}
+
+/**
+ * Wrap text while retaining each wrapped row's start offset, so chord marks
+ * can be placed above the correct word.
+ */
+function wrapTextWithOffsets(
+  text: string,
+  font: PDFFont,
+  size: number,
+  maxWidth: number,
+): Array<{ text: string; start: number }> {
+  if (!text) return [];
+  const fits = (value: string) => font.widthOfTextAtSize(value, size) <= maxWidth;
+  if (fits(text)) return [{ text, start: 0 }];
+
+  const rows: Array<{ text: string; start: number }> = [];
+  let start = 0;
+  while (start < text.length) {
+    let end = start;
+    let lastSpace = -1;
+    while (end < text.length) {
+      if (text[end] === " ") lastSpace = end;
+      if (!fits(text.slice(start, end + 1))) break;
+      end += 1;
+    }
+    if (end >= text.length) {
+      rows.push({ text: text.slice(start), start });
+      break;
+    }
+    if (end === start) end += 1;
+    const breakAt = lastSpace > start ? lastSpace : end;
+    rows.push({ text: text.slice(start, breakAt).trimEnd(), start });
+    start = breakAt;
+    while (text[start] === " ") start += 1;
+  }
+  return rows.length ? rows : [{ text, start: 0 }];
+}
+
 function printedDate(serviceDate: string, serviceTime: string | null): string {
   const match = serviceDate.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (!match) return serviceDate;
@@ -173,14 +283,14 @@ function printedDate(serviceDate: string, serviceTime: string | null): string {
   return `${Number(day)} ${name} ${year}${serviceTime ? ` · ${serviceTime}` : ""}`;
 }
 
-function safeFilename(name: string, serviceDate: string): string {
+function safeFilename(name: string, serviceDate: string, kind = "songs"): string {
   const base =
     name
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-+|-+$/g, "")
       .slice(0, 60) || "service";
-  return `${base}-${serviceDate}-songs.pdf`;
+  return `${base}-${serviceDate}-${kind}.pdf`;
 }
 
 function loadSongs(setlistId: string): { setlist: SetlistRow; songs: SongForPdf[] } {
@@ -190,7 +300,7 @@ function loadSongs(setlistId: string): { setlist: SetlistRow; songs: SongForPdf[
   if (!setlist) throw new Error("Set list not found");
   const rows = db
     .prepare(
-      `SELECT i.title AS item_title, i.content AS item_content,
+      `SELECT i.title AS item_title, i.content AS item_content, i.transpose AS item_transpose,
               s.title AS song_title, s.author, s.copyright, s.ccli, s.lyrics
        FROM setlist_items i
        LEFT JOIN songs s ON s.id = i.song_id
@@ -200,13 +310,18 @@ function loadSongs(setlistId: string): { setlist: SetlistRow; songs: SongForPdf[
     .all(setlistId) as SongSheetRow[];
   return {
     setlist,
-    songs: rows.map((row) => ({
-      title: (row.item_title || row.song_title || "Song").trim(),
-      author: row.author,
-      copyright: row.copyright,
-      ccli: row.ccli,
-      lines: songSheetLines(row.item_content ?? row.lyrics ?? ""),
-    })),
+    songs: rows.map((row) => {
+      const lyrics = row.item_content ?? row.lyrics ?? "";
+      return {
+        title: (row.item_title || row.song_title || "Song").trim(),
+        author: row.author,
+        copyright: row.copyright,
+        ccli: row.ccli,
+        transpose: row.item_transpose ?? 0,
+        lyrics,
+        lines: songSheetLines(lyrics),
+      };
+    }),
   };
 }
 
@@ -384,5 +499,244 @@ export async function buildSongSheetPdf(
   return {
     buffer: Buffer.from(await pdf.save()),
     filename: safeFilename(setlist.name, setlist.service_date),
+  };
+}
+
+/**
+ * Printable chord charts for musicians. Keeps chord symbols and section
+ * labels, applies each set-list item's transpose value, and omits songs
+ * without chords.
+ */
+export async function buildChordSheetPdf(
+  setlistId: string,
+  options: SongSheetOptions = {},
+): Promise<{ buffer: Buffer; filename: string }> {
+  const { setlist, songs } = loadSongs(setlistId);
+  const chordSongs = songs.filter((song) => songHasChords(song.lyrics));
+  if (!chordSongs.length) throw new Error("This set list has no songs with chords");
+  const settings = getAppSettings();
+  const baseSize = Math.max(
+    8,
+    Math.min(28, Math.round(options.fontSize ?? settings.songSheetFontSize)),
+  );
+  const columnCount = Math.max(
+    1,
+    Math.min(3, Math.round(options.columns ?? settings.songSheetColumns)),
+  );
+  const fontChoice = PDF_FONTS[settings.songSheetFontFamily];
+  const titleSize = baseSize + 7;
+  const titleLineHeight = titleSize * 1.22;
+  const authorSize = Math.max(8.5, baseSize * 0.72);
+  const lineHeight = baseSize * 1.45;
+  const chordSize = Math.max(7.5, baseSize * 0.72);
+  const chordLineHeight = chordSize * 1.3;
+  const chordGap = Math.max(4, chordSize * 0.4);
+  const sectionSize = Math.max(8.5, baseSize * 0.72);
+  const paragraphGap = baseSize * 0.6;
+  const contentTop = PAGE_HEIGHT - MARGIN - 8;
+  const contentWidth = PAGE_WIDTH - MARGIN * 2;
+  const columnWidth = (contentWidth - COLUMN_GAP * (columnCount - 1)) / columnCount;
+  const columnX = (index: number) => MARGIN + index * (columnWidth + COLUMN_GAP);
+
+  const pdf = await PDFDocument.create();
+  const font = await pdf.embedFont(fontChoice.regular);
+  const bold = await pdf.embedFont(fontChoice.bold);
+  const italic = await pdf.embedFont(fontChoice.italic);
+  const date = printedDate(setlist.service_date, setlist.service_time);
+  const dark = rgb(0.08, 0.1, 0.14);
+  const muted = rgb(0.38, 0.42, 0.48);
+  const rule = rgb(0.82, 0.84, 0.87);
+
+  let page: PDFPage = pdf.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
+  let column = 0;
+  let y = contentTop;
+
+  const pageHeader = (target: PDFPage) => {
+    target.drawText(pdfSafe(`${setlist.name}  ·  ${date}  ·  Chords`), {
+      x: MARGIN,
+      y: PAGE_HEIGHT - MARGIN + 22,
+      size: HEADER_SIZE,
+      font,
+      color: muted,
+    });
+    target.drawLine({
+      start: { x: MARGIN, y: PAGE_HEIGHT - MARGIN + 12 },
+      end: { x: PAGE_WIDTH - MARGIN, y: PAGE_HEIGHT - MARGIN + 12 },
+      thickness: 0.6,
+      color: rule,
+    });
+  };
+  pageHeader(page);
+
+  const nextColumn = (continuationTitle?: string) => {
+    if (column + 1 < columnCount) {
+      column += 1;
+    } else {
+      page = pdf.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
+      pageHeader(page);
+      column = 0;
+    }
+    y = contentTop;
+    if (continuationTitle) {
+      page.drawText(pdfSafe(`${continuationTitle} (continued)`), {
+        x: columnX(column),
+        y,
+        size: authorSize,
+        font: italic,
+        color: muted,
+      });
+      y -= authorSize + 8;
+    }
+  };
+
+  const ensureSpace = (height: number, continuationTitle?: string) => {
+    if (y - height < BOTTOM_MARGIN) nextColumn(continuationTitle);
+  };
+
+  for (const song of chordSongs) {
+    const lines = chordSheetLines(song.lyrics);
+    const titleLines = wrapLine(pdfSafe(song.title), bold, titleSize, columnWidth);
+    const byline = song.author ? `Words: ${song.author}` : "";
+    const firstContent = lines.find((line) => line.text || line.chords.length || line.section);
+    const previewHeight = firstContent
+      ? (firstContent.chords.length ? chordLineHeight : 0) +
+        (firstContent.text ? lineHeight : firstContent.section ? sectionSize + 6 : 0)
+      : 0;
+    const required =
+      titleLines.length * titleLineHeight +
+      (byline ? authorSize + 8 : 0) +
+      6 +
+      previewHeight;
+    ensureSpace(required);
+
+    for (const line of titleLines) {
+      page.drawText(line, {
+        x: columnX(column),
+        y,
+        size: titleSize,
+        font: bold,
+        color: dark,
+      });
+      y -= titleLineHeight;
+    }
+    if (byline) {
+      page.drawText(pdfSafe(byline), {
+        x: columnX(column),
+        y,
+        size: authorSize,
+        font: italic,
+        color: muted,
+      });
+      y -= authorSize + 8;
+    }
+    y -= 6;
+
+    for (const line of lines) {
+      if (!line.text && !line.chords.length && !line.section) {
+        y = Math.max(BOTTOM_MARGIN, y - paragraphGap);
+        continue;
+      }
+
+      if (line.section) {
+        ensureSpace(sectionSize + 6, song.title);
+        page.drawText(pdfSafe(line.section), {
+          x: columnX(column),
+          y,
+          size: sectionSize,
+          font: bold,
+          color: muted,
+        });
+        y -= sectionSize + 6;
+        continue;
+      }
+
+      if (!line.text && line.chords.length) {
+        ensureSpace(chordLineHeight, song.title);
+        let chordX = columnX(column);
+        for (const mark of line.chords) {
+          const value = pdfSafe(transposeChord(mark.chord, song.transpose));
+          page.drawText(value, {
+            x: chordX,
+            y,
+            size: chordSize,
+            font: bold,
+            color: dark,
+          });
+          chordX += bold.widthOfTextAtSize(value, chordSize) + chordGap;
+        }
+        y -= chordLineHeight;
+        continue;
+      }
+
+      const rows = wrapTextWithOffsets(line.text, font, baseSize, columnWidth);
+      for (const row of rows) {
+        const rowEnd = row.start + row.text.length;
+        const rowChords = line.chords.filter(
+          (mark) => mark.index >= row.start && mark.index <= rowEnd,
+        );
+        ensureSpace((rowChords.length ? chordLineHeight : 0) + lineHeight, song.title);
+        if (rowChords.length) {
+          let lastChordX = -Infinity;
+          for (const mark of rowChords) {
+            const offset = Math.max(0, Math.min(row.text.length, mark.index - row.start));
+            const value = pdfSafe(transposeChord(mark.chord, song.transpose));
+            const x = Math.max(
+              columnX(column) + font.widthOfTextAtSize(row.text.slice(0, offset), baseSize),
+              lastChordX + chordGap,
+            );
+            page.drawText(value, {
+              x,
+              y,
+              size: chordSize,
+              font: bold,
+              color: dark,
+            });
+            lastChordX = x + bold.widthOfTextAtSize(value, chordSize);
+          }
+          y -= chordLineHeight;
+        }
+        page.drawText(pdfSafe(row.text), {
+          x: columnX(column),
+          y,
+          size: baseSize,
+          font,
+          color: dark,
+        });
+        y -= lineHeight;
+      }
+    }
+
+    const attribution = [song.copyright, song.ccli ? `CCLI ${song.ccli}` : ""]
+      .filter(Boolean)
+      .join("  ·  ");
+    if (attribution) {
+      ensureSpace(authorSize + 12, song.title);
+      y -= 6;
+      page.drawText(pdfSafe(attribution), {
+        x: columnX(column),
+        y,
+        size: Math.max(7.5, baseSize * 0.6),
+        font,
+        color: muted,
+      });
+      y -= authorSize;
+    }
+    y -= SONG_GAP;
+  }
+
+  const pages = pdf.getPages();
+  pages.forEach((target, index) => {
+    target.drawText(`${index + 1} / ${pages.length}`, {
+      x: PAGE_WIDTH - MARGIN - 34,
+      y: 24,
+      size: 8,
+      font,
+      color: muted,
+    });
+  });
+
+  return {
+    buffer: Buffer.from(await pdf.save()),
+    filename: safeFilename(setlist.name, setlist.service_date, "chords"),
   };
 }

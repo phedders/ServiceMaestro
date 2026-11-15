@@ -104,6 +104,36 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   return data as T;
 }
 
+async function downloadSetlistPdf(
+  id: string,
+  file: "songs.pdf" | "chords.pdf",
+  fallbackFilename: string,
+  options: { fontSize?: number; columns?: number } = {},
+): Promise<{ blob: Blob; filename: string }> {
+  const params = new URLSearchParams();
+  if (options.fontSize !== undefined) params.set("fontSize", String(options.fontSize));
+  if (options.columns !== undefined) params.set("columns", String(options.columns));
+  const response = await fetch(`/api/setlists/${id}/${file}${params.size ? `?${params}` : ""}`, {
+    credentials: "include",
+  });
+  if (!response.ok) {
+    let message = response.statusText;
+    try {
+      const data = (await response.json()) as { error?: string };
+      if (data.error) message = data.error;
+    } catch {
+      // Keep the HTTP status text when the error body is not JSON.
+    }
+    throw new ApiError(response.status, message);
+  }
+  const disposition = response.headers.get("content-disposition") ?? "";
+  const match = disposition.match(/filename="?([^";]+)"?/i);
+  return {
+    blob: await response.blob(),
+    filename: match?.[1] ?? fallbackFilename,
+  };
+}
+
 export const api = {
   login: (username: string, password: string) =>
     request<{ user: PublicUser }>("/api/auth/login", {
@@ -647,34 +677,14 @@ export const api = {
     request<{ revision: SetlistRevisionInfo }>(`/api/setlists/${id}/publish`, { method: "POST" }),
   exportSetlistUrl: (id: string, format: "json" | "bundle") =>
     `/api/setlists/${id}/export?format=${format}`,
-  downloadSetlistSongsPdf: async (
+  downloadSetlistSongsPdf: (
     id: string,
     options: { fontSize?: number; columns?: number } = {},
-  ): Promise<{ blob: Blob; filename: string }> => {
-    const params = new URLSearchParams();
-    if (options.fontSize !== undefined) params.set("fontSize", String(options.fontSize));
-    if (options.columns !== undefined) params.set("columns", String(options.columns));
-    const response = await fetch(
-      `/api/setlists/${id}/songs.pdf${params.size ? `?${params}` : ""}`,
-      { credentials: "include" },
-    );
-    if (!response.ok) {
-      let message = response.statusText;
-      try {
-        const data = (await response.json()) as { error?: string };
-        if (data.error) message = data.error;
-      } catch {
-        // Keep the HTTP status text when the error body is not JSON.
-      }
-      throw new ApiError(response.status, message);
-    }
-    const disposition = response.headers.get("content-disposition") ?? "";
-    const match = disposition.match(/filename="?([^";]+)"?/i);
-    return {
-      blob: await response.blob(),
-      filename: match?.[1] ?? "service-songs.pdf",
-    };
-  },
+  ) => downloadSetlistPdf(id, "songs.pdf", "service-songs.pdf", options),
+  downloadSetlistChordsPdf: (
+    id: string,
+    options: { fontSize?: number; columns?: number } = {},
+  ) => downloadSetlistPdf(id, "chords.pdf", "service-chords.pdf", options),
   previewSetlistImport: async (file: File): Promise<{ preview: SetlistImportPreview }> => {
     const form = new FormData();
     form.append("file", file);

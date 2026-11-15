@@ -5,7 +5,7 @@ import {
   importSetlistFile,
   previewSetlistImport,
 } from "../setlist-transfer.js";
-import { buildSongSheetPdf } from "../song-sheet.js";
+import { buildChordSheetPdf, buildSongSheetPdf } from "../song-sheet.js";
 import { saveSetlistToGit, saveTarpLibraryToGit } from "../git-store.js";
 import { logActivity } from "../activity.js";
 
@@ -52,6 +52,38 @@ export async function transferRoutes(app: FastifyInstance): Promise<void> {
           module: "setlists",
           status: 200,
           detail: `Big Print PDF${fontSize ? ` · ${fontSize}pt` : ""}${columns ? ` · ${columns} columns` : ""}`,
+        });
+        return reply
+          .type("application/pdf")
+          .header("content-disposition", `attachment; filename="${result.filename}"`)
+          .header("cache-control", "no-store")
+          .send(result.buffer);
+      } catch (error) {
+        return reply.code(404).send({ error: (error as Error).message });
+      }
+    },
+  );
+
+  app.get(
+    "/api/setlists/:id/chords.pdf",
+    { preHandler: requireAuth },
+    async (request, reply) => {
+      const id = (request.params as { id: string }).id;
+      const query = request.query as { fontSize?: string; columns?: string };
+      const fontSize = query.fontSize === undefined ? undefined : Number(query.fontSize);
+      const columns = query.columns === undefined ? undefined : Number(query.columns);
+      try {
+        const result = await buildChordSheetPdf(id, {
+          fontSize: Number.isFinite(fontSize) ? fontSize : undefined,
+          columns: Number.isFinite(columns) ? columns : undefined,
+        });
+        logActivity({
+          request,
+          user: request.user,
+          action: "download_pdf",
+          module: "setlists",
+          status: 200,
+          detail: `Chords Print PDF${fontSize ? ` · ${fontSize}pt` : ""}${columns ? ` · ${columns} columns` : ""}`,
         });
         return reply
           .type("application/pdf")

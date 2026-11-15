@@ -80,6 +80,97 @@ test("builds a printable PDF song sheet without chords or slide labels", () => {
   assert.equal(data.pageCount, 1);
 });
 
+test("builds a chords PDF and rejects set lists without chord songs", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "sm-chord-sheet-"));
+  const emptyEnv = path.join(dir, "empty.env");
+  const emptyConfig = path.join(dir, "config.yaml");
+  fs.writeFileSync(emptyEnv, "");
+  fs.writeFileSync(emptyConfig, "{}\n");
+
+  const script = `
+    const { db } = await import(process.env.SM_MODULE_BASE + "db.js");
+    const { buildChordSheetPdf, chordSheetLines } = await import(
+      process.env.SM_MODULE_BASE + "song-sheet.js"
+    );
+    const { PDFDocument } = await import("pdf-lib");
+    const now = new Date().toISOString();
+    const chords = "[V1]\\nA[C]mazing [G]grace\\n[C] [G]\\n[Chorus]\\nHow [F]sweet the [C]sound";
+    const words = "[V1]\\nAmazing grace how sweet the sound";
+    db.prepare(
+      "INSERT INTO songs (id, title, lyrics, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
+    ).run("song-chords", "Chord Song", chords, now, now);
+    db.prepare(
+      "INSERT INTO songs (id, title, lyrics, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
+    ).run("song-words", "Words Only", words, now, now);
+    db.prepare(
+      "INSERT INTO setlists (id, name, service_date, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
+    ).run("setlist-chords", "Chord Service", "2026-11-15", now, now);
+    db.prepare(
+      "INSERT INTO setlist_items (id, setlist_id, position, kind, song_id, title, transpose) VALUES (?, ?, ?, ?, ?, ?, ?)",
+    ).run("item-chords", "setlist-chords", 0, "song", "song-chords", "Chord Song", 2);
+    db.prepare(
+      "INSERT INTO setlist_items (id, setlist_id, position, kind, song_id, title) VALUES (?, ?, ?, ?, ?, ?)",
+    ).run("item-words", "setlist-chords", 1, "song", "song-words", "Words Only");
+    db.prepare(
+      "INSERT INTO setlists (id, name, service_date, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
+    ).run("setlist-no-chords", "No Chords", "2026-11-15", now, now);
+    db.prepare(
+      "INSERT INTO setlist_items (id, setlist_id, position, kind, song_id, title) VALUES (?, ?, ?, ?, ?, ?)",
+    ).run("item-no-chords", "setlist-no-chords", 0, "song", "song-words", "Words Only");
+
+    const parsed = chordSheetLines(chords);
+    const result = await buildChordSheetPdf("setlist-chords");
+    const pdf = await PDFDocument.load(result.buffer);
+    let noChordError = null;
+    try {
+      await buildChordSheetPdf("setlist-no-chords");
+    } catch (error) {
+      noChordError = error.message;
+    }
+    console.log(JSON.stringify({
+      parsed,
+      filename: result.filename,
+      header: result.buffer.subarray(0, 5).toString("utf8"),
+      pageCount: pdf.getPageCount(),
+      noChordError,
+    }));
+  `;
+
+  const result = spawnSync(process.execPath, ["--input-type=module", "-e", script], {
+    encoding: "utf8",
+    env: {
+      PATH: process.env.PATH,
+      SM_ENV_FILE: emptyEnv,
+      SM_CONFIG_FILE: emptyConfig,
+      SM_DATA_DIR: dir,
+      SM_GIT_ENABLED: "false",
+      SM_MODULE_BASE: moduleBase,
+    },
+  });
+  assert.equal(result.status, 0, result.stderr);
+  const data = JSON.parse(result.stdout);
+
+  assert.deepEqual(data.parsed[0], { text: "", chords: [], section: "V1" });
+  assert.deepEqual(data.parsed[1].chords, [
+    { index: 1, chord: "C" },
+    { index: 8, chord: "G" },
+  ]);
+  assert.equal(data.parsed[1].text, "Amazing grace");
+  assert.deepEqual(data.parsed[2], {
+    text: "",
+    chords: [
+      { index: 0, chord: "C" },
+      { index: 1, chord: "G" },
+    ],
+    section: null,
+  });
+  assert.equal(data.parsed[3].section, "Chorus");
+  assert.equal(data.filename, "chord-service-2026-11-15-chords.pdf");
+  assert.equal(data.header, "%PDF-");
+  assert.ok(data.pageCount >= 1);
+  assert.equal(data.noChordError, "This set list has no songs with chords");
+});
+
 test("multi-column song sheets use fewer pages than single-column output", () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "sm-song-columns-"));
   const emptyEnv = path.join(dir, "empty.env");
