@@ -6,12 +6,14 @@ import {
   type SongSheetFont,
 } from "@sm/shared";
 import { db } from "./db.js";
+import { setBibleShortNames } from "./bible.js";
 import { GIT_AUTO_PUSH, GIT_AUTO_SAVE, GIT_PULL_INTERVAL } from "./config.js";
 
 const DEFAULTS: AppSettings = {
   pageNavigation: "stop",
   churchsuiteEmptyTypes: [...DEFAULT_CHURCHSUITE_EMPTY_TYPES],
   defaultBibleTranslation: null,
+  bibleShortNames: {},
   pageIdShortcuts: {},
   songSheetFontFamily: "Helvetica",
   songSheetFontSize: 15,
@@ -51,6 +53,32 @@ export function getAppSettings(): AppSettings {
     }
   }
   const defaultBibleTranslation = values.get("default_bible_translation")?.trim() || null;
+  let bibleShortNames: Record<string, string> = {};
+  const rawBibleShortNames = values.get("bible_short_names");
+  if (rawBibleShortNames) {
+    try {
+      const parsed = JSON.parse(rawBibleShortNames) as unknown;
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        bibleShortNames = Object.fromEntries(
+          Object.entries(parsed as Record<string, unknown>)
+            .filter(
+              ([code, name]) =>
+                typeof code === "string" &&
+                typeof name === "string" &&
+                code.trim() &&
+                name.trim(),
+            )
+            .map(([code, name]) => [
+              String(code).trim().toUpperCase(),
+              String(name).trim().slice(0, 60),
+            ]),
+        );
+      }
+    } catch {
+      // Ignore malformed configuration.
+    }
+  }
+  setBibleShortNames(bibleShortNames);
   let pageIdShortcuts: Record<string, string> = {};
   const rawPageIdShortcuts = values.get("page_id_shortcuts");
   if (rawPageIdShortcuts) {
@@ -94,6 +122,7 @@ export function getAppSettings(): AppSettings {
       pageNavigation === "next-item" ? "next-item" : DEFAULTS.pageNavigation,
     churchsuiteEmptyTypes,
     defaultBibleTranslation,
+    bibleShortNames,
     pageIdShortcuts,
     songSheetFontFamily,
     songSheetFontSize,
@@ -110,6 +139,7 @@ export function saveAppSettings(settings: AppSettings): AppSettings {
   write.run("page_navigation", settings.pageNavigation, now);
   write.run("churchsuite_empty_types", JSON.stringify(settings.churchsuiteEmptyTypes), now);
   write.run("default_bible_translation", settings.defaultBibleTranslation ?? "", now);
+  write.run("bible_short_names", JSON.stringify(settings.bibleShortNames), now);
   write.run("page_id_shortcuts", JSON.stringify(settings.pageIdShortcuts), now);
   write.run("song_sheet_font_family", settings.songSheetFontFamily, now);
   write.run("song_sheet_font_size", String(settings.songSheetFontSize), now);

@@ -62,6 +62,7 @@ test("reads, applies and merges the shared settings file", () => {
       pageNavigation: "next-item",
       churchsuiteEmptyTypes: ["Welcome", "Prayer"],
       defaultBibleTranslation: "ESV",
+      bibleShortNames: { NIVUK: "NIV" },
       pageIdShortcuts: { "Verse 1": "v1" },
     };
     const displayConfig = {
@@ -174,6 +175,7 @@ test("reads, applies and merges the shared settings file", () => {
   assert.deepEqual(data.read.fonts, data.merged);
   assert.equal(data.read.appSettings.pageNavigation, "next-item");
   assert.deepEqual(data.read.appSettings.churchsuiteEmptyTypes, ["Welcome", "Prayer"]);
+  assert.equal(data.read.appSettings.bibleShortNames.NIVUK, "NIV");
   assert.equal(data.read.appSettings.pageIdShortcuts["Verse 1"], "v1");
   assert.equal(data.read.displayConfig.fontFamily, '"Lora", Georgia, serif');
   assert.equal(data.read.displayConfig.maxLines, 6);

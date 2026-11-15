@@ -1151,6 +1151,7 @@ export interface AppSettings {
   pageNavigation: "stop" | "next-item";
   churchsuiteEmptyTypes: string[];
   defaultBibleTranslation: string | null;
+  bibleShortNames: Record<string, string>;
   pageIdShortcuts: Record<string, string>;
   songSheetFontFamily: SongSheetFont;
   songSheetFontSize: number;
@@ -1689,6 +1690,7 @@ export interface SongImportReport {
 export interface BibleTranslationInfo {
   code: string;
   name: string;
+  shortName: string;
   schema: "mybible" | "bibledb" | "json";
   books: number;
   verses: number;
@@ -2221,6 +2223,7 @@ export const appSettingsSchema = z.object({
     .max(100)
     .default(DEFAULT_CHURCHSUITE_EMPTY_TYPES),
   defaultBibleTranslation: z.string().trim().max(40).nullable().default(null),
+  bibleShortNames: z.record(z.string().trim().min(1).max(40), z.string().trim().max(60)).default({}),
   pageIdShortcuts: z.record(z.string().trim().min(1).max(120), z.string().trim().min(1).max(40)).default({}),
   songSheetFontFamily: z
     .enum(SONG_SHEET_FONTS.map((font) => font.id) as [SongSheetFont, ...SongSheetFont[]])

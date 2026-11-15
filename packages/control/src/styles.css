@@ -3137,28 +3137,33 @@ body.resizing-live-queue {
   pointer-events: none;
 }
 
-.page-id-table-wrap {
+.page-id-table-wrap,
+.bible-name-table-wrap {
   max-height: 420px;
   overflow: auto;
   border: 1px solid var(--border);
   border-radius: 9px;
 }
 
-.page-id-table {
+.page-id-table,
+.bible-name-table {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.78rem;
 }
 
 .page-id-table th,
-.page-id-table td {
+.page-id-table td,
+.bible-name-table th,
+.bible-name-table td {
   padding: 7px 10px;
   border-bottom: 1px solid var(--border);
   text-align: left;
   vertical-align: middle;
 }
 
-.page-id-table th {
+.page-id-table th,
+.bible-name-table th {
   position: sticky;
   top: 0;
   z-index: 1;
@@ -3169,7 +3174,8 @@ body.resizing-live-queue {
   letter-spacing: 0.06em;
 }
 
-.page-id-table tr:last-child td {
+.page-id-table tr:last-child td,
+.bible-name-table tr:last-child td {
   border-bottom: 0;
 }
 
@@ -3177,9 +3183,21 @@ body.resizing-live-queue {
   width: 55%;
 }
 
-.page-id-table input {
+.page-id-table input,
+.bible-name-table input {
   min-width: 120px;
   padding: 6px 8px;
+}
+
+.bible-name-table td:nth-child(2) {
+  max-width: 420px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bible-name-heading {
+  margin-top: 20px;
 }
 
 .page-id-fix-preview {

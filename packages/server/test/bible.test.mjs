@@ -5,7 +5,14 @@ import os from "node:os";
 import path from "node:path";
 import Database from "better-sqlite3";
 import { formatBibleVerses } from "@sm/shared";
-import { cleanVerseText, getBooks, getPassage, loadBibleCatalog } from "../dist/bible.js";
+import {
+  cleanVerseText,
+  getBooks,
+  getPassage,
+  listTranslations,
+  loadBibleCatalog,
+  setBibleShortNames,
+} from "../dist/bible.js";
 
 function tempDir() {
   return fs.mkdtempSync(path.join(os.tmpdir(), "sm-bible-"));
@@ -84,4 +91,15 @@ test("loads MyBible, BibleDb and JSON schemas", () => {
   const json = getPassage("TESTC", 1, 1, 2, 2, catalog);
   assert.equal(json?.verses.length, 1);
   assert.equal(json?.verses[0].text, "JSON verse two");
+
+  setBibleShortNames({ testb: "TSB" });
+  try {
+    const translations = listTranslations(catalog);
+    assert.equal(translations.find((entry) => entry.code === "TESTB")?.shortName, "TSB");
+    assert.equal(translations.find((entry) => entry.code === "TESTA")?.shortName, "TESTA");
+    const shortened = getPassage("TESTB", 1, 1, undefined, undefined, catalog);
+    assert.equal(shortened?.translationName, "TSB");
+  } finally {
+    setBibleShortNames({});
+  }
 });

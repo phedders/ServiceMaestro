@@ -12,6 +12,7 @@ import { buildDisplayApp } from "./display-app.js";
 import { startHeartbeat } from "./heartbeat.js";
 import { shutdownGit } from "./git-store.js";
 import { startMqttBridge, stopMqttBridge } from "./mqtt-bridge.js";
+import { getAppSettings } from "./settings.js";
 import { startSongSelectWatcher } from "./songselect-watch.js";
 import { prepareControlTls } from "./tls.js";
 
@@ -27,6 +28,8 @@ const tls = SSL_ENABLED
     })
   : null;
 const { app, io, outputIo } = await buildApp(tls);
+// Load stored settings before serving requests so Bible display names are ready.
+getAppSettings();
 if (ADMIN_PASSWORD === "admin") {
   app.log.warn(
     "SM_ADMIN_PASSWORD is still the default value. Change the admin password before exposing this instance.",

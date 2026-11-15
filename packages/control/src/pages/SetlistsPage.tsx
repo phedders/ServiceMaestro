@@ -2406,8 +2406,12 @@ export default function SetlistsPage({
                     >
                       {!bibleTranslations.length && <option value="">No translations found</option>}
                       {bibleTranslations.map((translation) => (
-                        <option key={translation.code} value={translation.code}>
-                          {translation.name}
+                        <option
+                          key={translation.code}
+                          value={translation.code}
+                          title={translation.name}
+                        >
+                          {translation.shortName}
                         </option>
                       ))}
                     </select>

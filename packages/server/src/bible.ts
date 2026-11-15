@@ -93,7 +93,21 @@ function buildInfo(
   verses: number,
   copyright: string | null,
 ): BibleTranslationInfo {
-  return { code, name, schema, books: books.length, verses, copyright };
+  return { code, name, shortName: name, schema, books: books.length, verses, copyright };
+}
+
+let shortNames: Record<string, string> = {};
+
+export function setBibleShortNames(names: Record<string, string>): void {
+  shortNames = Object.fromEntries(
+    Object.entries(names)
+      .map(([code, name]) => [code.trim().toUpperCase(), name.trim()])
+      .filter(([code, name]) => code && name),
+  );
+}
+
+function displayName(info: BibleTranslationInfo): string {
+  return shortNames[info.code.toUpperCase()] ?? info.name;
 }
 
 /* ------------------------------------------------------------------ */
@@ -341,9 +355,12 @@ export function reloadBibleCatalog(): BibleCatalog {
   return cached;
 }
 
-export function listTranslations(): BibleTranslationInfo[] {
-  return [...getBibleCatalog().translations.values()]
-    .map((adapter) => adapter.info)
+export function listTranslations(catalog = getBibleCatalog()): BibleTranslationInfo[] {
+  return [...catalog.translations.values()]
+    .map((adapter) => ({
+      ...adapter.info,
+      shortName: displayName(adapter.info),
+    }))
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 
@@ -372,7 +389,7 @@ export function getPassage(
   if (!selected.length) return null;
   return {
     translation: adapter.info.code,
-    translationName: adapter.info.name,
+    translationName: displayName(adapter.info),
     book: book.number,
     bookName: book.name,
     chapter,

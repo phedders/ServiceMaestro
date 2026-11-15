@@ -188,8 +188,8 @@ export default function BiblePage({
             Translation
             <select value={translation} onChange={(event) => setTranslation(event.target.value)}>
               {translations.map((item) => (
-                <option key={item.code} value={item.code}>
-                  {item.name} — {item.books} books / {item.verses.toLocaleString()} verses
+                <option key={item.code} value={item.code} title={item.name}>
+                  {item.shortName} — {item.books} books / {item.verses.toLocaleString()} verses
                 </option>
               ))}
             </select>

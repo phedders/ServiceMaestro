@@ -76,6 +76,7 @@ export default function SettingsPage({
     pageNavigation: "stop",
     churchsuiteEmptyTypes: [...DEFAULT_CHURCHSUITE_EMPTY_TYPES],
     defaultBibleTranslation: null,
+    bibleShortNames: {},
     pageIdShortcuts: {},
     songSheetFontFamily: "Helvetica",
     songSheetFontSize: 15,
@@ -447,6 +448,42 @@ export default function SettingsPage({
     } catch (error) {
       notify(
         error instanceof ApiError ? error.message : "Could not save the default Bible version",
+        "error",
+      );
+    } finally {
+      setSavingSettings(false);
+    }
+  }
+
+  function setBibleShortName(code: string, value: string) {
+    setSettings((current) => ({
+      ...current,
+      bibleShortNames: { ...current.bibleShortNames, [code]: value },
+    }));
+  }
+
+  async function saveBibleShortNames() {
+    const bibleShortNames = Object.fromEntries(
+      Object.entries(settings.bibleShortNames)
+        .map(([code, name]) => [code.trim().toUpperCase(), name.trim().slice(0, 60)])
+        .filter(([code, name]) => code && name),
+    );
+    const next = { ...settings, bibleShortNames };
+    setSettings(next);
+    setSavingSettings(true);
+    try {
+      const result = await api.saveSettings(next);
+      setSettings(result.settings);
+      setBibleTranslations((current) =>
+        current.map((translation) => ({
+          ...translation,
+          shortName: result.settings.bibleShortNames[translation.code] ?? translation.name,
+        })),
+      );
+      notify("Bible short names saved");
+    } catch (error) {
+      notify(
+        error instanceof ApiError ? error.message : "Could not save Bible short names",
         "error",
       );
     } finally {
@@ -955,7 +992,9 @@ export default function SettingsPage({
             <option value="">First available translation</option>
             {bibleTranslations.map((translation) => (
               <option key={translation.code} value={translation.code}>
-                {translation.name} ({translation.code})
+                {translation.shortName === translation.code
+                  ? translation.code
+                  : `${translation.shortName} (${translation.code})`}
               </option>
             ))}
           </select>
@@ -964,6 +1003,59 @@ export default function SettingsPage({
           If the selected version is unavailable, the first translation found in the Bible folder is
           used instead.
         </p>
+        <div className="panel-heading bible-name-heading">
+          <div>
+            <h3>Translation short names</h3>
+            <p className="muted">
+              Long translation names can be shortened for the Bible module, set-list pickers and
+              passage references. Leave a field empty to use the full imported name.
+            </p>
+          </div>
+          <button
+            className="button ghost small"
+            onClick={() => void saveBibleShortNames()}
+            disabled={savingSettings || !bibleTranslations.length}
+            title="Save the short name for each Bible translation"
+          >
+            Save short names
+          </button>
+        </div>
+        {bibleTranslations.length ? (
+          <div className="bible-name-table-wrap">
+            <table className="bible-name-table">
+              <thead>
+                <tr>
+                  <th>Code</th>
+                  <th>Imported name</th>
+                  <th>Short name</th>
+                </tr>
+              </thead>
+              <tbody>
+                {bibleTranslations.map((translation) => (
+                  <tr key={translation.code}>
+                    <td>
+                      <strong>{translation.code}</strong>
+                    </td>
+                    <td title={translation.name}>{translation.name}</td>
+                    <td>
+                      <input
+                        value={settings.bibleShortNames[translation.code] ?? ""}
+                        onChange={(event) =>
+                          setBibleShortName(translation.code, event.target.value)
+                        }
+                        placeholder={translation.code}
+                        maxLength={60}
+                        title={`Short name for ${translation.name}`}
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="muted">No Bible translations found in the Bible folder.</p>
+        )}
       </section>
 
       <section className="panel">

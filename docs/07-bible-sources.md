@@ -1,6 +1,6 @@
 # Bible source formats (from the sample files)
 
-> Implementation status: adapters for all three schema families below are implemented (`packages/server/src/bible.ts`) with translation/book/chapter/verse-range APIs and a Bible page in the control UI. The preferred default translation is configured globally under **Settings → Bible** and falls back to the first available translation.
+> Implementation status: adapters for all three schema families below are implemented (`packages/server/src/bible.ts`) with translation/book/chapter/verse-range APIs and a Bible page in the control UI. The preferred default translation is configured globally under **Settings → Bible** and falls back to the first available translation. Each imported translation also has an editable **short name** for long imported titles; the short name is used in Bible and set-list selectors, passage references and ChurchSuite Reading summaries. Short names are stored with shared app settings and survive Git sync. Leaving a short name empty uses the full imported name.
 
 Findings from the Bible files dropped into `samples/bible/` on 2026-11-10. Files are treated as read-only source data; the application never writes to them.
 
