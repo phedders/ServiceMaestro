@@ -4873,6 +4873,8 @@ body.resizing-live-queue {
   overflow: auto;
   max-height: 68vh;
   display: flex;
+  gap: 16px;
+  align-items: flex-start;
   justify-content: center;
 }
 

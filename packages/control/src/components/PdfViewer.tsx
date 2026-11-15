@@ -4,8 +4,10 @@ import workerSrc from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
 pdfjs.GlobalWorkerOptions.workerSrc = workerSrc;
 
+const PAGE_GAP = 16;
+
 export function PdfViewer({ assetId, title }: { assetId: string; title: string }) {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const canvasRefs = useRef<Map<number, HTMLCanvasElement>>(new Map());
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const pdfRef = useRef<pdfjs.PDFDocumentProxy | null>(null);
   const taskRef = useRef<ReturnType<typeof pdfjs.getDocument> | null>(null);
@@ -14,8 +16,23 @@ export function PdfViewer({ assetId, title }: { assetId: string; title: string }
   const [pageSize, setPageSize] = useState<{ width: number; height: number } | null>(null);
   const [zoomMode, setZoomMode] = useState<"width" | "height" | "actual" | "custom">("width");
   const [scale, setScale] = useState(1.15);
+  const [containerWidth, setContainerWidth] = useState(0);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+
+  const availableWidth = Math.max(0, containerWidth - 32);
+  const remainingPages = Math.max(1, pages - page + 1);
+  const pageWidth = pageSize ? pageSize.width * scale : 0;
+  const visiblePages =
+    pageWidth > 0 && availableWidth > 0
+      ? Math.max(
+          1,
+          Math.min(
+            remainingPages,
+            Math.floor((availableWidth + PAGE_GAP) / (pageWidth + PAGE_GAP)),
+          ),
+        )
+      : 1;
 
   useEffect(() => {
     let cancelled = false;
@@ -55,6 +72,22 @@ export function PdfViewer({ assetId, title }: { assetId: string; title: string }
   }, [assetId]);
 
   useEffect(() => {
+    const wrap = wrapRef.current;
+    if (!wrap) return;
+    const update = () => setContainerWidth(wrap.clientWidth);
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(wrap);
+    window.addEventListener("resize", update);
+    document.addEventListener("fullscreenchange", update);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", update);
+      document.removeEventListener("fullscreenchange", update);
+    };
+  }, [loading]);
+
+  useEffect(() => {
     if (zoomMode === "custom") return;
     if (zoomMode === "actual") {
       setScale(1);
@@ -88,31 +121,43 @@ export function PdfViewer({ assetId, title }: { assetId: string; title: string }
 
   useEffect(() => {
     const doc = pdfRef.current;
-    const canvas = canvasRef.current;
-    if (!doc || !canvas || !pages) return;
-    let renderTask: pdfjs.RenderTask | null = null;
+    if (!doc || !pages) return;
+    let cancelled = false;
+    const renderTasks: pdfjs.RenderTask[] = [];
+    const pageNumbers = Array.from(
+      { length: Math.min(visiblePages, pages - page + 1) },
+      (_, index) => page + index,
+    );
 
-    doc.getPage(page).then((pdfPage) => {
-      const base = pdfPage.getViewport({ scale: 1 });
-      setPageSize((current) =>
-        current && current.width === base.width && current.height === base.height
-          ? current
-          : { width: base.width, height: base.height },
-      );
-      const viewport = pdfPage.getViewport({ scale });
-      const context = canvas.getContext("2d");
-      if (!context) return;
-      canvas.width = Math.floor(viewport.width);
-      canvas.height = Math.floor(viewport.height);
-      canvas.style.width = `${Math.floor(viewport.width)}px`;
-      canvas.style.height = `${Math.floor(viewport.height)}px`;
-      renderTask = pdfPage.render({ canvas, canvasContext: context, viewport });
-    });
+    for (const pageNumber of pageNumbers) {
+      void doc.getPage(pageNumber).then((pdfPage) => {
+        if (cancelled) return;
+        const base = pdfPage.getViewport({ scale: 1 });
+        if (pageNumber === page) {
+          setPageSize((current) =>
+            current && current.width === base.width && current.height === base.height
+              ? current
+              : { width: base.width, height: base.height },
+          );
+        }
+        const canvas = canvasRefs.current.get(pageNumber);
+        if (!canvas) return;
+        const viewport = pdfPage.getViewport({ scale });
+        const context = canvas.getContext("2d");
+        if (!context) return;
+        canvas.width = Math.floor(viewport.width);
+        canvas.height = Math.floor(viewport.height);
+        canvas.style.width = `${Math.floor(viewport.width)}px`;
+        canvas.style.height = `${Math.floor(viewport.height)}px`;
+        renderTasks.push(pdfPage.render({ canvas, canvasContext: context, viewport }));
+      });
+    }
 
     return () => {
-      renderTask?.cancel();
+      cancelled = true;
+      for (const task of renderTasks) task.cancel();
     };
-  }, [page, pages, scale]);
+  }, [page, pages, scale, visiblePages]);
 
   function zoomBy(delta: number) {
     setZoomMode("custom");
@@ -129,21 +174,24 @@ export function PdfViewer({ assetId, title }: { assetId: string; title: string }
           <button
             className="button ghost small"
             disabled={page <= 1}
-            onClick={() => setPage((p) => p - 1)}
-            title="Show the previous PDF page"
-            aria-label="Previous PDF page"
+            onClick={() => setPage((p) => Math.max(1, p - visiblePages))}
+            title="Show the previous PDF pages"
+            aria-label="Previous PDF pages"
           >
             ←
           </button>
           <span>
-            Page {page} / {pages}
+            {visiblePages > 1
+              ? `Pages ${page}–${Math.min(pages, page + visiblePages - 1)}`
+              : `Page ${page}`}{" "}
+            / {pages}
           </span>
           <button
             className="button ghost small"
-            disabled={page >= pages}
-            onClick={() => setPage((p) => p + 1)}
-            title="Show the next PDF page"
-            aria-label="Next PDF page"
+            disabled={page + visiblePages - 1 >= pages}
+            onClick={() => setPage((p) => Math.min(pages, p + visiblePages))}
+            title="Show the next PDF pages"
+            aria-label="Next PDF pages"
           >
             →
           </button>
@@ -184,7 +232,22 @@ export function PdfViewer({ assetId, title }: { assetId: string; title: string }
         </div>
       </div>
       <div className="pdf-canvas-wrap" ref={wrapRef}>
-        <canvas ref={canvasRef} />
+        {Array.from(
+          { length: Math.min(visiblePages, pages - page + 1) },
+          (_, index) => {
+            const pageNumber = page + index;
+            return (
+              <canvas
+                key={pageNumber}
+                ref={(element) => {
+                  if (element) canvasRefs.current.set(pageNumber, element);
+                  else canvasRefs.current.delete(pageNumber);
+                }}
+                aria-label={`${title} page ${pageNumber}`}
+              />
+            );
+          },
+        )}
       </div>
     </div>
   );
