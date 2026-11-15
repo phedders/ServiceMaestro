@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import {
   parseImageListContent,
   type SetlistDetail,
@@ -34,6 +34,40 @@ function AssetViewer({ asset }: { asset: SongAsset }) {
 
 function serviceLabel(setlist: SetlistSummary): string {
   return `${compactDate(setlist.serviceDate)}${setlist.serviceTime ? ` · ${setlist.serviceTime}` : ""}`;
+}
+
+function FullscreenButton({ targetRef }: { targetRef: RefObject<HTMLElement | null> }) {
+  const [active, setActive] = useState(false);
+
+  useEffect(() => {
+    const update = () => setActive(document.fullscreenElement === targetRef.current);
+    document.addEventListener("fullscreenchange", update);
+    update();
+    return () => document.removeEventListener("fullscreenchange", update);
+  }, [targetRef]);
+
+  async function toggle() {
+    try {
+      if (document.fullscreenElement === targetRef.current) {
+        await document.exitFullscreen();
+      } else {
+        await targetRef.current?.requestFullscreen();
+      }
+    } catch {
+      // Fullscreen can be blocked by the browser or unavailable on this device.
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      className="button ghost small"
+      onClick={() => void toggle()}
+      title={active ? "Leave fullscreen" : "Show this view pane fullscreen"}
+    >
+      {active ? "Exit fullscreen" : "Fullscreen"}
+    </button>
+  );
 }
 
 function SongFiles({
@@ -94,6 +128,7 @@ export default function MusiciansPage({
   const [allSongAssets, setAllSongAssets] = useState<Record<string, SongAsset[]>>({});
   const [loadingAllSongAssets, setLoadingAllSongAssets] = useState<Record<string, boolean>>({});
   const [selectedAllAsset, setSelectedAllAsset] = useState("");
+  const viewerRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     api
@@ -293,7 +328,7 @@ export default function MusiciansPage({
       </section>
 
       {viewMode === "setlist" ? (
-        <section className="panel musicians-viewer">
+        <section className="panel musicians-viewer" ref={viewerRef}>
           {detail ? (
             <>
               <div className="panel-heading">
@@ -304,6 +339,7 @@ export default function MusiciansPage({
                     {detail.items.length === 1 ? "" : "s"}
                   </p>
                 </div>
+                <FullscreenButton targetRef={viewerRef} />
               </div>
 
               <div className="musician-items">
@@ -429,7 +465,7 @@ export default function MusiciansPage({
             )}
           </aside>
 
-          <section className="panel musicians-viewer">
+          <section className="panel musicians-viewer" ref={viewerRef}>
             {selectedAllSong ? (
               <>
                 <div className="panel-heading">
@@ -445,6 +481,7 @@ export default function MusiciansPage({
                         .join(" · ") || "Song"}
                     </p>
                   </div>
+                  <FullscreenButton targetRef={viewerRef} />
                 </div>
                 <pre className="lyrics-view">
                   {selectedAllSong.lyrics || "Lyrics are not available for this song."}

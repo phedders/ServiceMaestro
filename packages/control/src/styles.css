@@ -4733,6 +4733,26 @@ body.resizing-live-queue {
   min-height: 640px;
 }
 
+.musicians-viewer:fullscreen {
+  width: 100vw;
+  height: 100vh;
+  min-height: 0;
+  overflow: auto;
+  padding: 24px;
+  background: var(--bg);
+  border: 0;
+  border-radius: 0;
+}
+
+.musicians-viewer:fullscreen .lyrics-view,
+.musicians-viewer:fullscreen .pdf-canvas-wrap {
+  max-height: none;
+}
+
+.musicians-viewer:fullscreen .image-asset {
+  max-height: calc(100vh - 180px);
+}
+
 .musicians-setlists {
   max-height: 70vh;
   overflow: auto;
@@ -4824,8 +4844,26 @@ body.resizing-live-queue {
   justify-content: space-between;
   align-items: center;
   gap: 12px;
+  flex-wrap: wrap;
   font-size: 0.78rem;
   color: var(--muted);
+}
+
+.pdf-zoom-controls {
+  align-items: center;
+}
+
+.pdf-zoom-select {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.pdf-zoom-select select {
+  padding: 4px 6px;
+  font-size: 0.78rem;
 }
 
 .pdf-canvas-wrap {

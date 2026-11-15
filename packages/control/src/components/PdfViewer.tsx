@@ -9,9 +9,10 @@ export function PdfViewer({ assetId, title }: { assetId: string; title: string }
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const pdfRef = useRef<pdfjs.PDFDocumentProxy | null>(null);
   const taskRef = useRef<ReturnType<typeof pdfjs.getDocument> | null>(null);
-  const fittedRef = useRef(false);
   const [page, setPage] = useState(1);
   const [pages, setPages] = useState(0);
+  const [pageSize, setPageSize] = useState<{ width: number; height: number } | null>(null);
+  const [zoomMode, setZoomMode] = useState<"width" | "height" | "actual" | "custom">("width");
   const [scale, setScale] = useState(1.15);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
@@ -22,7 +23,7 @@ export function PdfViewer({ assetId, title }: { assetId: string; title: string }
     setError("");
     setPage(1);
     setPages(0);
-    fittedRef.current = false;
+    setPageSize(null);
     taskRef.current?.destroy();
     taskRef.current = null;
     pdfRef.current = null;
@@ -54,16 +55,36 @@ export function PdfViewer({ assetId, title }: { assetId: string; title: string }
   }, [assetId]);
 
   useEffect(() => {
-    const doc = pdfRef.current;
+    if (zoomMode === "custom") return;
+    if (zoomMode === "actual") {
+      setScale(1);
+      return;
+    }
     const wrap = wrapRef.current;
-    if (loading || !doc || !wrap || fittedRef.current || !pages) return;
-    fittedRef.current = true;
-    doc.getPage(1).then((firstPage) => {
-      const base = firstPage.getViewport({ scale: 1 });
-      const available = wrap.clientWidth - 32;
-      setScale(Math.max(0.5, Math.min(1.6, available / base.width)));
-    });
-  }, [loading, pages]);
+    if (!pageSize || !wrap) return;
+    const fit = () => {
+      const availableWidth = Math.max(120, wrap.clientWidth - 32);
+      const availableHeight = Math.max(
+        120,
+        document.fullscreenElement ? window.innerHeight - 220 : window.innerHeight * 0.68 - 32,
+      );
+      const next =
+        zoomMode === "height"
+          ? availableHeight / pageSize.height
+          : availableWidth / pageSize.width;
+      setScale(Math.max(0.25, Math.min(3, next)));
+    };
+    fit();
+    const observer = new ResizeObserver(fit);
+    observer.observe(wrap);
+    window.addEventListener("resize", fit);
+    document.addEventListener("fullscreenchange", fit);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", fit);
+      document.removeEventListener("fullscreenchange", fit);
+    };
+  }, [pageSize, zoomMode]);
 
   useEffect(() => {
     const doc = pdfRef.current;
@@ -72,6 +93,12 @@ export function PdfViewer({ assetId, title }: { assetId: string; title: string }
     let renderTask: pdfjs.RenderTask | null = null;
 
     doc.getPage(page).then((pdfPage) => {
+      const base = pdfPage.getViewport({ scale: 1 });
+      setPageSize((current) =>
+        current && current.width === base.width && current.height === base.height
+          ? current
+          : { width: base.width, height: base.height },
+      );
       const viewport = pdfPage.getViewport({ scale });
       const context = canvas.getContext("2d");
       if (!context) return;
@@ -86,6 +113,11 @@ export function PdfViewer({ assetId, title }: { assetId: string; title: string }
       renderTask?.cancel();
     };
   }, [page, pages, scale]);
+
+  function zoomBy(delta: number) {
+    setZoomMode("custom");
+    setScale((current) => Math.max(0.25, Math.min(3, current + delta)));
+  }
 
   if (error) return <div className="pdf-error">{error}</div>;
   if (loading) return <div className="pdf-loading">Loading {title}…</div>;
@@ -116,10 +148,25 @@ export function PdfViewer({ assetId, title }: { assetId: string; title: string }
             →
           </button>
         </div>
-        <div className="button-row">
+        <div className="button-row pdf-zoom-controls">
+          <label className="pdf-zoom-select">
+            Zoom
+            <select
+              value={zoomMode}
+              onChange={(event) =>
+                setZoomMode(event.target.value as "width" | "height" | "actual" | "custom")
+              }
+              title="Choose how the PDF page fits the viewer"
+            >
+              <option value="width">Fit width</option>
+              <option value="height">Fit height</option>
+              <option value="actual">1:1</option>
+              {zoomMode === "custom" && <option value="custom">Custom</option>}
+            </select>
+          </label>
           <button
             className="button ghost small"
-            onClick={() => setScale((s) => Math.max(0.5, s - 0.15))}
+            onClick={() => zoomBy(-0.15)}
             title="Zoom out"
             aria-label="Zoom out"
           >
@@ -128,7 +175,7 @@ export function PdfViewer({ assetId, title }: { assetId: string; title: string }
           <span>{Math.round(scale * 100)}%</span>
           <button
             className="button ghost small"
-            onClick={() => setScale((s) => Math.min(3, s + 0.15))}
+            onClick={() => zoomBy(0.15)}
             title="Zoom in"
             aria-label="Zoom in"
           >
