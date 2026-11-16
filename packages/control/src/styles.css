@@ -4937,6 +4937,70 @@ body.resizing-live-queue {
   border-radius: 8px;
 }
 
+.clicker-page {
+  display: grid;
+  gap: 16px;
+}
+
+.clicker-device-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: flex-end;
+}
+
+.clicker-device-grid label {
+  min-width: 240px;
+}
+
+.clicker-usb-id {
+  display: grid;
+  gap: 4px;
+}
+
+.clicker-usb-id .field-label {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+
+.clicker-usb-id code {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 7px 9px;
+  color: #bcecff;
+}
+
+.clicker-capture {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding: 12px;
+  border: 1px dashed rgba(76, 194, 255, 0.5);
+  border-radius: 9px;
+  background: var(--accent-soft);
+}
+
+.clicker-table td:first-child {
+  width: 36%;
+}
+
+.clicker-table select {
+  min-width: 210px;
+}
+
+.clicker-key {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 0.68rem;
+}
+
 @media (max-width: 1100px) {
   .musicians-grid {
     grid-template-columns: 1fr;

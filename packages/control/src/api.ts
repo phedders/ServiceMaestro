@@ -21,6 +21,8 @@ import type {
   ChurchSuitePlanPreview,
   ChurchSuitePlanSummary,
   ChordProFilePreview,
+  ClickerConfig,
+  ClickerConfigInput,
   ControlTlsReport,
   DashboardLayout,
   DisplayConfig,
@@ -166,6 +168,13 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ username, response }),
     }),
+  clicker: () => request<{ config: ClickerConfig | null }>("/api/clicker"),
+  saveClicker: (config: ClickerConfigInput) =>
+    request<{ config: ClickerConfig }>("/api/clicker", {
+      method: "PUT",
+      body: JSON.stringify(config),
+    }),
+
   passkeys: () => request<{ passkeys: PasskeySummary[] }>("/api/auth/passkeys"),
   passkeyRegistrationOptions: () =>
     request<{ options: PublicKeyCredentialCreationOptionsJSON }>("/api/auth/passkeys/options", {

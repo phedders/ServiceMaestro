@@ -201,6 +201,14 @@ db.exec(`
     updated_at TEXT NOT NULL
   );
 
+  CREATE TABLE IF NOT EXISTS user_preferences (
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    key TEXT NOT NULL,
+    value TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    PRIMARY KEY (user_id, key)
+  );
+
   CREATE TABLE IF NOT EXISTS songselect_watch_files (
     path TEXT PRIMARY KEY,
     sha256 TEXT NOT NULL,

@@ -1158,6 +1158,55 @@ export interface AppSettings {
   songSheetColumns: number;
 }
 
+export const CLICKER_ACTION_IDS = [
+  "none",
+  "next",
+  "prev",
+  "nextPage",
+  "prevPage",
+  "nextItem",
+  "previousItem",
+  "blank",
+  "transposeUp",
+  "transposeDown",
+  "maxLinesUp",
+  "maxLinesDown",
+] as const;
+
+export type ClickerAction = (typeof CLICKER_ACTION_IDS)[number];
+
+export const CLICKER_ACTIONS: Array<{ id: ClickerAction; label: string }> = [
+  { id: "none", label: "No action" },
+  { id: "next", label: "Next page or item" },
+  { id: "prev", label: "Previous page or item" },
+  { id: "nextPage", label: "Next page only" },
+  { id: "prevPage", label: "Previous page only" },
+  { id: "nextItem", label: "Next set-list item" },
+  { id: "previousItem", label: "Previous set-list item" },
+  { id: "blank", label: "Hide / show (blank)" },
+  { id: "transposeUp", label: "Transpose up" },
+  { id: "transposeDown", label: "Transpose down" },
+  { id: "maxLinesUp", label: "More lines per page" },
+  { id: "maxLinesDown", label: "Fewer lines per page" },
+];
+
+export interface ClickerButtonMapping {
+  id: string;
+  label: string;
+  action: ClickerAction;
+}
+
+export interface ClickerConfigInput {
+  name: string;
+  vendorId: number;
+  productId: number;
+  buttons: ClickerButtonMapping[];
+}
+
+export interface ClickerConfig extends ClickerConfigInput {
+  updatedAt: string;
+}
+
 export type AdapterMode = "off" | "local" | "shared";
 
 export interface IntegrationSettings {
@@ -2231,6 +2280,36 @@ export const appSettingsSchema = z.object({
   songSheetFontSize: z.number().int().min(8).max(28).default(15),
   songSheetColumns: z.number().int().min(1).max(3).default(1),
 });
+
+export const clickerConfigSchema = z
+  .object({
+    name: z.string().trim().min(1).max(80).default("USB clicker"),
+    vendorId: z.number().int().min(0).max(0xffff).default(0x046d),
+    productId: z.number().int().min(0).max(0xffff).default(0xc538),
+    buttons: z
+      .array(
+        z.object({
+          id: z.string().trim().min(1).max(120),
+          label: z.string().trim().min(1).max(80),
+          action: z.enum(CLICKER_ACTION_IDS),
+        }),
+      )
+      .max(64)
+      .default([]),
+  })
+  .superRefine((value, context) => {
+    const ids = new Set<string>();
+    for (const button of value.buttons) {
+      if (ids.has(button.id)) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Duplicate clicker button: ${button.id}`,
+          path: ["buttons"],
+        });
+      }
+      ids.add(button.id);
+    }
+  });
 
 export const adapterModeSchema = z.enum(["off", "local", "shared"]);
 

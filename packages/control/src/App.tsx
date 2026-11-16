@@ -28,6 +28,7 @@ import BackgroundsPage from "./pages/BackgroundsPage";
 import StingersPage from "./pages/StingersPage";
 import UsersPage from "./pages/UsersPage";
 import DeDupePage from "./pages/DeDupePage";
+import ClickerPage from "./pages/ClickerPage";
 import OutputsPage from "./pages/OutputsPage";
 import MqttPage from "./pages/MqttPage";
 import ArchivesPage from "./pages/ArchivesPage";
@@ -58,6 +59,7 @@ type Page =
   | "users"
   | "mqtt"
   | "archives"
+  | "clicker"
   | "help";
 
 interface Toast {
@@ -471,6 +473,8 @@ export default function App() {
         return "MQTT";
       case "archives":
         return "Archives";
+      case "clicker":
+        return "Clicker";
       case "help":
         return "Help";
     }
@@ -545,6 +549,21 @@ export default function App() {
           <span>Stingers</span>
           <span className="nav-dropdown-external" aria-hidden="true">
             ✦
+          </span>
+        </button>
+        <button
+          type="button"
+          className="nav-dropdown-link"
+          role="menuitem"
+          onClick={() => {
+            setPage("clicker");
+            close();
+          }}
+          title="Configure a USB clicker remote and map its buttons to live actions"
+        >
+          <span>Clicker</span>
+          <span className="nav-dropdown-external" aria-hidden="true">
+            ⌨
           </span>
         </button>
         <button
@@ -1052,6 +1071,14 @@ export default function App() {
           {page === "users" && <UsersPage user={user} notify={notify} />}
           {page === "archives" && canUseArchives && (
             <ArchivesPage user={user} notify={notify} />
+          )}
+          {page === "clicker" && (
+            <ClickerPage
+              live={live}
+              onCommand={command}
+              canWriteLive={canWriteLive}
+              notify={notify}
+            />
           )}
           {page === "mqtt" && user.role === "admin" && adapterContext.mqttEnabled && (
             <MqttPage notify={notify} />

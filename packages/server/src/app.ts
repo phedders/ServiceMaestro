@@ -57,6 +57,7 @@ import { stingerRoutes } from "./routes/stingers.js";
 import { songSelectRoutes } from "./routes/songselect.js";
 import { siteScrapingRoutes } from "./routes/site-scraping.js";
 import { outputRoutes } from "./routes/outputs.js";
+import { clickerRoutes } from "./routes/clicker.js";
 import {
   configureGitAutoSync,
   exportAllToGit,
@@ -131,6 +132,7 @@ export async function buildApp(
   await app.register(songSelectRoutes);
   await app.register(siteScrapingRoutes);
   await app.register(outputRoutes);
+  await app.register(clickerRoutes);
 
   app.get("/", async (_request, reply) => sendHtmlFile(reply, path.join(CONTROL_DIST, "index.html")));
   app.get("/login", async (_request, reply) => sendHtmlFile(reply, path.join(CONTROL_DIST, "index.html")));
