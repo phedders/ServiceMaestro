@@ -14,6 +14,7 @@ import {
   type GitStatus,
   type PublicUser,
   type SharedFontOption,
+  type SongLowercaseChordFixScan,
   type SongPageIdFixScan,
   type SongSelectWatchStatus,
 } from "@sm/shared";
@@ -96,6 +97,10 @@ export default function SettingsPage({
   const [pageIdFixes, setPageIdFixes] = useState<SongPageIdFixScan | null>(null);
   const [fixingPageIds, setFixingPageIds] = useState(false);
   const [applyingPageIdFixes, setApplyingPageIdFixes] = useState(false);
+  const [lowercaseChordFixes, setLowercaseChordFixes] =
+    useState<SongLowercaseChordFixScan | null>(null);
+  const [scanningLowercaseChords, setScanningLowercaseChords] = useState(false);
+  const [applyingLowercaseChordFixes, setApplyingLowercaseChordFixes] = useState(false);
   const [emptyType, setEmptyType] = useState("");
   const [savingSettings, setSavingSettings] = useState(false);
   const [savingAdapters, setSavingAdapters] = useState(false);
@@ -431,6 +436,54 @@ export default function SettingsPage({
       );
     } finally {
       setApplyingPageIdFixes(false);
+    }
+  }
+
+  async function scanLowercaseChords() {
+    setScanningLowercaseChords(true);
+    try {
+      const result = await api.songLowercaseChordFixes();
+      setLowercaseChordFixes(result);
+      notify(
+        result.totalSongs
+          ? `${result.totalChords} lowercase chord${result.totalChords === 1 ? "" : "s"} in ${result.totalSongs} song${result.totalSongs === 1 ? "" : "s"}`
+          : "No lowercase chords found",
+      );
+    } catch (error) {
+      notify(
+        error instanceof ApiError ? error.message : "Could not scan for lowercase chords",
+        "error",
+      );
+    } finally {
+      setScanningLowercaseChords(false);
+    }
+  }
+
+  async function applyLowercaseChordFixes() {
+    if (!lowercaseChordFixes?.songs.length) return;
+    if (
+      !confirm(
+        `Fix lowercase chords in ${lowercaseChordFixes.songs.length} song${
+          lowercaseChordFixes.songs.length === 1 ? "" : "s"
+        }?`,
+      )
+    ) {
+      return;
+    }
+    setApplyingLowercaseChordFixes(true);
+    try {
+      const result = await api.applySongLowercaseChordFixes(
+        lowercaseChordFixes.songs.map((song) => song.songId),
+      );
+      setLowercaseChordFixes(null);
+      notify(`Updated chords in ${result.updated} song${result.updated === 1 ? "" : "s"}`);
+    } catch (error) {
+      notify(
+        error instanceof ApiError ? error.message : "Could not apply lowercase chord fixes",
+        "error",
+      );
+    } finally {
+      setApplyingLowercaseChordFixes(false);
     }
   }
 
@@ -1304,6 +1357,71 @@ export default function SettingsPage({
               <p className="muted">No song labels need changing with this conversion table.</p>
             )}
           </div>
+        )}
+      </section>
+
+      <section className="panel">
+        <div className="panel-heading">
+          <div>
+            <h2>Lowercase chords</h2>
+            <p className="muted">
+              Find chord roots written in lowercase, such as [c] or [am], and convert them to
+              standard chord case. Standalone section labels such as [c], [v1] and [c1] are left
+              unchanged.
+            </p>
+          </div>
+          <div className="button-row">
+            <button
+              className="button"
+              onClick={() => void scanLowercaseChords()}
+              disabled={scanningLowercaseChords || applyingLowercaseChordFixes}
+              title="Scan the song library for lowercase chord roots"
+            >
+              {scanningLowercaseChords ? "Scanning…" : "Scan lowercase chords"}
+            </button>
+            <button
+              className="button primary"
+              onClick={() => void applyLowercaseChordFixes()}
+              disabled={
+                !lowercaseChordFixes?.songs.length ||
+                scanningLowercaseChords ||
+                applyingLowercaseChordFixes
+              }
+              title="Rewrite the lowercase chord roots in the listed songs"
+            >
+              {applyingLowercaseChordFixes
+                ? "Fixing…"
+                : `Apply fixes${
+                    lowercaseChordFixes?.songs.length
+                      ? ` to ${lowercaseChordFixes.songs.length} song${
+                          lowercaseChordFixes.songs.length === 1 ? "" : "s"
+                        }`
+                      : ""
+                  }`}
+            </button>
+          </div>
+        </div>
+        {lowercaseChordFixes ? (
+          lowercaseChordFixes.songs.length ? (
+            <div className="page-id-fix-list">
+              {lowercaseChordFixes.songs.map((song) => (
+                <div key={song.songId} className="page-id-fix-row">
+                  <strong>{song.title}</strong>
+                  <span>
+                    {song.changes
+                      .map((change) => `[${change.from}] → [${change.to}] ×${change.count}`)
+                      .join(" · ")}
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="muted">No lowercase chords found.</p>
+          )
+        ) : (
+          <p className="muted">
+            Scan to preview lowercase chord changes before applying them.
+          </p>
         )}
       </section>
 

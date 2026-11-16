@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { randomUUID } from "node:crypto";
 import {
   chordProPreviewSchema,
+  fixLowercaseChords,
   simplifySongPageIds,
   songBulkDeleteSchema,
   songDifferentSchema,
@@ -12,6 +13,8 @@ import {
   songVerseOrderInputSchema,
   songVerseOrderPatchSchema,
   type Song,
+  type SongLowercaseChordFixPreview,
+  type SongLowercaseChordFixScan,
   type SongPageIdFixPreview,
   type SongPageIdFixScan,
   type SongVerseOrder,
@@ -140,6 +143,34 @@ function pageIdFixScan(songIds?: string[]): SongPageIdFixScan {
   }
   songs.sort((a, b) => a.title.localeCompare(b.title));
   return { songs, totalSongs: songs.length, totalLabels };
+}
+
+function lowercaseChordFixScan(songIds?: string[]): SongLowercaseChordFixScan {
+  const rows = (songIds?.length
+    ? db
+        .prepare(
+          `SELECT id, title, lyrics FROM songs
+           WHERE archived_at IS NULL AND id IN (${songIds.map(() => "?").join(",")})`,
+        )
+        .all(...songIds)
+    : db
+        .prepare("SELECT id, title, lyrics FROM songs WHERE archived_at IS NULL")
+        .all()) as Array<{ id: string; title: string; lyrics: string }>;
+  const songs: SongLowercaseChordFixPreview[] = [];
+  let totalChords = 0;
+  for (const row of rows) {
+    const fixed = fixLowercaseChords(row.lyrics);
+    if (!fixed.changes.length) continue;
+    songs.push({
+      songId: row.id,
+      title: row.title,
+      changes: fixed.changes,
+      lyricsChanged: fixed.lyrics !== row.lyrics,
+    });
+    totalChords += fixed.changes.reduce((total, change) => total + change.count, 0);
+  }
+  songs.sort((a, b) => a.title.localeCompare(b.title));
+  return { songs, totalSongs: songs.length, totalChords };
 }
 
 export async function songRoutes(app: FastifyInstance): Promise<void> {
@@ -353,6 +384,50 @@ export async function songRoutes(app: FastifyInstance): Promise<void> {
       for (const id of updatedIds) {
         await saveSongToGit(id).catch((error) =>
           request.log.warn({ err: error }, "git page id fix save failed"),
+        );
+      }
+      return { ok: true, updated: updatedIds.length, ids: updatedIds };
+    },
+  );
+
+  app.get(
+    "/api/songs/lowercase-chord-fixes",
+    { preHandler: [requireAuth, requirePermission("songs")] },
+    async () => lowercaseChordFixScan(),
+  );
+
+  app.post(
+    "/api/songs/lowercase-chord-fixes/apply",
+    { preHandler: [requireAuth, requirePermission("songs")] },
+    async (request, reply) => {
+      const parsed = songPageIdFixApplySchema.safeParse(request.body ?? {});
+      if (!parsed.success) {
+        return reply.code(400).send({ error: "Invalid fix request", issues: parsed.error.issues });
+      }
+      const preview = lowercaseChordFixScan(parsed.data.songIds);
+      const ids = new Set(preview.songs.map((song) => song.songId));
+      const rows = (ids.size
+        ? db
+            .prepare(
+              `SELECT id, lyrics FROM songs WHERE id IN (${[...ids].map(() => "?").join(",")})`,
+            )
+            .all(...ids)
+        : []) as Array<{ id: string; lyrics: string }>;
+      const now = new Date().toISOString();
+      const update = db.prepare("UPDATE songs SET lyrics = ?, updated_at = ? WHERE id = ?");
+      const updatedIds: string[] = [];
+      const transaction = db.transaction(() => {
+        for (const row of rows) {
+          const fixed = fixLowercaseChords(row.lyrics);
+          if (fixed.lyrics === row.lyrics) continue;
+          update.run(fixed.lyrics, now, row.id);
+          updatedIds.push(row.id);
+        }
+      });
+      transaction();
+      for (const id of updatedIds) {
+        await saveSongToGit(id).catch((error) =>
+          request.log.warn({ err: error }, "git lowercase chord fix save failed"),
         );
       }
       return { ok: true, updated: updatedIds.length, ids: updatedIds };

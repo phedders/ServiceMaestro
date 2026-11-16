@@ -1584,6 +1584,30 @@ export interface SongPageIdFixScan {
   totalLabels: number;
 }
 
+export interface SongLowercaseChordChange {
+  from: string;
+  to: string;
+  count: number;
+}
+
+export interface SongLowercaseChordFixPreview {
+  songId: string;
+  title: string;
+  changes: SongLowercaseChordChange[];
+  lyricsChanged: boolean;
+}
+
+export interface SongLowercaseChordFixScan {
+  songs: SongLowercaseChordFixPreview[];
+  totalSongs: number;
+  totalChords: number;
+}
+
+export interface SongLowercaseChordFix {
+  lyrics: string;
+  changes: SongLowercaseChordChange[];
+}
+
 function sectionPageId(value: string): { canonical: string; id: string } | null {
   const cleaned = value
     .trim()
@@ -1657,6 +1681,68 @@ function cleanPageId(value: string): string {
 
 export function suggestSongPageId(value: string): string | null {
   return sectionPageId(value)?.id ?? null;
+}
+
+function uppercaseChordRoots(value: string): string {
+  return value.replace(/(^|\/)([a-g])/g, (_match, prefix: string, letter: string) =>
+    `${prefix}${letter.toUpperCase()}`,
+  );
+}
+
+function compactSectionLike(value: string): boolean {
+  const cleaned = value.trim();
+  return (
+    suggestSongPageId(cleaned) !== null ||
+    /^(?:[vcbioetrp](?:\d+[a-z]?)?|(?:pc|tr|il|ins|inst|instr|int|in|out|vp)(?:\d+[a-z]?)?)$/i.test(
+      cleaned,
+    )
+  );
+}
+
+/**
+ * Correct lowercase chord roots while leaving known compact section labels
+ * alone. Inline [c]/[e]/[b] tokens are treated as chords; standalone [c] or
+ * [c1] lines remain section labels. Chord-only lines are only rewritten when
+ * another chord already provides context, unless every token is a section.
+ */
+export function fixLowercaseChords(lyrics: string): SongLowercaseChordFix {
+  const changes = new Map<string, SongLowercaseChordChange>();
+  let changed = false;
+  const lines = lyrics.replace(/\r\n?/g, "\n").split("\n").map((line) => {
+    const matches = [...line.matchAll(/\[([^\]]+)\]/g)];
+    if (!matches.length) return line;
+    const tokens = matches.map((match) => match[1].trim());
+    const bracketOnly = line.replace(/\[[^\]]+\]/g, "").trim() === "";
+    const hasUppercaseChord = tokens.some((token) => isSongChordToken(token));
+    const allSections = tokens.every(compactSectionLike);
+    const treatAsChordLine = bracketOnly
+      ? tokens.length === 1
+        ? !allSections
+        : hasUppercaseChord || !allSections
+      : false;
+
+    return line.replace(/\[([^\]]+)\]/g, (whole, raw: string) => {
+      const token = raw.trim();
+      const allow = !bracketOnly || treatAsChordLine;
+      if (!allow) return whole;
+      if (/\d/.test(token) && compactSectionLike(token)) return whole;
+      const candidate = uppercaseChordRoots(token);
+      if (candidate === token || !isSongChordToken(candidate)) return whole;
+      changed = true;
+      const key = `${token}\u0000${candidate}`;
+      const existing = changes.get(key);
+      if (existing) existing.count += 1;
+      else changes.set(key, { from: token, to: candidate, count: 1 });
+      return `[${candidate}]`;
+    });
+  });
+
+  return {
+    lyrics: changed ? lines.join("\n") : lyrics,
+    changes: [...changes.values()].sort(
+      (a, b) => b.count - a.count || a.from.localeCompare(b.from),
+    ),
+  };
 }
 
 export function songPageNameCandidates(lyrics: string): string[] {

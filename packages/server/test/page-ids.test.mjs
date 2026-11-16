@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  fixLowercaseChords,
   simplifySongPageIds,
   songPageNameCandidates,
   songPageOrder,
@@ -53,6 +54,63 @@ test("recognises compact intro and outro page IDs", () => {
     songPageNameCandidates("[in]\n[C] [G]\n\n[out]\n[C] [G]"),
     ["in", "out"],
   );
+});
+
+test("fixes lowercase chord roots but leaves section labels alone", () => {
+  const lyrics = [
+    "[c1]",
+    "[c]Lord O my [G]soul",
+    "",
+    "[c]",
+    "chorus words",
+    "",
+    "[c] [g]",
+    "",
+    "[v1] [c]",
+    "",
+    "[am]azing [e]ternity",
+    "",
+    "[b]",
+    "bridge words",
+    "",
+    "[e1]",
+    "",
+    "How [c2]gratitude stays",
+    "",
+    "[g]",
+  ].join("\n");
+  const fixed = fixLowercaseChords(lyrics);
+  assert.equal(
+    fixed.lyrics,
+    [
+      "[c1]",
+      "[C]Lord O my [G]soul",
+      "",
+      "[c]",
+      "chorus words",
+      "",
+      "[C] [G]",
+      "",
+      "[v1] [c]",
+      "",
+      "[Am]azing [E]ternity",
+      "",
+      "[b]",
+      "bridge words",
+      "",
+      "[e1]",
+      "",
+      "How [c2]gratitude stays",
+      "",
+      "[G]",
+    ].join("\n"),
+  );
+  assert.deepEqual(fixed.changes, [
+    { from: "c", to: "C", count: 2 },
+    { from: "g", to: "G", count: 2 },
+    { from: "am", to: "Am", count: 1 },
+    { from: "e", to: "E", count: 1 },
+  ]);
 });
 
 test("lists pages in source order for a set-list verse order", () => {

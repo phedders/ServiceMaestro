@@ -65,6 +65,7 @@ import type {
   SongImportReport,
   SongImportScan,
   SongImportDecision,
+  SongLowercaseChordFixScan,
   SongPageIdFixScan,
   SongSelectWatchReport,
   SongSelectWatchStatus,
@@ -315,6 +316,16 @@ export const api = {
       method: "POST",
       body: JSON.stringify(songIds ? { songIds } : {}),
     }),
+  songLowercaseChordFixes: () =>
+    request<SongLowercaseChordFixScan>("/api/songs/lowercase-chord-fixes"),
+  applySongLowercaseChordFixes: (songIds?: string[]) =>
+    request<{ ok: true; updated: number; ids: string[] }>(
+      "/api/songs/lowercase-chord-fixes/apply",
+      {
+        method: "POST",
+        body: JSON.stringify(songIds ? { songIds } : {}),
+      },
+    ),
 
   images: (q = "") =>
     request<{ root: string; images: ImageAsset[] }>(
