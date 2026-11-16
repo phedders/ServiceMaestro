@@ -80,7 +80,7 @@ export default function ChurchsuitePage({
     try {
       const result = await api.churchsuitePlans({ from, to, status });
       const next = [...(result.plans.data ?? [])].sort((a, b) =>
-        `${a.date}T${a.time ?? ""}`.localeCompare(`${b.date}T${b.time ?? ""}`),
+        `${b.date}T${b.time ?? ""}`.localeCompare(`${a.date}T${a.time ?? ""}`),
       );
       setPlans(next);
       const restoredPlan = selectedPlan
