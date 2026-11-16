@@ -406,13 +406,17 @@ img.brand-mark.large {
 
 .nav-quick-controls .nav-quick-button {
   flex: 1;
+  min-width: 48px;
+  min-height: 48px;
   justify-content: center;
   padding: 8px 0;
   border: 1px solid var(--border);
   border-radius: 8px;
   background: var(--panel-2);
   color: var(--muted);
-  font-size: 0.82rem;
+  font-size: 1.7rem;
+  font-weight: 700;
+  line-height: 1;
 }
 
 .nav-quick-controls .nav-quick-button:hover:not(:disabled) {
@@ -5345,6 +5349,46 @@ body.resizing-live-queue {
 
   .setlist-item-settings {
     grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* Progressively move primary navigation into the burger as the top bar narrows. */
+@media (max-width: 1280px) {
+  .app.topbar-mode .nav-help {
+    display: none;
+  }
+
+  .app.topbar-mode .nav-more {
+    display: none;
+  }
+
+  .app.topbar-mode .nav-mobile-menu {
+    display: block;
+    margin-left: auto;
+  }
+}
+
+@media (max-width: 1180px) {
+  .app.topbar-mode .nav-churchsuite {
+    display: none;
+  }
+}
+
+@media (max-width: 1080px) {
+  .app.topbar-mode .nav-bible {
+    display: none;
+  }
+}
+
+@media (max-width: 1000px) {
+  .app.topbar-mode .nav-images {
+    display: none;
+  }
+}
+
+@media (max-width: 940px) {
+  .app.topbar-mode .nav-songs {
+    display: none;
   }
 }
 

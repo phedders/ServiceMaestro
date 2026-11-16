@@ -1018,28 +1018,28 @@ export default function App() {
             <span className="nav-icon">▶</span> Live control
           </button>
           <button
-            className={`nav-primary ${page === "setlists" ? "active" : ""}`}
+            className={`nav-primary nav-setlists ${page === "setlists" ? "active" : ""}`}
             onClick={() => setPage("setlists")}
             title="Open set lists to plan and publish services"
           >
             <span className="nav-icon">▤</span> Set lists
           </button>
           <button
-            className={`nav-primary ${page === "songs" ? "active" : ""}`}
+            className={`nav-primary nav-songs ${page === "songs" ? "active" : ""}`}
             onClick={() => setPage("songs")}
             title="Open the song library and import tools"
           >
             <span className="nav-icon">♫</span> Songs
           </button>
           <button
-            className={`nav-primary ${page === "images" ? "active" : ""}`}
+            className={`nav-primary nav-images ${page === "images" ? "active" : ""}`}
             onClick={() => setPage("images")}
             title="Browse, upload and add images to set lists"
           >
             <span className="nav-icon">▣</span> Images
           </button>
           <button
-            className={`nav-primary ${page === "bible" ? "active" : ""}`}
+            className={`nav-primary nav-bible ${page === "bible" ? "active" : ""}`}
             onClick={() => setPage("bible")}
             title="Look up a Bible passage to display or add to a set list"
           >
@@ -1047,7 +1047,7 @@ export default function App() {
           </button>
           {adapterContext.churchSuiteEnabled && (
             <button
-              className={`nav-primary ${page === "churchsuite" ? "active" : ""}`}
+              className={`nav-primary nav-churchsuite ${page === "churchsuite" ? "active" : ""}`}
               onClick={() => setPage("churchsuite")}
               title="Pull ChurchSuite plans and create draft set lists"
             >
@@ -1055,7 +1055,7 @@ export default function App() {
             </button>
           )}
           <button
-            className={`nav-primary ${page === "help" ? "active" : ""}`}
+            className={`nav-primary nav-help ${page === "help" ? "active" : ""}`}
             onClick={() => setPage("help")}
             title="Open the service-day guide and troubleshooting reference"
           >
