@@ -1,0 +1,336 @@
+# WebSockets API
+
+Status: **implemented**. Service Maestro uses **Socket.IO 4** rather than raw WebSocket frames. The
+control interface and every display output receive realtime state over two separate Socket.IO
+endpoints:
+
+| Endpoint | Listener | Path | Authentication |
+| --- | --- | --- | --- |
+| Control | `SM_PORT` (default `8080`) | `/socket.io` | Session cookie + same-origin check |
+| Output (control listener) | `SM_PORT` | `/display/socket.ro.io` | Output token, always required |
+| Output (display listener) | `SM_DISPLAY_PORT` (default `8081`) | `/display/socket.ro.io` | Output token only when `SM_DISPLAY_REQUIRE_TOKEN=true` |
+
+The two `/display/socket.ro.io` endpoints are the same read-only stream. Output pages served from the
+control listener (`/display/*` and the `/obs-*` aliases) use the control-listener endpoint and must
+include a token. Output pages served by the plain-HTTP display listener use the token-free stream by
+default.
+
+A raw WebSocket client cannot speak this protocol. Use `socket.io-client` 4.x, or another Socket.IO 4
+implementation.
+
+## 1. Connecting a control client
+
+The control socket authenticates with the normal browser session. Sign in through `/login` first,
+then connect with credentials enabled:
+
+```ts
+import { io } from "socket.io-client";
+
+const socket = io("https://lyrics.local:8080", {
+  path: "/socket.io",
+  withCredentials: true,
+});
+```
+
+The browser sends the `sm_session` cookie automatically for a same-origin connection. The server
+accepts the socket only when:
+
+- the `Origin` header is absent, matches the request host and protocol, or matches the configured
+  `SM_WEBAUTHN_ORIGIN`; and
+- the session cookie maps to a valid, unexpired user session.
+
+A failed handshake produces a Socket.IO `connect_error` with the message `unauthorized`. There is no
+API-key or bearer-token login for the control socket.
+
+In the current control UI, this socket is used for **state** while live commands are sent over HTTP.
+The socket command events are still supported for integrations.
+
+## 2. Connecting a display output
+
+The bundled display client passes the output token in the Socket.IO handshake:
+
+```js
+const socket = window.io({
+  path: "/display/socket.ro.io",
+  auth: { outputToken: outputToken },
+  reconnection: true,
+  reconnectionDelay: 800,
+  reconnectionDelayMax: 4000,
+});
+```
+
+The token is read from the page's `?token=` parameter by the bundled client, with a fallback to the
+development token. A query parameter is also accepted directly by the server:
+
+```js
+const socket = io("http://lyrics.local:8081", {
+  path: "/display/socket.ro.io",
+  query: { token: outputToken },
+});
+```
+
+Rules:
+
+- On the **control listener**, `/display/socket.ro.io` always requires the output token, even when
+  `SM_DISPLAY_REQUIRE_TOKEN=false`.
+- On the **display listener**, the token is optional by default. Set
+  `SM_DISPLAY_REQUIRE_TOKEN=true` to require it there too.
+- The output socket has **no Origin check**. Its only protection is the shared output token, so a
+  token-free display listener should be reachable only on a trusted network.
+- The output socket receives state and sends nothing. No control events are registered on it.
+
+Do not publish or screenshot the real token. Prefer `auth.outputToken` over a URL query string
+because query strings are more likely to appear in proxy logs, browser history and screenshots.
+
+## 3. Rooms
+
+Each socket joins one server-assigned room:
+
+| Room | Members | Receives |
+| --- | --- | --- |
+| `control` | Every authenticated control socket | `live:snapshot`, `heartbeat` |
+| `outputs` | Every output socket on every output endpoint | `live:snapshot`, `heartbeat` |
+
+Clients cannot subscribe to or leave rooms, and cannot send messages to a room. Both rooms receive
+the same `LiveState`; an output filters that state locally according to its own output definition
+(template, page mode, background and so on).
+
+## 4. Server-to-client events
+
+### `live:snapshot`
+
+The primary state event. The server sends it:
+
+- immediately after a socket connects, so a refresh or reconnect never starts blank; and
+- after every live-state change, to both `control` and `outputs`.
+
+The payload is a **complete** `LiveState`. Replace the local state with it; there are no delta
+messages to merge.
+
+```jsonc
+{
+  "sessionId": "…",
+  "setlistId": "…",
+  "setlistName": "Sunday morning",
+  "status": "live",
+  "itemIndex": 3,
+  "pageIndex": 1,
+  "pageCount": 4,
+  "mode": "song",
+  "title": "Amazing Grace",
+  "blank": false,
+  "maxLines": 4,
+  "transpose": 0,
+  "footer": "",
+  "pages": [
+    {
+      "index": 1,
+      "section": "v2",
+      "html": "<div class=\"slide\">…</div>",
+      "stinger": null
+    }
+  ],
+  "items": [
+    { "index": 0, "kind": "song", "title": "Welcome", "notes": null }
+  ],
+  "background": { "render": "…" },
+  "templates": { "main": { "html": "…", "css": "…" } },
+  "outputs": { "main": { "id": "main", "label": "Main", "template": "main" } },
+  "displayConfig": { "fontFamily": "Oxygen", "textColor": "#ffffff" },
+  "queuedItemIndex": null,
+  "queuedTitle": null,
+  "queuedPages": [],
+  "appendedItems": [],
+  "autoplay": null,
+  "autoplayOverrides": {},
+  "version": 42,
+  "updatedAt": "2026-11-16T09:30:00.000Z",
+  "pendingUpdate": false,
+  "pendingRevision": null
+}
+```
+
+Key fields:
+
+| Field | Meaning |
+| --- | --- |
+| `sessionId`, `status` | Active session and whether it is `live`, `rehearsal`, `ended` or `idle`. |
+| `setlistId`, `setlistName` | Source set list. Empty/null outside a session. |
+| `itemIndex`, `pageIndex`, `pageCount` | Current set-list item and zero-based page position. `itemIndex` is `-1` for a transient quick item. |
+| `mode` | Active item kind: `song`, `text`, `image`, `image_list`, `tarp`, `presentation`, or `idle` when no session is active. Blanking is reported by `blank`, not by `mode`. |
+| `blank` | Output is hidden or faded out. |
+| `transpose`, `maxLines`, `footer` | Current live overrides. |
+| `pages` | Rendered pages for the current item. `html` is already sanitized and styled. `stinger` is an optional transition overlay. |
+| `items` | Summaries of the active queue (index, kind, title, notes), not full item content. |
+| `background` | Optional rendered CSS for the active display background. Item/set-list backgrounds take precedence over the global background. |
+| `templates`, `outputs`, `displayConfig` | Current templates, output definitions and global display settings. |
+| `queuedItemIndex`, `queuedTitle`, `queuedPages` | Preview of an item queued for the next `next`/forward page action. The queued item is not on screen yet. |
+| `appendedItems` | Item indexes whose pages were appended to the live queue. |
+| `autoplay`, `autoplayOverrides` | Transient autoplay state for image-list and Tarp items. |
+| `version` | Increases with every state change. Useful for ordering and diagnostics. |
+| `updatedAt` | ISO-8601 timestamp of the last change. |
+| `pendingUpdate`, `pendingRevision` | A newer set-list revision is waiting to be applied after the current item. |
+
+The snapshot can contain song lyrics, notes, template HTML/CSS and display settings. It is not
+public data: anyone holding a valid control session or output token can read it.
+
+### `heartbeat`
+
+A liveness signal sent to every connected socket immediately on connection and every **15 seconds**
+afterwards:
+
+```json
+{ "at": 1763285400000 }
+```
+
+`at` is a Unix timestamp in milliseconds. The heartbeat does not carry application state; use
+`live:snapshot` for that.
+
+The bundled display client uses it as a watchdog: it refreshes the page when no heartbeat has arrived
+for **45 seconds** while the page is visible. It checks every 5 seconds and skips the check while the
+tab is hidden. The control client does not depend on the heartbeat because it also sends commands over
+HTTP.
+
+### Socket.IO lifecycle events
+
+`connect`, `disconnect` and `connect_error` are emitted by Socket.IO itself, not by Service Maestro.
+Use them to drive connection indicators and reconnect handling.
+
+## 5. Client-to-server events (control only)
+
+Both inbound events require write permission for the **live** module (administrators always pass).
+The permission check uses the user captured during the handshake, so reconnect after changing a
+user's role or permissions.
+
+Payloads are validated with Zod. An unauthorised or invalid payload is **silently dropped**: the
+server does not send an error event or acknowledgement. Observe the result through the next
+`live:snapshot`.
+
+There is no command for starting, applying or stopping a live session. Those operations remain
+HTTP-only (`/api/live/start`, `/api/live/apply`, `/api/live/stop`), as do quick songs, images and
+presentations.
+
+### `live:command`
+
+```js
+socket.emit("live:command", { type: "page", delta: 1 });
+```
+
+Valid payloads:
+
+| Payload | Effect |
+| --- | --- |
+| `{ "type": "next" }` | Advance one page, then into the next item at the item boundary. If an item is queued, commit it at page 0. |
+| `{ "type": "prev" }` | Go back one page, then into the previous item at the item boundary. |
+| `{ "type": "page", "delta": 1 }` | Move by `-50…50` pages. A forward move commits a queued item first. Page boundaries follow the global **Live navigation** setting. |
+| `{ "type": "goto", "itemIndex": 2, "pageIndex": 0 }` | Select an item and/or page directly. At least one field is required. Clears blank. |
+| `{ "type": "queueItem", "itemIndex": 4 }` | Preview an item as the next queued item **without changing the output**. |
+| `{ "type": "appendItem", "itemIndex": 4 }` | Append an item's pages to the current live queue. |
+| `{ "type": "blank", "value": true }` | Set blank on/off. Omit `value` to toggle. |
+| `{ "type": "transpose", "delta": 1 }` | Change transpose by `-12…12` semitones per command. The state is clamped to `-24…24`. |
+| `{ "type": "maxLines", "value": 4 }` | Set lines per page, `1…30`. |
+| `{ "type": "footer", "text": "…" }` | Set footer text, up to 500 characters. Empty text clears it. |
+| `{ "type": "autoplay", "autoplay": true, "mode": "loop", "delaySeconds": 8 }` | Override autoplay for the current image-list/Tarp item. Fields are optional; `mode` is `single`, `loop` or `bounce`; `delaySeconds` is `1…300`. |
+| `{ "type": "autoplay", "reset": true }` | Remove the current item's autoplay override and return to its configured values. |
+
+Notes:
+
+- Commands only affect an active session. With no active session they are ignored.
+- `queueItem` sets `queuedItemIndex`, `queuedTitle` and `queuedPages` but leaves the currently
+  displayed item and page untouched. The queue commits on the next `next` or forward `page` command
+  and starts at page 0. `goto` with a `pageIndex` also resolves the queued item.
+- `goto` unblanks the output. `next`, `prev` and page navigation can also unblank according to the
+  **Auto show on page change** setting.
+- Each accepted command is recorded in the activity log.
+
+### `live:quickText`
+
+```js
+socket.emit("live:quickText", {
+  text: "Welcome — please stand",
+  mode: "direct",
+});
+```
+
+| Field | Rules |
+| --- | --- |
+| `text` | Required string, 1–50,000 characters. |
+| `mode` | Optional `direct` or `setlist`. Reserved for compatibility; the server currently treats quick text as a direct transient overlay. |
+
+Quick text is a temporary item. It does not edit the set list, and navigation can return to the item
+that was live before it. The quick-text event is also recorded in the activity log.
+
+## 6. HTTP equivalents
+
+The control UI uses these HTTP endpoints while listening to the socket for state:
+
+| Endpoint | Body | Result |
+| --- | --- | --- |
+| `POST /api/live/command` | Same payload as `live:command` | `{ "state": LiveState }`, or `400` with validation issues |
+| `POST /api/live/quick-text` | `{ "text": "…", "mode": "direct" }` | `{ "state": LiveState }`, or `400` for invalid text |
+
+Both require an authenticated session and live write permission. The HTTP responses return the new
+state directly, which makes them convenient for scripts that do not need the realtime stream. Unlike
+the socket events, HTTP rejects invalid payloads with a `400` response.
+
+## 7. Reconnection behaviour
+
+- Socket.IO clients reconnect automatically by default. The bundled display client retries with an
+  800 ms initial delay and a 4 s maximum delay.
+- Every successful (re)connection immediately receives a full `live:snapshot`, so no replay or
+  catch-up request is needed.
+- A display keeps its last rendered frame when the socket disconnects, adds an offline indicator, and
+  reloads after 45 s without a heartbeat while visible. This recovers from half-open connections
+  that the browser does not report as closed.
+- A control socket that loses its session cookie on reconnect fails with `connect_error:
+  unauthorized`. Redirect the user to `/login`; do not retry indefinitely with bad credentials.
+- Session expiry is checked at handshake, not continuously. An already-connected control socket
+  continues to send commands until it disconnects, even after the session expires. Reconnect after
+  login/logout so authorisation is re-evaluated.
+- A permission change also requires reconnecting an existing control socket.
+
+## 8. Deployment and security limits
+
+- The control listener is HTTPS by default. The display listener is plain HTTP by default and serves
+  only `/display/*`, including the output socket.
+- A reverse proxy must forward both **HTTP long-polling** and **WebSocket upgrade** requests for
+  `/socket.io` and `/display/socket.ro.io`. If it terminates TLS, it must preserve the original
+  `Host` and `Origin`, or the control socket's origin check will reject the handshake. Set
+  `SM_TRUST_PROXY=true` only when a trusted proxy supplies `X-Forwarded-*` headers.
+- The control socket checks the request Origin against the request host/protocol or
+  `SM_WEBAUTHN_ORIGIN`. The output socket does not check Origin because outputs are often loaded in
+  OBS or on separate display hosts.
+- No per-socket rate limiter is applied. Protection consists of authentication, live permission,
+  payload size limits in the schemas and the network boundary. Keep the control port on a trusted
+  network, and enable `SM_DISPLAY_REQUIRE_TOKEN=true` if the display port is not isolated.
+- The output token is shared by all outputs. Rotating `SM_OUTPUT_TOKEN` invalidates existing output
+  connections and any control-origin display URLs using the old token; reconnect displays afterwards.
+- Never commit the session cookie, the output token or a `data/config.yaml` containing real secrets.
+
+## 9. Minimal client examples
+
+Control:
+
+```ts
+const socket = io({ path: "/socket.io", withCredentials: true });
+
+socket.on("live:snapshot", (state) => render(state));
+socket.on("connect_error", (error) => {
+  if (error.message === "unauthorized") window.location.href = "/login";
+});
+
+socket.emit("live:command", { type: "next" });
+```
+
+Output:
+
+```js
+const socket = io({
+  path: "/display/socket.ro.io",
+  auth: { outputToken: new URLSearchParams(location.search).get("token") },
+});
+
+socket.on("live:snapshot", (state) => render(state));
+socket.on("heartbeat", () => markOnline());
+socket.on("disconnect", () => markOffline());
+```

@@ -25,6 +25,7 @@ A self-hosted server application for running church service visuals: manage song
 > - [MQTT adapter](docs/16-mqtt.md) — optional broker bridge, incoming API command mappings, outgoing live/event information and configurable external controls.
 > - [USB clicker remotes](docs/17-clicker.md) — experimental per-user USB presenter capture and live-action mappings.
 > - [External presentations](docs/18-external-presentations.md) — public Canva/PowerPoint/Google Slides iframe embedding and private-link window launching.
+> - [WebSockets API](docs/19-websockets.md) — Socket.IO control and output endpoints, authentication, rooms, events, payloads and reconnection.
 
 ## Quick start
 

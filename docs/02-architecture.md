@@ -285,49 +285,35 @@ Aliases use the same token query parameter, e.g. `/obs-main?token=…`. They are
 
 Query options for OBS: `theme`, `font`, `scale`, `showChords`, `background=transparent|black`, `fit=contain|cover`, `debug=1`.
 
-## 9. Realtime protocol (Socket.IO `/control`)
+## 9. Realtime protocol (Socket.IO)
 
-Control uses `/socket.io` with the session cookie. Display outputs use the isolated read-only socket `/display/socket.ro.io` with the output token; it receives snapshots and accepts no control events.
+The implemented event names, payloads and connection rules are documented in
+[19-websockets.md](19-websockets.md). In short:
 
-Server → clients:
+- Control clients connect to `/socket.io` with the `sm_session` cookie and join the `control` room.
+- Display outputs connect to `/display/socket.ro.io` and join the `outputs` room. The control listener
+  always requires the output token; the plain-HTTP display listener requires it only when
+  `SM_DISPLAY_REQUIRE_TOKEN=true`. Output sockets are read-only.
+- The server sends a full `live:snapshot` on connect and after every state change. Clients replace
+  their state; there are no delta messages.
+- Control clients may emit `live:command` and `live:quickText`. Payloads are validated and require
+  live write permission; invalid or unauthorised events are dropped without an acknowledgement.
+- A `heartbeat` event with `{ "at": <epoch-ms> }` is sent on connect and every 15 seconds. Displays
+  reload after 45 seconds without one while the page is visible.
 
-- `state:snapshot` — full `LiveState` + current rendered slide + set list + outputs presence.
-- `state:delta` — changed fields, version, timestamp.
-- `library:changed`, `setlist:changed`, `scan:progress`, `output:presence`.
-- `toast` — for scan/import errors.
+Rules:
 
-Client → server:
-
-```jsonc
-{ "type": "goto",        "itemId": "...", "page": 0 }
-{ "type": "next" } | { "type": "prev" }
-{ "type": "page",        "delta": 1 }
-{ "type": "blank",       "value": true }
-{ "type": "quickText",   "body": "…", "mode": "direct|setlist" }
-{ "type": "transpose",   "semitones": 2 }
-{ "type": "maxLines",    "value": 4 }
-{ "type": "style",       "fontFamily": "Oxygen" }
-{ "type": "footer",      "text": "…" }
-{ "type": "image",       "imageId": "..." }
-{ "type": "bible",       "translation": "NIV2011", "ref": { "book": 7, "chapter": 1, "from": 1, "to": 18 } }
-```
-
-Server → output sockets (raw WS or Socket.IO room): always send `state:snapshot` on connect, then `state:delta`:
-
-```jsonc
-{
-  "v": 42,
-  "mode": "lyrics",
-  "html": "<div class=\"slide\">…</div>",
-  "pageIndex": 1,
-  "pageCount": 7,
-  "footer": "…",
-  "style": { "fontFamily": "Oxygen", "scale": 1.0 },
-  "blank": false
-}
-```
-
-No arbitrary HTML/CSS from operators. Content is sanitized at import/render time; styles come from a fixed, named set.
+- The **server derives slides** from the current item (page splitting by `maxLinesPerPage`,
+  transposition applied to chord tokens, sanitized HTML rendered once).
+- A **session pins a set list revision** and the content/theme versions referenced by it. Nothing the
+  live session reads is mutable.
+- **Editing a set list or library item never affects a running session.** Applying changes is an explicit operator action (`after-current` by default, `now` with confirmation), which switches the session to a new revision and broadcasts a snapshot.
+- Commands are validated against the pinned revision; `next`/`prev` move by page first, then item; `goto` selects item/page.
+- Every state change increments a version and is broadcast as a full snapshot to all outputs. There is
+  no per-output acknowledgement or lag metric in the current implementation.
+- A blank/fade command is itself state, so a refresh keeps the screen blanked rather than revealing content.
+- Set list imports always create drafts; no import path can modify a pinned revision or start a session.
+- No arbitrary HTML/CSS from operators. Content is sanitized at import/render time; styles come from a fixed, named set.
 
 ## 10. Display frontends
 
