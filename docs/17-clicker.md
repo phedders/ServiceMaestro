@@ -1,8 +1,8 @@
 # USB clicker remotes
 
-Status: **experimental user-level configuration**. **Menu → Clicker** captures a USB presentation
-remote, maps its buttons to live-control actions and saves the mapping to the signed-in user's
-account. A live-page enable toggle is planned once this workflow is verified with real hardware.
+Status: **experimental user-level configuration**. **Menu → Experimental → Clicker** captures a USB
+presentation remote, maps its buttons to live-control actions and saves the mapping to the signed-in
+user's account. A live-page enable toggle is planned once this workflow is verified with real hardware.
 
 ## What works in a browser
 

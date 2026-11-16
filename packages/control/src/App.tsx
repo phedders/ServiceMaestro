@@ -522,29 +522,7 @@ export default function App() {
   function renderMoreMenu(close: () => void) {
     return (
       <>
-        <div className="nav-dropdown-label">External links</div>
-        {displayViews.map((view) => (
-          <a
-            key={view.id}
-            className="nav-dropdown-link"
-            href={view.url}
-            target="_blank"
-            rel="noreferrer"
-            role="menuitem"
-            onClick={close}
-            title={`Open ${view.label} in a new tab`}
-          >
-            <span>{view.label}</span>
-            <span className="nav-dropdown-external" aria-hidden="true">
-              ↗
-            </span>
-          </a>
-        ))}
-        {!displayViews.length && <span className="nav-dropdown-empty">No views available</span>}
-        {adapterContext.mqttEnabled && (
-          <MqttControls placement="menu" notify={notify} onPublished={close} />
-        )}
-        <div className="nav-dropdown-separator" />
+        <div className="nav-dropdown-label">Features</div>
         <button
           type="button"
           className="nav-dropdown-link"
@@ -580,21 +558,6 @@ export default function App() {
           className="nav-dropdown-link"
           role="menuitem"
           onClick={() => {
-            setPage("clicker");
-            close();
-          }}
-          title="Configure a USB clicker remote and map its buttons to live actions"
-        >
-          <span>Clicker</span>
-          <span className="nav-dropdown-external" aria-hidden="true">
-            ⌨
-          </span>
-        </button>
-        <button
-          type="button"
-          className="nav-dropdown-link"
-          role="menuitem"
-          onClick={() => {
             setPage("dedupe");
             close();
           }}
@@ -605,23 +568,6 @@ export default function App() {
             ⧉
           </span>
         </button>
-        {user?.role === "admin" && (
-          <button
-            type="button"
-            className="nav-dropdown-link"
-            role="menuitem"
-            onClick={() => {
-              setPage("users");
-              close();
-            }}
-            title="Manage users, write permissions and activity"
-          >
-            <span>Users</span>
-            <span className="nav-dropdown-external" aria-hidden="true">
-              ◉
-            </span>
-          </button>
-        )}
         {canUseArchives && (
           <button
             type="button"
@@ -639,24 +585,46 @@ export default function App() {
             </span>
           </button>
         )}
-        {user?.role === "admin" && adapterContext.mqttEnabled && (
-          <button
-            type="button"
+        <div className="nav-dropdown-separator" />
+        <div className="nav-dropdown-label">External links</div>
+        {displayViews.map((view) => (
+          <a
+            key={view.id}
             className="nav-dropdown-link"
+            href={view.url}
+            target="_blank"
+            rel="noreferrer"
             role="menuitem"
-            onClick={() => {
-              setPage("mqtt");
-              close();
-            }}
-            title="Configure MQTT broker, commands and outgoing controls"
+            onClick={close}
+            title={`Open ${view.label} in a new tab`}
           >
-            <span>MQTT</span>
+            <span>{view.label}</span>
             <span className="nav-dropdown-external" aria-hidden="true">
-              ⇄
+              ↗
             </span>
-          </button>
+          </a>
+        ))}
+        {!displayViews.length && <span className="nav-dropdown-empty">No views available</span>}
+        {adapterContext.mqttEnabled && (
+          <MqttControls placement="menu" notify={notify} onPublished={close} />
         )}
+        <div className="nav-dropdown-separator" />
         <div className="nav-dropdown-label">Experimental</div>
+        <button
+          type="button"
+          className="nav-dropdown-link"
+          role="menuitem"
+          onClick={() => {
+            setPage("clicker");
+            close();
+          }}
+          title="Configure a USB clicker remote and map its buttons to live actions"
+        >
+          <span>Clicker</span>
+          <span className="nav-dropdown-external" aria-hidden="true">
+            ⌨
+          </span>
+        </button>
         <button
           type="button"
           className="nav-dropdown-link"
@@ -687,6 +655,42 @@ export default function App() {
             ▷
           </span>
         </button>
+        <div className="nav-dropdown-separator" />
+        <div className="nav-dropdown-label">Main Configuration</div>
+        {user?.role === "admin" && adapterContext.mqttEnabled && (
+          <button
+            type="button"
+            className="nav-dropdown-link"
+            role="menuitem"
+            onClick={() => {
+              setPage("mqtt");
+              close();
+            }}
+            title="Configure MQTT broker, commands and outgoing controls"
+          >
+            <span>MQTT</span>
+            <span className="nav-dropdown-external" aria-hidden="true">
+              ⇄
+            </span>
+          </button>
+        )}
+        {user?.role === "admin" && (
+          <button
+            type="button"
+            className="nav-dropdown-link"
+            role="menuitem"
+            onClick={() => {
+              setPage("users");
+              close();
+            }}
+            title="Manage users, write permissions and activity"
+          >
+            <span>Users</span>
+            <span className="nav-dropdown-external" aria-hidden="true">
+              ◉
+            </span>
+          </button>
+        )}
         <button
           type="button"
           className="nav-dropdown-link"
