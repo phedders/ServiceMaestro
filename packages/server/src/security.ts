@@ -85,6 +85,7 @@ export function installSecurityHeaders(
           "object-src 'none'",
           "base-uri 'self'",
           "form-action 'self'",
+          "frame-src 'self' https:",
           `frame-ancestors ${frameable ? "'self'" : "'none'"}`,
         ].join("; "),
       );

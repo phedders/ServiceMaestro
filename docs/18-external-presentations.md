@@ -28,6 +28,12 @@ slideshow programmatically. The physical USB clicker still works because it is a
 For a reliable external presentation workflow, launch the provider’s **present** URL in a new
 window, sign in there if required, and let the clicker operate that focused window.
 
+## CSP and embedding
+
+The control app CSP includes `frame-src 'self' https:` so public HTTPS presentation embeds can load
+without allowing external scripts into the Service Maestro page itself. This was required for Canva
+and PowerPoint iframes; the Canva sample link was verified live after the change.
+
 ## SharePoint and private links
 
 Private SharePoint/OneDrive sharing links normally require tenant sign-in. They may also send
@@ -35,7 +41,9 @@ Private SharePoint/OneDrive sharing links normally require tenant sign-in. They 
 external site. A normal SharePoint sharing link will often render a sign-in page or stay blank.
 
 Use **Open in new window** for those links. For embedding, generate the official PowerPoint
-**Embed this Presentation** iframe code from a file that is publicly viewable.
+**Embed this Presentation** iframe code from a file that is publicly viewable. A normal
+SharePoint/OneDrive sharing URL is not the same as the embed code and will usually fail even when
+the control app allows the iframe.
 
 The Oakhall SharePoint link tested during development requires Microsoft sign-in and was not
 anonymously viewable in a browser; it must be opened in a signed-in window rather than embedded.
