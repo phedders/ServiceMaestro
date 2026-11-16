@@ -307,30 +307,387 @@ the socket events, HTTP rejects invalid payloads with a `400` response.
   connections and any control-origin display URLs using the old token; reconnect displays afterwards.
 - Never commit the session cookie, the output token or a `data/config.yaml` containing real secrets.
 
-## 9. Minimal client examples
+## 9. Client examples
 
-Control:
+The examples below show complete connection and event flows. They read passwords and tokens from
+environment variables or prompts so that real secrets do not end up in shell history or source
+control.
 
-```ts
-const socket = io({ path: "/socket.io", withCredentials: true });
+### 9.1 Browser control client
 
-socket.on("live:snapshot", (state) => render(state));
-socket.on("connect_error", (error) => {
-  if (error.message === "unauthorized") window.location.href = "/login";
-});
-
-socket.emit("live:command", { type: "next" });
-```
-
-Output:
+This example connects with the signed-in session, renders snapshots and sends the common live
+commands. It assumes your page is served from the same origin as the control interface and that
+`socket.io-client` is bundled with the page.
 
 ```js
-const socket = io({
-  path: "/display/socket.ro.io",
-  auth: { outputToken: new URLSearchParams(location.search).get("token") },
+import { io } from "socket.io-client";
+
+const statusEl = document.querySelector("#status");
+const titleEl = document.querySelector("#title");
+const pageEl = document.querySelector("#page");
+const contentEl = document.querySelector("#content");
+
+const socket = io("https://lyrics.local:8080", {
+  path: "/socket.io",
+  withCredentials: true,
+  reconnection: true,
+  reconnectionDelay: 500,
+  reconnectionDelayMax: 5000,
 });
 
-socket.on("live:snapshot", (state) => render(state));
-socket.on("heartbeat", () => markOnline());
-socket.on("disconnect", () => markOffline());
+let live = null;
+
+socket.on("connect", () => {
+  statusEl.textContent = "connected";
+});
+
+socket.on("disconnect", (reason) => {
+  statusEl.textContent = `disconnected: ${reason}`;
+});
+
+socket.on("connect_error", (error) => {
+  statusEl.textContent = `connection failed: ${error.message}`;
+  if (error.message === "unauthorized") {
+    socket.disconnect();
+    window.location.assign("/login");
+  }
+});
+
+socket.on("live:snapshot", (state) => {
+  live = state;
+  titleEl.textContent = state.title || "No active item";
+  pageEl.textContent = state.pageCount
+    ? `${state.pageIndex + 1} / ${state.pageCount}`
+    : "—";
+
+  // The server already sanitized this HTML.
+  contentEl.innerHTML = state.pages[state.pageIndex]?.html ?? "";
+  contentEl.classList.toggle("is-blank", state.blank);
+});
+
+function send(payload) {
+  if (!live || (live.status !== "live" && live.status !== "rehearsal")) return;
+  socket.emit("live:command", payload);
+}
+
+document.querySelector("#next").addEventListener("click", () => {
+  send({ type: "next" });
+});
+
+document.querySelector("#previous").addEventListener("click", () => {
+  send({ type: "prev" });
+});
+
+document.querySelector("#hide").addEventListener("click", () => {
+  send({ type: "blank" }); // omitted value toggles
+});
+
+document.querySelector("#queue").addEventListener("click", () => {
+  send({ type: "queueItem", itemIndex: 4 });
+});
+
+document.querySelector("#welcome").addEventListener("click", () => {
+  socket.emit("live:quickText", {
+    text: "Welcome — please stand",
+    mode: "direct",
+  });
+});
 ```
+
+The `send` guard is only a UI convenience. The server still enforces the live permission and
+validates every payload.
+
+### 9.2 Browser output client
+
+A minimal output page that renders the current page and recovers from a half-open connection:
+
+```html
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Service Maestro output</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: transparent;
+        color: #fff;
+        font-family: system-ui, sans-serif;
+      }
+      #stage {
+        display: grid;
+        place-items: center;
+        height: 100%;
+        font-size: 6vmin;
+        text-align: center;
+      }
+      body.is-blank #stage {
+        visibility: hidden;
+      }
+      body.is-offline::after {
+        content: "offline";
+        position: fixed;
+        top: 1rem;
+        right: 1rem;
+        padding: 0.25rem 0.5rem;
+        background: #900;
+        font-size: 0.8rem;
+      }
+    </style>
+  </head>
+  <body>
+    <main id="stage"></main>
+    <script src="/display/socket.ro.io/socket.io.js"></script>
+    <script>
+      const token = new URLSearchParams(location.search).get("token");
+      const stage = document.querySelector("#stage");
+      let lastHeartbeat = Date.now();
+
+      const socket = io({
+        path: "/display/socket.ro.io",
+        auth: { outputToken: token },
+        reconnection: true,
+        reconnectionDelay: 800,
+        reconnectionDelayMax: 4000,
+      });
+
+      socket.on("live:snapshot", (state) => {
+        stage.innerHTML = state.pages[state.pageIndex]?.html ?? "";
+        document.body.classList.toggle("is-blank", state.blank);
+      });
+
+      socket.on("heartbeat", () => {
+        lastHeartbeat = Date.now();
+        document.body.classList.remove("is-offline");
+      });
+
+      socket.on("connect", () => {
+        lastHeartbeat = Date.now();
+        document.body.classList.remove("is-offline");
+      });
+
+      socket.on("disconnect", () => document.body.classList.add("is-offline"));
+      socket.on("connect_error", () => document.body.classList.add("is-offline"));
+
+      setInterval(() => {
+        if (
+          document.visibilityState === "visible" &&
+          Date.now() - lastHeartbeat > 45_000
+        ) {
+          location.reload();
+        }
+      }, 5_000);
+    </script>
+  </body>
+</html>
+```
+
+This deliberately omits fades, backgrounds, templates and lower-third handling. The bundled
+`/display/*` outputs implement those and should normally be used instead.
+
+### 9.3 Node output monitor
+
+A read-only CLI listener is useful when checking what the display listeners are receiving:
+
+```js
+import { io } from "socket.io-client";
+
+const url = process.env.SM_OUTPUT_URL ?? "http://127.0.0.1:8081";
+const token = process.env.SM_OUTPUT_TOKEN;
+
+const socket = io(url, {
+  path: "/display/socket.ro.io",
+  auth: token ? { outputToken: token } : {},
+  reconnection: true,
+});
+
+socket.on("connect", () => console.log("connected", socket.id));
+socket.on("connect_error", (error) => console.error("connect_error:", error.message));
+socket.on("heartbeat", ({ at }) => console.log("heartbeat", new Date(at).toISOString()));
+
+socket.on("live:snapshot", (state) => {
+  console.log(
+    JSON.stringify({
+      status: state.status,
+      title: state.title,
+      item: state.itemIndex,
+      page: `${state.pageIndex + 1}/${state.pageCount}`,
+      blank: state.blank,
+    }),
+  );
+});
+```
+
+Leave `SM_OUTPUT_TOKEN` unset for a token-free display listener. Set it when
+`SM_DISPLAY_REQUIRE_TOKEN=true` or when connecting to the control listener.
+
+### 9.4 HTTP equivalents with curl
+
+The HTTP command API is convenient for shell scripts because it returns the resulting state
+directly. The cookie jar contains a live session token, so keep it private.
+
+```bash
+SM_URL="https://lyrics.local:8080"
+
+read -rsp 'Password: ' SM_PASSWORD; echo
+
+# Log in and save the sm_session cookie. Omit -k when the certificate is trusted.
+SM_PASSWORD="$SM_PASSWORD" \
+jq -n '{username:"operator", password:env.SM_PASSWORD}' |
+  curl -k -c /tmp/sm-cookies \
+    -H 'Content-Type: application/json' \
+    --data-binary @- \
+    "$SM_URL/api/auth/login"
+
+# Read the current live state. The shape is the same as live:snapshot.
+curl -k -b /tmp/sm-cookies "$SM_URL/api/live" |
+  jq '.state | {status, setlistName, title, pageIndex, pageCount, blank}'
+
+# Send a command. Invalid payloads return 400 with validation issues.
+curl -k -b /tmp/sm-cookies \
+  -H 'Content-Type: application/json' \
+  --data '{"type":"page","delta":1}' \
+  "$SM_URL/api/live/command" |
+  jq '.state | {title, pageIndex, pageCount}'
+
+# Show transient quick text.
+curl -k -b /tmp/sm-cookies \
+  -H 'Content-Type: application/json' \
+  --data '{"text":"Welcome — please stand","mode":"direct"}' \
+  "$SM_URL/api/live/quick-text" |
+  jq '.state | {title, pageIndex}'
+```
+
+`-k` is only for a local self-signed certificate. Do not use it for a production certificate.
+
+### 9.5 Complete bash script using Socket.IO
+
+Bash cannot speak the Socket.IO protocol by itself. This script uses `curl` for login and the
+project's Node `socket.io-client` for the WebSocket connection. It is **read-only by default**:
+without an argument it connects, prints the first snapshot and exits. Pass `next` to send one
+command, or pass any other text to show it as quick text.
+
+```bash
+#!/usr/bin/env bash
+#
+# Usage:
+#   SM_PASSWORD='…' ./sm-socket-example.sh            # print state and exit
+#   SM_PASSWORD='…' ./sm-socket-example.sh next       # send next
+#   SM_PASSWORD='…' ./sm-socket-example.sh 'Welcome'  # show quick text
+#
+# Requires: curl, awk and node with socket.io-client available.
+# Run from the Service Maestro repository root.
+
+set -euo pipefail
+
+SM_URL="${SM_URL:-https://127.0.0.1:8080}"
+SM_USER="${SM_USER:-admin}"
+SM_ACTION="${1:-}"
+
+if [[ -z "${SM_PASSWORD:-}" ]]; then
+  read -rsp "Password for ${SM_USER}: " SM_PASSWORD
+  echo
+fi
+
+CURL_OPTS=(-fsS)
+if [[ "${SM_INSECURE_TLS:-0}" == "1" ]]; then
+  CURL_OPTS+=(-k)
+fi
+
+COOKIE_JAR="$(mktemp)"
+trap 'rm -f "$COOKIE_JAR"' EXIT
+
+# 1. Log in and keep the session cookie in a private temporary file.
+LOGIN_JSON="$(
+  SM_USER="$SM_USER" SM_PASSWORD="$SM_PASSWORD" \
+  node -e 'process.stdout.write(JSON.stringify({
+    username: process.env.SM_USER,
+    password: process.env.SM_PASSWORD
+  }))'
+)"
+printf '%s' "$LOGIN_JSON" | curl "${CURL_OPTS[@]}" -c "$COOKIE_JAR" \
+  -H 'Content-Type: application/json' \
+  --data-binary @- \
+  "$SM_URL/api/auth/login" >/dev/null
+
+# 2. Extract the sm_session cookie for the Socket.IO handshake.
+COOKIE="$(awk 'BEGIN { FS = "\t" } $6 == "sm_session" { print $6 "=" $7 }' "$COOKIE_JAR")"
+if [[ -z "$COOKIE" ]]; then
+  echo "Login did not return an sm_session cookie." >&2
+  exit 1
+fi
+
+# 3. Connect, print the first snapshot, then optionally send one action.
+SM_URL="$SM_URL" SM_COOKIE="$COOKIE" SM_ACTION="$SM_ACTION" \
+SM_INSECURE_TLS="${SM_INSECURE_TLS:-0}" \
+node --input-type=module <<'NODE'
+import { io } from "socket.io-client";
+
+const socket = io(process.env.SM_URL, {
+  path: "/socket.io",
+  extraHeaders: { cookie: process.env.SM_COOKIE },
+  rejectUnauthorized: process.env.SM_INSECURE_TLS !== "1",
+  reconnection: true,
+  reconnectionDelay: 500,
+  reconnectionDelayMax: 5000,
+});
+
+const firstSnapshot = new Promise((resolve, reject) => {
+  const timer = setTimeout(
+    () => reject(new Error("timed out waiting for live:snapshot")),
+    10_000,
+  );
+  socket.once("live:snapshot", (state) => {
+    clearTimeout(timer);
+    resolve(state);
+  });
+});
+
+socket.on("connect_error", (error) => {
+  console.error(`Socket error: ${error.message}`);
+});
+
+await new Promise((resolve, reject) => {
+  socket.once("connect", resolve);
+  socket.once("connect_error", reject);
+});
+
+const state = await firstSnapshot;
+console.log(JSON.stringify({
+  status: state.status,
+  setlist: state.setlistName,
+  title: state.title,
+  page: `${state.pageIndex + 1}/${state.pageCount}`,
+  blank: state.blank,
+}, null, 2));
+
+if (process.env.SM_ACTION === "next") {
+  socket.emit("live:command", { type: "next" });
+  await new Promise((resolve) => setTimeout(resolve, 500));
+  console.log("Sent live:command { type: 'next' }");
+} else if (process.env.SM_ACTION) {
+  socket.emit("live:quickText", {
+    text: process.env.SM_ACTION,
+    mode: "direct",
+  });
+  await new Promise((resolve) => setTimeout(resolve, 500));
+  console.log("Sent live:quickText");
+}
+
+socket.disconnect();
+NODE
+```
+
+Run it against a local self-signed certificate with:
+
+```bash
+SM_URL="https://127.0.0.1:8080" \
+SM_USER="admin" \
+SM_INSECURE_TLS=1 \
+./sm-socket-example.sh
+```
+
+`SM_INSECURE_TLS=1` disables certificate verification for both `curl` and the Node client. Use it
+only for local testing. For a trusted certificate, omit it and use the real hostname in `SM_URL`.
