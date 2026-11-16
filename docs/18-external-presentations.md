@@ -1,7 +1,7 @@
 # External presentations
 
-Status: **experimental public iframe embed**. **Menu → Presentations** saves public PowerPoint,
-Canva and Google Slides links per user and displays them inside the control interface.
+Status: **experimental public iframe embed**. **Menu → Experimental → Presentations** saves public
+PowerPoint, Canva and Google Slides links per user and displays them inside the control interface.
 
 ## What works
 

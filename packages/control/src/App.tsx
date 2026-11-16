@@ -107,7 +107,11 @@ export default function App() {
     mqtt: "off",
   });
   const [menuOpen, setMenuOpen] = useState(false);
-  const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
+  const [menuPosition, setMenuPosition] = useState<{
+    top: number;
+    left: number;
+    maxHeight: number;
+  } | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const [compactMenuOpen, setCompactMenuOpen] = useState(false);
   const compactMenuRef = useRef<HTMLDivElement | null>(null);
@@ -428,13 +432,14 @@ export default function App() {
     const rect = menuRef.current?.getBoundingClientRect();
     if (!rect) return;
     const width = 276;
-    const estimatedHeight = 430;
+    const estimatedHeight = Math.min(760, window.innerHeight - 24);
     const left = Math.max(12, Math.min(rect.left, window.innerWidth - width - 12));
     const top =
       rect.bottom + 8 + estimatedHeight > window.innerHeight
         ? Math.max(12, rect.top - 8 - estimatedHeight)
         : rect.bottom + 8;
-    setMenuPosition({ top, left });
+    const maxHeight = Math.max(240, window.innerHeight - top - 12);
+    setMenuPosition({ top, left, maxHeight });
     setMenuOpen(true);
   }
 
@@ -498,6 +503,21 @@ export default function App() {
     user?.permissions.songs === true ||
     user?.permissions.setlists === true ||
     user?.permissions.tarp === true;
+  const menuPageActive = (
+    [
+      "settings",
+      "outputs",
+      "backgrounds",
+      "stingers",
+      "dedupe",
+      "users",
+      "mqtt",
+      "archives",
+      "clicker",
+      "presentations",
+      "tarp",
+    ] as Page[]
+  ).includes(page);
 
   function renderMoreMenu(close: () => void) {
     return (
@@ -575,21 +595,6 @@ export default function App() {
           className="nav-dropdown-link"
           role="menuitem"
           onClick={() => {
-            setPage("presentations");
-            close();
-          }}
-          title="Embed public external presentations and open private ones in a window"
-        >
-          <span>Presentations</span>
-          <span className="nav-dropdown-external" aria-hidden="true">
-            ▷
-          </span>
-        </button>
-        <button
-          type="button"
-          className="nav-dropdown-link"
-          role="menuitem"
-          onClick={() => {
             setPage("dedupe");
             close();
           }}
@@ -651,6 +656,37 @@ export default function App() {
             </span>
           </button>
         )}
+        <div className="nav-dropdown-label">Experimental</div>
+        <button
+          type="button"
+          className="nav-dropdown-link"
+          role="menuitem"
+          onClick={() => {
+            setPage("tarp");
+            close();
+          }}
+          title="Create Tarp themes and presentations"
+        >
+          <span>Tarp</span>
+          <span className="nav-dropdown-external" aria-hidden="true">
+            ▧
+          </span>
+        </button>
+        <button
+          type="button"
+          className="nav-dropdown-link"
+          role="menuitem"
+          onClick={() => {
+            setPage("presentations");
+            close();
+          }}
+          title="Embed public external presentations and open private ones in a window"
+        >
+          <span>Presentations</span>
+          <span className="nav-dropdown-external" aria-hidden="true">
+            ▷
+          </span>
+        </button>
         <button
           type="button"
           className="nav-dropdown-link"
@@ -712,12 +748,6 @@ export default function App() {
         title: "Browse, upload and add images to set lists",
       },
       {
-        page: "tarp",
-        icon: "▧",
-        label: "Tarp",
-        title: "Create Tarp themes and presentations",
-      },
-      {
         page: "bible",
         icon: "✝",
         label: "Bible",
@@ -731,7 +761,8 @@ export default function App() {
       },
     ];
     if (adapterContext.churchSuiteEnabled) {
-      items.splice(6, 0, {
+      const helpIndex = items.findIndex((item) => item.page === "help");
+      items.splice(helpIndex >= 0 ? helpIndex : items.length, 0, {
         page: "churchsuite",
         icon: "⛪",
         label: "ChurchSuite",
@@ -863,13 +894,6 @@ export default function App() {
             <span className="nav-icon">▣</span> Images
           </button>
           <button
-            className={page === "tarp" ? "active" : ""}
-            onClick={() => setPage("tarp")}
-            title="Create Tarp themes and presentations"
-          >
-            <span className="nav-icon">▧</span> Tarp
-          </button>
-          <button
             className={page === "bible" ? "active" : ""}
             onClick={() => setPage("bible")}
             title="Look up a Bible passage to display or add to a set list"
@@ -895,7 +919,7 @@ export default function App() {
           <div className="nav-more" ref={menuRef}>
             <button
               type="button"
-              className={`nav-more-toggle ${menuOpen || page === "settings" ? "active" : ""}`}
+              className={`nav-more-toggle ${menuOpen || menuPageActive ? "active" : ""}`}
               onClick={toggleMenu}
               aria-haspopup="menu"
               aria-expanded={menuOpen}
@@ -907,7 +931,11 @@ export default function App() {
               <div
                 className="nav-dropdown"
                 role="menu"
-                style={{ top: menuPosition.top, left: menuPosition.left }}
+                style={{
+                  top: menuPosition.top,
+                  left: menuPosition.left,
+                  maxHeight: menuPosition.maxHeight,
+                }}
               >
                 {renderMoreMenu(() => setMenuOpen(false))}
               </div>

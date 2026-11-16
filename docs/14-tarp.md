@@ -1,4 +1,4 @@
-# Tarp — presentation module
+- [ ] # Tarp — presentation module
 
 Tarp is a lightweight presentation system for building simple, animated slides with two coordinated layouts per page:
 
@@ -138,7 +138,7 @@ The presentation itself is library data, not duplicated into the set list. Expor
 
 ## 5. Editor experience
 
-- Tarp page in the main navigation with presentation library and theme library.
+- Tarp page under **Menu → Experimental** with presentation library and theme library.
 - Presentation editor:
   - Page thumbnail rail and add/duplicate/delete page.
   - Normal canvas and lower-third canvas side by side, or tabs on smaller screens.
