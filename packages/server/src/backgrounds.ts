@@ -91,6 +91,14 @@ export const BUILTIN_BACKGROUNDS: Array<{
     colors: { background: "#12061a", primary: "#f472b6", secondary: "#22d3ee", accent: "#facc15" },
     useGlobalColors: false,
   },
+  {
+    id: "background-snowfall",
+    name: "Snowfall",
+    kind: "svg",
+    preset: "snowfall",
+    colors: { background: "#06111f", primary: "#ffffff", secondary: "#bae6fd", accent: "#e0f2fe" },
+    useGlobalColors: false,
+  },
 ];
 
 const KNOWN_PRESETS = new Map(
@@ -148,6 +156,24 @@ function cssPreset(preset: string, colors: BackgroundColors): string {
 }
 
 function svgPreset(preset: string, colors: BackgroundColors): string {
+  if (preset === "snowfall") {
+    const flakes = Array.from({ length: 90 }, (_, index) => {
+      const x = 20 + ((index * 277) % 1560);
+      const radius = 1.4 + (index % 4) * 0.65;
+      const duration = 9 + (index % 9) * 1.3;
+      const delay = (index % 17) * 0.7;
+      const drift = (index % 2 ? 1 : -1) * (18 + (index % 5) * 9);
+      const opacity = 0.35 + (index % 5) * 0.12;
+      const color = [colors.primary, colors.secondary, colors.accent][index % 3];
+      return `<circle cx="${x}" cy="-20" r="${radius}" fill="${color}">
+        <animateTransform attributeName="transform" type="translate" values="0 -40; ${drift} 980" dur="${duration}s" begin="-${delay}s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" values="0;${opacity};${opacity};0" dur="${duration}s" begin="-${delay}s" repeatCount="indefinite"/>
+      </circle>`;
+    }).join("");
+    return `<div class="sm-bg-fill sm-bg-snowfall"><svg viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" width="100%" height="100%">
+      <rect width="1600" height="900" fill="${colors.background}"/>${flakes}
+    </svg></div>`;
+  }
   if (preset === "orbits") {
     return `<style>
       .sm-bg-orbits .orbit{transform-origin:800px 450px;animation:smBgOrbit 20s linear infinite}
