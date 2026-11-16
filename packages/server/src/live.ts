@@ -646,6 +646,9 @@ class LiveService {
   command(command: Record<string, unknown>): LiveState {
     if (!this.active) return idleState();
     const state = this.active.state;
+    const settings = getAppSettings();
+    const previousItemIndex = state.itemIndex;
+    const previousPageIndex = state.pageIndex;
 
     switch (command.type) {
       case "next":
@@ -660,7 +663,6 @@ class LiveService {
           this.setPage(state.pageIndex + delta);
           break;
         }
-        const settings = getAppSettings();
         if (settings.pageNavigation === "next-item" && Math.abs(delta) === 1) {
           const lastPage = Math.max(0, state.pageCount - 1);
           if (delta > 0 && state.pageIndex >= lastPage) {
@@ -774,6 +776,13 @@ class LiveService {
       }
       default:
         break;
+    }
+
+    if (
+      settings.autoShowOnPageChange &&
+      (state.itemIndex !== previousItemIndex || state.pageIndex !== previousPageIndex)
+    ) {
+      state.blank = false;
     }
 
     state.version += 1;

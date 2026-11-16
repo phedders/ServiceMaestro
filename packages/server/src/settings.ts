@@ -11,6 +11,7 @@ import { GIT_AUTO_PUSH, GIT_AUTO_SAVE, GIT_PULL_INTERVAL } from "./config.js";
 
 const DEFAULTS: AppSettings = {
   pageNavigation: "stop",
+  autoShowOnPageChange: false,
   churchsuiteEmptyTypes: [...DEFAULT_CHURCHSUITE_EMPTY_TYPES],
   defaultBibleTranslation: null,
   bibleShortNames: {},
@@ -36,6 +37,10 @@ export function getAppSettings(): AppSettings {
   const rows = db.prepare("SELECT key, value FROM app_settings").all() as Row[];
   const values = new Map(rows.map((row) => [row.key, row.value]));
   const pageNavigation = values.get("page_navigation");
+  const rawAutoShowOnPageChange = values.get("auto_show_on_page_change");
+  const autoShowOnPageChange =
+    rawAutoShowOnPageChange !== undefined &&
+    !["0", "false", "no", "off"].includes(rawAutoShowOnPageChange.toLowerCase());
   let churchsuiteEmptyTypes = DEFAULTS.churchsuiteEmptyTypes;
   const rawEmptyTypes = values.get("churchsuite_empty_types");
   if (rawEmptyTypes) {
@@ -120,6 +125,7 @@ export function getAppSettings(): AppSettings {
   return {
     pageNavigation:
       pageNavigation === "next-item" ? "next-item" : DEFAULTS.pageNavigation,
+    autoShowOnPageChange,
     churchsuiteEmptyTypes,
     defaultBibleTranslation,
     bibleShortNames,
@@ -137,6 +143,7 @@ export function saveAppSettings(settings: AppSettings): AppSettings {
      ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`,
   );
   write.run("page_navigation", settings.pageNavigation, now);
+  write.run("auto_show_on_page_change", settings.autoShowOnPageChange ? "1" : "0", now);
   write.run("churchsuite_empty_types", JSON.stringify(settings.churchsuiteEmptyTypes), now);
   write.run("default_bible_translation", settings.defaultBibleTranslation ?? "", now);
   write.run("bible_short_names", JSON.stringify(settings.bibleShortNames), now);

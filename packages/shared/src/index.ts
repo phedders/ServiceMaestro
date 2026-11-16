@@ -1152,6 +1152,7 @@ export type SongSheetFont = (typeof SONG_SHEET_FONTS)[number]["id"];
 
 export interface AppSettings {
   pageNavigation: "stop" | "next-item";
+  autoShowOnPageChange: boolean;
   churchsuiteEmptyTypes: string[];
   defaultBibleTranslation: string | null;
   bibleShortNames: Record<string, string>;
@@ -2314,6 +2315,7 @@ export const fontImportSchema = z
 
 export const appSettingsSchema = z.object({
   pageNavigation: z.enum(["stop", "next-item"]).default("stop"),
+  autoShowOnPageChange: z.boolean().default(false),
   churchsuiteEmptyTypes: z
     .array(z.string().trim().min(1).max(120))
     .max(100)

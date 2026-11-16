@@ -74,6 +74,7 @@ export default function SettingsPage({
   const [previewScreenId, setPreviewScreenId] = useState<PreviewScreenId>(loadPreviewScreenId);
   const [settings, setSettings] = useState<AppSettings>({
     pageNavigation: "stop",
+    autoShowOnPageChange: false,
     churchsuiteEmptyTypes: [...DEFAULT_CHURCHSUITE_EMPTY_TYPES],
     defaultBibleTranslation: null,
     bibleShortNames: {},
@@ -491,6 +492,21 @@ export default function SettingsPage({
       notify("Live navigation setting saved");
     } catch (error) {
       notify(error instanceof ApiError ? error.message : "Could not save live navigation", "error");
+    } finally {
+      setSavingSettings(false);
+    }
+  }
+
+  async function updateAutoShowOnPageChange(value: boolean) {
+    const next = { ...settings, autoShowOnPageChange: value };
+    setSettings(next);
+    setSavingSettings(true);
+    try {
+      const result = await api.saveSettings(next);
+      setSettings(result.settings);
+      notify("Auto show setting saved");
+    } catch (error) {
+      notify(error instanceof ApiError ? error.message : "Could not save auto show setting", "error");
     } finally {
       setSavingSettings(false);
     }
@@ -972,8 +988,8 @@ export default function SettingsPage({
           <div>
             <h2>Live navigation</h2>
             <p className="muted">
-              Choose what happens when the previous/next page shortcut reaches the first or final
-              page of the current set-list item.
+              Choose what happens when page navigation reaches the first or final page of the
+              current set-list item, and whether changing pages reveals a blanked output.
             </p>
           </div>
           {savingSettings && <span className="muted">Saving…</span>}
@@ -991,10 +1007,19 @@ export default function SettingsPage({
             <option value="next-item">Continue to the previous/next set-list item</option>
           </select>
         </label>
+        <label className="checkbox">
+          <input
+            type="checkbox"
+            checked={settings.autoShowOnPageChange}
+            onChange={(event) => updateAutoShowOnPageChange(event.target.checked)}
+            disabled={savingSettings}
+          />
+          Auto show on page change
+        </label>
         <p className="hint">
-          “Continue” applies to the previous/next page keyboard shortcuts. Next at the final page
-          opens the next item’s first page; previous at the first page opens the previous item’s
-          last page. The setting is global for all operators.
+          When enabled, navigating to a different page or item while the output is blank reveals the
+          new page automatically. “Continue” applies to the previous/next page keyboard shortcuts,
+          quick controls and transport buttons. The setting is global for all operators.
         </p>
       </section>
 
