@@ -37,5 +37,6 @@ export function bracketedSectionLabel(value: string): string | null {
   const cleaned = cleanLabel(value);
   if (!cleaned) return null;
   if (/^[vcbioetrp]$/.test(cleaned)) return cleaned;
+  if (/^(?:in|out)$/i.test(cleaned)) return cleaned;
   return bareSectionLabel(cleaned);
 }

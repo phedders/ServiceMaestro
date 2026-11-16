@@ -47,6 +47,14 @@ test("recognises compact turnaround page IDs", () => {
   assert.deepEqual(songPageNameCandidates(lyrics), ["tr"]);
 });
 
+test("recognises compact intro and outro page IDs", () => {
+  assert.equal(songPageOrder("[in]\n[C] [G]\n\n[out]\n[C] [G]"), "in out");
+  assert.deepEqual(
+    songPageNameCandidates("[in]\n[C] [G]\n\n[out]\n[C] [G]"),
+    ["in", "out"],
+  );
+});
+
 test("lists pages in source order for a set-list verse order", () => {
   assert.equal(
     songPageOrder(

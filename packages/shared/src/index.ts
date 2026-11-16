@@ -1586,6 +1586,8 @@ function sectionPageId(value: string): { canonical: string; id: string } | null 
     t: "tag",
     r: "refrain",
     p: "prechorus",
+    in: "intro",
+    out: "outro",
   };
   if (compactSingle[cleaned]) return { canonical: compactSingle[cleaned], id: cleaned };
 

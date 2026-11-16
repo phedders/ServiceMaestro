@@ -79,6 +79,23 @@ test("recognises compact turnaround labels with chord-only pages", () => {
   assert.match(pages[1].html, /class="chord"/);
 });
 
+test("recognises compact intro and outro labels with chord-only pages", () => {
+  const pages = buildPages({
+    kind: "song",
+    title: "Intro and outro",
+    lyrics: "[Verse 1]\nline\n\n[in]\n[C] [G]\n\n[out]\n[C] [G]",
+    transpose: 0,
+    maxLines: 8,
+  });
+  assert.equal(pages.length, 3);
+  assert.equal(pages[1].section, "in");
+  assert.equal(pages[2].section, "out");
+  assert.match(pages[1].html, /section-label">in</);
+  assert.match(pages[2].html, /section-label">out</);
+  assert.doesNotMatch(pages[1].html, /class="line">\[in\]</);
+  assert.doesNotMatch(pages[2].html, /class="line">\[out\]</);
+});
+
 test("empty text items have no pages", () => {
   const pages = buildPages({
     kind: "text",
