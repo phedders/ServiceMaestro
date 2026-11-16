@@ -23,16 +23,16 @@ export function Transport({
         <button
           className="button"
           disabled={!active}
-          onClick={() => onCommand({ type: "prev" })}
-          title="Go back one page, or to the previous item at the start of an item"
+          onClick={() => onCommand({ type: "page", delta: -1 })}
+          title="Go back one page, or to the previous item when continue-at-boundary is enabled"
         >
           ← Previous
         </button>
         <button
           className="button primary"
           disabled={!active}
-          onClick={() => onCommand({ type: "next" })}
-          title="Advance one page, or to the next item at the end of an item"
+          onClick={() => onCommand({ type: "page", delta: 1 })}
+          title="Advance one page, or to the next item when continue-at-boundary is enabled"
         >
           Next →
         </button>
