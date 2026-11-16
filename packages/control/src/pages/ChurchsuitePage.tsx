@@ -30,6 +30,17 @@ function defaultRange(): { from: string; to: string } {
   return { from: isoDate(from), to: isoDate(to) };
 }
 
+function thisMonthRange(): { from: string; to: string } {
+  const from = new Date();
+  const to = new Date(from);
+  const day = to.getDate();
+  to.setDate(1);
+  to.setMonth(to.getMonth() + 1);
+  const lastDay = new Date(to.getFullYear(), to.getMonth() + 1, 0).getDate();
+  to.setDate(Math.min(day, lastDay));
+  return { from: isoDate(from), to: isoDate(to) };
+}
+
 function planName(plan: ChurchSuitePlanSummary): string {
   return `${compactDate(plan.date)} · ${plan.time?.slice(0, 5) ?? "no time"} · ${plan.name}`;
 }
@@ -74,11 +85,15 @@ export default function ChurchsuitePage({
   const [siteProvider, setSiteProvider] = useState<SiteScraperProviderSummary | null>(null);
   const [lookup, setLookup] = useState<{ itemId: number; query: string } | null>(null);
 
-  async function loadPlans() {
+  async function loadPlans(rangeOverride?: { from: string; to: string }) {
     setLoading(true);
     setReport(null);
     try {
-      const result = await api.churchsuitePlans({ from, to, status });
+      const result = await api.churchsuitePlans({
+        from: rangeOverride?.from ?? from,
+        to: rangeOverride?.to ?? to,
+        status,
+      });
       const next = [...(result.plans.data ?? [])].sort((a, b) =>
         `${b.date}T${b.time ?? ""}`.localeCompare(`${a.date}T${a.time ?? ""}`),
       );
@@ -93,6 +108,13 @@ export default function ChurchsuitePage({
     } finally {
       setLoading(false);
     }
+  }
+
+  function applyThisMonth() {
+    const range = thisMonthRange();
+    setFrom(range.from);
+    setTo(range.to);
+    void loadPlans(range);
   }
 
   useEffect(() => {
@@ -258,7 +280,7 @@ export default function ChurchsuitePage({
           </div>
           <button
             className="button"
-            onClick={loadPlans}
+            onClick={() => void loadPlans()}
             disabled={loading}
             title="Fetch ChurchSuite plans using the selected date range and status"
           >
@@ -283,11 +305,21 @@ export default function ChurchsuitePage({
           </label>
           <button
             className="button primary"
-            onClick={loadPlans}
+            onClick={() => loadPlans()}
             disabled={loading}
             title="Apply the selected date range and plan status"
           >
             Apply
+          </button>
+        </div>
+        <div className="churchsuite-range-presets">
+          <button
+            className="button ghost small"
+            onClick={applyThisMonth}
+            disabled={loading}
+            title="Set From to today and To to one month from now, then reload plans"
+          >
+            This Month
           </button>
         </div>
       </section>

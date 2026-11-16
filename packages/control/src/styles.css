@@ -3777,6 +3777,10 @@ body.resizing-live-queue {
   align-items: end;
 }
 
+.churchsuite-range-presets {
+  margin-top: 8px;
+}
+
 .churchsuite-grid {
   display: grid;
   grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
