@@ -89,6 +89,8 @@ export default function SettingsPage({
   const [sslStatus, setSslStatus] = useState<ControlTlsStatus | null>(null);
   const [pageNames, setPageNames] = useState<string[]>([]);
   const [pageIdDraft, setPageIdDraft] = useState<Record<string, string>>({});
+  const [newPageName, setNewPageName] = useState("");
+  const [newPageId, setNewPageId] = useState("");
   const [scanningPageIds, setScanningPageIds] = useState(false);
   const [pageIdFixes, setPageIdFixes] = useState<SongPageIdFixScan | null>(null);
   const [fixingPageIds, setFixingPageIds] = useState(false);
@@ -277,6 +279,63 @@ export default function SettingsPage({
     return shortcutForPage(name) || suggestSongPageId(name) || "";
   }
 
+  function cleanPageId(value: string): string {
+    return value
+      .trim()
+      .replace(/\s+/g, "")
+      .replace(/[^a-zA-Z0-9_-]/g, "");
+  }
+
+  function allPageIdNames(): string[] {
+    const names = [...pageNames];
+    for (const name of Object.keys(settings.pageIdShortcuts)) {
+      if (!names.some((existing) => existing.toLowerCase() === name.toLowerCase())) {
+        names.push(name);
+      }
+    }
+    return names;
+  }
+
+  async function addPageIdEntry() {
+    const name = newPageName.trim();
+    const id = cleanPageId(newPageId);
+    if (!name) {
+      notify("Enter a page name to add", "error");
+      return;
+    }
+    if (!id) {
+      notify("Enter a short page ID", "error");
+      return;
+    }
+    const existingKey =
+      Object.keys(settings.pageIdShortcuts).find(
+        (candidate) => candidate.toLowerCase() === name.toLowerCase(),
+      ) ?? name;
+    const pageIdShortcuts = { ...pageIdShortcutMap() };
+    for (const key of Object.keys(pageIdShortcuts)) {
+      if (key.toLowerCase() === name.toLowerCase()) delete pageIdShortcuts[key];
+    }
+    pageIdShortcuts[existingKey] = id;
+    const next = { ...settings, pageIdShortcuts };
+    setSavingSettings(true);
+    try {
+      const result = await api.saveSettings(next);
+      setSettings(result.settings);
+      setPageIdDraft({});
+      setPageIdFixes(null);
+      setNewPageName("");
+      setNewPageId("");
+      notify("Page ID entry added");
+    } catch (error) {
+      notify(
+        error instanceof ApiError ? error.message : "Could not add the page ID entry",
+        "error",
+      );
+    } finally {
+      setSavingSettings(false);
+    }
+  }
+
   async function scanPageNames(showNotice = true): Promise<string[] | null> {
     setScanningPageIds(true);
     setPageIdFixes(null);
@@ -296,20 +355,20 @@ export default function SettingsPage({
     }
   }
 
-  function pageIdShortcutMap(names = pageNames): Record<string, string> {
+  function pageIdShortcutMap(names = allPageIdNames()): Record<string, string> {
     const shortcuts = { ...settings.pageIdShortcuts };
     for (const name of names) {
-      const cleaned = pageIdValue(name)
-        .trim()
-        .replace(/\s+/g, "")
-        .replace(/[^a-zA-Z0-9_-]/g, "");
+      const cleaned = cleanPageId(pageIdValue(name));
       if (cleaned) shortcuts[name] = cleaned;
       else delete shortcuts[name];
     }
     return shortcuts;
   }
 
-  async function savePageIdShortcuts(showNotice = true, names = pageNames): Promise<boolean> {
+  async function savePageIdShortcuts(
+    showNotice = true,
+    names = allPageIdNames(),
+  ): Promise<boolean> {
     setSavingSettings(true);
     try {
       const result = await api.saveSettings({
@@ -611,6 +670,8 @@ export default function SettingsPage({
       setGitExporting(false);
     }
   }
+
+  const pageIdNames = allPageIdNames();
 
   return (
     <div className="config-page">
@@ -1088,14 +1149,50 @@ export default function SettingsPage({
             <button
               className="button ghost"
               onClick={() => void savePageIdShortcuts()}
-              disabled={savingSettings || !pageNames.length}
+              disabled={savingSettings || !pageIdNames.length}
               title="Save the short ID for each page name without changing any songs"
             >
               Save page IDs
             </button>
           </div>
         </div>
-        {pageNames.length ? (
+        {user.role === "admin" && (
+          <>
+            <div className="page-id-add-row">
+              <label>
+                New page name
+                <input
+                  value={newPageName}
+                  onChange={(event) => setNewPageName(event.target.value)}
+                  placeholder="e.g. Opening Prayer"
+                  maxLength={120}
+                />
+              </label>
+              <label>
+                Short page ID
+                <input
+                  value={newPageId}
+                  onChange={(event) => setNewPageId(event.target.value)}
+                  placeholder="e.g. op"
+                  maxLength={40}
+                />
+              </label>
+              <button
+                className="button primary"
+                onClick={() => void addPageIdEntry()}
+                disabled={savingSettings || !newPageName.trim() || !newPageId.trim()}
+                title="Add a page name and short ID that was not found by the scan"
+              >
+                Add page ID
+              </button>
+            </div>
+            <p className="hint">
+              Add names manually for labels that are not in the song database yet. The shared
+              conversion table will use them when songs are imported or edited later.
+            </p>
+          </>
+        )}
+        {pageIdNames.length ? (
           <div className="page-id-table-wrap">
             <table className="page-id-table">
               <thead>
@@ -1105,7 +1202,7 @@ export default function SettingsPage({
                 </tr>
               </thead>
               <tbody>
-                {pageNames.map((name) => (
+                {pageIdNames.map((name) => (
                   <tr key={name}>
                     <td>{name}</td>
                     <td>
@@ -1128,7 +1225,9 @@ export default function SettingsPage({
             </table>
           </div>
         ) : (
-          <p className="muted">Scan the song database to list page names.</p>
+          <p className="muted">
+            Scan the song database or add a page name manually to build the conversion table.
+          </p>
         )}
 
         {pageIdFixes && (

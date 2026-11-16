@@ -3207,6 +3207,22 @@ body.resizing-live-queue {
   pointer-events: none;
 }
 
+.page-id-add-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: flex-end;
+  margin-bottom: 10px;
+}
+
+.page-id-add-row label {
+  flex: 1 1 220px;
+}
+
+.page-id-add-row .button {
+  align-self: flex-end;
+}
+
 .page-id-table-wrap,
 .bible-name-table-wrap {
   max-height: 420px;
