@@ -996,10 +996,10 @@ export default function App() {
             <button
               type="button"
               className="nav-quick-button"
-              onClick={() => void command({ type: "prev" })}
+              onClick={() => void command({ type: "page", delta: -1 })}
               disabled={!canWriteLive || live.status === "idle"}
-              title="Previous page or item"
-              aria-label="Previous page or item"
+              title="Previous page (or previous item when continue-at-boundary is enabled)"
+              aria-label="Previous page"
             >
               ◀
             </button>
@@ -1016,10 +1016,10 @@ export default function App() {
             <button
               type="button"
               className="nav-quick-button"
-              onClick={() => void command({ type: "next" })}
+              onClick={() => void command({ type: "page", delta: 1 })}
               disabled={!canWriteLive || live.status === "idle"}
-              title="Next page or item"
-              aria-label="Next page or item"
+              title="Next page (or next item when continue-at-boundary is enabled)"
+              aria-label="Next page"
             >
               ▶
             </button>
