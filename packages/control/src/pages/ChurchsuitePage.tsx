@@ -592,7 +592,7 @@ export default function ChurchsuitePage({
                   disabled={importing}
                   title="Create a draft set list from this plan without changing the live session"
                 >
-                  {importing ? "Creating…" : "Create draft set list"}
+                  {importing ? "Creating…" : "Create set list"}
                 </button>
               </ReadOnlyFieldset>
               <p className="hint">
