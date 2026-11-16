@@ -440,16 +440,16 @@ img.brand-mark.large {
   flex: 0 0 auto;
 }
 
-.nav-mobile-menu-toggle {
-  width: 36px;
-  min-width: 36px;
-  height: 36px;
+.nav .nav-mobile-menu-toggle {
+  width: 48px;
+  min-width: 48px;
+  height: 48px;
   justify-content: center;
   border: 1px solid var(--border);
   border-radius: 8px;
   background: var(--panel-2);
   color: var(--text);
-  font-size: 1rem;
+  font-size: 1.5rem;
 }
 
 .nav-mobile-menu-toggle.active {
@@ -6160,14 +6160,14 @@ body.resizing-live-queue {
 }
 
 .compact-menu-toggle {
-  width: 34px;
-  min-width: 34px;
-  height: 34px;
+  width: 48px;
+  min-width: 48px;
+  height: 48px;
   padding: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 1rem;
+  font-size: 1.4rem;
 }
 
 .nav-dropdown.compact-menu-dropdown {
