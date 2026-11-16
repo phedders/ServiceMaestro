@@ -29,6 +29,7 @@ import StingersPage from "./pages/StingersPage";
 import UsersPage from "./pages/UsersPage";
 import DeDupePage from "./pages/DeDupePage";
 import ClickerPage from "./pages/ClickerPage";
+import PresentationsPage from "./pages/PresentationsPage";
 import OutputsPage from "./pages/OutputsPage";
 import MqttPage from "./pages/MqttPage";
 import ArchivesPage from "./pages/ArchivesPage";
@@ -60,6 +61,7 @@ type Page =
   | "mqtt"
   | "archives"
   | "clicker"
+  | "presentations"
   | "help";
 
 interface Toast {
@@ -475,6 +477,8 @@ export default function App() {
         return "Archives";
       case "clicker":
         return "Clicker";
+      case "presentations":
+        return "Presentations";
       case "help":
         return "Help";
     }
@@ -564,6 +568,21 @@ export default function App() {
           <span>Clicker</span>
           <span className="nav-dropdown-external" aria-hidden="true">
             ⌨
+          </span>
+        </button>
+        <button
+          type="button"
+          className="nav-dropdown-link"
+          role="menuitem"
+          onClick={() => {
+            setPage("presentations");
+            close();
+          }}
+          title="Embed public external presentations and open private ones in a window"
+        >
+          <span>Presentations</span>
+          <span className="nav-dropdown-external" aria-hidden="true">
+            ▷
           </span>
         </button>
         <button
@@ -1080,6 +1099,7 @@ export default function App() {
               notify={notify}
             />
           )}
+          {page === "presentations" && <PresentationsPage notify={notify} />}
           {page === "mqtt" && user.role === "admin" && adapterContext.mqttEnabled && (
             <MqttPage notify={notify} />
           )}

@@ -26,6 +26,8 @@ const BLOCKED_API_PREFIXES = [
   "/api/git",
   "/api/settings",
   "/api/transfer",
+  "/api/clicker",
+  "/api/presentations",
 ];
 
 interface RuntimeSettings extends MqttSettingsInput {

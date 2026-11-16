@@ -44,6 +44,8 @@ import type {
   MqttSettingsInput,
   MqttStatus,
   PasskeySummary,
+  PresentationsConfig,
+  PresentationsConfigInput,
   PublicUser,
   Role,
   SetlistDetail,
@@ -171,6 +173,12 @@ export const api = {
   clicker: () => request<{ config: ClickerConfig | null }>("/api/clicker"),
   saveClicker: (config: ClickerConfigInput) =>
     request<{ config: ClickerConfig }>("/api/clicker", {
+      method: "PUT",
+      body: JSON.stringify(config),
+    }),
+  presentations: () => request<{ config: PresentationsConfig | null }>("/api/presentations"),
+  savePresentations: (config: PresentationsConfigInput) =>
+    request<{ config: PresentationsConfig }>("/api/presentations", {
       method: "PUT",
       body: JSON.stringify(config),
     }),

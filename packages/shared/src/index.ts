@@ -1207,6 +1207,31 @@ export interface ClickerConfig extends ClickerConfigInput {
   updatedAt: string;
 }
 
+export const PRESENTATION_PROVIDERS = [
+  "canva",
+  "powerpoint",
+  "google_slides",
+  "other",
+] as const;
+
+export type PresentationProvider = (typeof PRESENTATION_PROVIDERS)[number];
+
+export interface ExternalPresentation {
+  id: string;
+  name: string;
+  provider: PresentationProvider;
+  openUrl: string;
+  embedUrl: string;
+}
+
+export interface PresentationsConfigInput {
+  presentations: ExternalPresentation[];
+}
+
+export interface PresentationsConfig extends PresentationsConfigInput {
+  updatedAt: string;
+}
+
 export type AdapterMode = "off" | "local" | "shared";
 
 export interface IntegrationSettings {
@@ -2308,6 +2333,39 @@ export const clickerConfigSchema = z
         });
       }
       ids.add(button.id);
+    }
+  });
+
+export const presentationUrlSchema = z
+  .string()
+  .trim()
+  .url()
+  .max(2000)
+  .refine((value) => /^https?:\/\//i.test(value), "Only HTTP(S) presentation URLs are allowed");
+
+export const externalPresentationSchema = z.object({
+  id: z.string().trim().min(1).max(120),
+  name: z.string().trim().min(1).max(120),
+  provider: z.enum(PRESENTATION_PROVIDERS),
+  openUrl: presentationUrlSchema,
+  embedUrl: presentationUrlSchema,
+});
+
+export const presentationsConfigSchema = z
+  .object({
+    presentations: z.array(externalPresentationSchema).max(50).default([]),
+  })
+  .superRefine((value, context) => {
+    const ids = new Set<string>();
+    for (const presentation of value.presentations) {
+      if (ids.has(presentation.id)) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Duplicate presentation: ${presentation.id}`,
+          path: ["presentations"],
+        });
+      }
+      ids.add(presentation.id);
     }
   });
 
