@@ -161,6 +161,7 @@ db.exec(`
     text_color TEXT NOT NULL,
     text_scale REAL NOT NULL,
     font_size_unit TEXT NOT NULL DEFAULT 'responsive',
+    background_json TEXT NOT NULL DEFAULT '{"type":"none"}',
     max_lines INTEGER NOT NULL,
     max_words INTEGER NOT NULL DEFAULT 90,
     smart_page_splits INTEGER NOT NULL DEFAULT 1,
@@ -341,6 +342,7 @@ ensureColumn("tarp_presentations", "archived_at", "TEXT");
 ensureColumn("service_sessions", "revision_id", "TEXT");
 ensureColumn("service_sessions", "pending_json", "TEXT");
 ensureColumn("display_config", "font_size_unit", "TEXT NOT NULL DEFAULT 'responsive'");
+ensureColumn("display_config", "background_json", "TEXT NOT NULL DEFAULT '{\"type\":\"none\"}'");
 ensureColumn("display_config", "max_words", "INTEGER NOT NULL DEFAULT 90");
 ensureColumn("display_config", "smart_page_splits", "INTEGER NOT NULL DEFAULT 1");
 ensureColumn("display_config", "smart_wrap_min_words", "INTEGER NOT NULL DEFAULT 15");

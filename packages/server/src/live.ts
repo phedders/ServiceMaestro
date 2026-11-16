@@ -27,6 +27,7 @@ import { getDisplayConfig } from "./display-config.js";
 import { getAppSettings } from "./settings.js";
 import { resolveImage } from "./images.js";
 import { getBackground } from "./backgrounds.js";
+import { renderDisplayBackground } from "./display-background.js";
 import { getStinger } from "./stingers.js";
 import { renderTarpPages } from "./tarp-render.js";
 
@@ -367,11 +368,14 @@ class LiveService {
     state.pendingRevision = this.active.pending?.revisionNo ?? null;
     state.displayConfig = config;
     const item = this.active.transient ?? this.active.items[state.itemIndex];
-    const background = item?.backgroundId ? getBackground(item.backgroundId) : null;
+    const itemBackground = item?.backgroundId ? getBackground(item.backgroundId) : null;
+    const configuredBackground = itemBackground
+      ? null
+      : renderDisplayBackground(config.background);
     return {
       ...state,
       pages: state.pages,
-      background,
+      background: itemBackground ?? (configuredBackground ? { render: configuredBackground } : null),
       templates: resolveTemplates(this.active.setlistId),
       outputs: displayOutputsMap(),
       displayConfig: config,

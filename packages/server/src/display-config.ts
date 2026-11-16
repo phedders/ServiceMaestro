@@ -1,5 +1,5 @@
-import { SMART_WRAP_MODULES } from "@sm/shared";
-import type { DisplayConfig, SmartWrapModule } from "@sm/shared";
+import { displayBackgroundSchema, SMART_WRAP_MODULES } from "@sm/shared";
+import type { DisplayBackground, DisplayConfig, SmartWrapModule } from "@sm/shared";
 import { db } from "./db.js";
 
 interface Row {
@@ -7,6 +7,7 @@ interface Row {
   text_color: string;
   text_scale: number;
   font_size_unit: string | null;
+  background_json: string | null;
   max_lines: number;
   max_words: number;
   smart_page_splits: number;
@@ -34,13 +35,23 @@ function parseSmartWrapModules(value: string | null | undefined): SmartWrapModul
   }
 }
 
+function parseDisplayBackground(value: string | null | undefined): DisplayBackground {
+  if (!value) return { type: "none" };
+  try {
+    const parsed = displayBackgroundSchema.safeParse(JSON.parse(value));
+    return parsed.success ? parsed.data : { type: "none" };
+  } catch {
+    return { type: "none" };
+  }
+}
+
 export function getDisplayConfig(): DisplayConfig {
   const row = db
     .prepare(
-      `SELECT font_family, text_color, text_scale, font_size_unit, max_lines, max_words,
-              smart_page_splits, smart_wrap_min_words, smart_wrap_modules,
-              lower_third_image_max_height_percent, lower_third_image_padding,
-              lower_third_font_family, lower_third_text_scale
+      `SELECT font_family, text_color, text_scale, font_size_unit, background_json,
+              max_lines, max_words, smart_page_splits, smart_wrap_min_words,
+              smart_wrap_modules, lower_third_image_max_height_percent,
+              lower_third_image_padding, lower_third_font_family, lower_third_text_scale
        FROM display_config WHERE id = 'default'`,
     )
     .get() as Row | undefined;
@@ -49,6 +60,7 @@ export function getDisplayConfig(): DisplayConfig {
     textColor: row?.text_color ?? "#ffffff",
     textScale: row?.text_scale ?? 1,
     fontSizeUnit: row?.font_size_unit === "vmin" ? "vmin" : "responsive",
+    background: parseDisplayBackground(row?.background_json),
     maxLines: row?.max_lines ?? 4,
     maxWords: row?.max_words ?? 90,
     smartPageSplits: row ? Boolean(row.smart_page_splits) : true,
@@ -67,13 +79,14 @@ export function getDisplayConfig(): DisplayConfig {
 export function saveDisplayConfig(config: DisplayConfig): DisplayConfig {
   db.prepare(
     `INSERT INTO display_config
-       (id, font_family, text_color, text_scale, font_size_unit, max_lines, max_words,
-        smart_page_splits, smart_wrap_min_words, smart_wrap_modules,
+       (id, font_family, text_color, text_scale, font_size_unit, background_json,
+        max_lines, max_words, smart_page_splits, smart_wrap_min_words, smart_wrap_modules,
         lower_third_image_max_height_percent, lower_third_image_padding,
         lower_third_font_family, lower_third_text_scale, updated_at)
-     VALUES ('default', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     VALUES ('default', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(id) DO UPDATE SET font_family = excluded.font_family, text_color = excluded.text_color,
        text_scale = excluded.text_scale, font_size_unit = excluded.font_size_unit,
+       background_json = excluded.background_json,
        max_lines = excluded.max_lines,
        max_words = excluded.max_words, smart_page_splits = excluded.smart_page_splits,
        smart_wrap_min_words = excluded.smart_wrap_min_words,
@@ -88,6 +101,7 @@ export function saveDisplayConfig(config: DisplayConfig): DisplayConfig {
     config.textColor,
     config.textScale,
     config.fontSizeUnit,
+    JSON.stringify(config.background),
     config.maxLines,
     config.maxWords,
     config.smartPageSplits ? 1 : 0,

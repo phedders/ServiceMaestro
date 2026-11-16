@@ -5,13 +5,18 @@ import {
   type CSSProperties,
   type PointerEvent as ReactPointerEvent,
 } from "react";
-import type {
-  DisplayConfig,
-  DisplayViewLink,
-  FontOption,
-  LiveState,
-  SetlistSummary,
-  SmartWrapModule,
+import {
+  DISPLAY_BACKGROUND_PATTERNS,
+  type BackgroundAsset,
+  type DisplayBackground,
+  type DisplayBackgroundPattern,
+  type DisplayConfig,
+  type DisplayViewLink,
+  type FontOption,
+  type ImageAsset,
+  type LiveState,
+  type SetlistSummary,
+  type SmartWrapModule,
 } from "@sm/shared";
 import { api, ApiError } from "../api";
 import { ReadOnlyFieldset } from "../page-access";
@@ -117,12 +122,15 @@ export default function LivePage({
   const [starting, setStarting] = useState(false);
   const [footer, setFooter] = useState(live.footer);
   const [fonts, setFonts] = useState<FontOption[]>(FALLBACK_FONTS);
+  const [backgrounds, setBackgrounds] = useState<BackgroundAsset[]>([]);
+  const [images, setImages] = useState<ImageAsset[]>([]);
   const [displayConfig, setDisplayConfig] = useState<DisplayConfig>(
     live.displayConfig ?? {
       fontFamily: '"Clear Sans", "Segoe UI", system-ui, -apple-system, sans-serif',
       textColor: "#ffffff",
       textScale: 1,
       fontSizeUnit: "responsive",
+      background: { type: "none" },
       maxLines: 4,
       maxWords: 90,
       smartPageSplits: true,
@@ -200,6 +208,7 @@ export default function LivePage({
     live.displayConfig?.textColor,
     live.displayConfig?.textScale,
     live.displayConfig?.fontSizeUnit,
+    JSON.stringify(live.displayConfig?.background ?? null),
     live.displayConfig?.maxLines,
     live.displayConfig?.maxWords,
     live.displayConfig?.smartPageSplits,
@@ -216,6 +225,14 @@ export default function LivePage({
       .fonts()
       .then((result) => setFonts(result.fonts))
       .catch(() => undefined);
+    api
+      .backgrounds()
+      .then((result) => setBackgrounds(result.backgrounds))
+      .catch(() => undefined);
+    api
+      .images()
+      .then((result) => setImages(result.images))
+      .catch(() => undefined);
   }, []);
 
   function toggleSmartWrapModule(module: SmartWrapModule, checked: boolean) {
@@ -225,6 +242,66 @@ export default function LivePage({
         ? [...new Set([...current.smartWrapModules, module])]
         : current.smartWrapModules.filter((entry) => entry !== module),
     }));
+  }
+
+  function setDisplayBackground(background: DisplayBackground) {
+    setDisplayConfig((current) => ({ ...current, background }));
+  }
+
+  function changeBackgroundType(type: DisplayBackground["type"]) {
+    switch (type) {
+      case "none":
+        setDisplayBackground({ type: "none" });
+        break;
+      case "color":
+        setDisplayBackground({ type: "color", color: "#07111f" });
+        break;
+      case "gradient":
+        setDisplayBackground({
+          type: "gradient",
+          from: "#07111f",
+          to: "#1e3a8a",
+          angle: 180,
+        });
+        break;
+      case "pattern":
+        setDisplayBackground({
+          type: "pattern",
+          preset: "stripes",
+          background: "#07111f",
+          foreground: "#4cc2ff",
+        });
+        break;
+      case "asset":
+        setDisplayBackground({
+          type: "asset",
+          backgroundId: backgrounds[0]?.id ?? "",
+        });
+        break;
+      case "image":
+        setDisplayBackground({ type: "image", path: images[0]?.path ?? "" });
+        break;
+    }
+  }
+
+  function updateGradientBackground(
+    patch: Partial<Extract<DisplayBackground, { type: "gradient" }>>,
+  ) {
+    setDisplayConfig((current) =>
+      current.background.type === "gradient"
+        ? { ...current, background: { ...current.background, ...patch } }
+        : current,
+    );
+  }
+
+  function updatePatternBackground(
+    patch: Partial<Extract<DisplayBackground, { type: "pattern" }>>,
+  ) {
+    setDisplayConfig((current) =>
+      current.background.type === "pattern"
+        ? { ...current, background: { ...current.background, ...patch } }
+        : current,
+    );
   }
 
   async function saveConfig() {
@@ -476,6 +553,163 @@ export default function LivePage({
           </button>
         </div>
         <div className="display-config-grid">
+          <div className="display-background-settings">
+            <div>
+              <h3>Background</h3>
+              <p className="muted">
+                Global background for outputs when the set list or item does not specify one.
+              </p>
+            </div>
+            <div className="display-background-grid">
+              <label>
+                Source
+                <select
+                  value={displayConfig.background.type}
+                  onChange={(event) =>
+                    changeBackgroundType(event.target.value as DisplayBackground["type"])
+                  }
+                >
+                  <option value="none">None (output colour)</option>
+                  <option value="color">Solid colour</option>
+                  <option value="gradient">Gradient</option>
+                  <option value="pattern">Pattern</option>
+                  <option value="asset">Background library</option>
+                  <option value="image">Image library</option>
+                </select>
+              </label>
+              {displayConfig.background.type === "color" && (
+                <label>
+                  Colour
+                  <input
+                    type="color"
+                    value={displayConfig.background.color}
+                    onChange={(event) =>
+                      setDisplayBackground({ type: "color", color: event.target.value })
+                    }
+                  />
+                </label>
+              )}
+              {displayConfig.background.type === "gradient" && (
+                <>
+                  <label>
+                    From
+                    <input
+                      type="color"
+                      value={displayConfig.background.from}
+                      onChange={(event) => updateGradientBackground({ from: event.target.value })}
+                    />
+                  </label>
+                  <label>
+                    To
+                    <input
+                      type="color"
+                      value={displayConfig.background.to}
+                      onChange={(event) => updateGradientBackground({ to: event.target.value })}
+                    />
+                  </label>
+                  <label>
+                    Angle
+                    <input
+                      type="number"
+                      min={0}
+                      max={360}
+                      value={displayConfig.background.angle}
+                      onChange={(event) =>
+                        updateGradientBackground({
+                          angle: Math.max(0, Math.min(360, Number(event.target.value) || 0)),
+                        })
+                      }
+                    />
+                  </label>
+                </>
+              )}
+              {displayConfig.background.type === "pattern" && (
+                <>
+                  <label>
+                    Pattern
+                    <select
+                      value={displayConfig.background.preset}
+                      onChange={(event) =>
+                        updatePatternBackground({
+                          preset: event.target.value as DisplayBackgroundPattern,
+                        })
+                      }
+                    >
+                      {DISPLAY_BACKGROUND_PATTERNS.map((preset) => (
+                        <option key={preset} value={preset}>
+                          {preset[0].toUpperCase() + preset.slice(1)}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    Background
+                    <input
+                      type="color"
+                      value={displayConfig.background.background}
+                      onChange={(event) =>
+                        updatePatternBackground({ background: event.target.value })
+                      }
+                    />
+                  </label>
+                  <label>
+                    Pattern colour
+                    <input
+                      type="color"
+                      value={displayConfig.background.foreground}
+                      onChange={(event) =>
+                        updatePatternBackground({ foreground: event.target.value })
+                      }
+                    />
+                  </label>
+                </>
+              )}
+              {displayConfig.background.type === "asset" && (
+                <label className="display-background-wide">
+                  Background
+                  <select
+                    value={displayConfig.background.backgroundId}
+                    onChange={(event) =>
+                      setDisplayBackground({
+                        type: "asset",
+                        backgroundId: event.target.value,
+                      })
+                    }
+                  >
+                    <option value="">Choose a background…</option>
+                    {backgrounds.map((background) => (
+                      <option key={background.id} value={background.id}>
+                        {background.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
+              {displayConfig.background.type === "image" && (
+                <label className="display-background-wide">
+                  Image
+                  <select
+                    value={displayConfig.background.path}
+                    onChange={(event) =>
+                      setDisplayBackground({ type: "image", path: event.target.value })
+                    }
+                  >
+                    <option value="">Choose an image…</option>
+                    {images.map((image) => (
+                      <option key={image.path} value={image.path}>
+                        {image.folder ? `${image.folder}/` : ""}
+                        {image.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
+            </div>
+            <p className="hint">
+              Set-list and item backgrounds take precedence. Images are stretched to cover the
+              output without changing their aspect ratio.
+            </p>
+          </div>
           <label>
             Global font
             <FontSelect

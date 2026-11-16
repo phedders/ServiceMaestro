@@ -583,11 +583,28 @@ export type SmartWrapModule = (typeof SMART_WRAP_MODULES)[number];
 
 export type DisplayFontSizeUnit = "responsive" | "vmin";
 
+export const DISPLAY_BACKGROUND_PATTERNS = ["stripes", "dots", "grid", "waves"] as const;
+export type DisplayBackgroundPattern = (typeof DISPLAY_BACKGROUND_PATTERNS)[number];
+
+export type DisplayBackground =
+  | { type: "none" }
+  | { type: "color"; color: string }
+  | { type: "gradient"; from: string; to: string; angle: number }
+  | {
+      type: "pattern";
+      preset: DisplayBackgroundPattern;
+      background: string;
+      foreground: string;
+    }
+  | { type: "asset"; backgroundId: string }
+  | { type: "image"; path: string };
+
 export interface DisplayConfig {
   fontFamily: string;
   textColor: string;
   textScale: number;
   fontSizeUnit: DisplayFontSizeUnit;
+  background: DisplayBackground;
   maxLines: number;
   maxWords: number;
   smartPageSplits: boolean;
@@ -1498,7 +1515,7 @@ export interface LiveState {
   footer: string;
   pages: LivePage[];
   items: LiveItemSummary[];
-  background?: BackgroundAsset | null;
+  background?: { render: string } | null;
   templates?: Record<string, DisplayTemplate>;
   outputs?: Record<string, DisplayOutput>;
   displayConfig?: DisplayConfig;
@@ -2065,11 +2082,33 @@ const layoutItemSchema = z.object({
   static: z.boolean().optional(),
 });
 
+const displayColorSchema = z.string().trim().regex(/^#[0-9a-f]{6}$/i);
+
+export const displayBackgroundSchema = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("none") }),
+  z.object({ type: z.literal("color"), color: displayColorSchema }),
+  z.object({
+    type: z.literal("gradient"),
+    from: displayColorSchema,
+    to: displayColorSchema,
+    angle: z.number().min(0).max(360).default(180),
+  }),
+  z.object({
+    type: z.literal("pattern"),
+    preset: z.enum(DISPLAY_BACKGROUND_PATTERNS),
+    background: displayColorSchema,
+    foreground: displayColorSchema,
+  }),
+  z.object({ type: z.literal("asset"), backgroundId: z.string().trim().min(1).max(120) }),
+  z.object({ type: z.literal("image"), path: z.string().trim().min(1).max(2000) }),
+]);
+
 export const displayConfigSchema = z.object({
   fontFamily: z.string().trim().min(1).max(200),
   textColor: z.string().trim().regex(/^#[0-9a-f]{6}$/i),
   textScale: z.number().min(0.5).max(2.5),
   fontSizeUnit: z.enum(["responsive", "vmin"]).default("responsive"),
+  background: displayBackgroundSchema.default({ type: "none" }),
   maxLines: z.number().int().min(1).max(30),
   maxWords: z.number().int().min(1).max(500).default(90),
   smartPageSplits: z.boolean().default(true),
