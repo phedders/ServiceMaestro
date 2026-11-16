@@ -663,6 +663,9 @@ class LiveService {
         break;
       case "page": {
         const delta = Number(command.delta ?? 0);
+        if (delta > 0 && this.commitQueuedItem()) {
+          break;
+        }
         if (this.active.transient) {
           this.setPage(state.pageIndex + delta);
           break;
@@ -972,6 +975,21 @@ class LiveService {
     state.queuedPages = this.pagesFor(item);
   }
 
+  private commitQueuedItem(): boolean {
+    if (!this.active) return false;
+    const state = this.active.state;
+    const index = state.queuedItemIndex;
+    if (index == null) return false;
+    if (index < 0 || index >= this.active.items.length) {
+      state.queuedItemIndex = null;
+      state.queuedTitle = null;
+      state.queuedPages = [];
+      return false;
+    }
+    this.setItem(index);
+    return true;
+  }
+
   private appendItem(index: number): void {
     if (!this.active) return;
     const { state, items } = this.active;
@@ -995,6 +1013,8 @@ class LiveService {
     if (!this.active) return;
     const record = this.active;
     const { state, items } = record;
+
+    if (delta > 0 && this.commitQueuedItem()) return;
 
     if (record.transient) {
       // A quick song/text/image is a temporary overlay item. Its pages behave
