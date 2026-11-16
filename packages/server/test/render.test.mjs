@@ -468,3 +468,37 @@ test("smart wrapping keeps split words together", () => {  const pages = buildPa
     /sat<span class="lyric-split"> - <\/span>is<span class="lyric-split"> - <\/span>fied/,
   );
 });
+
+test("renders external presentations as embedded iframe pages", () => {
+  const pages = buildPages(
+    {
+      kind: "presentation",
+      title: "External deck",
+      content: "https://www.canva.com/design/demo/view?embed&mode=present",
+      transpose: 0,
+      maxLines: 4,
+    },
+    0,
+    { maxLines: 4, maxWords: 90, smartPageSplits: true, textScale: 1 },
+  );
+  assert.equal(pages.length, 1);
+  assert.match(pages[0].html, /<iframe class="sm-presentation-frame"/);
+  assert.match(
+    pages[0].html,
+    /src="https:\/\/www\.canva\.com\/design\/demo\/view\?embed&amp;mode=present"/,
+  );
+  assert.match(pages[0].html, /allowfullscreen/);
+
+  const insecure = buildPages(
+    {
+      kind: "presentation",
+      title: "Insecure",
+      content: "http://example.com/embed",
+      transpose: 0,
+      maxLines: 4,
+    },
+    0,
+    { maxLines: 4, maxWords: 90, smartPageSplits: true, textScale: 1 },
+  );
+  assert.deepEqual(insecure, []);
+});

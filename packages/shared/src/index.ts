@@ -347,7 +347,7 @@ export function songLinesDifferingApartFromSplits(
   );
 }
 
-export type ItemKind = "song" | "text" | "image" | "image_list" | "tarp";
+export type ItemKind = "song" | "text" | "image" | "image_list" | "tarp" | "presentation";
 export type ImageFit = "scale" | "actual" | "crop" | "stretch";
 
 export type PlaybackMode = "single" | "loop" | "bounce";
@@ -1481,7 +1481,15 @@ export interface LiveState {
   itemIndex: number;
   pageIndex: number;
   pageCount: number;
-  mode: "song" | "text" | "image" | "image_list" | "tarp" | "blank" | "idle";
+  mode:
+    | "song"
+    | "text"
+    | "image"
+    | "image_list"
+    | "tarp"
+    | "presentation"
+    | "blank"
+    | "idle";
   title: string;
   blank: boolean;
   maxLines: number;
@@ -2014,6 +2022,16 @@ export const quickSongSchema = z.object({
 export const quickImageSchema = z.object({
   path: z.string().trim().min(1).max(2000),
   title: z.string().trim().max(300).optional(),
+});
+
+export const quickPresentationSchema = z.object({
+  embedUrl: z
+    .string()
+    .trim()
+    .url()
+    .max(2000)
+    .refine((value) => /^https:\/\//i.test(value), "Presentation embeds must use HTTPS"),
+  title: z.string().trim().min(1).max(120).optional(),
 });
 
 export const startSessionSchema = z.object({

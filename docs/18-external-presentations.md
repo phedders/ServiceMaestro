@@ -13,6 +13,7 @@ PowerPoint, Canva and Google Slides links per user and displays them inside the 
   extracted and used for the embedded view.
 - Paste any other public HTTPS iframe-compatible link.
 - Each presentation can be shown in a fullscreen panel or opened in a new browser window.
+- **Show live** sends the selected HTTPS embed to the live outputs as a temporary presentation page. The provider must allow public embedding; private SharePoint links will still require sign-in. Live outputs display the frame but do not pass keyboard events into it.
 - Presentations are stored per user in `user_preferences`; no server-side fetching or credentials
   are used.
 

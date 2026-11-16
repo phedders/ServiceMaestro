@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { ExternalPresentation } from "@sm/shared";
+import type { ExternalPresentation, LiveState } from "@sm/shared";
 import { api, ApiError } from "../api";
 import { FullscreenButton } from "../components/FullscreenButton";
 import {
@@ -26,8 +26,14 @@ function newPresentationId(): string {
 
 export default function PresentationsPage({
   notify,
+  liveStatus,
+  canWriteLive,
+  onShowLive,
 }: {
   notify: (text: string, kind?: "info" | "error") => void;
+  liveStatus: LiveState["status"];
+  canWriteLive: boolean;
+  onShowLive: (embedUrl: string, title?: string) => Promise<void>;
 }) {
   const [presentations, setPresentations] = useState<ExternalPresentation[]>([]);
   const [selectedId, setSelectedId] = useState("");
@@ -37,6 +43,7 @@ export default function PresentationsPage({
   const [nameInput, setNameInput] = useState("");
   const [urlInput, setUrlInput] = useState("");
   const [formNotice, setFormNotice] = useState("");
+  const [showing, setShowing] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const viewerRef = useRef<HTMLElement | null>(null);
 
@@ -118,6 +125,16 @@ export default function PresentationsPage({
       iframeRef.current?.contentWindow?.focus();
     } catch {
       // Cross-origin focus can be refused; clicking the frame also works.
+    }
+  }
+
+  async function showLive() {
+    if (!selected) return;
+    setShowing(true);
+    try {
+      await onShowLive(selected.embedUrl, selected.name);
+    } finally {
+      setShowing(false);
     }
   }
 
@@ -214,6 +231,20 @@ export default function PresentationsPage({
                 </div>
                 <div className="button-row">
                   <button
+                    className="button primary small"
+                    onClick={() => void showLive()}
+                    disabled={!canWriteLive || liveStatus === "idle" || showing}
+                    title={
+                      !canWriteLive
+                        ? "Read-only live access"
+                        : liveStatus === "idle"
+                          ? "Start a live session first"
+                          : "Send this presentation to the live outputs"
+                    }
+                  >
+                    {showing ? "Sending…" : "Show live"}
+                  </button>
+                  <button
                     className="button ghost small"
                     onClick={focusPresentation}
                     title="Move keyboard focus into the embedded presentation"
@@ -252,9 +283,10 @@ export default function PresentationsPage({
                 />
               </div>
               <p className="hint">
-                If the frame stays blank or asks you to sign in, the provider blocks embedding or
-                requires private authentication. Use <strong>Open in new window</strong> and sign in
-                there; the USB clicker will operate the focused external window normally.
+                <strong>Show live</strong> sends this embed to all live outputs, including the OBS
+                browser sources. The provider must allow public embedding. If the frame stays blank
+                or asks you to sign in, use <strong>Open in new window</strong> and sign in there;
+                the USB clicker will operate the focused external window normally.
               </p>
             </>
           ) : (

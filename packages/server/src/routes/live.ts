@@ -3,6 +3,7 @@ import {
   liveCommandSchema,
   liveApplySchema,
   quickImageSchema,
+  quickPresentationSchema,
   quickSongSchema,
   quickTextSchema,
   startSessionSchema,
@@ -81,6 +82,24 @@ export async function liveRoutes(app: FastifyInstance): Promise<void> {
       }
       try {
         return { state: live.quickImage(parsed.data.path, parsed.data.title) };
+      } catch (error) {
+        return reply.code(400).send({ error: (error as Error).message });
+      }
+    },
+  );
+
+  app.post(
+    "/api/live/quick-presentation",
+    { preHandler: [requireAuth, requirePermission("live")] },
+    async (request, reply) => {
+      const parsed = quickPresentationSchema.safeParse(request.body);
+      if (!parsed.success) {
+        return reply.code(400).send({ error: "Invalid presentation", issues: parsed.error.issues });
+      }
+      try {
+        return {
+          state: live.quickPresentation(parsed.data.embedUrl, parsed.data.title),
+        };
       } catch (error) {
         return reply.code(400).send({ error: (error as Error).message });
       }

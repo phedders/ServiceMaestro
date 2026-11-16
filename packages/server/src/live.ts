@@ -897,6 +897,41 @@ class LiveService {
     return this.getState();
   }
 
+  quickPresentation(embedUrl: string, title?: string): LiveState {
+    if (!this.active) throw new Error("Start a live session first");
+    const url = embedUrl.trim();
+    if (!/^https:\/\//i.test(url)) throw new Error("Presentation embeds must use HTTPS");
+    const record = this.active;
+    const item: SnapshotItem = {
+      kind: "presentation",
+      itemId: null,
+      songId: null,
+      title: title?.trim() || "Presentation",
+      content: url,
+      transpose: 0,
+      maxLines: record.state.maxLines,
+      verseOrder: null,
+      notes: null,
+    };
+    if (!record.transient) {
+      record.transientReturnItemIndex =
+        record.state.itemIndex >= 0 ? record.state.itemIndex : 0;
+    }
+    record.transient = item;
+    record.state.mode = "presentation";
+    record.state.title = item.title;
+    record.state.itemIndex = -1;
+    record.state.pageIndex = 0;
+    record.state.blank = false;
+    record.state.appendedItems = [];
+    this.renderCurrent();
+    record.state.version += 1;
+    record.state.updatedAt = now();
+    this.persist();
+    this.broadcast();
+    return this.getState();
+  }
+
   private setItem(index: number): void {
     if (!this.active) return;
     const { state, items } = this.active;

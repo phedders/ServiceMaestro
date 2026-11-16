@@ -768,6 +768,11 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ path, title }),
     }),
+  quickPresentation: (embedUrl: string, title?: string) =>
+    request<{ state: LiveState }>("/api/live/quick-presentation", {
+      method: "POST",
+      body: JSON.stringify({ embedUrl, title }),
+    }),
   stopLive: () => request<{ state: LiveState }>("/api/live/stop", { method: "POST" }),
   applyLive: (payload: { setlistId?: string; revisionId?: string; mode: "after-current" | "now" }) =>
     request<{ state: LiveState }>("/api/live/apply", {

@@ -67,6 +67,19 @@ body.sm-output-configured .sm-content {
   font-family: var(--sm-output-font-family, inherit);
   line-height: var(--sm-output-line-height, 1.18);
 }
+.sm-content .sm-presentation-frame {
+  display: block;
+  width: 100%;
+  height: 72vh;
+  border: 0;
+  border-radius: 8px;
+  background: #000;
+}
+body[data-target="main"] .sm-content .sm-presentation-frame { height: 58vh; }
+body[data-target="two_thirds"] .sm-content .sm-presentation-frame { height: 76vh; }
+body[data-target="full"] .sm-content .sm-presentation-frame { height: 84vh; }
+body[data-target="stage"] .sm-content .sm-presentation-frame,
+body[data-target="chords"] .sm-content .sm-presentation-frame { height: 78vh; }
 body.sm-output-configured .sm-footer,
 body.sm-output-configured .sm-meta {
   max-width: var(--sm-output-max-width, 100%);

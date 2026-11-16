@@ -437,6 +437,20 @@ export default function App() {
     }
   };
 
+  const quickPresentation = async (embedUrl: string, title?: string) => {
+    if (!canWriteLive) return;
+    try {
+      const result = await api.quickPresentation(embedUrl, title);
+      setLive(result.state);
+      notify("Presentation sent live");
+    } catch (error) {
+      notify(
+        error instanceof ApiError ? error.message : "Could not display presentation",
+        "error",
+      );
+    }
+  };
+
   const stopLive = async () => {
     try {
       const result = await api.stopLive();
@@ -1267,7 +1281,14 @@ export default function App() {
               notify={notify}
             />
           )}
-          {page === "presentations" && <PresentationsPage notify={notify} />}
+          {page === "presentations" && (
+            <PresentationsPage
+              notify={notify}
+              liveStatus={live.status}
+              canWriteLive={canWriteLive}
+              onShowLive={quickPresentation}
+            />
+          )}
           {page === "mqtt" && user.role === "admin" && adapterContext.mqttEnabled && (
             <MqttPage notify={notify} />
           )}

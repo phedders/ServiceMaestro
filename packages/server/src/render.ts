@@ -13,7 +13,7 @@ import { OUTPUT_TOKEN } from "./config.js";
 import { bareSectionLabel, bracketedSectionLabel } from "./section-labels.js";
 
 export interface RenderItem {
-  kind: "song" | "text" | "image" | "image_list" | "tarp";
+  kind: "song" | "text" | "image" | "image_list" | "tarp" | "presentation";
   title: string;
   lyrics?: string | null;
   content?: string | null;
@@ -582,6 +582,20 @@ export function buildPages(
   if (item.kind === "tarp") {
     // Tarp display rendering is the next Tarp implementation section.
     return [];
+  }
+
+  if (item.kind === "presentation") {
+    const embedUrl = (item.content ?? "").trim();
+    if (!/^https:\/\//i.test(embedUrl)) return [];
+    return [
+      {
+        index: 0,
+        section: null,
+        html: `<iframe class="sm-presentation-frame" src="${escapeHtml(embedUrl)}" title="${escapeHtml(
+          item.title || "Presentation",
+        )}" allow="fullscreen; autoplay; encrypted-media; picture-in-picture" allowfullscreen referrerpolicy="no-referrer-when-downgrade"></iframe>`,
+      },
+    ];
   }
 
   if (item.kind === "image" || item.kind === "image_list") {
