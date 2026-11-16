@@ -399,6 +399,65 @@ img.brand-mark.large {
   opacity: 0.92;
 }
 
+.nav-quick-controls {
+  display: flex;
+  gap: 4px;
+}
+
+.nav-quick-controls .nav-quick-button {
+  flex: 1;
+  justify-content: center;
+  padding: 8px 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel-2);
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.nav-quick-controls .nav-quick-button:hover:not(:disabled) {
+  background: rgba(76, 194, 255, 0.12);
+  color: var(--accent);
+}
+
+.nav-quick-controls .nav-quick-button:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+
+.nav-quick-controls .nav-quick-button.blanked {
+  color: #ffb2b2;
+  border-color: rgba(255, 107, 107, 0.45);
+}
+
+.nav-mobile-menu {
+  display: none;
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.nav-mobile-menu-toggle {
+  width: 36px;
+  min-width: 36px;
+  height: 36px;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel-2);
+  color: var(--text);
+  font-size: 1rem;
+}
+
+.nav-mobile-menu-toggle.active {
+  border-color: rgba(76, 194, 255, 0.5);
+  background: var(--accent-soft);
+  color: #bcecff;
+}
+
+.nav-dropdown.mobile-menu-dropdown {
+  width: min(310px, calc(100vw - 24px));
+}
+
 .nav-more {
   position: relative;
 }
@@ -5327,6 +5386,32 @@ body.resizing-live-queue {
     padding: 8px 10px;
   }
 
+  .app.sidebar-collapsed .sidebar {
+    display: flex;
+  }
+
+  .app .nav .nav-primary,
+  .app .nav .nav-more {
+    display: none;
+  }
+
+  .app .nav .nav-live {
+    display: flex;
+  }
+
+  .app .nav-quick-controls {
+    flex: 0 0 auto;
+  }
+
+  .app .nav-mobile-menu {
+    display: block;
+    margin-left: auto;
+  }
+
+  .topbar-actions .topbar-menu {
+    display: none;
+  }
+
   .layout-toggle {
     display: none;
   }
@@ -5423,7 +5508,31 @@ body.resizing-live-queue {
   }
 
   .main {
-    padding: 18px;
+    padding: 14px 12px 40px;
+  }
+
+  .topbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .topbar-actions {
+    justify-content: flex-start;
+  }
+
+  .panel {
+    padding: 14px;
+  }
+
+  .panel-heading {
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+
+  .button-row {
+    flex-wrap: wrap;
   }
 
   .start-controls {

@@ -115,6 +115,13 @@ export default function App() {
   const menuRef = useRef<HTMLDivElement | null>(null);
   const [compactMenuOpen, setCompactMenuOpen] = useState(false);
   const compactMenuRef = useRef<HTMLDivElement | null>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mobileMenuPosition, setMobileMenuPosition] = useState<{
+    top: number;
+    left: number;
+    maxHeight: number;
+  } | null>(null);
+  const mobileMenuRef = useRef<HTMLDivElement | null>(null);
   const [shortcuts, setShortcuts] = useState<KeyboardShortcuts>(loadKeyboardShortcuts);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     try {
@@ -290,6 +297,29 @@ export default function App() {
   }, [sidebarCollapsed, topbarMode]);
 
   useEffect(() => {
+    if (!mobileMenuOpen) return;
+    const onPointerDown = (event: PointerEvent) => {
+      if (!mobileMenuRef.current?.contains(event.target as Node)) {
+        setMobileMenuOpen(false);
+      }
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMobileMenuOpen(false);
+    };
+    const close = () => setMobileMenuOpen(false);
+    window.addEventListener("pointerdown", onPointerDown);
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("resize", close);
+    window.addEventListener("scroll", close, true);
+    return () => {
+      window.removeEventListener("pointerdown", onPointerDown);
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("resize", close);
+      window.removeEventListener("scroll", close, true);
+    };
+  }, [mobileMenuOpen]);
+
+  useEffect(() => {
     if (!user || standaloneMusicians) return;
     const socket: Socket = io({ withCredentials: true });
     socket.on("connect", () => setConnected(true));
@@ -441,6 +471,31 @@ export default function App() {
     const maxHeight = Math.max(240, window.innerHeight - top - 12);
     setMenuPosition({ top, left, maxHeight });
     setMenuOpen(true);
+  }
+
+  function toggleMobileMenu() {
+    if (mobileMenuOpen) {
+      setMobileMenuOpen(false);
+      return;
+    }
+    const rect = mobileMenuRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const width = 310;
+    const estimatedHeight = Math.min(760, window.innerHeight - 24);
+    const left = Math.max(
+      12,
+      Math.min(rect.right - width, window.innerWidth - width - 12),
+    );
+    const top =
+      rect.bottom + 8 + estimatedHeight > window.innerHeight
+        ? Math.max(12, rect.top - 8 - estimatedHeight)
+        : rect.bottom + 8;
+    setMobileMenuPosition({
+      top,
+      left,
+      maxHeight: Math.max(240, window.innerHeight - top - 12),
+    });
+    setMobileMenuOpen(true);
   }
 
   function openSettings() {
@@ -725,7 +780,7 @@ export default function App() {
     );
   }
 
-  function renderCompactNav(close: () => void) {
+  function renderCompactNav(close: () => void, omitLive = false) {
     const items: Array<{ page: Page; icon: string; label: string; title: string }> = [
       {
         page: "live",
@@ -773,24 +828,78 @@ export default function App() {
         title: "Pull ChurchSuite plans and create draft set lists",
       });
     }
-    return items.map((item) => (
-      <button
-        key={item.page}
-        type="button"
-        className={`nav-dropdown-link ${page === item.page ? "active" : ""}`}
-        role="menuitem"
-        onClick={() => {
-          setPage(item.page);
-          close();
-        }}
-        title={item.title}
-      >
-        <span>{item.label}</span>
-        <span className="nav-dropdown-external" aria-hidden="true">
-          {item.icon}
-        </span>
-      </button>
-    ));
+    return items
+      .filter((item) => !(omitLive && item.page === "live"))
+      .map((item) => (
+        <button
+          key={item.page}
+          type="button"
+          className={`nav-dropdown-link ${page === item.page ? "active" : ""}`}
+          role="menuitem"
+          onClick={() => {
+            setPage(item.page);
+            close();
+          }}
+          title={item.title}
+        >
+          <span>{item.label}</span>
+          <span className="nav-dropdown-external" aria-hidden="true">
+            {item.icon}
+          </span>
+        </button>
+      ));
+  }
+
+  function renderBurgerMenu(
+    close: () => void,
+    includeShowSidebar: boolean,
+    omitLive: boolean,
+  ) {
+    return (
+      <>
+        <div className="nav-dropdown-label">Navigate</div>
+        {renderCompactNav(close, omitLive)}
+        <div className="nav-dropdown-separator" />
+        {renderMoreMenu(close)}
+        <div className="nav-dropdown-separator" />
+        {includeShowSidebar && (
+          <button
+            type="button"
+            className="nav-dropdown-link"
+            role="menuitem"
+            onClick={() => {
+              setSidebarCollapsed(false);
+              close();
+            }}
+            title="Restore the sidebar navigation"
+          >
+            <span>Show sidebar</span>
+            <span className="nav-dropdown-external" aria-hidden="true">
+              ⇤
+            </span>
+          </button>
+        )}
+        <div className="compact-menu-status">
+          <span className={`dot ${connected ? "online" : "offline"}`} />
+          {connected ? "Connected" : "Reconnecting…"} · {user?.username ?? ""}
+        </div>
+        <button
+          type="button"
+          className="nav-dropdown-link danger-text"
+          role="menuitem"
+          onClick={() => {
+            close();
+            void logout();
+          }}
+          title="Sign out of Service Maestro"
+        >
+          <span>Sign out</span>
+          <span className="nav-dropdown-external" aria-hidden="true">
+            ⏻
+          </span>
+        </button>
+      </>
+    );
   }
 
   if (loading) {
@@ -869,36 +978,68 @@ export default function App() {
         </div>
 
         <nav className="nav">
+          <div className="nav-quick-controls" role="group" aria-label="Live quick controls">
+            <button
+              type="button"
+              className="nav-quick-button"
+              onClick={() => void command({ type: "prev" })}
+              disabled={!canWriteLive || live.status === "idle"}
+              title="Previous page or item"
+              aria-label="Previous page or item"
+            >
+              ◀
+            </button>
+            <button
+              type="button"
+              className={`nav-quick-button ${live.blank ? "blanked" : ""}`}
+              onClick={() => void command({ type: "blank", value: !live.blank })}
+              disabled={!canWriteLive || live.status === "idle"}
+              title={live.blank ? "Show the live output" : "Hide the live output"}
+              aria-label={live.blank ? "Show the live output" : "Hide the live output"}
+            >
+              ◐
+            </button>
+            <button
+              type="button"
+              className="nav-quick-button"
+              onClick={() => void command({ type: "next" })}
+              disabled={!canWriteLive || live.status === "idle"}
+              title="Next page or item"
+              aria-label="Next page or item"
+            >
+              ▶
+            </button>
+          </div>
           <button
-            className={page === "live" ? "active" : ""}
+            className={`nav-live ${page === "live" ? "active" : ""}`}
             onClick={() => setPage("live")}
             title="Open live control, transport and display settings"
           >
             <span className="nav-icon">▶</span> Live control
           </button>
           <button
-            className={page === "setlists" ? "active" : ""}
+            className={`nav-primary ${page === "setlists" ? "active" : ""}`}
             onClick={() => setPage("setlists")}
             title="Open set lists to plan and publish services"
           >
             <span className="nav-icon">▤</span> Set lists
           </button>
           <button
-            className={page === "songs" ? "active" : ""}
+            className={`nav-primary ${page === "songs" ? "active" : ""}`}
             onClick={() => setPage("songs")}
             title="Open the song library and import tools"
           >
             <span className="nav-icon">♫</span> Songs
           </button>
           <button
-            className={page === "images" ? "active" : ""}
+            className={`nav-primary ${page === "images" ? "active" : ""}`}
             onClick={() => setPage("images")}
             title="Browse, upload and add images to set lists"
           >
             <span className="nav-icon">▣</span> Images
           </button>
           <button
-            className={page === "bible" ? "active" : ""}
+            className={`nav-primary ${page === "bible" ? "active" : ""}`}
             onClick={() => setPage("bible")}
             title="Look up a Bible passage to display or add to a set list"
           >
@@ -906,7 +1047,7 @@ export default function App() {
           </button>
           {adapterContext.churchSuiteEnabled && (
             <button
-              className={page === "churchsuite" ? "active" : ""}
+              className={`nav-primary ${page === "churchsuite" ? "active" : ""}`}
               onClick={() => setPage("churchsuite")}
               title="Pull ChurchSuite plans and create draft set lists"
             >
@@ -914,12 +1055,38 @@ export default function App() {
             </button>
           )}
           <button
-            className={page === "help" ? "active" : ""}
+            className={`nav-primary ${page === "help" ? "active" : ""}`}
             onClick={() => setPage("help")}
             title="Open the service-day guide and troubleshooting reference"
           >
             <span className="nav-icon">?</span> Help
           </button>
+          <div className="nav-mobile-menu" ref={mobileMenuRef}>
+            <button
+              type="button"
+              className={`nav-mobile-menu-toggle ${mobileMenuOpen ? "active" : ""}`}
+              onClick={toggleMobileMenu}
+              aria-haspopup="menu"
+              aria-expanded={mobileMenuOpen}
+              aria-label="Open navigation menu"
+              title="Open navigation menu"
+            >
+              ☰
+            </button>
+            {mobileMenuOpen && mobileMenuPosition && (
+              <div
+                className="nav-dropdown mobile-menu-dropdown"
+                role="menu"
+                style={{
+                  top: mobileMenuPosition.top,
+                  left: mobileMenuPosition.left,
+                  maxHeight: mobileMenuPosition.maxHeight,
+                }}
+              >
+                {renderBurgerMenu(() => setMobileMenuOpen(false), false, true)}
+              </div>
+            )}
+          </div>
           <div className="nav-more" ref={menuRef}>
             <button
               type="button"
@@ -992,45 +1159,7 @@ export default function App() {
                   </button>
                   {compactMenuOpen && (
                     <div className="nav-dropdown compact-menu-dropdown" role="menu">
-                      <div className="nav-dropdown-label">Navigate</div>
-                      {renderCompactNav(() => setCompactMenuOpen(false))}
-                      <div className="nav-dropdown-separator" />
-                      {renderMoreMenu(() => setCompactMenuOpen(false))}
-                      <div className="nav-dropdown-separator" />
-                      <button
-                        type="button"
-                        className="nav-dropdown-link"
-                        role="menuitem"
-                        onClick={() => {
-                          setSidebarCollapsed(false);
-                          setCompactMenuOpen(false);
-                        }}
-                        title="Restore the sidebar navigation"
-                      >
-                        <span>Show sidebar</span>
-                        <span className="nav-dropdown-external" aria-hidden="true">
-                          ⇤
-                        </span>
-                      </button>
-                      <div className="compact-menu-status">
-                        <span className={`dot ${connected ? "online" : "offline"}`} />
-                        {connected ? "Connected" : "Reconnecting…"} · {user.username}
-                      </div>
-                      <button
-                        type="button"
-                        className="nav-dropdown-link danger-text"
-                        role="menuitem"
-                        onClick={() => {
-                          setCompactMenuOpen(false);
-                          void logout();
-                        }}
-                        title="Sign out of Service Maestro"
-                      >
-                        <span>Sign out</span>
-                        <span className="nav-dropdown-external" aria-hidden="true">
-                          ⏻
-                        </span>
-                      </button>
+                      {renderBurgerMenu(() => setCompactMenuOpen(false), true, false)}
                     </div>
                   )}
                 </div>
@@ -1045,7 +1174,14 @@ export default function App() {
               ))}
             <button
               className="button ghost small layout-toggle"
-              onClick={() => setTopbarMode((current) => !current)}
+              onClick={() => {
+                if (topbarMode) {
+                  setTopbarMode(false);
+                  setSidebarCollapsed(false);
+                } else {
+                  setTopbarMode(true);
+                }
+              }}
               title={topbarMode ? "Use left sidebar" : "Move navigation to a top bar"}
             >
               {topbarMode ? "Side menu" : "Top menu"}
