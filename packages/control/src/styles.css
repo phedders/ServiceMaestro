@@ -816,6 +816,10 @@ label {
   min-width: 0;
 }
 
+.live-phone-linear-toggle {
+  display: none;
+}
+
 .live-queue-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -5569,6 +5573,28 @@ body.resizing-live-queue {
 
   .main {
     padding: 14px 12px 40px;
+  }
+
+  .live-phone-linear-toggle {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    color: var(--muted);
+    font-size: 0.78rem;
+  }
+
+  .live-layout.live-phone-linear .live-queue-section {
+    gap: 16px;
+  }
+
+  .live-layout.live-phone-linear .live-queue-section .item-list,
+  .live-layout.live-phone-linear .live-queue-section .page-list {
+    max-height: none;
+    overflow: visible;
+  }
+
+  .live-layout.live-phone-linear .live-queue-resize {
+    display: none;
   }
 
   .topbar {

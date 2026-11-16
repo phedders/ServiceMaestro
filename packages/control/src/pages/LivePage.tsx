@@ -73,7 +73,15 @@ const DEFAULT_QUEUE_HEIGHT = 420;
 const MIN_QUEUE_HEIGHT = 220;
 const MAX_QUEUE_HEIGHT = 1000;
 const QUEUE_HEIGHT_STORAGE_KEY = "sm-live-queue-height";
+const PHONE_LINEAR_STORAGE_KEY = "sm-live-phone-linear";
 
+function initialPhoneLinear(): boolean {
+  try {
+    return window.localStorage.getItem(PHONE_LINEAR_STORAGE_KEY) !== "0";
+  } catch {
+    return true;
+  }
+}
 
 function clampQueueHeight(value: number): number {
   return Math.max(MIN_QUEUE_HEIGHT, Math.min(MAX_QUEUE_HEIGHT, Math.round(value)));
@@ -131,6 +139,7 @@ export default function LivePage({
   const [previewScreenId] = useState(loadPreviewScreenId);
   const previewScreen = findPreviewScreen(previewScreenId);
   const [queueHeight, setQueueHeight] = useState(initialQueueHeight);
+  const [phoneLinear, setPhoneLinear] = useState(initialPhoneLinear);
   const queueResizeRef = useRef<{ startY: number; startHeight: number } | null>(null);
 
   useEffect(() => {
@@ -140,6 +149,14 @@ export default function LivePage({
       // Layout persistence is optional; dragging still works for this session.
     }
   }, [queueHeight]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(PHONE_LINEAR_STORAGE_KEY, phoneLinear ? "1" : "0");
+    } catch {
+      // Layout persistence is optional; the checkbox still works for this session.
+    }
+  }, [phoneLinear]);
 
   useEffect(() => () => document.body.classList.remove("resizing-live-queue"), []);
 
@@ -300,7 +317,7 @@ export default function LivePage({
   }
 
   return (
-    <div className="live-layout">
+    <div className={`live-layout ${phoneLinear ? "live-phone-linear" : ""}`}>
       {live.pendingUpdate && (
         <div className="banner live-banner">
           Update queued for after the current item (revision {live.pendingRevision ?? "?"}).
@@ -382,6 +399,14 @@ export default function LivePage({
         className="live-queue-section"
         style={{ "--live-queue-height": `${queueHeight}px` } as CSSProperties}
       >
+        <label className="checkbox live-phone-linear-toggle">
+          <input
+            type="checkbox"
+            checked={phoneLinear}
+            onChange={(event) => setPhoneLinear(event.target.checked)}
+          />
+          Expand panels on phone — page scrolls instead of each section
+        </label>
         <div className="live-queue-grid">
           <ReadOnlyFieldset className="panel">
             <div className="panel-heading">
