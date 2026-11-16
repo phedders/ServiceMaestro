@@ -23,7 +23,7 @@ body:not(.mode-image) .sm-lowerthird-panel {
 
 .sm-main .sm-content {
   width: 100%;
-  font-size: calc(clamp(2.2rem, 4.4vw, 5.5rem) * var(--sm-text-scale, 1));
+  font-size: calc(var(--sm-output-base-font-size, clamp(2.2rem, 4.4vw, 5.5rem)) * var(--sm-text-scale, 1));
   line-height: 0.8;
   color: var(--sm-text-color, #ffffff);
   font-family: var(--sm-font-family, inherit);

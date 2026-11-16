@@ -18,7 +18,7 @@ body[data-target="stage"] {
 }
 
 .sm-stage .sm-content {
-  font-size: clamp(1.6rem, 2.9vw, 3.6rem);
+  font-size: var(--sm-output-base-font-size, clamp(1.6rem, 2.9vw, 3.6rem));
   line-height: 0.9;
   flex: 1;
   min-height: 0;

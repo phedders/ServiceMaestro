@@ -144,6 +144,7 @@ A **Display config** panel on the Live page controls:
 - **Global font** — built-in stacks plus Google Fonts imported from the Settings page; used by centered two-thirds and full-screen.
 - **Text colour** — default text colour on all text-based presentation views.
 - **Global text size** — 50–200% scale for centered two-thirds and full-screen.
+- **Font size units** — **Responsive** keeps the built-in `rem`/`vw` clamps; **vmin** sizes display text from the shortest screen edge, which keeps portrait and ultrawide layouts proportional. All built-in templates consume the shared `--sm-output-base-font-size` variable, so custom templates can opt into the same switch.
 - **Lower-third font** — independent font for the lower-third output.
 - **Lower-third text size** — independent 50–200% scale for the lower-third output.
 - **Max lines per page** — the number of lines after which a song/text/Bible item is split into another page.

@@ -25,7 +25,7 @@ body[data-target="full"] {
 .sm-full .sm-content {
   width: 100%;
   max-width: none;
-  font-size: calc(clamp(2.8rem, 5.4vw, 6.6rem) * var(--sm-text-scale, 1));
+  font-size: calc(var(--sm-output-base-font-size, clamp(2.8rem, 5.4vw, 6.6rem)) * var(--sm-text-scale, 1));
   line-height: 0.92;
   color: var(--sm-text-color, #ffffff);
   font-family: var(--sm-font-family, inherit);

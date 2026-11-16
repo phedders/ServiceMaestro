@@ -114,6 +114,7 @@ export default function LivePage({
       fontFamily: '"Clear Sans", "Segoe UI", system-ui, -apple-system, sans-serif',
       textColor: "#ffffff",
       textScale: 1,
+      fontSizeUnit: "responsive",
       maxLines: 4,
       maxWords: 90,
       smartPageSplits: true,
@@ -181,6 +182,7 @@ export default function LivePage({
     live.displayConfig?.fontFamily,
     live.displayConfig?.textColor,
     live.displayConfig?.textScale,
+    live.displayConfig?.fontSizeUnit,
     live.displayConfig?.maxLines,
     live.displayConfig?.maxWords,
     live.displayConfig?.smartPageSplits,
@@ -480,6 +482,22 @@ export default function LivePage({
             />
           </label>
           <label>
+            Font size units
+            <select
+              value={displayConfig.fontSizeUnit}
+              onChange={(event) =>
+                setDisplayConfig({
+                  ...displayConfig,
+                  fontSizeUnit: event.target.value as DisplayConfig["fontSizeUnit"],
+                })
+              }
+              title="Choose how display text sizes scale with the output screen"
+            >
+              <option value="responsive">Responsive (rem/vw clamp)</option>
+              <option value="vmin">vmin (shortest screen edge)</option>
+            </select>
+          </label>
+          <label>
             Lower-third font
             <FontSelect
               value={displayConfig.lowerThirdFontFamily}
@@ -622,7 +640,9 @@ export default function LivePage({
           Lower-third font and text size are independent of the global settings. Text and images are
           anchored to the bottom with the configured border padding. Images keep their original
           aspect ratio and are never stretched; their maximum height is a percentage of the screen,
-          reduced by that padding.
+          reduced by that padding. Font size units apply to all display templates: responsive keeps
+          the existing rem/vw clamps, while vmin scales text from the shortest screen edge for more
+          predictable portrait and ultrawide layouts.
         </p>
       </ReadOnlyFieldset>
     </div>

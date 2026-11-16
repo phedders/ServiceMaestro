@@ -44,6 +44,11 @@ body[data-target="two_thirds"] { --sm-output-base-font-size: clamp(2rem, 4vw, 5.
 body[data-target="full"] { --sm-output-base-font-size: clamp(2.8rem, 5.4vw, 6.6rem); }
 body[data-target="stage"] { --sm-output-base-font-size: clamp(1.6rem, 2.9vw, 3.6rem); }
 body[data-target="chords"] { --sm-output-base-font-size: clamp(1.7rem, 3.4vw, 4.4rem); }
+body.sm-font-unit-vmin[data-target="main"] { --sm-output-base-font-size: 7.8vmin; }
+body.sm-font-unit-vmin[data-target="two_thirds"] { --sm-output-base-font-size: 7.1vmin; }
+body.sm-font-unit-vmin[data-target="full"] { --sm-output-base-font-size: 9.6vmin; }
+body.sm-font-unit-vmin[data-target="stage"] { --sm-output-base-font-size: 5.2vmin; }
+body.sm-font-unit-vmin[data-target="chords"] { --sm-output-base-font-size: 6vmin; }
 
 body.sm-output-configured {
   background: var(--sm-output-bg, #000000);
@@ -215,6 +220,7 @@ body.sm-output-configured.mode-image .sm-footer {
 
   function applyOutputConfig(state) {
     const config = state.displayConfig || {};
+    document.body.classList.toggle("sm-font-unit-vmin", config.fontSizeUnit === "vmin");
     const main = target === "main";
     const baseScale = main
       ? config.lowerThirdTextScale ?? config.textScale ?? 1

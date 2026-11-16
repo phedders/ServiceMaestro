@@ -24,7 +24,7 @@ body {
 body {
   font-family: var(--font);
   color: var(--fg);
-  font-size: clamp(2rem, 4vw, 5.4rem);
+  font-size: var(--sm-output-base-font-size, clamp(2rem, 4vw, 5.4rem));
   line-height: 1.18;
 }
 

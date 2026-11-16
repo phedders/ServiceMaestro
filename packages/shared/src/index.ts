@@ -581,10 +581,13 @@ export interface DisplayTemplate {
 export const SMART_WRAP_MODULES = ["songs", "text", "bible"] as const;
 export type SmartWrapModule = (typeof SMART_WRAP_MODULES)[number];
 
+export type DisplayFontSizeUnit = "responsive" | "vmin";
+
 export interface DisplayConfig {
   fontFamily: string;
   textColor: string;
   textScale: number;
+  fontSizeUnit: DisplayFontSizeUnit;
   maxLines: number;
   maxWords: number;
   smartPageSplits: boolean;
@@ -2045,6 +2048,7 @@ export const displayConfigSchema = z.object({
   fontFamily: z.string().trim().min(1).max(200),
   textColor: z.string().trim().regex(/^#[0-9a-f]{6}$/i),
   textScale: z.number().min(0.5).max(2.5),
+  fontSizeUnit: z.enum(["responsive", "vmin"]).default("responsive"),
   maxLines: z.number().int().min(1).max(30),
   maxWords: z.number().int().min(1).max(500).default(90),
   smartPageSplits: z.boolean().default(true),
