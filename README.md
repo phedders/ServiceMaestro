@@ -196,6 +196,40 @@ Or `docker compose up -d` / `podman-compose up -d`. The container runs as UID/GI
 
 Copy `.env.example` to `.env` next to `compose.yaml` for local credentials. Docker Compose reads that file automatically; never commit it. ChurchSuite credentials belong under `SM_CHURCHSUITE_CLIENT_ID` and `SM_CHURCHSUITE_CLIENT_SECRET`, and the Settings page can test the connection.
 
+### Publishing the image to GitHub
+
+`make publish` builds the production image and pushes it to
+`ghcr.io/phedders/servicemaestro`, tagged with the version from `package.json` and `latest`.
+
+Log in with a GitHub token that can write packages (a classic token with `write:packages`, or a
+fine-grained token with package write permission), then publish:
+
+```sh
+read -rsp 'GHCR token: ' GHCR_TOKEN; echo
+printf '%s' "$GHCR_TOKEN" | docker login ghcr.io -u YOUR_GITHUB_USERNAME --password-stdin
+unset GHCR_TOKEN
+make publish
+```
+
+Alternatively, pass the token to the Makefile so it performs the login:
+
+```sh
+read -rsp 'GHCR token: ' GHCR_TOKEN; echo
+GHCR_TOKEN="$GHCR_TOKEN" GHCR_USER=YOUR_GITHUB_USERNAME make publish
+unset GHCR_TOKEN
+```
+
+Use `make help` to see the defaults, or override them:
+
+```sh
+make publish TAG=dev PUBLISH_LATEST=0
+make publish IMAGE=ghcr.io/your-user/service-maestro
+```
+
+The first push creates a private package. Change its visibility in the package settings on GitHub
+if anonymous pulls are needed. The build uses the local Docker engine by default; set
+`DOCKER=podman` to use Podman.
+
 See [05-container-deployment.md](docs/05-container-deployment.md) for Incus/LXC, read-only root filesystem, backups and hardening.
 
 ## Project structure
@@ -210,6 +244,7 @@ service-maestro/
 ├── docs/             Design documents
 ├── samples/          Git-ignored real inputs (Bible, ChordPro, OpenLP, SongSelect)
 ├── Dockerfile
+├── Makefile          Local image build and GHCR publish targets
 ├── compose.yaml
 └── package.json      npm workspaces
 ```
