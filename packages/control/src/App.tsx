@@ -1,4 +1,12 @@
-import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
+import {
+  lazy,
+  Suspense,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { io, type Socket } from "socket.io-client";
 import {
   MODULE_PERMISSIONS,
@@ -64,6 +72,8 @@ type Page =
   | "presentations"
   | "help";
 
+type MenuSection = "features" | "external" | "experimental";
+
 interface Toast {
   id: number;
   text: string;
@@ -122,6 +132,19 @@ export default function App() {
     maxHeight: number;
   } | null>(null);
   const mobileMenuRef = useRef<HTMLDivElement | null>(null);
+  const [openMenuSections, setOpenMenuSections] = useState<
+    Record<MenuSection, boolean>
+  >(() => {
+    const roomy =
+      typeof window !== "undefined" &&
+      window.innerWidth > 900 &&
+      window.innerHeight > 700;
+    return {
+      features: roomy,
+      external: roomy,
+      experimental: roomy,
+    };
+  });
   const [shortcuts, setShortcuts] = useState<KeyboardShortcuts>(loadKeyboardShortcuts);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     try {
@@ -257,15 +280,24 @@ export default function App() {
       if (event.key === "Escape") setMenuOpen(false);
     };
     const close = () => setMenuOpen(false);
+    const onScroll = (event: Event) => {
+      if (
+        event.target instanceof Node &&
+        menuRef.current?.contains(event.target)
+      ) {
+        return;
+      }
+      setMenuOpen(false);
+    };
     window.addEventListener("pointerdown", onPointerDown);
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("resize", close);
-    window.addEventListener("scroll", close, true);
+    window.addEventListener("scroll", onScroll, true);
     return () => {
       window.removeEventListener("pointerdown", onPointerDown);
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("resize", close);
-      window.removeEventListener("scroll", close, true);
+      window.removeEventListener("scroll", onScroll, true);
     };
   }, [menuOpen]);
 
@@ -280,15 +312,24 @@ export default function App() {
       if (event.key === "Escape") setCompactMenuOpen(false);
     };
     const close = () => setCompactMenuOpen(false);
+    const onScroll = (event: Event) => {
+      if (
+        event.target instanceof Node &&
+        compactMenuRef.current?.contains(event.target)
+      ) {
+        return;
+      }
+      setCompactMenuOpen(false);
+    };
     window.addEventListener("pointerdown", onPointerDown);
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("resize", close);
-    window.addEventListener("scroll", close, true);
+    window.addEventListener("scroll", onScroll, true);
     return () => {
       window.removeEventListener("pointerdown", onPointerDown);
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("resize", close);
-      window.removeEventListener("scroll", close, true);
+      window.removeEventListener("scroll", onScroll, true);
     };
   }, [compactMenuOpen]);
 
@@ -307,15 +348,24 @@ export default function App() {
       if (event.key === "Escape") setMobileMenuOpen(false);
     };
     const close = () => setMobileMenuOpen(false);
+    const onScroll = (event: Event) => {
+      if (
+        event.target instanceof Node &&
+        mobileMenuRef.current?.contains(event.target)
+      ) {
+        return;
+      }
+      setMobileMenuOpen(false);
+    };
     window.addEventListener("pointerdown", onPointerDown);
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("resize", close);
-    window.addEventListener("scroll", close, true);
+    window.addEventListener("scroll", onScroll, true);
     return () => {
       window.removeEventListener("pointerdown", onPointerDown);
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("resize", close);
-      window.removeEventListener("scroll", close, true);
+      window.removeEventListener("scroll", onScroll, true);
     };
   }, [mobileMenuOpen]);
 
@@ -495,15 +545,11 @@ export default function App() {
     const rect = mobileMenuRef.current?.getBoundingClientRect();
     if (!rect) return;
     const width = 310;
-    const estimatedHeight = Math.min(760, window.innerHeight - 24);
     const left = Math.max(
       12,
       Math.min(rect.right - width, window.innerWidth - width - 12),
     );
-    const top =
-      rect.bottom + 8 + estimatedHeight > window.innerHeight
-        ? Math.max(12, rect.top - 8 - estimatedHeight)
-        : rect.bottom + 8;
+    const top = rect.bottom + 8;
     setMobileMenuPosition({
       top,
       left,
@@ -588,142 +634,184 @@ export default function App() {
     ] as Page[]
   ).includes(page);
 
+  function menuSection(section: MenuSection, label: string, body: ReactNode) {
+    const open = openMenuSections[section];
+    return (
+      <div className="nav-dropdown-section">
+        <button
+          type="button"
+          className="nav-dropdown-section-toggle"
+          aria-expanded={open}
+          onClick={() =>
+            setOpenMenuSections((current) => ({
+              ...current,
+              [section]: !current[section],
+            }))
+          }
+        >
+          <span>{label}</span>
+          <span className="nav-dropdown-section-chevron" aria-hidden="true">
+            {open ? "▾" : "▸"}
+          </span>
+        </button>
+        {open && <div className="nav-dropdown-section-body">{body}</div>}
+      </div>
+    );
+  }
+
   function renderMoreMenu(close: () => void) {
     return (
       <>
-        <div className="nav-dropdown-label">Features</div>
-        <button
-          type="button"
-          className="nav-dropdown-link"
-          role="menuitem"
-          onClick={() => {
-            setPage("backgrounds");
-            close();
-          }}
-          title="Open the global background library"
-        >
-          <span>Backgrounds</span>
-          <span className="nav-dropdown-external" aria-hidden="true">
-            ◫
-          </span>
-        </button>
-        <button
-          type="button"
-          className="nav-dropdown-link"
-          role="menuitem"
-          onClick={() => {
-            setPage("stingers");
-            close();
-          }}
-          title="Open the transition stinger library"
-        >
-          <span>Stingers</span>
-          <span className="nav-dropdown-external" aria-hidden="true">
-            ✦
-          </span>
-        </button>
-        <button
-          type="button"
-          className="nav-dropdown-link"
-          role="menuitem"
-          onClick={() => {
-            setPage("dedupe");
-            close();
-          }}
-          title="Find duplicate songs, preview differences and keep the best version"
-        >
-          <span>DeDupe</span>
-          <span className="nav-dropdown-external" aria-hidden="true">
-            ⧉
-          </span>
-        </button>
-        {canUseArchives && (
-          <button
-            type="button"
-            className="nav-dropdown-link"
-            role="menuitem"
-            onClick={() => {
-              setPage("archives");
-              close();
-            }}
-            title="Restore or permanently delete archived songs, set lists and Tarp presentations"
-          >
-            <span>Archives</span>
-            <span className="nav-dropdown-external" aria-hidden="true">
-              ⌸
-            </span>
-          </button>
+        {menuSection(
+          "features",
+          "Features",
+          <>
+            <button
+              type="button"
+              className="nav-dropdown-link"
+              role="menuitem"
+              onClick={() => {
+                setPage("backgrounds");
+                close();
+              }}
+              title="Open the global background library"
+            >
+              <span>Backgrounds</span>
+              <span className="nav-dropdown-external" aria-hidden="true">
+                ◫
+              </span>
+            </button>
+            <button
+              type="button"
+              className="nav-dropdown-link"
+              role="menuitem"
+              onClick={() => {
+                setPage("stingers");
+                close();
+              }}
+              title="Open the transition stinger library"
+            >
+              <span>Stingers</span>
+              <span className="nav-dropdown-external" aria-hidden="true">
+                ✦
+              </span>
+            </button>
+            <button
+              type="button"
+              className="nav-dropdown-link"
+              role="menuitem"
+              onClick={() => {
+                setPage("dedupe");
+                close();
+              }}
+              title="Find duplicate songs, preview differences and keep the best version"
+            >
+              <span>DeDupe</span>
+              <span className="nav-dropdown-external" aria-hidden="true">
+                ⧉
+              </span>
+            </button>
+            {canUseArchives && (
+              <button
+                type="button"
+                className="nav-dropdown-link"
+                role="menuitem"
+                onClick={() => {
+                  setPage("archives");
+                  close();
+                }}
+                title="Restore or permanently delete archived songs, set lists and Tarp presentations"
+              >
+                <span>Archives</span>
+                <span className="nav-dropdown-external" aria-hidden="true">
+                  ⌸
+                </span>
+              </button>
+            )}
+          </>,
         )}
         <div className="nav-dropdown-separator" />
-        <div className="nav-dropdown-label">External links</div>
-        {displayViews.map((view) => (
-          <a
-            key={view.id}
-            className="nav-dropdown-link"
-            href={view.url}
-            target="_blank"
-            rel="noreferrer"
-            role="menuitem"
-            onClick={close}
-            title={`Open ${view.label} in a new tab`}
-          >
-            <span>{view.label}</span>
-            <span className="nav-dropdown-external" aria-hidden="true">
-              ↗
-            </span>
-          </a>
-        ))}
-        {!displayViews.length && <span className="nav-dropdown-empty">No views available</span>}
-        {adapterContext.mqttEnabled && (
-          <MqttControls placement="menu" notify={notify} onPublished={close} />
+        {menuSection(
+          "external",
+          "External links",
+          <>
+            {displayViews.map((view) => (
+              <a
+                key={view.id}
+                className="nav-dropdown-link"
+                href={view.url}
+                target="_blank"
+                rel="noreferrer"
+                role="menuitem"
+                onClick={close}
+                title={`Open ${view.label} in a new tab`}
+              >
+                <span>{view.label}</span>
+                <span className="nav-dropdown-external" aria-hidden="true">
+                  ↗
+                </span>
+              </a>
+            ))}
+            {!displayViews.length && (
+              <span className="nav-dropdown-empty">No views available</span>
+            )}
+            {adapterContext.mqttEnabled && (
+              <MqttControls placement="menu" notify={notify} onPublished={close} />
+            )}
+          </>,
         )}
         <div className="nav-dropdown-separator" />
-        <div className="nav-dropdown-label">Experimental</div>
-        <button
-          type="button"
-          className="nav-dropdown-link"
-          role="menuitem"
-          onClick={() => {
-            setPage("clicker");
-            close();
-          }}
-          title="Configure a USB clicker remote and map its buttons to live actions"
-        >
-          <span>Clicker</span>
-          <span className="nav-dropdown-external" aria-hidden="true">
-            ⌨
-          </span>
-        </button>
-        <button
-          type="button"
-          className="nav-dropdown-link"
-          role="menuitem"
-          onClick={() => {
-            setPage("tarp");
-            close();
-          }}
-          title="Create Tarp themes and presentations"
-        >
-          <span>Tarp</span>
-          <span className="nav-dropdown-external" aria-hidden="true">
-            ▧
-          </span>
-        </button>
-        <button
-          type="button"
-          className="nav-dropdown-link"
-          role="menuitem"
-          onClick={() => {
-            setPage("presentations");
-            close();
-          }}
-          title="Embed public external presentations and open private ones in a window"
-        >
-          <span>Presentations</span>
-          <span className="nav-dropdown-external" aria-hidden="true">
-            ▷
-          </span>
-        </button>
+        {menuSection(
+          "experimental",
+          "Experimental",
+          <>
+            <button
+              type="button"
+              className="nav-dropdown-link"
+              role="menuitem"
+              onClick={() => {
+                setPage("clicker");
+                close();
+              }}
+              title="Configure a USB clicker remote and map its buttons to live actions"
+            >
+              <span>Clicker</span>
+              <span className="nav-dropdown-external" aria-hidden="true">
+                ⌨
+              </span>
+            </button>
+            <button
+              type="button"
+              className="nav-dropdown-link"
+              role="menuitem"
+              onClick={() => {
+                setPage("tarp");
+                close();
+              }}
+              title="Create Tarp themes and presentations"
+            >
+              <span>Tarp</span>
+              <span className="nav-dropdown-external" aria-hidden="true">
+                ▧
+              </span>
+            </button>
+            <button
+              type="button"
+              className="nav-dropdown-link"
+              role="menuitem"
+              onClick={() => {
+                setPage("presentations");
+                close();
+              }}
+              title="Embed public external presentations and open private ones in a window"
+            >
+              <span>Presentations</span>
+              <span className="nav-dropdown-external" aria-hidden="true">
+                ▷
+              </span>
+            </button>
+          </>,
+        )}
         <div className="nav-dropdown-separator" />
         <div className="nav-dropdown-label">Main Configuration</div>
         {user?.role === "admin" && adapterContext.mqttEnabled && (
