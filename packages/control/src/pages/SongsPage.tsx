@@ -51,6 +51,35 @@ function formFromSong(song: Song) {
   };
 }
 
+type SongSearchFieldMode =
+  | "title"
+  | "title-alt"
+  | "title-alt-author"
+  | "title-alt-ccli"
+  | "all";
+
+function songSearchValues(
+  song: Song,
+  mode: SongSearchFieldMode,
+  includeBody: boolean,
+): string[] {
+  const values = [song.title];
+  if (mode !== "title") values.push(song.alternateTitles ?? "");
+  if (mode === "title-alt-author") values.push(song.author ?? "");
+  if (mode === "title-alt-ccli") values.push(song.ccli ?? "");
+  if (mode === "all") {
+    values.push(
+      song.author ?? "",
+      song.ccli ?? "",
+      song.key ?? "",
+      song.copyright ?? "",
+      song.songSelectInfo ?? "",
+    );
+  }
+  if (includeBody) values.push(song.lyrics);
+  return values.filter(Boolean);
+}
+
 export default function SongsPage({
   live,
   onQuickSong,
@@ -64,6 +93,9 @@ export default function SongsPage({
   const { songSelectEnabled } = useAdapters();
   const [songs, setSongs] = useState<Song[]>([]);
   const [search, setSearch] = useState("");
+  const [searchFieldMode, setSearchFieldMode] =
+    useState<SongSearchFieldMode>("title-alt");
+  const [searchBody, setSearchBody] = useState(false);
   const [selectedId, setSelectedId] = useSessionState<string | null>("songs:selected", null);
   const [selectMode, setSelectMode] = useState(false);
   const [selectedSongIds, setSelectedSongIds] = useState<Set<string>>(() => new Set());
@@ -235,11 +267,11 @@ export default function SongsPage({
     const q = search.trim().toLowerCase();
     if (!q) return songs;
     return songs.filter((song) =>
-      [song.title, song.alternateTitles, song.author, song.lyrics]
-        .filter(Boolean)
-        .some((value) => value!.toLowerCase().includes(q)),
+      songSearchValues(song, searchFieldMode, searchBody).some((value) =>
+        value.toLowerCase().includes(q),
+      ),
     );
-  }, [songs, search]);
+  }, [songs, search, searchFieldMode, searchBody]);
 
   const selectedSong = songs.find((song) => song.id === selectedId) ?? null;
   const baselineForm = selectedSong ? formFromSong(selectedSong) : EMPTY;
@@ -617,8 +649,35 @@ export default function SongsPage({
           className="search"
           value={search}
           onChange={(event) => setSearch(event.target.value)}
-          placeholder="Search title, alternative titles, author or lyrics…"
+          placeholder="Search songs…"
         />
+        <div className="song-search-controls">
+          <label>
+            Search in
+            <select
+              value={searchFieldMode}
+              onChange={(event) =>
+                setSearchFieldMode(event.target.value as SongSearchFieldMode)
+              }
+              title="Choose which song metadata fields to search"
+            >
+              <option value="title">Titles only</option>
+              <option value="title-alt">Titles and alternative titles</option>
+              <option value="title-alt-author">Titles, alt titles and author</option>
+              <option value="title-alt-ccli">Titles, alt titles and CCLI</option>
+              <option value="all">All metadata</option>
+            </select>
+          </label>
+          <button
+            type="button"
+            className={`button small ${searchBody ? "primary" : "ghost"}`}
+            aria-pressed={searchBody}
+            onClick={() => setSearchBody((current) => !current)}
+            title="Include the lyrics/body text in the search"
+          >
+            {searchBody ? "− Body" : "+ Body"}
+          </button>
+        </div>
         {canWrite && <div className="song-list-actions">
           {!selectMode ? (
             <button
