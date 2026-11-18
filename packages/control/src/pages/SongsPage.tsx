@@ -109,6 +109,8 @@ export default function SongsPage({
   const [siteUpdatingId, setSiteUpdatingId] = useState<string | null>(null);
   const [fixingPageNameId, setFixingPageNameId] = useState<string | null>(null);
   const [chordProOpen, setChordProOpen] = useState(false);
+  const [lyricsRevision, setLyricsRevision] = useState(0);
+  const lyricsRef = useRef<HTMLDivElement | null>(null);
   const restoredSelection = useRef(false);
   const [scan, setScan] = useState<SongImportScan | null>(null);
   const [scanning, setScanning] = useState(false);
@@ -201,8 +203,14 @@ export default function SongsPage({
       lyrics: preview.lyrics,
       songSelectInfo: preview.songSelectInfo ?? current.songSelectInfo,
     }));
-    notify("ChordPro changes loaded — review and save the song");
+    setLyricsRevision((current) => current + 1);
+    notify("ChordPro lyrics loaded into the editor — review and save the song");
   }
+
+  useEffect(() => {
+    if (!lyricsRevision) return;
+    lyricsRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [lyricsRevision]);
 
   async function fixPageNames(song: Song) {
     setFixingPageNameId(song.id);
@@ -1017,7 +1025,7 @@ export default function SongsPage({
           </span>
         </label>
 
-        <div className="lyrics-field">
+        <div className="lyrics-field" ref={lyricsRef}>
           <span className="field-label">Lyrics and chords</span>
           {selectedSong && (
             <div className="song-editor-tools">
@@ -1041,6 +1049,7 @@ export default function SongsPage({
             </div>
           )}
           <PageContentEditor
+            key={`lyrics-${selectedId ?? "new"}-${lyricsRevision}`}
             value={form.lyrics}
             onChange={(lyrics) => setForm({ ...form, lyrics })}
             rows={12}
