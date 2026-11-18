@@ -30,40 +30,53 @@ export function ItemList({ live, onCommand }: { live: LiveState; onCommand: (pay
   const currentItem = live.queuedItemIndex ?? live.itemIndex;
   return (
     <div className="item-list">
-      {live.items.map((item) => (
-        <div
-          key={item.index}
-          className={`item-row ${item.index === currentItem ? "current" : ""}`}
-        >
-          <button
-            className="item-row-main"
-            onClick={() => onCommand({ type: "queueItem", itemIndex: item.index })}
-            title="Queue this item's page list"
+      {live.items.map((item) => {
+        const queueItem = () =>
+          onCommand({ type: "queueItem", itemIndex: item.index });
+        const appendItem = () =>
+          onCommand({ type: "appendItem", itemIndex: item.index });
+        return (
+          <div
+            key={item.index}
+            className={`item-row ${item.index === currentItem ? "current" : ""}`}
+            onClick={queueItem}
           >
-            <span className="item-icon">
-              {item.kind === "song"
-                ? "♫"
-                : item.kind === "image"
-                  ? "▣"
-                  : item.kind === "image_list"
-                    ? "▦"
-                    : item.kind === "tarp"
-                      ? "✦"
-                      : "T"}
-            </span>
-            <span className="item-title">{item.title}</span>
-            {item.notes && <span className="item-notes">{item.notes}</span>}
-          </button>
-          <button
-            className="item-append"
-            onClick={() => onCommand({ type: "appendItem", itemIndex: item.index })}
-            title="Append this item's pages to the current live queue"
-            aria-label={`Append ${item.title} pages to the live queue`}
-          >
-            +
-          </button>
-        </div>
-      ))}
+            <button
+              className="item-row-main"
+              onClick={(event) => {
+                event.stopPropagation();
+                queueItem();
+              }}
+              title="Queue this item's page list"
+            >
+              <span className="item-icon">
+                {item.kind === "song"
+                  ? "♫"
+                  : item.kind === "image"
+                    ? "▣"
+                    : item.kind === "image_list"
+                      ? "▦"
+                      : item.kind === "tarp"
+                        ? "✦"
+                        : "T"}
+              </span>
+              <span className="item-title">{item.title}</span>
+              {item.notes && <span className="item-notes">{item.notes}</span>}
+            </button>
+            <button
+              className="item-append"
+              onClick={(event) => {
+                event.stopPropagation();
+                appendItem();
+              }}
+              title="Append this item's pages to the current live queue"
+              aria-label={`Append ${item.title} pages to the live queue`}
+            >
+              +
+            </button>
+          </div>
+        );
+      })}
     </div>
   );
 }

@@ -611,6 +611,9 @@ function ItemRow({
   return (
     <div
       className={`setlist-item ${dragging ? "dragging" : ""} ${dragOver ? "drag-over" : ""}`}
+      onClick={(event) => {
+        if (!editing && event.target === event.currentTarget) toggleEditor();
+      }}
       onDragOver={(event) => {
         event.preventDefault();
         onDragOver();

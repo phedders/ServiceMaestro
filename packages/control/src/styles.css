@@ -1377,6 +1377,7 @@ body.resizing-live-queue {
   border-radius: 10px;
   padding: 10px 12px;
   font-size: 0.8rem;
+  cursor: pointer;
 }
 
 .item-row {
