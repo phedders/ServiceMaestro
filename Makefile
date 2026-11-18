@@ -26,6 +26,7 @@ help:
 		'  DOCKER=$(DOCKER)' \
 		'  GHCR_USER=$(GHCR_USER)'
 
+
 image:
 	@test -n "$(TAG)" || { echo "TAG is empty; set TAG=... or add a version to package.json"; exit 1; }
 	$(DOCKER) build \
@@ -34,6 +35,10 @@ image:
 		--label "org.opencontainers.image.version=$(TAG)" \
 		$(IMAGE_TAGS) \
 		.
+
+up: image
+	git push
+	docker compose up -d
 
 login:
 	@TOKEN="$${GHCR_TOKEN:-$${GITHUB_TOKEN:-}}"; \
@@ -45,6 +50,7 @@ login:
 	printf '%s' "$$TOKEN" | $(DOCKER) login ghcr.io --username "$(GHCR_USER)" --password-stdin
 
 publish: image
+	git push
 	@TOKEN="$${GHCR_TOKEN:-$${GITHUB_TOKEN:-}}"; \
 	if [ -n "$$TOKEN" ]; then \
 		printf '%s' "$$TOKEN" | $(DOCKER) login ghcr.io --username "$(GHCR_USER)" --password-stdin; \
