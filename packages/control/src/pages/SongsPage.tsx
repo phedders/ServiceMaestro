@@ -100,6 +100,7 @@ export default function SongsPage({
   const [selectMode, setSelectMode] = useState(false);
   const [selectedSongIds, setSelectedSongIds] = useState<Set<string>>(() => new Set());
   const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [bulkArchiving, setBulkArchiving] = useState(false);
   const [simplifyPageIds, setSimplifyPageIds] = useState(false);
   const [simplifyImportPageIds, setSimplifyImportPageIds] = useState(false);
   const [pageIdShortcuts, setPageIdShortcuts] = useState<Record<string, string>>({});
@@ -337,6 +338,33 @@ export default function SongsPage({
   function cancelSelection() {
     setSelectMode(false);
     setSelectedSongIds(new Set());
+  }
+
+  async function archiveSelectedSongs() {
+    if (!selectedSongIds.size) return;
+    const ids = [...selectedSongIds];
+    if (
+      !confirm(
+        `Archive ${ids.length} song${ids.length === 1 ? "" : "s"}? They can be restored from Archives.`,
+      )
+    ) {
+      return;
+    }
+    setBulkArchiving(true);
+    try {
+      const result = await api.archiveSongs(ids);
+      if (selectedId && selectedSongIds.has(selectedId)) newSong();
+      setSelectMode(false);
+      setSelectedSongIds(new Set());
+      await load();
+      notify(
+        `${result.archived} song${result.archived === 1 ? "" : "s"} archived`,
+      );
+    } catch (error) {
+      notify(error instanceof ApiError ? error.message : "Could not archive songs", "error");
+    } finally {
+      setBulkArchiving(false);
+    }
   }
 
   async function deleteSelectedSongs() {
@@ -692,7 +720,7 @@ export default function SongsPage({
               className="button ghost small"
               onClick={() => setSelectMode(true)}
               disabled={!songs.length}
-              title="Select multiple songs to delete"
+              title="Select multiple songs to archive or delete"
             >
               Select
             </button>
@@ -711,9 +739,17 @@ export default function SongsPage({
                 {selectedSongIds.size} selected
               </span>
               <button
+                className="button small"
+                onClick={() => void archiveSelectedSongs()}
+                disabled={!selectedSongIds.size || bulkDeleting || bulkArchiving}
+                title="Archive all selected songs; restore them later from Archives"
+              >
+                {bulkArchiving ? "Archiving…" : "Archive selected"}
+              </button>
+              <button
                 className="button small danger"
                 onClick={deleteSelectedSongs}
-                disabled={!selectedSongIds.size || bulkDeleting}
+                disabled={!selectedSongIds.size || bulkDeleting || bulkArchiving}
                 title="Delete all selected songs from the shared library"
               >
                 {bulkDeleting ? "Deleting…" : "Delete selected"}

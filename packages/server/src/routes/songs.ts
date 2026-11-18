@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { randomUUID } from "node:crypto";
 import {
+  archiveBulkSchema,
   chordProPreviewSchema,
   fixLowercaseChords,
   simplifySongPageIds,
@@ -616,6 +617,35 @@ export async function songRoutes(app: FastifyInstance): Promise<void> {
         request.log.warn({ err: error }, "git song archive save failed"),
       );
       return { ok: true };
+    },
+  );
+
+  app.post(
+    "/api/songs/bulk-archive",
+    { preHandler: [requireAuth, requirePermission("songs")] },
+    async (request, reply) => {
+      const parsed = archiveBulkSchema.safeParse(request.body);
+      if (!parsed.success) {
+        return reply.code(400).send({ error: "Invalid song selection", issues: parsed.error.issues });
+      }
+      const ids = [...new Set(parsed.data.ids)];
+      const now = new Date().toISOString();
+      const update = db.prepare(
+        "UPDATE songs SET archived_at = ?, updated_at = ? WHERE id = ? AND archived_at IS NULL",
+      );
+      const archived: string[] = [];
+      const archive = db.transaction(() => {
+        for (const id of ids) {
+          if (update.run(now, now, id).changes) archived.push(id);
+        }
+      });
+      archive();
+      for (const id of archived) {
+        await saveSongToGit(id).catch((error) =>
+          request.log.warn({ err: error }, "git bulk song archive save failed"),
+        );
+      }
+      return { ok: true, archived: archived.length, ids: archived };
     },
   );
 

@@ -309,6 +309,11 @@ export const api = {
     }),
   archiveSong: (id: string) =>
     request<{ ok: true }>(`/api/songs/${id}/archive`, { method: "POST" }),
+  archiveSongs: (ids: string[]) =>
+    request<{ ok: true; archived: number; ids: string[] }>("/api/songs/bulk-archive", {
+      method: "POST",
+      body: JSON.stringify({ ids }),
+    }),
   songPageNames: () => request<{ names: string[] }>("/api/songs/page-names"),
   songPageIdFixes: () => request<SongPageIdFixScan>("/api/songs/page-id-fixes"),
   applySongPageIdFixes: (songIds?: string[]) =>
@@ -652,8 +657,18 @@ export const api = {
       body: JSON.stringify(payload),
     }),
   deleteSetlist: (id: string) => request<{ ok: true }>(`/api/setlists/${id}`, { method: "DELETE" }),
+  deleteSetlists: (ids: string[]) =>
+    request<{ ok: true; deleted: number; ids: string[] }>("/api/setlists/bulk-delete", {
+      method: "POST",
+      body: JSON.stringify({ ids }),
+    }),
   archiveSetlist: (id: string) =>
     request<{ ok: true }>(`/api/setlists/${id}/archive`, { method: "POST" }),
+  archiveSetlists: (ids: string[]) =>
+    request<{ ok: true; archived: number; ids: string[] }>("/api/setlists/bulk-archive", {
+      method: "POST",
+      body: JSON.stringify({ ids }),
+    }),
   archives: () => request<ArchivesData>("/api/archives"),
   restoreArchivedSongs: (ids: string[]) =>
     request<{ ok: true; restored: number; ids: string[] }>("/api/archives/songs/restore", {

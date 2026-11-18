@@ -1,6 +1,7 @@
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { randomUUID } from "node:crypto";
 import {
+  archiveBulkSchema,
   parseImageListContent,
   parseTarpItemContent,
   reorderSchema,
@@ -224,6 +225,57 @@ export async function setlistRoutes(app: FastifyInstance): Promise<void> {
       }
       await persistGit(id, request);
       return { ok: true };
+    },
+  );
+
+  app.post(
+    "/api/setlists/bulk-archive",
+    { preHandler: [requireAuth, requirePermission("setlists")] },
+    async (request, reply) => {
+      const parsed = archiveBulkSchema.safeParse(request.body);
+      if (!parsed.success) {
+        return reply.code(400).send({ error: "Invalid set list selection", issues: parsed.error.issues });
+      }
+      const ids = [...new Set(parsed.data.ids)];
+      const now = new Date().toISOString();
+      const update = db.prepare(
+        "UPDATE setlists SET archived_at = ?, updated_at = ? WHERE id = ? AND archived_at IS NULL",
+      );
+      const archived: string[] = [];
+      const archive = db.transaction(() => {
+        for (const id of ids) {
+          if (update.run(now, now, id).changes) archived.push(id);
+        }
+      });
+      archive();
+      for (const id of archived) await persistGit(id, request);
+      return { ok: true, archived: archived.length, ids: archived };
+    },
+  );
+
+  app.post(
+    "/api/setlists/bulk-delete",
+    { preHandler: [requireAuth, requirePermission("setlists")] },
+    async (request, reply) => {
+      const parsed = archiveBulkSchema.safeParse(request.body);
+      if (!parsed.success) {
+        return reply.code(400).send({ error: "Invalid set list selection", issues: parsed.error.issues });
+      }
+      const ids = [...new Set(parsed.data.ids)];
+      const remove = db.prepare("DELETE FROM setlists WHERE id = ?");
+      const removed: string[] = [];
+      const removeTx = db.transaction(() => {
+        for (const id of ids) {
+          if (remove.run(id).changes) removed.push(id);
+        }
+      });
+      removeTx();
+      for (const id of removed) {
+        await deleteSetlistFromGit(id).catch((error) =>
+          request.log.warn({ err: error }, "git bulk set list delete failed"),
+        );
+      }
+      return { ok: true, deleted: removed.length, ids: removed };
     },
   );
 

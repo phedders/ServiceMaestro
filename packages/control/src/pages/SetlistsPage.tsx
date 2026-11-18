@@ -1404,6 +1404,12 @@ export default function SetlistsPage({
     null,
   );
   const [detail, setDetail] = useState<SetlistDetail | null>(null);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedSetlistIds, setSelectedSetlistIds] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [bulkArchiving, setBulkArchiving] = useState(false);
   const [songs, setSongs] = useState<Song[]>([]);
   const [images, setImages] = useState<ImageAsset[]>([]);
   const [backgrounds, setBackgrounds] = useState<BackgroundAsset[]>([]);
@@ -1508,6 +1514,94 @@ export default function SetlistsPage({
       notify("Set list archived");
     } catch (error) {
       notify(error instanceof ApiError ? error.message : "Could not archive set list", "error");
+    }
+  }
+
+  function toggleSetlistSelection(id: string) {
+    setSelectedSetlistIds((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAllSetlists() {
+    setSelectedSetlistIds((current) => {
+      const next = new Set(current);
+      const allSelected =
+        setlists.length > 0 && setlists.every((setlist) => next.has(setlist.id));
+      if (allSelected) {
+        for (const setlist of setlists) next.delete(setlist.id);
+      } else {
+        for (const setlist of setlists) next.add(setlist.id);
+      }
+      return next;
+    });
+  }
+
+  function cancelSetlistSelection() {
+    setSelectMode(false);
+    setSelectedSetlistIds(new Set());
+  }
+
+  async function archiveSelectedSetlists() {
+    if (!selectedSetlistIds.size) return;
+    const ids = [...selectedSetlistIds];
+    if (
+      !confirm(
+        `Archive ${ids.length} set list${ids.length === 1 ? "" : "s"}? They can be restored from Archives.`,
+      )
+    ) {
+      return;
+    }
+    setBulkArchiving(true);
+    try {
+      const result = await api.archiveSetlists(ids);
+      if (selectedId && selectedSetlistIds.has(selectedId)) {
+        setDetail(null);
+        setSelectedId(null);
+      }
+      setSelectMode(false);
+      setSelectedSetlistIds(new Set());
+      await loadList();
+      notify(
+        `${result.archived} set list${result.archived === 1 ? "" : "s"} archived`,
+      );
+    } catch (error) {
+      notify(error instanceof ApiError ? error.message : "Could not archive set lists", "error");
+    } finally {
+      setBulkArchiving(false);
+    }
+  }
+
+  async function deleteSelectedSetlists() {
+    if (!selectedSetlistIds.size) return;
+    const ids = [...selectedSetlistIds];
+    if (
+      !confirm(
+        `Delete ${ids.length} set list${ids.length === 1 ? "" : "s"} permanently? This cannot be undone.`,
+      )
+    ) {
+      return;
+    }
+    setBulkDeleting(true);
+    try {
+      const result = await api.deleteSetlists(ids);
+      if (selectedId && selectedSetlistIds.has(selectedId)) {
+        setDetail(null);
+        setSelectedId(null);
+      }
+      setSelectMode(false);
+      setSelectedSetlistIds(new Set());
+      await loadList();
+      notify(
+        `${result.deleted} set list${result.deleted === 1 ? "" : "s"} deleted`,
+      );
+    } catch (error) {
+      notify(error instanceof ApiError ? error.message : "Could not delete set lists", "error");
+    } finally {
+      setBulkDeleting(false);
     }
   }
 
@@ -2048,6 +2142,10 @@ export default function SetlistsPage({
 
   if (loading) return <div className="panel">Loading set lists…</div>;
 
+  const allSetlistsSelected =
+    setlists.length > 0 &&
+    setlists.every((setlist) => selectedSetlistIds.has(setlist.id));
+
   const metaChanges = detail
     ? changeList([
         { label: "Name", before: detail.name, after: name },
@@ -2074,25 +2172,103 @@ export default function SetlistsPage({
           <h2>Set lists</h2>
           <span className="muted">{setlists.length}</span>
         </div>
-        <div className="setlist-list" data-key-list>
-          {setlists.map((setlist) => (
+        <div className="setlist-list-actions">
+          {!selectMode ? (
             <button
-              key={setlist.id}
-              data-key-list-item
-              className={`setlist-list-item ${setlist.id === selectedId ? "current" : ""}`}
-              onClick={() => {
-                setSelectedId(setlist.id);
-                loadDetail(setlist.id).catch(() => undefined);
-              }}
-              title={`Edit set list “${setlist.name}”`}
+              className="button ghost small"
+              onClick={() => setSelectMode(true)}
+              disabled={!setlists.length}
+              title="Select multiple set lists to archive or delete"
             >
-              <strong>{setlist.name}</strong>
-              <span>
-                {compactDate(setlist.serviceDate)}
-                {setlist.serviceTime ? ` · ${setlist.serviceTime}` : ""} · {setlist.itemCount} items
-              </span>
+              Select
             </button>
-          ))}
+          ) : (
+            <>
+              <label className="checkbox">
+                <input
+                  type="checkbox"
+                  checked={allSetlistsSelected}
+                  disabled={!setlists.length}
+                  onChange={toggleSelectAllSetlists}
+                />
+                Select all shown
+              </label>
+              <span className="muted">{selectedSetlistIds.size} selected</span>
+              <button
+                className="button small"
+                onClick={() => void archiveSelectedSetlists()}
+                disabled={
+                  !selectedSetlistIds.size || bulkDeleting || bulkArchiving
+                }
+                title="Archive all selected set lists; restore them later from Archives"
+              >
+                {bulkArchiving ? "Archiving…" : "Archive selected"}
+              </button>
+              <button
+                className="button small danger"
+                onClick={() => void deleteSelectedSetlists()}
+                disabled={
+                  !selectedSetlistIds.size || bulkDeleting || bulkArchiving
+                }
+                title="Delete all selected set lists permanently"
+              >
+                {bulkDeleting ? "Deleting…" : "Delete selected"}
+              </button>
+              <button
+                className="button ghost small"
+                onClick={cancelSetlistSelection}
+              >
+                Cancel
+              </button>
+            </>
+          )}
+        </div>
+        <div className="setlist-list" data-key-list>
+          {setlists.map((setlist) =>
+            selectMode ? (
+              <label
+                key={setlist.id}
+                data-key-list-item
+                className={`setlist-list-item setlist-select-row ${
+                  selectedSetlistIds.has(setlist.id) ? "selected" : ""
+                } ${setlist.id === selectedId ? "current" : ""}`}
+                title={`Select “${setlist.name}” for bulk actions`}
+              >
+                <input
+                  type="checkbox"
+                  checked={selectedSetlistIds.has(setlist.id)}
+                  onChange={() => toggleSetlistSelection(setlist.id)}
+                  aria-label={`Select ${setlist.name}`}
+                />
+                <div className="setlist-select-content">
+                  <strong>{setlist.name}</strong>
+                  <span>
+                    {compactDate(setlist.serviceDate)}
+                    {setlist.serviceTime ? ` · ${setlist.serviceTime}` : ""} ·{" "}
+                    {setlist.itemCount} items
+                  </span>
+                </div>
+              </label>
+            ) : (
+              <button
+                key={setlist.id}
+                data-key-list-item
+                className={`setlist-list-item ${setlist.id === selectedId ? "current" : ""}`}
+                onClick={() => {
+                  setSelectedId(setlist.id);
+                  loadDetail(setlist.id).catch(() => undefined);
+                }}
+                title={`Edit set list “${setlist.name}”`}
+              >
+                <strong>{setlist.name}</strong>
+                <span>
+                  {compactDate(setlist.serviceDate)}
+                  {setlist.serviceTime ? ` · ${setlist.serviceTime}` : ""} ·{" "}
+                  {setlist.itemCount} items
+                </span>
+              </button>
+            ),
+          )}
           {!setlists.length && <p className="muted">No set lists yet.</p>}
         </div>
         <ReadOnlyFieldset className="new-setlist">

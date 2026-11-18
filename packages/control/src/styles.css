@@ -1709,6 +1709,44 @@ body.resizing-live-queue {
   width: auto;
 }
 
+.setlist-list-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: -4px 0 8px;
+}
+
+.setlist-list-actions .checkbox {
+  min-height: 32px;
+}
+
+.setlist-list-actions .checkbox input {
+  width: auto;
+}
+
+.setlist-list-item.setlist-select-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.setlist-list-item.setlist-select-row input {
+  width: auto;
+  margin-top: 3px;
+}
+
+.setlist-select-content {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.setlist-select-content strong {
+  color: var(--text);
+}
+
 .song-row.song-select-row {
   grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
