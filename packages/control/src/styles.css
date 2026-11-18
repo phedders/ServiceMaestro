@@ -5119,7 +5119,10 @@ body.resizing-live-queue {
 }
 
 .musicians-service-controls {
-  min-width: 280px;
+  flex: 0 1 480px;
+  width: 480px;
+  min-width: 340px;
+  max-width: 100%;
   display: grid;
   gap: 8px;
 }
@@ -5592,6 +5595,12 @@ body.resizing-live-queue {
   }
 
   .musicians-toolbar label {
+    min-width: 0;
+  }
+
+  .musicians-service-controls {
+    flex: none;
+    width: 100%;
     min-width: 0;
   }
 
