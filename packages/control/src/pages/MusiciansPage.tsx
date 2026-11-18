@@ -109,6 +109,7 @@ export default function MusiciansPage({
   const [selectedSetlist, setSelectedSetlist] = useState("");
   const [detail, setDetail] = useState<SetlistDetail | null>(null);
   const [selectedItem, setSelectedItem] = useState("");
+  const [expandAll, setExpandAll] = useState(false);
   const [assets, setAssets] = useState<Record<string, SongAsset[]>>({});
   const [songs, setSongs] = useState<Record<string, Song>>({});
   const [selectedAsset, setSelectedAsset] = useState("");
@@ -403,7 +404,7 @@ export default function MusiciansPage({
       </section>
 
       {viewMode === "setlist" ? (
-        <section className="panel musicians-viewer" ref={viewerRef}>
+        <section className={`panel musicians-viewer ${expandAll ? "musicians-expanded" : ""}`} ref={viewerRef}>
           {detail ? (
             <>
               <div className="panel-heading">
@@ -414,7 +415,22 @@ export default function MusiciansPage({
                     {detail.items.length === 1 ? "" : "s"}
                   </p>
                 </div>
-                <FullscreenButton targetRef={viewerRef} />
+                <div className="button-row">
+                  <button
+                    type="button"
+                    className={`button small ${expandAll ? "primary" : "ghost"}`}
+                    aria-pressed={expandAll}
+                    onClick={() => setExpandAll((current) => !current)}
+                    title={
+                      expandAll
+                        ? "Collapse all item panels and restore inner scrolling"
+                        : "Expand every item panel and remove inner scrollbars"
+                    }
+                  >
+                    {expandAll ? "Collapse all" : "Expand all"}
+                  </button>
+                  <FullscreenButton targetRef={viewerRef} />
+                </div>
               </div>
 
               <div className="musician-items">
@@ -461,7 +477,7 @@ export default function MusiciansPage({
                         </span>
                       </button>
 
-                      {isSelected && (
+                      {(expandAll || isSelected) && (
                         <div className="musician-item-body">
                           {item.kind === "song" ? (
                             mediaAsset ? (
@@ -488,7 +504,7 @@ export default function MusiciansPage({
                                 <pre className="lyrics-view">
                                   {item.content ?? song?.lyrics ?? "Lyrics are not available for this song."}
                                 </pre>
-                                {mediaType === "default" && (
+                                {mediaType === "default" && (!expandAll || isSelected) && (
                                   <SongFiles
                                     assets={songAssets}
                                     selectedAsset={selectedAsset}

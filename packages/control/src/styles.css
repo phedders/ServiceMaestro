@@ -5218,6 +5218,13 @@ body.resizing-live-queue {
   min-height: 640px;
 }
 
+.musicians-viewer.musicians-expanded .lyrics-view,
+.musicians-viewer.musicians-expanded .text-asset,
+.musicians-viewer.musicians-expanded .pdf-canvas-wrap {
+  max-height: none;
+  overflow: visible;
+}
+
 .musicians-viewer:fullscreen {
   width: 100vw;
   height: 100vh;
