@@ -18,7 +18,7 @@ export function PageList({ live, onCommand }: { live: LiveState; onCommand: (pay
           <span className="page-meta">
             <span className="page-number">{page.index + 1}</span>
             {page.section && (
-              <span className="page-section">({page.section})</span>
+              <em className="page-section">{page.section}</em>
             )}
           </span>
           <span className="page-text" dangerouslySetInnerHTML={{ __html: page.html }} />
