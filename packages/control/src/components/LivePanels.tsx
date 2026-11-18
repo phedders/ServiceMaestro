@@ -64,6 +64,17 @@ export function ItemList({ live, onCommand }: { live: LiveState; onCommand: (pay
               {item.notes && <span className="item-notes">{item.notes}</span>}
             </button>
             <button
+              className="item-live"
+              onClick={(event) => {
+                event.stopPropagation();
+                onCommand({ type: "goto", itemIndex: item.index });
+              }}
+              title={`Take ${item.title} live from its first page`}
+              aria-label={`Take ${item.title} live`}
+            >
+              Live
+            </button>
+            <button
               className="item-append"
               onClick={(event) => {
                 event.stopPropagation();

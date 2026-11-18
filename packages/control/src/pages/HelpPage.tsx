@@ -139,6 +139,10 @@ export default function HelpPage({ onOpenSettings }: { onOpenSettings: () => voi
                 sending it live.
               </li>
               <li>
+                Press the item&apos;s <strong>Live</strong> button to take it live immediately from
+                its first page.
+              </li>
+              <li>
                 Press the item&apos;s <strong>+</strong> button to append its pages to the current
                 live queue.
               </li>
