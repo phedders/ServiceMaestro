@@ -312,14 +312,26 @@ function applyInlineMarkdown(html: string): string {
 }
 
 function renderPlainTextSegment(value: string, options: LineRenderOptions): string {
-  let html = escapeHtml(value);
-  if (options.splitWords) {
-    // SongSelect-style split words: keep " - " for the chords view, hide it
-    // with CSS on main/two-thirds/stage so the words join up.
-    html = html.replace(/(?<=\S)(\s+-\s+)(?=\S)/g, '<span class="lyric-split">$1</span>');
-  }
-  if (options.markdown) html = applyInlineMarkdown(html);
-  return html;
+  const html = escapeHtml(value);
+  return options.markdown ? applyInlineMarkdown(html) : html;
+}
+
+const SPLIT_SENTINEL = "\uE000";
+
+function wrapSplitMarkers(value: string): string {
+  // SongSelect can place the split marker between words, after a chord, or
+  // before a chord. Chord tokens are replaced by a non-space sentinel while
+  // this runs, so a marker next to a chord is still treated as a syllable
+  // split. Plain hyphens such as "well-known" are left alone.
+  return value
+    .replace(
+      /(\s+)(?=(?:\uE000\s*)+-\s*)/g,
+      '<span class="lyric-split">$1</span>',
+    )
+    .replace(
+      /(?<=\S)(\s+-\s+)(?=\S)|(?<=\uE000)(\s*-\s*)(?=\S)|(?<=\S)(\s+-\s*)(?=\uE000)/g,
+      (marker) => `<span class="lyric-split">${marker}</span>`,
+    );
 }
 
 export function renderLine(
@@ -327,24 +339,29 @@ export function renderLine(
   semitones: number,
   options: LineRenderOptions = {},
 ): string {
-  let out = "";
+  const parts: string[] = [];
+  const chords: string[] = [];
   let last = 0;
   const re = /\[([^\]]+)\]/g;
   let match: RegExpExecArray | null;
   while ((match = re.exec(text))) {
-    out += renderPlainTextSegment(text.slice(last, match.index), options);
+    parts.push(renderPlainTextSegment(text.slice(last, match.index), options));
     const token = match[1].trim();
     const chord = chordToken(token);
     if (chord) {
       const shown = escapeHtml(transposeChord(chord, semitones));
-      out += `<span class="chord" data-chord="${shown}">${shown}</span>`;
+      chords.push(`<span class="chord" data-chord="${shown}">${shown}</span>`);
+      parts.push(SPLIT_SENTINEL);
     } else {
-      out += escapeHtml(`[${token}]`);
+      parts.push(escapeHtml(`[${token}]`));
     }
     last = match.index + match[0].length;
   }
-  out += renderPlainTextSegment(text.slice(last), options);
-  return out;
+  parts.push(renderPlainTextSegment(text.slice(last), options));
+  let html = parts.join("");
+  if (options.splitWords) html = wrapSplitMarkers(html);
+  let chordIndex = 0;
+  return html.replace(/\uE000/g, () => chords[chordIndex++] ?? "");
 }
 
 function normalize(value: string): string {

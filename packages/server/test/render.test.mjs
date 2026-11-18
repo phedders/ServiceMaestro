@@ -403,6 +403,52 @@ test("renders song Markdown and split-word tags", () => {
   assert.match(split, /class="lyric-split"/);
 });
 
+test("wraps split markers next to chord tokens", () => {
+  const beforeChord = renderLine("be - [Bb]lieve", 0, { splitWords: true });
+  assert.match(
+    beforeChord,
+    /be<span class="lyric-split"> - <\/span><span class="chord" data-chord="Bb">Bb<\/span>lieve/,
+  );
+
+  const afterChord = renderLine("[Gm7]- [F]ly", 0, { splitWords: true });
+  assert.match(
+    afterChord,
+    /<span class="chord" data-chord="Gm7">Gm7<\/span><span class="lyric-split">- <\/span><span class="chord" data-chord="F">F<\/span>ly/,
+  );
+
+  const betweenChords = renderLine("[C] - [G]race", 0, { splitWords: true });
+  assert.match(
+    betweenChords,
+    /<span class="chord" data-chord="C">C<\/span><span class="lyric-split"> - <\/span><span class="chord" data-chord="G">G<\/span>race/,
+  );
+
+  const doubleSplit = renderLine(
+    "We'll [Gm7]sing the song for - [Fsus]ever and a - [Eb2]men",
+    0,
+    { splitWords: true },
+  );
+  assert.equal((doubleSplit.match(/class="lyric-split"/g) ?? []).length, 2);
+
+  const lyricOnly = (html) =>
+    html
+      .replace(/<span class="lyric-split">.*?<\/span>/g, "")
+      .replace(/<span class="chord"[^>]*>.*?<\/span>/g, "");
+  assert.equal(
+    lyricOnly(renderLine("And the angels [Eb2]cry Ho [Gm7]- [F]ly", 0, { splitWords: true })),
+    "And the angels cry Holy",
+  );
+  assert.equal(
+    lyricOnly(renderLine("And [Bb]all who will be - [Bb]lieve", 0, { splitWords: true })),
+    "And all who will believe",
+  );
+  assert.equal(
+    lyricOnly(renderLine("Ho [C] [G]- [D]ly", 0, { splitWords: true })),
+    "Holy",
+  );
+
+  assert.doesNotMatch(renderLine("well-known", 0, { splitWords: true }), /lyric-split/);
+});
+
 test("applies text alignment to text items", () => {
   const plain = buildPages({
     kind: "text",

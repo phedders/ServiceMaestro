@@ -295,7 +295,32 @@ export default function OutputsPage({
             { label: "Layout", before: baselineOutput.layout, after: draft.layout },
             { label: "Panel", before: baselineOutput.panel, after: draft.panel },
             { label: "Text", before: baselineOutput.text, after: draft.text },
-            { label: "Content", before: baselineOutput.content, after: draft.content },
+            { label: "Pages", before: baselineOutput.content.pages, after: draft.content.pages },
+            {
+              label: "Meta/title",
+              before: baselineOutput.content.showMeta,
+              after: draft.content.showMeta,
+            },
+            {
+              label: "Footer",
+              before: baselineOutput.content.showFooter,
+              after: draft.content.showFooter,
+            },
+            {
+              label: "Chords",
+              before: baselineOutput.content.showChords,
+              after: draft.content.showChords,
+            },
+            {
+              label: "Section labels",
+              before: baselineOutput.content.showSectionLabels,
+              after: draft.content.showSectionLabels,
+            },
+            {
+              label: "Hide syllable/chord splits",
+              before: !baselineOutput.content.showSplitWords,
+              after: !draft.content.showSplitWords,
+            },
             { label: "Image", before: baselineOutput.image, after: draft.image },
             { label: "Clock", before: baselineOutput.clock, after: draft.clock },
           ])
@@ -791,7 +816,6 @@ export default function OutputsPage({
                     ["showFooter", "Footer"],
                     ["showChords", "Chords"],
                     ["showSectionLabels", "Section labels"],
-                    ["showSplitWords", "Split-word joins"],
                   ] as const
                 ).map(([key, label]) => (
                   <label key={key} className="checkbox output-checkbox">
@@ -803,6 +827,20 @@ export default function OutputsPage({
                     {label}
                   </label>
                 ))}
+                <label
+                  className="checkbox output-checkbox"
+                  title="Hide SongSelect-style syllable and chord split markers on this output"
+                >
+                  {/* Stored as showSplitWords; the editor presents the inverse "Hide" control. */}
+                  <input
+                    type="checkbox"
+                    checked={!draft.content.showSplitWords}
+                    onChange={(event) =>
+                      setContent("showSplitWords", !event.target.checked)
+                    }
+                  />
+                  Hide syllable/chord splits
+                </label>
               </div>
             </div>
           </section>

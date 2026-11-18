@@ -26,7 +26,7 @@ An output definition contains:
 - Layout: horizontal/vertical/text alignment, side/top/bottom padding, content max width and height.
 - Lower-third panel: on/off, colour/alpha, padding, corner radius, border, max width/height.
 - Text overrides: font family, colour, scale multiplier and line height.
-- Content: current page only or current plus upcoming pages; meta/title, footer, chords, section labels and split-word visibility.
+- Content: current page only or current plus upcoming pages; meta/title, footer, chords, section labels and syllable/chord split visibility.
 - Image max height and padding. Blank image values inherit the global/lower-third display settings. The full-screen output defaults to 100% so images fill the screen; other outputs default to 78%.
 - Optional **clock overlay**: on/off, style **Analogue (no numbers)**, **Digital 24-hour** or **Digital 12-hour**, font, size in `vw`, colour, one of nine screen positions, shadow/highlight and seconds (digital) or second hand (analogue). The clock is independent of the live content and remains visible while pages are blank or changing, so a stage/confidence monitor can show the speaker the time.
 
@@ -171,7 +171,7 @@ Songs can opt into **inline Markdown styling** metadata. Supported tags include 
 
 - Main/two-thirds (and full) render the styling.
 - Stage and chords **ignore** the styling, showing plain text.
-- SongSelect/SongPro split words like `can - not` or `sat - is - fied` are wrapped in `.lyric-split` spans. CSS hides those separators on lower-third/centered two-thirds/full/stage (so the words join to `cannot` / `satisfied`) and keeps them visible in the chords view.
+- SongSelect/SongPro split words like `can - not` or `sat - is - fied` are wrapped in `.lyric-split` spans, including markers immediately before or after chord tokens. CSS hides those separators on lower-third/centered two-thirds/full/stage (so the words join to `cannot` / `satisfied`) and keeps them visible in the chords view by default. Each output configuration has a **Hide syllable/chord splits** toggle to override that default.
 
 ## 4.2 Imported Google Fonts
 
