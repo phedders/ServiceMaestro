@@ -673,9 +673,9 @@ export default function SongsPage({
             className={`button small ${searchBody ? "primary" : "ghost"}`}
             aria-pressed={searchBody}
             onClick={() => setSearchBody((current) => !current)}
-            title="Include the lyrics/body text in the search"
+            title="Include lyrics in the search"
           >
-            {searchBody ? "− Body" : "+ Body"}
+            {searchBody ? "− Lyrics" : "+ Lyrics"}
           </button>
         </div>
         {canWrite && <div className="song-list-actions">
