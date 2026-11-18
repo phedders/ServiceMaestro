@@ -15,7 +15,12 @@ export function PageList({ live, onCommand }: { live: LiveState; onCommand: (pay
           onClick={() => onCommand({ type: "goto", pageIndex: page.index })}
           title={`Show page ${page.index + 1}`}
         >
-          <span className="page-number">{page.index + 1}</span>
+          <span className="page-meta">
+            <span className="page-number">{page.index + 1}</span>
+            {page.section && (
+              <span className="page-section">({page.section})</span>
+            )}
+          </span>
           <span className="page-text" dangerouslySetInnerHTML={{ __html: page.html }} />
         </button>
       ))}

@@ -1473,6 +1473,27 @@ body.resizing-live-queue {
   font-variant-numeric: tabular-nums;
 }
 
+.page-meta {
+  flex: 0 0 auto;
+  min-width: 34px;
+  display: grid;
+  justify-items: center;
+  gap: 1px;
+  text-align: center;
+}
+
+.page-section {
+  max-width: 76px;
+  color: var(--muted);
+  font-size: 0.66rem;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+.page-row .page-text .section-label {
+  display: none;
+}
+
 .page-text {
   flex: 1;
   color: #c9d5e5;
