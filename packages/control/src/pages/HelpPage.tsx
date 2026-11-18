@@ -258,8 +258,8 @@ export default function HelpPage({ onOpenSettings }: { onOpenSettings: () => voi
                 Click an item to edit its title, content, key, transpose, verse order and notes.
               </li>
               <li>
-                <strong>Save local</strong> keeps song edits inside this set list.
-                <strong> Save to song library</strong> updates the shared song for future services.
+                <strong>Save in set list</strong> keeps song edits inside this set list.{" "}
+                <strong>Save to song library</strong> updates the shared song for future services.
               </li>
               <li>
                 Song items have an <strong>ALT</strong> button for locally stored versions with similar

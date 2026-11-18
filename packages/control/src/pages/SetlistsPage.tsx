@@ -1214,11 +1214,11 @@ function ItemRow({
               Cancel
             </button>
             <SaveButton
-              label="Save local"
+              label="Save in set list"
               onClick={saveLocal}
               changes={itemChanges}
               saving={saving}
-              title="Save changes only to this set list item"
+              title="Save these changes only in this set list"
               className="button"
             />
             {item.kind === "song" && item.songId && (
