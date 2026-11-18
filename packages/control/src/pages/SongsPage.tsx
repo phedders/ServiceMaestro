@@ -926,7 +926,7 @@ export default function SongsPage({
                     : "Show this song immediately without changing the set list"
                 }
               >
-                {showingLive ? "Showing…" : "Add to live session"}
+                {showingLive ? "Showing…" : "Make LIVE Now"}
               </button>
             </div>
           </div>
@@ -935,7 +935,7 @@ export default function SongsPage({
               ? "Save the song first to add or display it."
               : live.status === "idle"
                 ? "Start a live session to display the song immediately."
-                : "“Add to live session” displays the song now and is not saved to the set list."}
+                : "“Make LIVE Now” displays the song now and is not saved to the set list."}
           </p>
         </div>
 
