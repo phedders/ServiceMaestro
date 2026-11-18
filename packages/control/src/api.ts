@@ -109,16 +109,25 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   return data as T;
 }
 
+export type SetlistMediaType =
+  | "default"
+  | "vocal"
+  | "chords"
+  | "lead"
+  | "score"
+  | "tab";
+
 interface SetlistPdfOptions {
   fontSize?: number;
   columns?: number;
   orientation?: "portrait" | "landscape";
   chordsOnly?: boolean;
+  mediaType?: "vocal" | "lead" | "score" | "tab";
 }
 
 async function downloadSetlistPdf(
   id: string,
-  file: "songs.pdf" | "chords.pdf",
+  file: "songs.pdf" | "chords.pdf" | "media.pdf",
   fallbackFilename: string,
   options: SetlistPdfOptions = {},
 ): Promise<{ blob: Blob; filename: string }> {
@@ -127,6 +136,7 @@ async function downloadSetlistPdf(
   if (options.columns !== undefined) params.set("columns", String(options.columns));
   if (options.orientation !== undefined) params.set("orientation", options.orientation);
   if (options.chordsOnly !== undefined) params.set("chordsOnly", String(options.chordsOnly));
+  if (options.mediaType !== undefined) params.set("type", options.mediaType);
   const response = await fetch(`/api/setlists/${id}/${file}${params.size ? `?${params}` : ""}`, {
     credentials: "include",
   });
@@ -741,6 +751,19 @@ export const api = {
   ) => downloadSetlistPdf(id, "songs.pdf", "service-songs.pdf", options),
   downloadSetlistChordsPdf: (id: string, options: SetlistPdfOptions = {}) =>
     downloadSetlistPdf(id, "chords.pdf", "service-chords.pdf", options),
+  downloadSetlistMediaPdf: (id: string, mediaType: SetlistMediaType) => {
+    if (mediaType === "default") {
+      return downloadSetlistPdf(id, "songs.pdf", "service-lyrics.pdf");
+    }
+    if (mediaType === "chords") {
+      return downloadSetlistPdf(id, "chords.pdf", "service-chords.pdf", {
+        chordsOnly: false,
+      });
+    }
+    return downloadSetlistPdf(id, "media.pdf", `service-${mediaType}.pdf`, {
+      mediaType,
+    });
+  },
   previewSetlistImport: async (file: File): Promise<{ preview: SetlistImportPreview }> => {
     const form = new FormData();
     form.append("file", file);

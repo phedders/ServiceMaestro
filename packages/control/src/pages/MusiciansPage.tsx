@@ -7,10 +7,11 @@ import {
   type Song,
   type SongAsset,
 } from "@sm/shared";
-import { api, ApiError } from "../api";
+import { api, ApiError, type SetlistMediaType } from "../api";
 import { FullscreenButton } from "../components/FullscreenButton";
 import { PdfViewer } from "../components/PdfViewer";
 import { compactDate, pickCurrentSetlist } from "../service-date";
+import { downloadBlob } from "../site-download";
 
 function TextAsset({ assetId }: { assetId: string }) {
   const [text, setText] = useState("Loading…");
@@ -35,6 +36,32 @@ function AssetViewer({ asset }: { asset: SongAsset }) {
 
 function serviceLabel(setlist: SetlistSummary): string {
   return `${compactDate(setlist.serviceDate)}${setlist.serviceTime ? ` · ${setlist.serviceTime}` : ""}`;
+}
+
+const MEDIA_LABELS: Record<SetlistMediaType, string> = {
+  default: "Default",
+  vocal: "Vocal",
+  chords: "Chords",
+  lead: "Lead",
+  score: "Score",
+  tab: "Tab",
+};
+
+function assetMediaType(asset: SongAsset): Exclude<SetlistMediaType, "default"> | null {
+  if (asset.kind === "chordpro") return "chords";
+  if (asset.kind === "guitar_tab") return "tab";
+  if (asset.kind !== "score_pdf") return null;
+  if (/vocal/i.test(asset.title)) return "vocal";
+  if (/lead/i.test(asset.title)) return "lead";
+  return "score";
+}
+
+function assetForMedia(
+  assets: SongAsset[],
+  mediaType: SetlistMediaType,
+): SongAsset | null {
+  if (mediaType === "default") return null;
+  return assets.find((asset) => assetMediaType(asset) === mediaType) ?? null;
 }
 
 function SongFiles({
@@ -85,6 +112,8 @@ export default function MusiciansPage({
   const [assets, setAssets] = useState<Record<string, SongAsset[]>>({});
   const [songs, setSongs] = useState<Record<string, Song>>({});
   const [selectedAsset, setSelectedAsset] = useState("");
+  const [mediaType, setMediaType] = useState<SetlistMediaType>("default");
+  const [downloadingMedia, setDownloadingMedia] = useState<SetlistMediaType | null>(null);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<"setlist" | "songs">("setlist");
   const [allSongs, setAllSongs] = useState<Song[]>([]);
@@ -204,11 +233,42 @@ export default function MusiciansPage({
     setSelectedAllAsset(list[0]?.id ?? "");
   }, [viewMode, selectedSongId, allSongAssets, selectedAllAsset]);
 
+  const availableMediaTypes = useMemo(() => {
+    const present = new Set<Exclude<SetlistMediaType, "default">>();
+    for (const list of Object.values(assets)) {
+      for (const asset of list) {
+        const type = assetMediaType(asset);
+        if (type) present.add(type);
+      }
+    }
+    const types: SetlistMediaType[] = ["default", "vocal", "chords", "lead"];
+    if (present.has("score")) types.push("score");
+    if (present.has("tab")) types.push("tab");
+    return types;
+  }, [assets]);
+
   const selected = useMemo(
     () => detail?.items.find((item) => item.id === selectedItem) ?? null,
     [detail, selectedItem],
   );
   const selectedSongAssets = selected?.songId ? assets[selected.songId] ?? [] : [];
+
+  useEffect(() => {
+    if (!selected?.songId) {
+      setSelectedAsset("");
+      return;
+    }
+    const list = assets[selected.songId] ?? [];
+    setSelectedAsset(
+      mediaType === "default"
+        ? list[0]?.id ?? ""
+        : assetForMedia(list, mediaType)?.id ?? "",
+    );
+  }, [assets, mediaType, selected?.songId]);
+
+  useEffect(() => {
+    if (!availableMediaTypes.includes(mediaType)) setMediaType("default");
+  }, [availableMediaTypes, mediaType]);
   const selectedAllSong = useMemo(
     () => allSongs.find((song) => song.id === selectedSongId) ?? null,
     [allSongs, selectedSongId],
@@ -231,10 +291,28 @@ export default function MusiciansPage({
 
   function selectItem(item: SetlistItem) {
     setSelectedItem(item.id);
-    if (item.songId) {
-      setSelectedAsset(assets[item.songId]?.[0]?.id ?? "");
-    } else {
-      setSelectedAsset("");
+    const list = item.songId ? assets[item.songId] ?? [] : [];
+    setSelectedAsset(
+      mediaType === "default"
+        ? list[0]?.id ?? ""
+        : assetForMedia(list, mediaType)?.id ?? "",
+    );
+  }
+
+  async function downloadMedia(type: SetlistMediaType) {
+    if (!selectedSetlist || downloadingMedia) return;
+    setDownloadingMedia(type);
+    try {
+      const result = await api.downloadSetlistMediaPdf(selectedSetlist, type);
+      downloadBlob(result.blob, result.filename);
+      notify(`${MEDIA_LABELS[type]} PDF generated`);
+    } catch (error) {
+      notify(
+        error instanceof ApiError ? error.message : `Could not generate the ${MEDIA_LABELS[type]} PDF`,
+        "error",
+      );
+    } finally {
+      setDownloadingMedia(null);
     }
   }
 
@@ -271,16 +349,46 @@ export default function MusiciansPage({
           </div>
         </div>
         {viewMode === "setlist" ? (
-          <label>
-            Service
-            <select value={selectedSetlist} onChange={(event) => setSelectedSetlist(event.target.value)}>
-              {setlists.map((setlist) => (
-                <option key={setlist.id} value={setlist.id}>
-                  {setlist.name} — {serviceLabel(setlist)}
-                </option>
+          <div className="musicians-service-controls">
+            <label>
+              Service
+              <select value={selectedSetlist} onChange={(event) => setSelectedSetlist(event.target.value)}>
+                {setlists.map((setlist) => (
+                  <option key={setlist.id} value={setlist.id}>
+                    {setlist.name} — {serviceLabel(setlist)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div className="musicians-media-types" role="group" aria-label="Set-list media type">
+              {availableMediaTypes.map((type) => (
+                <div
+                  key={type}
+                  className={`musicians-media-type ${mediaType === type ? "active" : ""}`}
+                >
+                  <button
+                    type="button"
+                    className="button small"
+                    aria-pressed={mediaType === type}
+                    onClick={() => setMediaType(type)}
+                    title={`Show ${MEDIA_LABELS[type]} for every song, falling back to lyrics`}
+                  >
+                    {MEDIA_LABELS[type]}
+                  </button>
+                  <button
+                    type="button"
+                    className="button small musicians-media-download"
+                    onClick={() => void downloadMedia(type)}
+                    disabled={!selectedSetlist || downloadingMedia !== null}
+                    title={`Download ${MEDIA_LABELS[type]} PDF for the whole set list, with lyrics fallback`}
+                    aria-label={`Download ${MEDIA_LABELS[type]} PDF`}
+                  >
+                    {downloadingMedia === type ? "…" : "↓"}
+                  </button>
+                </div>
               ))}
-            </select>
-          </label>
+            </div>
+          </div>
         ) : (
           <label>
             Search songs
@@ -314,6 +422,10 @@ export default function MusiciansPage({
                   const songAssets = item.songId ? assets[item.songId] ?? [] : [];
                   const song = item.songId ? songs[item.songId] : undefined;
                   const key = item.keyOverride ?? song?.key ?? null;
+                  const mediaAsset =
+                    mediaType === "default"
+                      ? null
+                      : assetForMedia(songAssets, mediaType);
                   const isSelected = item.id === selectedItem;
                   return (
                     <article key={item.id} className={`musician-item ${isSelected ? "selected" : ""}`}>
@@ -352,19 +464,39 @@ export default function MusiciansPage({
                       {isSelected && (
                         <div className="musician-item-body">
                           {item.kind === "song" ? (
-                            <>
-                              {item.content != null && (
-                                <span className="local-badge">Set-list lyrics</span>
-                              )}
-                              <pre className="lyrics-view">
-                                {item.content ?? song?.lyrics ?? "Lyrics are not available for this song."}
-                              </pre>
-                              <SongFiles
-                                assets={songAssets}
-                                selectedAsset={selectedAsset}
-                                onSelect={setSelectedAsset}
-                              />
-                            </>
+                            mediaAsset ? (
+                              <>
+                                <div className="musician-media-heading">
+                                  <strong>{MEDIA_LABELS[mediaType]}</strong>
+                                  <span className="muted">
+                                    {mediaAsset.title}
+                                    {mediaAsset.key ? ` · ${mediaAsset.key}` : ""}
+                                  </span>
+                                </div>
+                                <AssetViewer asset={mediaAsset} />
+                              </>
+                            ) : (
+                              <>
+                                {mediaType !== "default" && (
+                                  <p className="hint">
+                                    No {MEDIA_LABELS[mediaType]} file attached — showing lyrics.
+                                  </p>
+                                )}
+                                {item.content != null && (
+                                  <span className="local-badge">Set-list lyrics</span>
+                                )}
+                                <pre className="lyrics-view">
+                                  {item.content ?? song?.lyrics ?? "Lyrics are not available for this song."}
+                                </pre>
+                                {mediaType === "default" && (
+                                  <SongFiles
+                                    assets={songAssets}
+                                    selectedAsset={selectedAsset}
+                                    onSelect={setSelectedAsset}
+                                  />
+                                )}
+                              </>
+                            )
                           ) : item.kind === "image_list" ? (
                             <p className="muted">
                               {parseImageListContent(item.content)?.images.length ?? 0} images in this

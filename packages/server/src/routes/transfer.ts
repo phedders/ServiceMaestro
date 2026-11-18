@@ -5,7 +5,12 @@ import {
   importSetlistFile,
   previewSetlistImport,
 } from "../setlist-transfer.js";
-import { buildChordSheetPdf, buildSongSheetPdf } from "../song-sheet.js";
+import {
+  buildChordSheetPdf,
+  buildMediaSheetPdf,
+  buildSongSheetPdf,
+  type SetlistMediaType,
+} from "../song-sheet.js";
 import { saveSetlistToGit, saveTarpLibraryToGit } from "../git-store.js";
 import { logActivity } from "../activity.js";
 
@@ -95,6 +100,37 @@ export async function transferRoutes(app: FastifyInstance): Promise<void> {
           module: "setlists",
           status: 200,
           detail: `Chords Print PDF${fontSize ? ` · ${fontSize}pt` : ""}${columns ? ` · ${columns} columns` : ""} · ${orientation}${chordsOnly ? "" : " · all songs"}`,
+        });
+        return reply
+          .type("application/pdf")
+          .header("content-disposition", `attachment; filename="${result.filename}"`)
+          .header("cache-control", "no-store")
+          .send(result.buffer);
+      } catch (error) {
+        return reply.code(404).send({ error: (error as Error).message });
+      }
+    },
+  );
+
+  app.get(
+    "/api/setlists/:id/media.pdf",
+    { preHandler: requireAuth },
+    async (request, reply) => {
+      const id = (request.params as { id: string }).id;
+      const rawType = String((request.query as { type?: string }).type ?? "").toLowerCase();
+      if (!["vocal", "lead", "score", "tab"].includes(rawType)) {
+        return reply.code(400).send({ error: "Choose vocal, lead, score or tab media" });
+      }
+      const mediaType = rawType as SetlistMediaType;
+      try {
+        const result = await buildMediaSheetPdf(id, mediaType);
+        logActivity({
+          request,
+          user: request.user,
+          action: "download_pdf",
+          module: "setlists",
+          status: 200,
+          detail: `${mediaType} media PDF with lyric fallback`,
         });
         return reply
           .type("application/pdf")

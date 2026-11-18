@@ -80,6 +80,73 @@ test("builds a printable PDF song sheet without chords or slide labels", () => {
   assert.equal(data.pageCount, 1);
 });
 
+test("builds a media PDF and falls back to lyrics for missing assets", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "sm-media-sheet-"));
+  const emptyEnv = path.join(dir, "empty.env");
+  const emptyConfig = path.join(dir, "config.yaml");
+  fs.writeFileSync(emptyEnv, "");
+  fs.writeFileSync(emptyConfig, "{}\n");
+
+  const script = `
+    const { db } = await import(process.env.SM_MODULE_BASE + "db.js");
+    const { saveAsset } = await import(process.env.SM_MODULE_BASE + "assets.js");
+    const { buildMediaSheetPdf } = await import(process.env.SM_MODULE_BASE + "song-sheet.js");
+    const { PDFDocument } = await import("pdf-lib");
+    const now = new Date().toISOString();
+    for (const [id, title] of [["song-vocal", "Vocal Song"], ["song-lyrics", "Lyrics Song"]]) {
+      db.prepare(
+        "INSERT INTO songs (id, title, lyrics, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
+      ).run(id, title, "[Verse 1]\\n" + title + " lyric line", now, now);
+    }
+    db.prepare(
+      "INSERT INTO setlists (id, name, service_date, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
+    ).run("setlist-media", "Media Service", "2026-11-16", now, now);
+    for (const [id, songId, title, position] of [
+      ["item-vocal", "song-vocal", "Vocal Song", 0],
+      ["item-lyrics", "song-lyrics", "Lyrics Song", 1],
+    ]) {
+      db.prepare(
+        "INSERT INTO setlist_items (id, setlist_id, position, kind, song_id, title) VALUES (?, ?, ?, ?, ?, ?)",
+      ).run(id, "setlist-media", position, "song", songId, title);
+    }
+    const assetPdf = await PDFDocument.create();
+    assetPdf.addPage([300, 300]);
+    saveAsset({
+      songId: "song-vocal",
+      buffer: Buffer.from(await assetPdf.save()),
+      filename: "vocal.pdf",
+      mime: "application/pdf",
+      kind: "score_pdf",
+      title: "Vocal sheet",
+      userId: null,
+    });
+    const result = await buildMediaSheetPdf("setlist-media", "vocal");
+    const pdf = await PDFDocument.load(result.buffer);
+    console.log(JSON.stringify({
+      filename: result.filename,
+      header: result.buffer.subarray(0, 5).toString("utf8"),
+      pages: pdf.getPageCount(),
+    }));
+  `;
+
+  const result = spawnSync(process.execPath, ["--input-type=module", "-e", script], {
+    encoding: "utf8",
+    env: {
+      PATH: process.env.PATH,
+      SM_ENV_FILE: emptyEnv,
+      SM_CONFIG_FILE: emptyConfig,
+      SM_DATA_DIR: dir,
+      SM_GIT_ENABLED: "false",
+      SM_MODULE_BASE: moduleBase,
+    },
+  });
+  assert.equal(result.status, 0, result.stderr);
+  const data = JSON.parse(result.stdout);
+  assert.equal(data.header, "%PDF-");
+  assert.match(data.filename, /media-service-2026-11-16-vocal\.pdf/);
+  assert.ok(data.pages >= 2);
+});
+
 test("builds a chords PDF and rejects set lists without chord songs", () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "sm-chord-sheet-"));
   const emptyEnv = path.join(dir, "empty.env");

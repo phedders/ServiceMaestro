@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "pdf-lib";
 import {
   isSongChordToken,
@@ -5,6 +6,7 @@ import {
   type SongSheetFont,
 } from "@sm/shared";
 import { db } from "./db.js";
+import { getAsset, listAssets } from "./assets.js";
 import { transposeChord } from "./render.js";
 import { getAppSettings } from "./settings.js";
 
@@ -53,6 +55,8 @@ const MONTHS = [
 ];
 
 interface SongSheetRow {
+  item_id: string;
+  song_id: string | null;
   item_title: string;
   item_content: string | null;
   item_transpose: number;
@@ -71,6 +75,8 @@ interface SetlistRow {
 }
 
 interface SongForPdf {
+  itemId: string;
+  songId: string | null;
   title: string;
   author: string | null;
   copyright: string | null;
@@ -300,7 +306,8 @@ function loadSongs(setlistId: string): { setlist: SetlistRow; songs: SongForPdf[
   if (!setlist) throw new Error("Set list not found");
   const rows = db
     .prepare(
-      `SELECT i.title AS item_title, i.content AS item_content, i.transpose AS item_transpose,
+      `SELECT i.id AS item_id, i.song_id, i.title AS item_title,
+              i.content AS item_content, i.transpose AS item_transpose,
               s.title AS song_title, s.author, s.copyright, s.ccli, s.lyrics
        FROM setlist_items i
        LEFT JOIN songs s ON s.id = i.song_id
@@ -313,6 +320,8 @@ function loadSongs(setlistId: string): { setlist: SetlistRow; songs: SongForPdf[
     songs: rows.map((row) => {
       const lyrics = row.item_content ?? row.lyrics ?? "";
       return {
+        itemId: row.item_id,
+        songId: row.song_id,
         title: (row.item_title || row.song_title || "Song").trim(),
         author: row.author,
         copyright: row.copyright,
@@ -328,6 +337,7 @@ function loadSongs(setlistId: string): { setlist: SetlistRow; songs: SongForPdf[
 export interface SongSheetOptions {
   fontSize?: number;
   columns?: number;
+  pageNumbers?: boolean;
 }
 
 export interface ChordSheetOptions extends SongSheetOptions {
@@ -335,11 +345,11 @@ export interface ChordSheetOptions extends SongSheetOptions {
   chordsOnly?: boolean;
 }
 
-export async function buildSongSheetPdf(
-  setlistId: string,
+async function buildSongSheetPdfFromSongs(
+  setlist: SetlistRow,
+  songs: SongForPdf[],
   options: SongSheetOptions = {},
 ): Promise<{ buffer: Buffer; filename: string }> {
-  const { setlist, songs } = loadSongs(setlistId);
   if (!songs.length) throw new Error("This set list has no songs");
   const settings = getAppSettings();
   const baseSize = Math.max(
@@ -490,20 +500,94 @@ export async function buildSongSheetPdf(
     y -= SONG_GAP;
   }
 
-  const pages = pdf.getPages();
-  pages.forEach((target, index) => {
-    target.drawText(`${index + 1} / ${pages.length}`, {
-      x: PAGE_WIDTH - MARGIN - 34,
-      y: 24,
-      size: 8,
-      font,
-      color: muted,
+  if (options.pageNumbers !== false) {
+    const pages = pdf.getPages();
+    pages.forEach((target, index) => {
+      target.drawText(`${index + 1} / ${pages.length}`, {
+        x: PAGE_WIDTH - MARGIN - 34,
+        y: 24,
+        size: 8,
+        font,
+        color: muted,
+      });
     });
-  });
+  }
 
   return {
     buffer: Buffer.from(await pdf.save()),
     filename: safeFilename(setlist.name, setlist.service_date),
+  };
+}
+
+export async function buildSongSheetPdf(
+  setlistId: string,
+  options: SongSheetOptions = {},
+): Promise<{ buffer: Buffer; filename: string }> {
+  const { setlist, songs } = loadSongs(setlistId);
+  return buildSongSheetPdfFromSongs(setlist, songs, options);
+}
+
+export type SetlistMediaType = "vocal" | "lead" | "score" | "tab";
+
+function mediaAssetFor(songId: string | null, mediaType: SetlistMediaType) {
+  if (!songId) return null;
+  return (
+    listAssets(songId).find((asset) => {
+      if (mediaType === "vocal") {
+        return asset.kind === "score_pdf" && /vocal/i.test(asset.title);
+      }
+      if (mediaType === "lead") {
+        return asset.kind === "score_pdf" && /lead/i.test(asset.title);
+      }
+      if (mediaType === "score") {
+        return asset.kind === "score_pdf" && !/vocal|lead/i.test(asset.title);
+      }
+      return asset.kind === "guitar_tab";
+    }) ?? null
+  );
+}
+
+/**
+ * Merge the chosen PDF media type across a set list. Songs without a matching
+ * file (or with a non-PDF file) fall back to their normal lyric pages.
+ */
+export async function buildMediaSheetPdf(
+  setlistId: string,
+  mediaType: SetlistMediaType,
+  options: SongSheetOptions = {},
+): Promise<{ buffer: Buffer; filename: string }> {
+  const { setlist, songs } = loadSongs(setlistId);
+  if (!songs.length) throw new Error("This set list has no songs");
+  const pdf = await PDFDocument.create();
+  for (const song of songs) {
+    let copied = false;
+    const asset = mediaAssetFor(song.songId, mediaType);
+    if (asset && (asset.mime === "application/pdf" || asset.format === "pdf")) {
+      const found = getAsset(asset.id);
+      if (found) {
+        try {
+          const source = await PDFDocument.load(fs.readFileSync(found.absolutePath));
+          const pages = await pdf.copyPages(source, source.getPageIndices());
+          for (const page of pages) pdf.addPage(page);
+          copied = true;
+        } catch {
+          // Corrupt or unreadable files fall back to the lyric sheet.
+        }
+      }
+    }
+    if (copied) continue;
+    const fallback = await buildSongSheetPdfFromSongs(setlist, [song], {
+      ...options,
+      pageNumbers: false,
+    });
+    const source = await PDFDocument.load(fallback.buffer);
+    const pages = await pdf.copyPages(source, source.getPageIndices());
+    for (const page of pages) pdf.addPage(page);
+  }
+  if (!pdf.getPageCount()) throw new Error("No pages could be generated");
+  return {
+    buffer: Buffer.from(await pdf.save()),
+    filename: safeFilename(setlist.name, setlist.service_date, mediaType),
   };
 }
 

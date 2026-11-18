@@ -5118,6 +5118,57 @@ body.resizing-live-queue {
   min-width: 280px;
 }
 
+.musicians-service-controls {
+  min-width: 280px;
+  display: grid;
+  gap: 8px;
+}
+
+.musicians-media-types {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.musicians-media-type {
+  display: inline-flex;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.musicians-media-type .button {
+  border: 0;
+  border-radius: 0;
+  white-space: nowrap;
+}
+
+.musicians-media-type .button + .button {
+  border-left: 1px solid var(--border);
+}
+
+.musicians-media-type.active {
+  border-color: rgba(76, 194, 255, 0.55);
+  box-shadow: inset 0 0 0 1px rgba(76, 194, 255, 0.2);
+}
+
+.musicians-media-type.active .button:first-child {
+  background: var(--accent-soft);
+  color: #bcecff;
+}
+
+.musicians-media-download {
+  min-width: 32px;
+  padding-inline: 8px;
+}
+
+.musician-media-heading {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
 .musicians-view-toggle {
   margin-top: 10px;
 }
