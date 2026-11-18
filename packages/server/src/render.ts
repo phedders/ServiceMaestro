@@ -311,9 +311,8 @@ function applyInlineMarkdown(html: string): string {
     .replace(/(^|[^*])\*([^*\s][^*]*?)\*/g, "$1<em>$2</em>");
 }
 
-function renderPlainTextSegment(value: string, options: LineRenderOptions): string {
-  const html = escapeHtml(value);
-  return options.markdown ? applyInlineMarkdown(html) : html;
+function renderPlainTextSegment(value: string): string {
+  return escapeHtml(value);
 }
 
 const SPLIT_SENTINEL = "\uE000";
@@ -345,7 +344,7 @@ export function renderLine(
   const re = /\[([^\]]+)\]/g;
   let match: RegExpExecArray | null;
   while ((match = re.exec(text))) {
-    parts.push(renderPlainTextSegment(text.slice(last, match.index), options));
+    parts.push(renderPlainTextSegment(text.slice(last, match.index)));
     const token = match[1].trim();
     const chord = chordToken(token);
     if (chord) {
@@ -357,8 +356,9 @@ export function renderLine(
     }
     last = match.index + match[0].length;
   }
-  parts.push(renderPlainTextSegment(text.slice(last), options));
+  parts.push(renderPlainTextSegment(text.slice(last)));
   let html = parts.join("");
+  if (options.markdown) html = applyInlineMarkdown(html);
   if (options.splitWords) html = wrapSplitMarkers(html);
   let chordIndex = 0;
   return html.replace(/\uE000/g, () => chords[chordIndex++] ?? "");

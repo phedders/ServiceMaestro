@@ -403,6 +403,22 @@ test("renders song Markdown and split-word tags", () => {
   assert.match(split, /class="lyric-split"/);
 });
 
+test("applies inline Markdown across chord tokens", () => {
+  const html = renderLine(
+    "In [Ab]Christ *a[Eb]lone* my [Ab]hope is [Bb]found",
+    0,
+    { markdown: true },
+  );
+  assert.match(
+    html,
+    /<em>a<span class="chord" data-chord="Eb">Eb<\/span>lone<\/em>/,
+  );
+  assert.match(
+    renderLine("[C]**sus[G]tained**", 0, { markdown: true }),
+    /<strong>sus<span class="chord" data-chord="G">G<\/span>tained<\/strong>/,
+  );
+});
+
 test("wraps split markers next to chord tokens", () => {
   const beforeChord = renderLine("be - [Bb]lieve", 0, { splitWords: true });
   assert.match(

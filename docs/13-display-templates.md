@@ -171,6 +171,7 @@ Songs can opt into **inline Markdown styling** metadata. Supported tags include 
 
 - Main/two-thirds (and full) render the styling.
 - Stage and chords **ignore** the styling, showing plain text.
+- Markdown emphasis can span chord tokens, so `*a[Eb]lone*` renders as italic “alone” with the chord preserved inside the emphasis.
 - SongSelect/SongPro split words like `can - not` or `sat - is - fied` are wrapped in `.lyric-split` spans, including markers immediately before or after chord tokens. CSS hides those separators on lower-third/centered two-thirds/full/stage (so the words join to `cannot` / `satisfied`) and keeps them visible in the chords view by default. Each output configuration has a **Hide syllable/chord splits** toggle to override that default.
 
 ## 4.2 Imported Google Fonts
