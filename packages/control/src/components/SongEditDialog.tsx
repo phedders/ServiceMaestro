@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import type { Song } from "@sm/shared";
 import { api, ApiError } from "../api";
+import { changeList } from "../form-changes";
 import { PageContentEditor } from "./PageContentEditor";
+import { SaveButton } from "./SaveButton";
 
 const EMPTY = {
   title: "",
@@ -15,6 +17,20 @@ const EMPTY = {
   lyrics: "",
 };
 
+function formFromSong(song: Song) {
+  return {
+    title: song.title,
+    alternateTitles: song.alternateTitles ?? "",
+    author: song.author ?? "",
+    copyright: song.copyright ?? "",
+    ccli: song.ccli ?? "",
+    key: song.key ?? "",
+    verseOrder: song.verseOrder ?? "",
+    lyricsMarkdown: song.lyricsMarkdown,
+    lyrics: song.lyrics,
+  };
+}
+
 export function SongEditDialog({
   songId,
   notify,
@@ -27,6 +43,7 @@ export function SongEditDialog({
   onClose: () => void;
 }) {
   const [form, setForm] = useState({ ...EMPTY });
+  const [baseline, setBaseline] = useState({ ...EMPTY });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -37,18 +54,9 @@ export function SongEditDialog({
       .song(songId)
       .then((result) => {
         if (cancelled) return;
-        const song = result.song;
-        setForm({
-          title: song.title,
-          alternateTitles: song.alternateTitles ?? "",
-          author: song.author ?? "",
-          copyright: song.copyright ?? "",
-          ccli: song.ccli ?? "",
-          key: song.key ?? "",
-          verseOrder: song.verseOrder ?? "",
-          lyricsMarkdown: song.lyricsMarkdown,
-          lyrics: song.lyrics,
-        });
+        const next = formFromSong(result.song);
+        setForm(next);
+        setBaseline(next);
       })
       .catch((error) => {
         if (cancelled) return;
@@ -86,6 +94,9 @@ export function SongEditDialog({
         lyricsMarkdown: form.lyricsMarkdown,
         lyrics: form.lyrics,
       });
+      const next = formFromSong(result.song);
+      setForm(next);
+      setBaseline(next);
       notify("Song saved");
       onSaved(result.song);
     } catch (error) {
@@ -94,6 +105,26 @@ export function SongEditDialog({
       setSaving(false);
     }
   }
+
+  const changes = changeList([
+    { label: "Title", before: baseline.title, after: form.title },
+    {
+      label: "Alternative titles",
+      before: baseline.alternateTitles,
+      after: form.alternateTitles,
+    },
+    { label: "Author", before: baseline.author, after: form.author },
+    { label: "Copyright", before: baseline.copyright, after: form.copyright },
+    { label: "CCLI", before: baseline.ccli, after: form.ccli },
+    { label: "Key", before: baseline.key, after: form.key },
+    { label: "Verse order", before: baseline.verseOrder, after: form.verseOrder },
+    { label: "Lyrics", before: baseline.lyrics, after: form.lyrics },
+    {
+      label: "Lyrics format",
+      before: baseline.lyricsMarkdown ? "Markdown" : "Plain text",
+      after: form.lyricsMarkdown ? "Markdown" : "Plain text",
+    },
+  ]);
 
   return (
     <div
@@ -112,18 +143,17 @@ export function SongEditDialog({
             <button className="button ghost small" onClick={onClose} title="Close without saving">
               Close
             </button>
-            <button
-              className="button primary small"
+            <SaveButton
+              label="Save song"
+              savingLabel="Saving…"
               onClick={() => void save()}
-              disabled={loading || saving || !form.title.trim()}
-              title={
-                !form.title.trim()
-                  ? "Enter a song title first"
-                  : "Save these changes to the shared song library"
-              }
-            >
-              {saving ? "Saving…" : "Save song"}
-            </button>
+              changes={changes}
+              disabled={loading || !form.title.trim()}
+              disabledTitle={loading ? "Loading song…" : "Enter a song title first"}
+              saving={saving}
+              title="Save these changes to the shared song library"
+              small
+            />
           </div>
         </div>
 

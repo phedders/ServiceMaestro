@@ -7,6 +7,8 @@ import {
   type LiveState,
 } from "@sm/shared";
 import { api, ApiError } from "../api";
+import { SaveButton } from "../components/SaveButton";
+import { changeList } from "../form-changes";
 import {
   clickerActionLabel,
   clickerButtonFromEvent,
@@ -52,6 +54,8 @@ export default function ClickerPage({
   notify: (text: string, kind?: "info" | "error") => void;
 }) {
   const [config, setConfig] = useState<ClickerConfigInput>(defaultClickerConfig);
+  const [savedConfig, setSavedConfig] =
+    useState<ClickerConfigInput>(defaultClickerConfig);
   const [updatedAt, setUpdatedAt] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -70,6 +74,7 @@ export default function ClickerPage({
         if (!result.config) return;
         const { updatedAt: savedAt, ...input } = result.config;
         setConfig(input);
+        setSavedConfig(input);
         setUpdatedAt(savedAt);
       })
       .catch((error) =>
@@ -131,6 +136,7 @@ export default function ClickerPage({
       const result = await api.saveClicker(config);
       const { updatedAt: savedAt, ...input } = result.config;
       setConfig(input);
+      setSavedConfig(input);
       setUpdatedAt(savedAt);
       notify("Clicker configuration saved");
     } catch (error) {
@@ -193,6 +199,13 @@ export default function ClickerPage({
 
   if (loading) return <div className="panel">Loading clicker settings…</div>;
 
+  const clickerChanges = changeList([
+    { label: "Clicker name", before: savedConfig.name, after: config.name },
+    { label: "Vendor ID", before: savedConfig.vendorId, after: config.vendorId },
+    { label: "Product ID", before: savedConfig.productId, after: config.productId },
+    { label: "Button mappings", before: savedConfig.buttons, after: config.buttons },
+  ]);
+
   return (
     <div className="clicker-page">
       <section className="panel">
@@ -204,14 +217,14 @@ export default function ClickerPage({
               configuration is saved to your user account.
             </p>
           </div>
-          <button
-            className="button primary"
+          <SaveButton
+            label="Save clicker"
+            savingLabel="Saving…"
             onClick={() => void save()}
-            disabled={saving}
+            changes={clickerChanges}
+            saving={saving}
             title="Save this clicker configuration to your user account"
-          >
-            {saving ? "Saving…" : "Save clicker"}
-          </button>
+          />
         </div>
         <div className="clicker-device-grid">
           <label>

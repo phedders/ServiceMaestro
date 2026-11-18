@@ -20,6 +20,8 @@ import {
 } from "@sm/shared";
 import { useAdapters } from "../adapters";
 import { api, ApiError } from "../api";
+import { SaveButton } from "../components/SaveButton";
+import { changeList } from "../form-changes";
 import { ReadOnlyFieldset } from "../page-access";
 import { AccountPanel } from "../components/AccountPanel";
 import { BrandingPanel } from "../components/BrandingPanel";
@@ -84,6 +86,9 @@ export default function SettingsPage({
     songSheetFontSize: 15,
     songSheetColumns: 1,
   });
+  const [savedSettings, setSavedSettings] = useState<AppSettings>(settings);
+  const [savedShortcuts, setSavedShortcuts] =
+    useState<KeyboardShortcuts>(shortcuts);
   const [bibleTranslations, setBibleTranslations] = useState<BibleTranslationInfo[]>([]);
   const [songselectWatch, setSongselectWatch] = useState<SongSelectWatchStatus | null>(null);
   const [scanningSongselect, setScanningSongselect] = useState(false);
@@ -106,6 +111,7 @@ export default function SettingsPage({
   const [savingAdapters, setSavingAdapters] = useState(false);
   const [git, setGit] = useState<GitStatus | null>(null);
   const [gitForm, setGitForm] = useState<GitSettings | null>(null);
+  const [savedGitForm, setSavedGitForm] = useState<GitSettings | null>(null);
   const [gitSaving, setGitSaving] = useState(false);
   const [gitSyncing, setGitSyncing] = useState(false);
   const [gitExporting, setGitExporting] = useState(false);
@@ -128,7 +134,10 @@ export default function SettingsPage({
     loadFonts();
     api
       .settings()
-      .then((result) => setSettings(result.settings))
+      .then((result) => {
+        setSettings(result.settings);
+        setSavedSettings(result.settings);
+      })
       .catch(() => undefined);
     api
       .sslStatus()
@@ -149,12 +158,14 @@ export default function SettingsPage({
       .gitStatus()
       .then((result) => {
         setGit(result);
-        setGitForm({
+        const nextGitForm = {
           autoSave: result.autoSave,
           autoPush: result.autoPush,
           pullIntervalSeconds: result.pullIntervalSeconds,
           mergeMode: result.mergeMode,
-        });
+        };
+        setGitForm(nextGitForm);
+        setSavedGitForm(nextGitForm);
       })
       .catch(() => undefined);
   }, []);
@@ -327,6 +338,7 @@ export default function SettingsPage({
     try {
       const result = await api.saveSettings(next);
       setSettings(result.settings);
+      setSavedSettings(result.settings);
       setPageIdDraft({});
       setPageIdFixes(null);
       setNewPageName("");
@@ -382,6 +394,7 @@ export default function SettingsPage({
         pageIdShortcuts: pageIdShortcutMap(names),
       });
       setSettings(result.settings);
+      setSavedSettings(result.settings);
       setPageIdDraft({});
       if (showNotice) notify("Song page ID shortcuts saved");
       return true;
@@ -525,6 +538,7 @@ export default function SettingsPage({
       return;
     }
     saveKeyboardShortcuts(shortcuts);
+    setSavedShortcuts(shortcuts);
     notify("Keyboard shortcuts saved");
   }
 
@@ -532,6 +546,7 @@ export default function SettingsPage({
     const defaults = { ...DEFAULT_SHORTCUTS };
     setShortcuts(defaults);
     saveKeyboardShortcuts(defaults);
+    setSavedShortcuts(defaults);
     notify("Keyboard shortcuts reset to defaults");
   }
 
@@ -542,6 +557,7 @@ export default function SettingsPage({
     try {
       const result = await api.saveSettings(next);
       setSettings(result.settings);
+      setSavedSettings(result.settings);
       notify("Live navigation setting saved");
     } catch (error) {
       notify(error instanceof ApiError ? error.message : "Could not save live navigation", "error");
@@ -557,6 +573,7 @@ export default function SettingsPage({
     try {
       const result = await api.saveSettings(next);
       setSettings(result.settings);
+      setSavedSettings(result.settings);
       notify("Auto show setting saved");
     } catch (error) {
       notify(error instanceof ApiError ? error.message : "Could not save auto show setting", "error");
@@ -572,6 +589,7 @@ export default function SettingsPage({
     try {
       const result = await api.saveSettings(next);
       setSettings(result.settings);
+      setSavedSettings(result.settings);
       notify("Default Bible version saved");
     } catch (error) {
       notify(
@@ -602,6 +620,7 @@ export default function SettingsPage({
     try {
       const result = await api.saveSettings(next);
       setSettings(result.settings);
+      setSavedSettings(result.settings);
       setBibleTranslations((current) =>
         current.map((translation) => ({
           ...translation,
@@ -624,6 +643,7 @@ export default function SettingsPage({
     try {
       const result = await api.saveSettings(settings);
       setSettings(result.settings);
+      setSavedSettings(result.settings);
       notify("Big Print PDF defaults saved");
     } catch (error) {
       notify(
@@ -642,6 +662,7 @@ export default function SettingsPage({
     try {
       const result = await api.saveSettings(next);
       setSettings(result.settings);
+      setSavedSettings(result.settings);
       notify("ChurchSuite empty item types saved");
     } catch (error) {
       notify(
@@ -706,6 +727,7 @@ export default function SettingsPage({
           : current,
       );
       setGitForm(result.settings);
+      setSavedGitForm(result.settings);
       notify("Git settings saved");
     } catch (error) {
       notify(error instanceof ApiError ? error.message : "Could not save Git settings", "error");
@@ -741,6 +763,85 @@ export default function SettingsPage({
   }
 
   const pageIdNames = allPageIdNames();
+
+  const pdfChanges = changeList([
+    {
+      label: "PDF font",
+      before: savedSettings.songSheetFontFamily,
+      after: settings.songSheetFontFamily,
+    },
+    {
+      label: "PDF text size",
+      before: savedSettings.songSheetFontSize,
+      after: settings.songSheetFontSize,
+    },
+    {
+      label: "PDF columns",
+      before: savedSettings.songSheetColumns,
+      after: settings.songSheetColumns,
+    },
+  ]);
+
+  const shortcutChanges = changeList(
+    SHORTCUT_LABELS.map(({ action, label }) => ({
+      label,
+      before: savedShortcuts[action],
+      after: shortcuts[action],
+    })),
+  );
+
+  const bibleNameCodes = [
+    ...new Set([
+      ...Object.keys(savedSettings.bibleShortNames),
+      ...Object.keys(settings.bibleShortNames),
+    ]),
+  ];
+  const bibleNameChanges = changeList(
+    bibleNameCodes.map((code) => ({
+      label:
+        bibleTranslations.find((translation) => translation.code === code)?.name ??
+        `Translation ${code}`,
+      before: savedSettings.bibleShortNames[code] ?? "",
+      after: settings.bibleShortNames[code] ?? "",
+    })),
+  );
+
+  const pageIdChanges = changeList(
+    Object.entries(pageIdDraft).map(([name, value]) => ({
+      label: `Page ID: ${name}`,
+      before:
+        Object.entries(savedSettings.pageIdShortcuts).find(
+          ([key]) => key.toLowerCase() === name.toLowerCase(),
+        )?.[1] ?? "",
+      after: cleanPageId(value),
+    })),
+  );
+
+  const gitChanges =
+    savedGitForm && gitForm
+      ? changeList([
+          {
+            label: "Auto-save",
+            before: savedGitForm.autoSave,
+            after: gitForm.autoSave,
+          },
+          {
+            label: "Auto-push",
+            before: savedGitForm.autoPush,
+            after: gitForm.autoPush,
+          },
+          {
+            label: "Pull interval",
+            before: savedGitForm.pullIntervalSeconds,
+            after: gitForm.pullIntervalSeconds,
+          },
+          {
+            label: "Merge mode",
+            before: savedGitForm.mergeMode,
+            after: gitForm.mergeMode,
+          },
+        ])
+      : [];
 
   return (
     <div className="config-page">
@@ -834,14 +935,14 @@ export default function SettingsPage({
               columns for a single download.
             </p>
           </div>
-          <button
-            className="button primary"
+          <SaveButton
+            label="Save PDF defaults"
+            savingLabel="Saving…"
             onClick={saveSongSheetSettings}
-            disabled={savingSettings}
+            changes={pdfChanges}
+            saving={savingSettings}
             title="Save the default font, text size and columns for song-sheet PDFs"
-          >
-            {savingSettings ? "Saving…" : "Save PDF defaults"}
-          </button>
+          />
         </div>
         <div className="song-sheet-settings-grid">
           <label>
@@ -1001,13 +1102,12 @@ export default function SettingsPage({
             >
               Reset defaults
             </button>
-            <button
-              className="button primary"
+            <SaveButton
+              label="Save shortcuts"
               onClick={saveShortcuts}
+              changes={shortcutChanges}
               title="Save these keyboard shortcuts in this browser"
-            >
-              Save shortcuts
-            </button>
+            />
           </div>
         </div>
         <div className="shortcut-grid">
@@ -1150,14 +1250,18 @@ export default function SettingsPage({
               passage references. Leave a field empty to use the full imported name.
             </p>
           </div>
-          <button
-            className="button ghost small"
+          <SaveButton
+            label="Save short names"
+            savingLabel="Saving…"
             onClick={() => void saveBibleShortNames()}
-            disabled={savingSettings || !bibleTranslations.length}
+            changes={bibleNameChanges}
+            disabled={!bibleTranslations.length}
+            disabledTitle="Import a Bible translation first"
+            saving={savingSettings}
             title="Save the short name for each Bible translation"
-          >
-            Save short names
-          </button>
+            className="button ghost"
+            small
+          />
         </div>
         {bibleTranslations.length ? (
           <div className="bible-name-table-wrap">
@@ -1224,14 +1328,17 @@ export default function SettingsPage({
             >
               {fixingPageIds ? "Scanning songs…" : "Fix songs"}
             </button>
-            <button
-              className="button ghost"
+            <SaveButton
+              label="Save page IDs"
+              savingLabel="Saving…"
               onClick={() => void savePageIdShortcuts()}
-              disabled={savingSettings || !pageIdNames.length}
+              changes={pageIdChanges}
+              disabled={!pageIdNames.length}
+              disabledTitle="Scan the song database first"
+              saving={savingSettings}
               title="Save the short ID for each page name without changing any songs"
-            >
-              Save page IDs
-            </button>
+              className="button ghost"
+            />
           </div>
         </div>
         {user.role === "admin" && (
@@ -1828,14 +1935,14 @@ export default function SettingsPage({
                       <option value="merge">Pull and merge</option>
                     </select>
                   </label>
-                  <button
-                    className="button primary"
+                  <SaveButton
+                    label="Save Git settings"
+                    savingLabel="Saving…"
                     onClick={saveGit}
-                    disabled={gitSaving}
+                    changes={gitChanges}
+                    saving={gitSaving}
                     title="Save runtime Git automation settings"
-                  >
-                    {gitSaving ? "Saving…" : "Save Git settings"}
-                  </button>
+                  />
                 </div>
                 <p className="hint">
                   Pull interval <code>0</code> disables automatic pulls. “Pull and merge” attempts a

@@ -8,6 +8,8 @@ import type {
 } from "@sm/shared";
 import { useAdapters } from "../adapters";
 import { api, ApiError } from "../api";
+import { SaveButton } from "../components/SaveButton";
+import { changeList } from "../form-changes";
 import { compactDateTime } from "../service-date";
 
 function newId(prefix: string): string {
@@ -51,6 +53,7 @@ export default function MqttPage({
 }) {
   const { modes } = useAdapters();
   const [settings, setSettings] = useState<MqttSettings | null>(null);
+  const [savedSettings, setSavedSettings] = useState<MqttSettings | null>(null);
   const [status, setStatus] = useState<MqttStatus | null>(null);
   const [password, setPassword] = useState("");
   const [clearPassword, setClearPassword] = useState(false);
@@ -62,6 +65,7 @@ export default function MqttPage({
     try {
       const result = await api.mqttSettings();
       setSettings(result.settings);
+      setSavedSettings(result.settings);
       setStatus(result.status);
     } catch (error) {
       notify(error instanceof ApiError ? error.message : "Could not load MQTT settings", "error");
@@ -129,6 +133,7 @@ export default function MqttPage({
       };
       const result = await api.saveMqttSettings(input);
       setSettings(result.settings);
+      setSavedSettings(result.settings);
       setStatus(result.status);
       setPassword("");
       setClearPassword(false);
@@ -151,6 +156,68 @@ export default function MqttPage({
       </section>
     );
   }
+
+  const mqttChanges = savedSettings
+    ? changeList([
+        {
+          label: "Broker URL",
+          before: savedSettings.brokerUrl,
+          after: settings.brokerUrl,
+        },
+        {
+          label: "Protocol",
+          before: savedSettings.protocol,
+          after: settings.protocol,
+        },
+        { label: "Username", before: savedSettings.username, after: settings.username },
+        { label: "Client ID", before: savedSettings.clientId, after: settings.clientId },
+        {
+          label: "Incoming prefix",
+          before: savedSettings.incomingPrefix,
+          after: settings.incomingPrefix,
+        },
+        {
+          label: "Incoming commands",
+          before: savedSettings.mappings,
+          after: settings.mappings,
+        },
+        {
+          label: "Outgoing prefix",
+          before: savedSettings.outgoingPrefix,
+          after: settings.outgoingPrefix,
+        },
+        {
+          label: "Debug publishing",
+          before: savedSettings.publishDebug,
+          after: settings.publishDebug,
+        },
+        {
+          label: "Information publishing",
+          before: savedSettings.publishInformation,
+          after: settings.publishInformation,
+        },
+        {
+          label: "Event publishing",
+          before: savedSettings.publishEvents,
+          after: settings.publishEvents,
+        },
+        {
+          label: "Outgoing controls",
+          before: savedSettings.controls,
+          after: settings.controls,
+        },
+        {
+          label: "Broker password",
+          changed: Boolean(password || clearPassword),
+          detail: clearPassword
+            ? "The stored password will be cleared"
+            : password
+              ? "A new password will be stored"
+              : undefined,
+          hideValues: true,
+        },
+      ])
+    : [];
 
   return (
     <div className="config-page mqtt-page">
@@ -636,9 +703,13 @@ export default function MqttPage({
       </section>
 
       <div className="mqtt-save-row">
-        <button className="button primary" onClick={save} disabled={saving}>
-          {saving ? "Saving and reconnecting…" : "Save MQTT settings"}
-        </button>
+        <SaveButton
+          label="Save MQTT settings"
+          savingLabel="Saving and reconnecting…"
+          onClick={save}
+          changes={mqttChanges}
+          saving={saving}
+        />
       </div>
     </div>
   );

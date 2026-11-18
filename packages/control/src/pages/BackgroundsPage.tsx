@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import type { BackgroundAsset, BackgroundColors } from "@sm/shared";
 import { api, ApiError } from "../api";
+import { SaveButton } from "../components/SaveButton";
+import { changeList } from "../form-changes";
 import { ReadOnlyFieldset, usePageAccess } from "../page-access";
 
 const DEFAULT_COLORS: BackgroundColors = {
@@ -18,6 +20,7 @@ export default function BackgroundsPage({
   const { canWrite } = usePageAccess();
   const [backgrounds, setBackgrounds] = useState<BackgroundAsset[]>([]);
   const [colors, setColors] = useState<BackgroundColors>(DEFAULT_COLORS);
+  const [savedColors, setSavedColors] = useState<BackgroundColors>(DEFAULT_COLORS);
   const [loading, setLoading] = useState(true);
   const [savingColors, setSavingColors] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -28,6 +31,7 @@ export default function BackgroundsPage({
     const result = await api.backgrounds();
     setBackgrounds(result.backgrounds);
     setColors(result.colors);
+    setSavedColors(result.colors);
   }
 
   useEffect(() => {
@@ -43,6 +47,7 @@ export default function BackgroundsPage({
     try {
       const result = await api.saveBackgroundColors(colors);
       setColors(result.colors);
+      setSavedColors(result.colors);
       await load();
       notify("Background colour theme saved");
     } catch (error) {
@@ -105,6 +110,13 @@ export default function BackgroundsPage({
 
   if (loading) return <div className="panel">Loading backgrounds…</div>;
 
+  const colorChanges = changeList([
+    { label: "Background", before: savedColors.background, after: colors.background },
+    { label: "Primary", before: savedColors.primary, after: colors.primary },
+    { label: "Secondary", before: savedColors.secondary, after: colors.secondary },
+    { label: "Accent", before: savedColors.accent, after: colors.accent },
+  ]);
+
   return (
     <div className="backgrounds-page">
       <ReadOnlyFieldset className="panel">
@@ -116,14 +128,14 @@ export default function BackgroundsPage({
               global palette is shared through the set lists repository.
             </p>
           </div>
-          <button
-            className="button primary"
+          <SaveButton
+            label="Save colours"
+            savingLabel="Saving…"
             onClick={saveColors}
-            disabled={savingColors}
+            changes={colorChanges}
+            saving={savingColors}
             title="Save the global background colour theme"
-          >
-            {savingColors ? "Saving…" : "Save colours"}
-          </button>
+          />
         </div>
         <div className="background-colors-grid">
           {(

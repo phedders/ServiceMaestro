@@ -4,7 +4,9 @@ import {
   type ActivityEntry,
 } from "@sm/shared";
 import { api, ApiError } from "../api";
+import { changeList } from "../form-changes";
 import { compactDateTime } from "../service-date";
+import { SaveButton } from "./SaveButton";
 import { downloadBlob } from "../site-download";
 
 const FILTER_MODULES = [
@@ -33,6 +35,7 @@ export function ActivityPanel({
   const [loading, setLoading] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [retentionDays, setRetentionDays] = useState(0);
+  const [savedRetentionDays, setSavedRetentionDays] = useState(0);
   const [savingRetention, setSavingRetention] = useState(false);
 
   async function load() {
@@ -56,6 +59,7 @@ export function ActivityPanel({
     try {
       const result = await api.activityRetention();
       setRetentionDays(result.retentionDays);
+      setSavedRetentionDays(result.retentionDays);
     } catch {
       // Leave the safe "keep forever" default when the setting cannot be loaded.
     }
@@ -82,6 +86,7 @@ export function ActivityPanel({
     try {
       const result = await api.saveActivityRetention(retentionDays);
       setRetentionDays(result.retentionDays);
+      setSavedRetentionDays(result.retentionDays);
       await load();
       notify(
         result.deleted
@@ -99,6 +104,14 @@ export function ActivityPanel({
     void load();
     void loadRetention();
   }, []);
+
+  const retentionChanges = changeList([
+    {
+      label: "Activity retention",
+      before: retentionLabel(savedRetentionDays),
+      after: retentionLabel(retentionDays),
+    },
+  ]);
 
   return (
     <section className="panel activity-panel">
@@ -159,14 +172,15 @@ export function ActivityPanel({
             )}
           </select>
         </label>
-        <button
-          className="button"
+        <SaveButton
+          label="Save retention"
+          savingLabel="Saving…"
           onClick={() => void saveRetention()}
-          disabled={savingRetention}
+          changes={retentionChanges}
+          saving={savingRetention}
           title="Delete activity entries older than the selected retention period"
-        >
-          {savingRetention ? "Saving…" : "Save retention"}
-        </button>
+          className="button"
+        />
         <span className="muted">
           Older entries are pruned immediately and checked daily. The default keeps everything.
         </span>

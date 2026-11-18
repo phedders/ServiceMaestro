@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import type { BrandingSettings } from "@sm/shared";
 import { api, ApiError } from "../api";
+import { SaveButton } from "./SaveButton";
+import { changeList } from "../form-changes";
 
 const DEFAULT_NAV_COLOR = "#0a1018";
 
@@ -11,6 +13,7 @@ export function BrandingPanel({
 }) {
   const [branding, setBranding] = useState<BrandingSettings | null>(null);
   const [navColor, setNavColor] = useState(DEFAULT_NAV_COLOR);
+  const [savedNavColor, setSavedNavColor] = useState(DEFAULT_NAV_COLOR);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -19,6 +22,7 @@ export function BrandingPanel({
       const result = await api.branding();
       setBranding(result.branding);
       setNavColor(result.branding.navBackground ?? DEFAULT_NAV_COLOR);
+      setSavedNavColor(result.branding.navBackground ?? DEFAULT_NAV_COLOR);
     } catch {
       setBranding(null);
     }
@@ -38,6 +42,8 @@ export function BrandingPanel({
     try {
       const result = await api.saveBranding(navColor);
       changed(result.branding);
+      setNavColor(result.branding.navBackground ?? DEFAULT_NAV_COLOR);
+      setSavedNavColor(result.branding.navBackground ?? DEFAULT_NAV_COLOR);
       notify("Navigation background saved");
     } catch (error) {
       notify(error instanceof ApiError ? error.message : "Could not save navigation colour", "error");
@@ -76,6 +82,14 @@ export function BrandingPanel({
       setBusy(false);
     }
   }
+
+  const colorChanges = changeList([
+    {
+      label: "Navigation background",
+      before: savedNavColor,
+      after: navColor,
+    },
+  ]);
 
   return (
     <section className="panel branding-panel">
@@ -135,14 +149,14 @@ export function BrandingPanel({
             onChange={(event) => setNavColor(event.target.value)}
           />
         </label>
-        <button
-          className="button primary"
+        <SaveButton
+          label="Save background"
           onClick={saveColor}
+          changes={colorChanges}
           disabled={busy}
+          disabledTitle="Saving…"
           title="Save the navigation background colour"
-        >
-          Save background
-        </button>
+        />
         <button
           className="button ghost"
           onClick={() => setNavColor(DEFAULT_NAV_COLOR)}

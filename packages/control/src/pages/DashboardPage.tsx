@@ -4,6 +4,8 @@ import "react-grid-layout/css/styles.css";
 import "react-resizable/css/styles.css";
 import type { DashboardLayout, LiveState } from "@sm/shared";
 import { api, ApiError } from "../api";
+import { SaveButton } from "../components/SaveButton";
+import { changeList } from "../form-changes";
 import { SlidePreview } from "../components/SlidePreview";
 import { Transport } from "../components/Transport";
 import { ItemList, PageList } from "../components/LivePanels";
@@ -121,6 +123,13 @@ export default function DashboardPage({
 
   if (!dashboard) return <div className="panel">Loading dashboard…</div>;
 
+  const baselineLayouts = layoutsFrom(dashboard);
+  const layoutChanges = changeList([
+    { label: "Large layout", before: baselineLayouts.lg, after: layouts.lg },
+    { label: "Medium layout", before: baselineLayouts.md, after: layouts.md },
+    { label: "Small layout", before: baselineLayouts.sm, after: layouts.sm },
+  ]);
+
   return (
     <section className="dashboard-page">
       <div className="dashboard-toolbar panel">
@@ -138,14 +147,14 @@ export default function DashboardPage({
               >
                 Cancel
               </button>
-              <button
-                className="button primary"
+              <SaveButton
+                label="Save layout"
+                savingLabel="Saving…"
                 onClick={save}
-                disabled={saving}
+                changes={layoutChanges}
+                saving={saving}
                 title="Save this dashboard layout for your user"
-              >
-                {saving ? "Saving…" : "Save layout"}
-              </button>
+              />
             </>
           ) : (
             <>

@@ -35,6 +35,8 @@ import { api, ApiError } from "../api";
 import { BibleLayoutButtons } from "../components/BibleLayoutButtons";
 import { IsoDateInput } from "../components/IsoDateInput";
 import { PageContentEditor } from "../components/PageContentEditor";
+import { SaveButton } from "../components/SaveButton";
+import { changeList } from "../form-changes";
 import { ReadOnlyFieldset, usePageAccess } from "../page-access";
 import { compactDate, compactDateTime, defaultSetlistName } from "../service-date";
 import { useSessionState } from "../session-state";
@@ -166,6 +168,60 @@ function stingerPageRows(overrides: Record<string, string>) {
     .sort((a, b) => a.page - b.page);
 }
 
+interface ItemDraft {
+  title: string;
+  content: string;
+  format: TextFormat;
+  textAlign: "left" | "center";
+  imageFit: "scale" | "actual" | "crop" | "stretch";
+  backgroundId: string;
+  stingerId: string;
+  pageStingers: string;
+  listFolder: string;
+  listAutoplay: boolean;
+  listMode: PlaybackMode;
+  listDelay: number;
+  tarpPresentationId: string;
+  tarpAutoplay: boolean;
+  tarpMode: PlaybackMode;
+  tarpDelay: number;
+  keyOverride: string;
+  transpose: number;
+  verseOrder: string;
+  verseOrderId: string;
+  notes: string;
+}
+
+function itemDraftFrom(item: SetlistItem, song: Song | undefined): ItemDraft {
+  const text = initialTextState(item);
+  const imageList = parseImageListContent(item.content);
+  const tarp = parseTarpItemContent(item.content);
+  return {
+    title: item.title,
+    content: item.kind === "song" ? item.content ?? song?.lyrics ?? "" : text.content,
+    format: text.format,
+    textAlign: item.textAlign ?? "left",
+    imageFit: item.imageFit ?? "scale",
+    backgroundId: item.backgroundId ?? "",
+    stingerId: item.stingerId ?? "",
+    pageStingers: JSON.stringify(stingerPageRows(item.stingerPageOverrides)),
+    listFolder: imageList?.folder ?? "",
+    listAutoplay: imageList?.autoplay ?? false,
+    listMode: imageList?.mode ?? "loop",
+    listDelay: imageList?.delaySeconds ?? 6,
+    tarpPresentationId: tarp?.presentationId ?? "",
+    tarpAutoplay: tarp?.autoplay ?? false,
+    tarpMode: tarp?.mode ?? "loop",
+    tarpDelay: tarp?.delaySeconds ?? 6,
+    keyOverride: item.keyOverride ?? "",
+    transpose: item.transpose,
+    verseOrder: defaultItemVerseOrder(item, song),
+    verseOrderId:
+      song?.verseOrders.find((entry) => entry.order === item.verseOrder)?.id ?? "",
+    notes: item.notes ?? "",
+  };
+}
+
 function ItemRow({
   item,
   song,
@@ -251,6 +307,7 @@ function ItemRow({
     song?.verseOrders.find((entry) => entry.order === item.verseOrder)?.id ?? "",
   );
   const [notes, setNotes] = useState(item.notes ?? "");
+  const [savedDraft, setSavedDraft] = useState<ItemDraft>(() => itemDraftFrom(item, song));
   const [saving, setSaving] = useState(false);
   const [altOpen, setAltOpen] = useState(false);
   const [altLoading, setAltLoading] = useState(false);
@@ -285,6 +342,7 @@ function ItemRow({
       song?.verseOrders.find((entry) => entry.order === item.verseOrder)?.id ?? "",
     );
     setNotes(item.notes ?? "");
+    setSavedDraft(itemDraftFrom(item, song));
   }, [item, song]);
 
   const displayTitle = item.title || song?.title || "Untitled";
@@ -301,6 +359,60 @@ function ItemRow({
   const tarpSummary = item.kind === "tarp" ? initialTarp : null;
   const imageListPreview = initialImageList;
   const listImages = imagesForFolder(images, listFolder);
+  const currentDraft: ItemDraft = {
+    title,
+    content,
+    format,
+    textAlign,
+    imageFit,
+    backgroundId,
+    stingerId,
+    pageStingers: JSON.stringify(pageStingers),
+    listFolder,
+    listAutoplay,
+    listMode,
+    listDelay,
+    tarpPresentationId,
+    tarpAutoplay,
+    tarpMode,
+    tarpDelay,
+    keyOverride,
+    transpose,
+    verseOrder,
+    verseOrderId,
+    notes,
+  };
+  const contentLabel =
+    item.kind === "song"
+      ? "Lyrics"
+      : item.kind === "text"
+        ? "Text"
+        : item.kind === "image"
+          ? "Image path"
+          : "Content";
+  const itemChanges = changeList([
+    { label: "Title", before: savedDraft.title, after: currentDraft.title },
+    { label: contentLabel, before: savedDraft.content, after: currentDraft.content },
+    { label: "Text format", before: savedDraft.format, after: currentDraft.format },
+    { label: "Text alignment", before: savedDraft.textAlign, after: currentDraft.textAlign },
+    { label: "Image fit", before: savedDraft.imageFit, after: currentDraft.imageFit },
+    { label: "Background", before: savedDraft.backgroundId, after: currentDraft.backgroundId },
+    { label: "Stinger", before: savedDraft.stingerId, after: currentDraft.stingerId },
+    { label: "Page stingers", before: savedDraft.pageStingers, after: currentDraft.pageStingers },
+    { label: "Image folder", before: savedDraft.listFolder, after: currentDraft.listFolder },
+    { label: "Image autoplay", before: savedDraft.listAutoplay, after: currentDraft.listAutoplay },
+    { label: "Image playback", before: savedDraft.listMode, after: currentDraft.listMode },
+    { label: "Image delay", before: savedDraft.listDelay, after: currentDraft.listDelay },
+    { label: "Tarp presentation", before: savedDraft.tarpPresentationId, after: currentDraft.tarpPresentationId },
+    { label: "Tarp autoplay", before: savedDraft.tarpAutoplay, after: currentDraft.tarpAutoplay },
+    { label: "Tarp playback", before: savedDraft.tarpMode, after: currentDraft.tarpMode },
+    { label: "Tarp delay", before: savedDraft.tarpDelay, after: currentDraft.tarpDelay },
+    { label: "Key override", before: savedDraft.keyOverride, after: currentDraft.keyOverride },
+    { label: "Transpose", before: savedDraft.transpose, after: currentDraft.transpose },
+    { label: "Verse order", before: savedDraft.verseOrder, after: currentDraft.verseOrder },
+    { label: "Saved verse order", before: savedDraft.verseOrderId, after: currentDraft.verseOrderId },
+    { label: "Notes", before: savedDraft.notes, after: currentDraft.notes },
+  ]);
 
   function resetDraft() {
     const next = initialTextState(item);
@@ -329,6 +441,7 @@ function ItemRow({
       song?.verseOrders.find((entry) => entry.order === item.verseOrder)?.id ?? "",
     );
     setNotes(item.notes ?? "");
+    setSavedDraft(itemDraftFrom(item, song));
   }
 
   function closeEditor() {
@@ -1100,23 +1213,22 @@ function ItemRow({
             <button className="button ghost" onClick={closeEditor} title="Discard changes and close the editor">
               Cancel
             </button>
-            <button
-              className="button"
+            <SaveButton
+              label="Save local"
               onClick={saveLocal}
-              disabled={saving}
+              changes={itemChanges}
+              saving={saving}
               title="Save changes only to this set list item"
-            >
-              {saving ? "Saving…" : "Save local"}
-            </button>
+              className="button"
+            />
             {item.kind === "song" && item.songId && (
-              <button
-                className="button primary"
+              <SaveButton
+                label="Save to song library"
                 onClick={saveInventory}
-                disabled={saving}
+                changes={itemChanges}
+                saving={saving}
                 title="Save these song changes back to the shared song library"
-              >
-                {saving ? "Saving…" : "Save to song library"}
-              </button>
+              />
             )}
           </div>
         </div>
@@ -1933,6 +2045,25 @@ export default function SetlistsPage({
 
   if (loading) return <div className="panel">Loading set lists…</div>;
 
+  const metaChanges = detail
+    ? changeList([
+        { label: "Name", before: detail.name, after: name },
+        { label: "Service date", before: detail.serviceDate, after: serviceDate },
+        {
+          label: "Service time",
+          before: detail.serviceTime ?? "",
+          after: serviceTime,
+        },
+        { label: "Notes", before: detail.notes ?? "", after: notes },
+        {
+          label: "Background",
+          before: detail.backgroundId ?? "",
+          after: backgroundId,
+        },
+        { label: "Stinger", before: detail.stingerId ?? "", after: stingerId },
+      ])
+    : [];
+
   return (
     <div className="two-column">
       <aside className="panel list-panel">
@@ -2355,13 +2486,13 @@ export default function SetlistsPage({
               Notes
               <input value={notes} onChange={(event) => setNotes(event.target.value)} />
             </label>
-            <button
-              className="button ghost"
+            <SaveButton
+              label="Save details"
               onClick={saveMeta}
-              title="Save the set-list name, date, time and notes"
-            >
-              Save details
-            </button>
+              changes={metaChanges}
+              title="Save the set-list name, date, time, background, stinger and notes"
+              className="button ghost"
+            />
           </div>
 
           <div className="items">

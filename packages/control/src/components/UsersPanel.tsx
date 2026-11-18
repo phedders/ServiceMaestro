@@ -9,6 +9,8 @@ import {
 } from "@sm/shared";
 import { useAdapters } from "../adapters";
 import { api, ApiError } from "../api";
+import { SaveButton } from "./SaveButton";
+import { changeList } from "../form-changes";
 
 interface UserDraft {
   username: string;
@@ -243,6 +245,20 @@ export function UsersPanel({
         <div className="user-list">
           {users.map((user) => {
             const draft = drafts[user.id] ?? draftFromUser(user);
+            const baseline = draftFromUser(user);
+            const changes = changeList([
+              {
+                label: "Username",
+                before: baseline.username,
+                after: draft.username,
+              },
+              { label: "Role", before: baseline.role, after: draft.role },
+              ...MODULE_PERMISSIONS.map((module) => ({
+                label: `${module.label} access`,
+                before: baseline.permissions[module.id],
+                after: draft.permissions[module.id],
+              })),
+            ]);
             const busy = busyId === user.id;
             return (
               <article key={user.id} className="user-row">
@@ -271,14 +287,16 @@ export function UsersPanel({
                     {user.passkeyCount} passkey{user.passkeyCount === 1 ? "" : "s"}
                   </span>
                   <div className="button-row">
-                    <button
-                      className="button small"
+                    <SaveButton
+                      label="Save"
                       onClick={() => saveUser(user)}
+                      changes={changes}
                       disabled={busy}
+                      disabledTitle="Saving…"
                       title="Save this user's role and module permissions"
-                    >
-                      Save
-                    </button>
+                      className="button"
+                      small
+                    />
                     {user.id !== currentUser.id && (
                       <button
                         className="button ghost small danger-text"

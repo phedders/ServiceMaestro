@@ -20,6 +20,8 @@ import type {
   TarpView,
 } from "@sm/shared";
 import { api, ApiError } from "../api";
+import { SaveButton } from "../components/SaveButton";
+import { changeList } from "../form-changes";
 
 type ViewKey = "normal" | "lowerthird";
 
@@ -130,7 +132,6 @@ export default function TarpPageEditor({
   const [draft, setDraft] = useState<TarpPage>(() => clone(page));
   const [view, setView] = useState<ViewKey>("normal");
   const [selectedObjectId, setSelectedObjectId] = useState<string | null>(null);
-  const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
   const dragRef = useRef<{
     mode: "move" | "resize";
@@ -145,8 +146,21 @@ export default function TarpPageEditor({
   useEffect(() => {
     setDraft(clone(page));
     setSelectedObjectId(null);
-    setDirty(false);
   }, [page.id]);
+
+  const pageChanges = changeList([
+    { label: "Page name", before: page.name, after: draft.name },
+    { label: "Theme", before: page.themeId, after: draft.themeId },
+    {
+      label: "Start from previous",
+      before: page.startFromPrevious,
+      after: draft.startFromPrevious,
+    },
+    { label: "Transition", before: page.transition, after: draft.transition },
+    { label: "Normal view", before: page.normal, after: draft.normal },
+    { label: "Lower-third view", before: page.lowerthird, after: draft.lowerthird },
+  ]);
+  const dirty = pageChanges.length > 0;
 
   useEffect(() => {
     onDirtyChange?.(dirty);
@@ -178,7 +192,6 @@ export default function TarpPageEditor({
 
   function updateDraft(next: TarpPage) {
     setDraft(next);
-    setDirty(true);
   }
 
   function updateView(viewKey: ViewKey, updater: (current: TarpView) => TarpView) {
@@ -319,7 +332,6 @@ export default function TarpPageEditor({
         lowerthird: draft.lowerthird,
       });
       setDraft(clone(result.page));
-      setDirty(false);
       onSaved(result.page);
       notify("Tarp page saved");
     } catch (error) {
@@ -399,7 +411,6 @@ export default function TarpPageEditor({
             className="button ghost small"
             onClick={() => {
               setDraft(clone(page));
-              setDirty(false);
               setSelectedObjectId(null);
             }}
             disabled={!dirty || saving}
@@ -407,14 +418,15 @@ export default function TarpPageEditor({
           >
             Reset
           </button>
-          <button
-            className="button primary small"
+          <SaveButton
+            label="Save page"
+            savingLabel="Saving…"
             onClick={savePage}
-            disabled={saving || !dirty}
+            changes={pageChanges}
+            saving={saving}
             title="Save both views of this Tarp page"
-          >
-            {saving ? "Saving…" : "Save page"}
-          </button>
+            small
+          />
         </div>
       </div>
 

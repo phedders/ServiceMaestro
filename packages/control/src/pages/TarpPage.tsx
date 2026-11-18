@@ -11,6 +11,8 @@ import type {
   TarpThemeInput,
 } from "@sm/shared";
 import { api, ApiError } from "../api";
+import { SaveButton } from "../components/SaveButton";
+import { changeList } from "../form-changes";
 import { ReadOnlyFieldset, usePageAccess } from "../page-access";
 import { useSessionState } from "../session-state";
 import TarpPageEditor from "./TarpPageEditor";
@@ -333,6 +335,58 @@ export default function TarpPage({
     Boolean(themeName.trim()) &&
     Boolean(themeFont.trim()) &&
     (backgroundType !== "image" || Boolean(backgroundImage.trim()));
+  const editingTheme = editingThemeId
+    ? themes.find((theme) => theme.id === editingThemeId) ?? null
+    : null;
+  const themeBaseline = editingTheme
+    ? {
+        name: editingTheme.name,
+        background: editingTheme.background,
+        fontFamily: editingTheme.fontFamily,
+        textColor: editingTheme.textColor,
+        accentColor: editingTheme.accentColor,
+      }
+    : emptyThemeInput();
+  const themeChanges = changeList([
+    { label: "Theme name", before: themeBaseline.name, after: themeDraft.name },
+    {
+      label: "Background",
+      before: themeBaseline.background,
+      after: themeDraft.background,
+    },
+    {
+      label: "Font",
+      before: themeBaseline.fontFamily,
+      after: themeDraft.fontFamily,
+    },
+    {
+      label: "Text colour",
+      before: themeBaseline.textColor,
+      after: themeDraft.textColor,
+    },
+    {
+      label: "Accent colour",
+      before: themeBaseline.accentColor,
+      after: themeDraft.accentColor,
+    },
+  ]);
+  if (!editingThemeId) {
+    themeChanges.unshift({
+      label: "New theme",
+      detail: "A new theme will be created",
+    });
+  }
+  const presentationChanges = selected
+    ? changeList([
+        { label: "Name", before: selected.name, after: presentationName },
+        { label: "Aspect", before: selected.aspect, after: presentationAspect },
+        {
+          label: "Theme",
+          before: selected.themeId ?? "",
+          after: presentationTheme,
+        },
+      ])
+    : [];
   const selectedPage =
     selected?.pages.find((page) => page.id === selectedPageId) ?? selected?.pages[0] ?? null;
 
@@ -465,14 +519,16 @@ export default function TarpPage({
               </small>
             </div>
             <div className="button-row">
-              <button
-                className="button primary"
+              <SaveButton
+                label={editingThemeId ? "Save theme" : "Create theme"}
+                savingLabel="Saving…"
                 onClick={saveTheme}
-                disabled={themeSaving || !canSaveTheme}
+                changes={themeChanges}
+                disabled={!canSaveTheme}
+                disabledTitle="Enter a theme name and font, and choose a background"
+                saving={themeSaving}
                 title="Save this Tarp theme"
-              >
-                {themeSaving ? "Saving…" : editingThemeId ? "Save theme" : "Create theme"}
-              </button>
+              />
               {editingThemeId && (
                 <button
                   className="button ghost danger-text"
@@ -598,14 +654,15 @@ export default function TarpPage({
                   </label>
                 </ReadOnlyFieldset>
                 <ReadOnlyFieldset className="button-row">
-                  <button
-                    className="button"
+                  <SaveButton
+                    label="Save presentation"
+                    savingLabel="Saving…"
                     onClick={savePresentation}
-                    disabled={presentationSaving}
+                    changes={presentationChanges}
+                    saving={presentationSaving}
                     title="Save presentation name, aspect and theme"
-                  >
-                    {presentationSaving ? "Saving…" : "Save presentation"}
-                  </button>
+                    className="button"
+                  />
                   <button
                     className="button ghost"
                     onClick={addPage}

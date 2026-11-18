@@ -15,7 +15,9 @@ import { useAdapters } from "../adapters";
 import { api, ApiError } from "../api";
 import { ChordProUpdateDialog } from "../components/ChordProUpdateDialog";
 import { PageContentEditor } from "../components/PageContentEditor";
+import { SaveButton } from "../components/SaveButton";
 import { SiteSongDownloadPanel } from "../components/SiteSongDownloadPanel";
+import { changeList } from "../form-changes";
 import { ReadOnlyFieldset, usePageAccess } from "../page-access";
 import { compactDate, compactDateTime, pickCurrentSetlist } from "../service-date";
 import { useSessionState } from "../session-state";
@@ -32,6 +34,20 @@ const EMPTY = {
   lyricsMarkdown: false,
   lyrics: "",
 };
+
+function formFromSong(song: Song) {
+  return {
+    title: song.title,
+    alternateTitles: song.alternateTitles ?? "",
+    author: song.author ?? "",
+    copyright: song.copyright ?? "",
+    ccli: song.ccli ?? "",
+    key: song.key ?? "",
+    verseOrder: song.verseOrder ?? "",
+    lyricsMarkdown: song.lyricsMarkdown,
+    lyrics: song.lyrics,
+  };
+}
 
 export default function SongsPage({
   live,
@@ -115,9 +131,26 @@ export default function SongsPage({
     if (!siteProvider) return;
     setSiteUpdatingId(song.id);
     try {
-      if (await updateSongFromSite(siteProvider, song.id, song.title, notify)) await load();
+      if (await updateSongFromSite(siteProvider, song.id, song.title, notify)) {
+        const nextSongs = await load();
+        const updated = nextSongs.find((entry) => entry.id === song.id);
+        if (updated) {
+          select(updated);
+          await refreshAssets(updated.id);
+        }
+      }
     } finally {
       setSiteUpdatingId(null);
+    }
+  }
+
+  async function handleImportedSong(song: { id: string; title: string }) {
+    const nextSongs = await load();
+    const updated = nextSongs.find((entry) => entry.id === song.id);
+    if (!updated) return;
+    if (!selectedId || selectedId === updated.id) {
+      select(updated);
+      await refreshAssets(updated.id);
     }
   }
 
@@ -183,11 +216,17 @@ export default function SongsPage({
       setAssets([]);
       return;
     }
-    api
-      .songAssets(selectedId)
-      .then((result) => setAssets(result.assets))
-      .catch(() => setAssets([]));
+    void refreshAssets(selectedId);
   }, [selectedId]);
+
+  async function refreshAssets(songId: string) {
+    try {
+      const result = await api.songAssets(songId);
+      setAssets(result.assets);
+    } catch {
+      setAssets([]);
+    }
+  }
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -200,6 +239,27 @@ export default function SongsPage({
   }, [songs, search]);
 
   const selectedSong = songs.find((song) => song.id === selectedId) ?? null;
+  const baselineForm = selectedSong ? formFromSong(selectedSong) : EMPTY;
+  const songChanges = changeList([
+    { label: "Title", before: baselineForm.title, after: form.title },
+    {
+      label: "Alternative titles",
+      before: baselineForm.alternateTitles,
+      after: form.alternateTitles,
+    },
+    { label: "Author", before: baselineForm.author, after: form.author },
+    { label: "Copyright", before: baselineForm.copyright, after: form.copyright },
+    { label: "CCLI", before: baselineForm.ccli, after: form.ccli },
+    { label: "Key", before: baselineForm.key, after: form.key },
+    { label: "Verse order", before: baselineForm.verseOrder, after: form.verseOrder },
+    { label: "Lyrics", before: baselineForm.lyrics, after: form.lyrics },
+    {
+      label: "Lyrics format",
+      before: baselineForm.lyricsMarkdown ? "Markdown" : "Plain text",
+      after: form.lyricsMarkdown ? "Markdown" : "Plain text",
+    },
+    { label: "Simplify page IDs", before: false, after: simplifyPageIds },
+  ]);
   const duplicateFiles = (scan?.files ?? []).filter((file) => file.duplicate);
   const visibleSongIds = filtered.map((song) => song.id);
   const allVisibleSelected =
@@ -357,17 +417,7 @@ export default function SongsPage({
     setNewOrderName("");
     setNewOrderText("");
     setSimplifyPageIds(false);
-    setForm({
-      title: song.title,
-      alternateTitles: song.alternateTitles ?? "",
-      author: song.author ?? "",
-      copyright: song.copyright ?? "",
-      ccli: song.ccli ?? "",
-      key: song.key ?? "",
-      verseOrder: song.verseOrder ?? "",
-      lyricsMarkdown: song.lyricsMarkdown,
-      lyrics: song.lyrics,
-    });
+    setForm(formFromSong(song));
   }
 
   function newSong() {
@@ -402,11 +452,7 @@ export default function SongsPage({
         : await api.createSong(payload);
       await load();
       setSelectedId(result.song.id);
-      setForm((current) => ({
-        ...current,
-        lyrics: result.song.lyrics,
-        verseOrder: result.song.verseOrder ?? "",
-      }));
+      setForm(formFromSong(result.song));
       setSimplifyPageIds(false);
       notify(selectedId ? "Song saved" : "Song created");
     } catch (error) {
@@ -680,18 +726,16 @@ export default function SongsPage({
                 Delete
               </button>
             )}
-            <button
-              className="button primary"
+            <SaveButton
+              label="Save song"
+              savingLabel="Saving…"
               onClick={save}
-              disabled={saving || !form.title.trim()}
-              title={
-                !form.title.trim()
-                  ? "Enter a song title first"
-                  : "Save this song to the shared song library"
-              }
-            >
-              {saving ? "Saving…" : "Save song"}
-            </button>
+              changes={songChanges}
+              disabled={!form.title.trim()}
+              disabledTitle="Enter a song title first"
+              saving={saving}
+              title="Save this song to the shared song library"
+            />
           </div>
         </div>
 
@@ -1234,7 +1278,7 @@ export default function SongsPage({
       )}
 
       {songSelectEnabled && (
-        <SiteSongDownloadPanel notify={notify} onImported={() => void load()} />
+        <SiteSongDownloadPanel notify={notify} onImported={(song) => void handleImportedSong(song)} />
       )}
     </div>
   );

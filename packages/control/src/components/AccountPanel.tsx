@@ -8,7 +8,9 @@ import {
 } from "@sm/shared";
 import { useAdapters } from "../adapters";
 import { api, ApiError } from "../api";
+import { changeList } from "../form-changes";
 import { compactDateTime } from "../service-date";
+import { SaveButton } from "./SaveButton";
 
 export function AccountPanel({
   user,
@@ -303,6 +305,23 @@ export function AccountPanel({
             cookie: "",
           };
           const busy = siteBusy === provider.id;
+          const credentialChanges = changeList([
+            {
+              label: "Username",
+              before: provider.userUsername ?? "",
+              after: form.username,
+            },
+            {
+              label: "Password",
+              changed: Boolean(form.password),
+              hideValues: true,
+            },
+            {
+              label: "Session cookie",
+              changed: Boolean(form.cookie),
+              hideValues: true,
+            },
+          ]);
           const sourceLabel =
             provider.activeSource === "user"
               ? `Using your credentials${provider.userUsername ? ` (${provider.userUsername})` : ""}`
@@ -366,14 +385,16 @@ export function AccountPanel({
                     placeholder="Optional alternative to username/password"
                   />
                 </label>
-                <button
-                  className="button primary small"
+                <SaveButton
+                  label="Save credentials"
+                  savingLabel="Saving…"
                   onClick={() => void saveSiteCredentials(provider)}
+                  changes={credentialChanges}
                   disabled={busy}
+                  disabledTitle="Saving…"
                   title={`Save your ${provider.label} credentials`}
-                >
-                  {busy ? "Saving…" : "Save credentials"}
-                </button>
+                  small
+                />
               </div>
               {provider.serverConfigured && (
                 <p className="hint">

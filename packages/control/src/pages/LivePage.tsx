@@ -20,6 +20,8 @@ import {
 } from "@sm/shared";
 import { api, ApiError } from "../api";
 import { ReadOnlyFieldset } from "../page-access";
+import { SaveButton } from "../components/SaveButton";
+import { changeList } from "../form-changes";
 import { ScaledPreviewFrame } from "../components/ScaledPreviewFrame";
 import { SlidePreview } from "../components/SlidePreview";
 import { Transport } from "../components/Transport";
@@ -142,6 +144,8 @@ export default function LivePage({
       lowerThirdTextScale: 1,
     },
   );
+  const [savedDisplayConfig, setSavedDisplayConfig] =
+    useState<DisplayConfig>(displayConfig);
   const [configSaving, setConfigSaving] = useState(false);
   const [previewView, setPreviewView] = useSessionState("live:preview-view", "full");
   const [previewScreenId] = useState(loadPreviewScreenId);
@@ -197,11 +201,15 @@ export default function LivePage({
   useEffect(() => {
     if (live.displayConfig) {
       setDisplayConfig(live.displayConfig);
+      setSavedDisplayConfig(live.displayConfig);
       return;
     }
     api
       .displayConfig()
-      .then((result) => setDisplayConfig(result.config))
+      .then((result) => {
+        setDisplayConfig(result.config);
+        setSavedDisplayConfig(result.config);
+      })
       .catch(() => undefined);
   }, [
     live.displayConfig?.fontFamily,
@@ -307,7 +315,9 @@ export default function LivePage({
   async function saveConfig() {
     setConfigSaving(true);
     try {
-      await api.saveDisplayConfig(displayConfig);
+      const result = await api.saveDisplayConfig(displayConfig);
+      setDisplayConfig(result.config);
+      setSavedDisplayConfig(result.config);
       notify("Display settings saved");
     } catch (error) {
       notify(error instanceof ApiError ? error.message : "Could not save display settings", "error");
@@ -392,6 +402,59 @@ export default function LivePage({
       </ReadOnlyFieldset>
     );
   }
+
+  const displayConfigChanges = changeList([
+    { label: "Font", before: savedDisplayConfig.fontFamily, after: displayConfig.fontFamily },
+    { label: "Text colour", before: savedDisplayConfig.textColor, after: displayConfig.textColor },
+    { label: "Text size", before: savedDisplayConfig.textScale, after: displayConfig.textScale },
+    {
+      label: "Font size unit",
+      before: savedDisplayConfig.fontSizeUnit,
+      after: displayConfig.fontSizeUnit,
+    },
+    {
+      label: "Background",
+      before: savedDisplayConfig.background,
+      after: displayConfig.background,
+    },
+    { label: "Lines per page", before: savedDisplayConfig.maxLines, after: displayConfig.maxLines },
+    { label: "Max words", before: savedDisplayConfig.maxWords, after: displayConfig.maxWords },
+    {
+      label: "Smart page splits",
+      before: savedDisplayConfig.smartPageSplits,
+      after: displayConfig.smartPageSplits,
+    },
+    {
+      label: "Smart wrap minimum words",
+      before: savedDisplayConfig.smartWrapMinWords,
+      after: displayConfig.smartWrapMinWords,
+    },
+    {
+      label: "Smart wrap modules",
+      before: savedDisplayConfig.smartWrapModules,
+      after: displayConfig.smartWrapModules,
+    },
+    {
+      label: "Lower-third image height",
+      before: savedDisplayConfig.lowerThirdImageMaxHeightPercent,
+      after: displayConfig.lowerThirdImageMaxHeightPercent,
+    },
+    {
+      label: "Lower-third image padding",
+      before: savedDisplayConfig.lowerThirdImagePadding,
+      after: displayConfig.lowerThirdImagePadding,
+    },
+    {
+      label: "Lower-third font",
+      before: savedDisplayConfig.lowerThirdFontFamily,
+      after: displayConfig.lowerThirdFontFamily,
+    },
+    {
+      label: "Lower-third text size",
+      before: savedDisplayConfig.lowerThirdTextScale,
+      after: displayConfig.lowerThirdTextScale,
+    },
+  ]);
 
   return (
     <div className={`live-layout ${phoneLinear ? "live-phone-linear" : ""}`}>
@@ -543,14 +606,14 @@ export default function LivePage({
               style. These settings sync to other servers through the set lists repository.
             </p>
           </div>
-          <button
-            className="button primary"
+          <SaveButton
+            label="Save display config"
+            savingLabel="Saving…"
             onClick={saveConfig}
-            disabled={configSaving}
+            changes={displayConfigChanges}
+            saving={configSaving}
             title="Save and broadcast the display style/page-splitting settings"
-          >
-            {configSaving ? "Saving…" : "Save display config"}
-          </button>
+          />
         </div>
         <div className="display-config-grid">
           <div className="display-background-settings">

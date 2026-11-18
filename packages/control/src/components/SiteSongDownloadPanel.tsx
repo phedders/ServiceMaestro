@@ -16,7 +16,7 @@ export function SiteSongDownloadPanel({
   onImported,
 }: {
   notify: (text: string, kind?: "info" | "error") => void;
-  onImported?: () => void;
+  onImported?: (song: { id: string; title: string }) => void;
 }) {
   const { canWrite } = usePageAccess();
   const { songSelectEnabled } = useAdapters();
@@ -111,7 +111,7 @@ export function SiteSongDownloadPanel({
           ? `Imported “${result.song.title}” with ${result.files.length} file${result.files.length === 1 ? "" : "s"}`
           : `Updated “${result.song.title}” with ${result.files.length} file${result.files.length === 1 ? "" : "s"}`,
       );
-      onImported?.();
+      onImported?.(result.song);
     } catch (error) {
       notify(error instanceof ApiError ? error.message : "Could not import the song", "error");
     } finally {

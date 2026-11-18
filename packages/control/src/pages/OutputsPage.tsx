@@ -10,6 +10,8 @@ import {
   type DisplayViewLink,
 } from "@sm/shared";
 import { api, ApiError } from "../api";
+import { SaveButton } from "../components/SaveButton";
+import { changeList } from "../form-changes";
 import { ReadOnlyFieldset, usePageAccess } from "../page-access";
 
 const TEMPLATE_LABELS: Record<DisplayOutputTemplate, string> = {
@@ -247,6 +249,58 @@ export default function OutputsPage({
 
   if (loading) return <div className="panel">Loading outputs…</div>;
 
+  const baselineOutput = selectedId
+    ? outputs.find((entry) => entry.id === selectedId) ?? null
+    : null;
+  const outputChanges =
+    draft && !selectedId
+      ? [
+          {
+            label: "New output",
+            detail: "The output will be created",
+          },
+        ]
+      : draft && baselineOutput
+        ? changeList([
+            { label: "ID / URL slug", before: baselineOutput.id, after: draft.id },
+            { label: "Label", before: baselineOutput.label, after: draft.label },
+            {
+              label: "Description",
+              before: baselineOutput.description,
+              after: draft.description,
+            },
+            {
+              label: "Template",
+              before: baselineOutput.template,
+              after: draft.template,
+            },
+            { label: "Enabled", before: baselineOutput.enabled, after: draft.enabled },
+            { label: "Aliases", before: baselineOutput.aliases, after: draft.aliases },
+            { label: "Fade", before: baselineOutput.fade, after: draft.fade },
+            {
+              label: "Fade duration",
+              before: baselineOutput.fadeDurationMs,
+              after: draft.fadeDurationMs,
+            },
+            {
+              label: "Background",
+              before: baselineOutput.background,
+              after: draft.background,
+            },
+            {
+              label: "Background opacity",
+              before: baselineOutput.backgroundAlpha,
+              after: draft.backgroundAlpha,
+            },
+            { label: "Layout", before: baselineOutput.layout, after: draft.layout },
+            { label: "Panel", before: baselineOutput.panel, after: draft.panel },
+            { label: "Text", before: baselineOutput.text, after: draft.text },
+            { label: "Content", before: baselineOutput.content, after: draft.content },
+            { label: "Image", before: baselineOutput.image, after: draft.image },
+            { label: "Clock", before: baselineOutput.clock, after: draft.clock },
+          ])
+        : [];
+
   return (
     <div className="two-column outputs-layout">
       <aside className="panel list-panel">
@@ -330,14 +384,16 @@ export default function OutputsPage({
                   Delete
                 </button>
               )}
-              <button
-                className="button primary"
+              <SaveButton
+                label="Save output"
+                savingLabel="Saving…"
                 onClick={() => void save()}
-                disabled={!canWrite || saving}
+                changes={outputChanges}
+                disabled={!canWrite}
+                disabledTitle="Read-only access to outputs"
+                saving={saving}
                 title="Save this output definition"
-              >
-                {saving ? "Saving…" : "Save output"}
-              </button>
+              />
             </div>
           </div>
 
