@@ -33,6 +33,7 @@ const EMPTY = {
   verseOrder: "",
   lyricsMarkdown: false,
   lyrics: "",
+  songSelectInfo: "",
 };
 
 function formFromSong(song: Song) {
@@ -46,6 +47,7 @@ function formFromSong(song: Song) {
     verseOrder: song.verseOrder ?? "",
     lyricsMarkdown: song.lyricsMarkdown,
     lyrics: song.lyrics,
+    songSelectInfo: song.songSelectInfo ?? "",
   };
 }
 
@@ -165,6 +167,7 @@ export default function SongsPage({
       key: preview.key ?? current.key,
       verseOrder: "",
       lyrics: preview.lyrics,
+      songSelectInfo: preview.songSelectInfo ?? current.songSelectInfo,
     }));
     notify("ChordPro changes loaded — review and save the song");
   }
@@ -257,6 +260,11 @@ export default function SongsPage({
       label: "Lyrics format",
       before: baselineForm.lyricsMarkdown ? "Markdown" : "Plain text",
       after: form.lyricsMarkdown ? "Markdown" : "Plain text",
+    },
+    {
+      label: "SongSelect info",
+      before: baselineForm.songSelectInfo,
+      after: form.songSelectInfo,
     },
     { label: "Simplify page IDs", before: false, after: simplifyPageIds },
   ]);
@@ -446,6 +454,7 @@ export default function SongsPage({
         verseOrder: pageIds.verseOrder,
         lyricsMarkdown: form.lyricsMarkdown,
         lyrics: pageIds.lyrics,
+        songSelectInfo: form.songSelectInfo.trim() || null,
       };
       const result = selectedId
         ? await api.updateSong(selectedId, payload)
@@ -792,6 +801,19 @@ export default function SongsPage({
             />
           </label>
         </div>
+
+        <label className="songselect-info-field">
+          SongSelect info
+          <textarea
+            value={form.songSelectInfo}
+            onChange={(event) => setForm({ ...form, songSelectInfo: event.target.value })}
+            rows={3}
+            placeholder="Copyright, CCLI and licence text captured from the bottom of a SongSelect sheet"
+          />
+        </label>
+        <p className="hint">
+          This text is kept separate from the lyrics. SongSelect imports fill it automatically.
+        </p>
 
         <div className="song-use-panel">
           <div className="panel-heading">
@@ -1269,6 +1291,7 @@ export default function SongsPage({
             ccli: form.ccli,
             key: form.key,
             lyrics: form.lyrics,
+            songSelectInfo: form.songSelectInfo,
           }}
           provider={songSelectEnabled ? siteProvider : null}
           notify={notify}

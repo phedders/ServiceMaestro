@@ -64,6 +64,8 @@ export async function importSiteSong(
   const key = parsed?.key?.trim() || null;
   const copyright = parsed?.copyright?.trim() || null;
   const lyrics = cleanLyrics(parsed?.lyrics ?? "");
+  const songSelectInfo =
+    parsed?.songSelectInfo?.trim() || "Imported from SongSelect";
   const now = new Date().toISOString();
   const sourceUrl = `${song.provider === "songselect" ? "https://songselect.ccli.com" : ""}/songs/${encodeURIComponent(song.songNumber)}/${encodeURIComponent(song.slug)}`;
 
@@ -83,20 +85,21 @@ export async function importSiteSong(
          copyright = COALESCE(copyright, ?),
          key = COALESCE(key, ?),
          lyrics = CASE WHEN trim(lyrics) = '' THEN ? ELSE lyrics END,
+         songselect_info = ?,
          source_format = 'songselect',
          source_path = COALESCE(source_path, ?),
          updated_at = ?
        WHERE id = ?`,
-    ).run(title, authors, copyright, key, lyrics, sourceUrl, now, songId);
+    ).run(title, authors, copyright, key, lyrics, songSelectInfo, sourceUrl, now, songId);
   } else {
     songId = randomUUID();
     created = true;
     db.prepare(
       `INSERT INTO songs
          (id, title, alternate_titles, author, copyright, ccli, key, lyrics, verse_order,
-          lyrics_markdown, source_format, source_path, created_at, updated_at)
-       VALUES (?, ?, NULL, ?, ?, ?, ?, ?, NULL, 0, 'songselect', ?, ?, ?)`,
-    ).run(songId, title, authors, copyright, ccli, key, lyrics, sourceUrl, now, now);
+          lyrics_markdown, songselect_info, source_format, source_path, created_at, updated_at)
+       VALUES (?, ?, NULL, ?, ?, ?, ?, ?, NULL, 0, ?, 'songselect', ?, ?, ?)`,
+    ).run(songId, title, authors, copyright, ccli, key, lyrics, songSelectInfo, sourceUrl, now, now);
   }
 
   const assets = files
@@ -184,6 +187,7 @@ export async function fetchSiteSongChordPro(
     ccli: parsed.ccli,
     key: parsed.key,
     lyrics: parsed.lyrics,
+    songSelectInfo: parsed.songSelectInfo,
     warnings: parsed.warnings,
   };
 }

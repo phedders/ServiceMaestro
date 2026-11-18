@@ -221,6 +221,8 @@ export async function runSongSelectWatch(force = false): Promise<SongSelectWatch
         }
 
         const sourcePath = `${SOURCE_PREFIX}${relative}`;
+        const songSelectInfo =
+          parsed.songSelectInfo?.trim() || "Imported from SongSelect";
         const existingBySource = db
           .prepare("SELECT id FROM songs WHERE source_path = ?")
           .get(sourcePath) as { id: string } | undefined;
@@ -228,13 +230,14 @@ export async function runSongSelectWatch(force = false): Promise<SongSelectWatch
         if (existingBySource) {
           db.prepare(
             `UPDATE songs SET title = ?, author = ?, copyright = ?, ccli = ?, lyrics = ?,
-             source_format = 'ccli', source_path = ?, updated_at = ? WHERE id = ?`,
+             songselect_info = ?, source_format = 'ccli', source_path = ?, updated_at = ? WHERE id = ?`,
           ).run(
             parsed.title,
             parsed.author,
             parsed.copyright,
             parsed.ccli,
             parsed.lyrics,
+            songSelectInfo,
             sourcePath,
             now,
             existingBySource.id,
@@ -266,8 +269,8 @@ export async function runSongSelectWatch(force = false): Promise<SongSelectWatch
         db.prepare(
           `INSERT INTO songs
            (id, title, alternate_titles, author, copyright, ccli, key, lyrics, verse_order,
-            lyrics_markdown, source_format, source_path, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL, 0, 'ccli', ?, ?, ?)`,
+            lyrics_markdown, songselect_info, source_format, source_path, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL, 0, ?, 'ccli', ?, ?, ?)`,
         ).run(
           id,
           parsed.title,
@@ -277,6 +280,7 @@ export async function runSongSelectWatch(force = false): Promise<SongSelectWatch
           parsed.ccli,
           parsed.key,
           parsed.lyrics,
+          songSelectInfo,
           sourcePath,
           now,
           now,

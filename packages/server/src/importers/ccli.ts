@@ -116,6 +116,7 @@ export function parseCcliText(filename: string, content: string): ImportedSong {
     ccli,
     key: null,
     lyrics,
+    songSelectInfo: footer.join("\n").trim() || "Imported from SongSelect",
     warnings,
   };
 }

@@ -206,6 +206,7 @@ The sample set contains 102 SongSelect ChordPro files (CRLF, UTF-8, one song in 
 
 - `{ccli}` is the song number; `{ccli_license}` is the church's licence number.
 - `{footer}` is the legal footer — store it as licensing metadata, never render it as lyrics.
+- The trailing body block beginning with `CCLI Song #…`/`©…` is stored in the song’s **SongSelect info** field, including continuation lines that begin with `|`. SongSelect imports with no such footer use `Imported from SongSelect`.
 - `{checked}`/`{verified}` are internal review notes.
 - `{keychange}` marks a modulation; keep it as metadata and warn if it affects later sections.
 - Unknown directives stay in the raw source and are reported, never dropped.

@@ -217,7 +217,7 @@ Layout (desktop):
 - **Inline styling metadata**: songs can enable inline Markdown tags (`**bold**`, `*italic*`, `~~strike~~`, `==highlight==`) for lower-third/centered two-thirds. Stage and chords ignore the styling.
 - **Page controls**: page-break markers, live thumbnail preview, warnings for overlong lines; max lines is configured on the Live page display config.
 - **Key controls**: original key detector + manual override, default key, preferred keys, transpose preview.
-- **Metadata panel**: title, alternate title, authors, copyright, CCLI, language, tags.
+- **Metadata panel**: title, alternate title, authors, copyright, CCLI, SongSelect info, language, tags.
 - **Validation panel**: unknown chords, unsupported HTML, line overflow, unreferenced sections, duplicate labels.
 - **Autosave draft** + explicit "Save version"; "Restore previous version".
 - **Assets tab**: attach/download ChordPro, PDF scores and guitar tabs; set key/type/visibility (see §3.8).

@@ -15,6 +15,7 @@ interface CurrentSongValues {
   ccli: string;
   key: string;
   lyrics: string;
+  songSelectInfo: string;
 }
 
 export function ChordProUpdateDialog({
@@ -93,6 +94,11 @@ export function ChordProUpdateDialog({
         ["CCLI", current.ccli, preview.ccli ?? ""],
         ["Key", current.key, preview.key ?? ""],
         ["Copyright", current.copyright, preview.copyright ?? ""],
+        [
+          "SongSelect info",
+          current.songSelectInfo ? "Present" : "—",
+          preview.songSelectInfo ? "Present" : "—",
+        ],
       ] as Array<[string, string, string]>)
     : [];
   const rows = preview ? sideBySideDiff(current.lyrics, preview.lyrics) : [];

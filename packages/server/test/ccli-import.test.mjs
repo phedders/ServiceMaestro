@@ -25,6 +25,9 @@ CCLI Song # 22025`,
   assert.match(parsed.lyrics, /\[Chorus\]\nMy chains are gone/);
   assert.doesNotMatch(parsed.lyrics, /^\/\/$/m);
   assert.doesNotMatch(parsed.lyrics, /CCLI Song/);
+  assert.match(parsed.songSelectInfo, /John Newton/);
+  assert.match(parsed.songSelectInfo, /© 2020/);
+  assert.match(parsed.songSelectInfo, /CCLI Song # 22025/);
 });
 
 test("accepts bare section labels and cleans generated filename suffixes", () => {
@@ -48,4 +51,5 @@ test("adds default verse tags when no labels are present", () => {
   );
   assert.match(parsed.lyrics, /\[V1\]/);
   assert.match(parsed.lyrics, /\[V2\]/);
+  assert.equal(parsed.songSelectInfo, "Imported from SongSelect");
 });

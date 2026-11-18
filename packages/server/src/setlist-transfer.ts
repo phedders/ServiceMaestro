@@ -28,6 +28,7 @@ const songSchema = z.object({
   lyrics: z.string(),
   verseOrder: z.string().nullable().optional(),
   lyricsMarkdown: z.boolean().optional(),
+  songSelectInfo: z.string().nullable().optional(),
   verseOrders: z
     .array(z.object({ name: z.string(), order: z.string() }))
     .optional(),
@@ -161,10 +162,11 @@ function songRow(id: string): {
   lyrics: string;
   verse_order: string | null;
   lyrics_markdown: number;
+  songselect_info: string | null;
 } | undefined {
   return db
     .prepare(
-      "SELECT id, title, alternate_titles, author, copyright, ccli, key, lyrics, verse_order, lyrics_markdown FROM songs WHERE id = ?",
+      "SELECT id, title, alternate_titles, author, copyright, ccli, key, lyrics, verse_order, lyrics_markdown, songselect_info FROM songs WHERE id = ?",
     )
     .get(id) as
     | {
@@ -178,6 +180,7 @@ function songRow(id: string): {
         lyrics: string;
         verse_order: string | null;
         lyrics_markdown: number;
+        songselect_info: string | null;
       }
     | undefined;
 }
@@ -291,6 +294,7 @@ export function buildSetlistExport(
               lyrics: song.lyrics,
               verseOrder: song.verse_order,
               lyricsMarkdown: Boolean(song.lyrics_markdown),
+              songSelectInfo: song.songselect_info,
               verseOrders: songVerseOrders(song.id),
             }
           : null,
@@ -513,8 +517,8 @@ export function importSetlistFile(
         songId = randomUUID();
         db.prepare(
           `INSERT INTO songs
-           (id, title, alternate_titles, author, copyright, ccli, key, lyrics, verse_order, lyrics_markdown, source_format, source_path, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'import', NULL, ?, ?)`,
+           (id, title, alternate_titles, author, copyright, ccli, key, lyrics, verse_order, lyrics_markdown, songselect_info, source_format, source_path, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'import', NULL, ?, ?)`,
         ).run(
           songId,
           item.song.title,
@@ -526,6 +530,7 @@ export function importSetlistFile(
           addDefaultVerseTags(item.song.lyrics),
           item.song.verseOrder ?? null,
           item.song.lyricsMarkdown ? 1 : 0,
+          item.song.songSelectInfo ?? null,
           now,
           now,
         );

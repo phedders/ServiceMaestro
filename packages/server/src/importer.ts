@@ -137,12 +137,14 @@ export function importSongs(
 
   const insert = db.prepare(
     `INSERT INTO songs
-     (id, title, alternate_titles, author, copyright, ccli, key, lyrics, source_format, source_path, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     (id, title, alternate_titles, author, copyright, ccli, key, lyrics, songselect_info,
+      source_format, source_path, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   );
   const update = db.prepare(
     `UPDATE songs SET title = ?, alternate_titles = COALESCE(?, alternate_titles), author = ?,
-       copyright = ?, ccli = ?, key = ?, lyrics = ?, source_format = ?, source_path = ?, updated_at = ?
+       copyright = ?, ccli = ?, key = ?, lyrics = ?, songselect_info = ?,
+       source_format = ?, source_path = ?, updated_at = ?
      WHERE id = ?`,
   );
 
@@ -168,6 +170,7 @@ export function importSongs(
         preview.ccli,
         preview.key,
         lyrics,
+        preview.songSelectInfo,
         preview.format,
         preview.path,
         now,
@@ -198,6 +201,7 @@ export function importSongs(
           preview.ccli,
           preview.key,
           lyrics,
+          preview.songSelectInfo,
           preview.format,
           preview.path,
           now,
@@ -227,6 +231,7 @@ export function importSongs(
         preview.ccli,
         preview.key,
         lyrics,
+        preview.songSelectInfo,
         preview.format,
         preview.path,
         now,
@@ -247,6 +252,7 @@ export function importSongs(
       preview.ccli,
       preview.key,
       lyrics,
+      preview.songSelectInfo,
       preview.format,
       preview.path,
       now,

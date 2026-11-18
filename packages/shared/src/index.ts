@@ -135,6 +135,7 @@ export interface ChordProFilePreview {
   ccli: string | null;
   key: string | null;
   lyrics: string;
+  songSelectInfo: string | null;
   warnings: string[];
 }
 
@@ -188,6 +189,7 @@ export interface Song {
   lyrics: string;
   verseOrder: string | null;
   lyricsMarkdown: boolean;
+  songSelectInfo: string | null;
   verseOrders: SongVerseOrder[];
   priority: number;
   differentFromIds: string[];
@@ -2024,6 +2026,7 @@ export const songInputSchema = z.object({
   lyrics: z.string().max(200_000),
   verseOrder: z.string().trim().max(1000).optional().nullable(),
   lyricsMarkdown: z.boolean().optional(),
+  songSelectInfo: z.string().trim().max(20_000).optional().nullable(),
 });
 
 export const songBulkDeleteSchema = z.object({

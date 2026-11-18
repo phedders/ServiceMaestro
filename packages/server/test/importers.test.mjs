@@ -36,6 +36,7 @@ My [C]chains are gone, I've been set [G]free
 
 CCLI Song # 123456
 © Public Domain
+ | Additional copyright administrator
 `;
 
 const TEXT = `Test Text Song
@@ -77,13 +78,37 @@ test("imports ChordPro sections, order, chords and removes legal footer", () => 
   assert.match(song.lyrics, /\[C\]/);
   assert.doesNotMatch(song.lyrics, /\[\|\]/);
   assert.doesNotMatch(song.lyrics, /CCLI Song #/);
+  assert.doesNotMatch(song.lyrics, /Additional copyright administrator/);
   assert.doesNotMatch(song.lyrics, /For use solely/);
+  assert.match(song.songSelectInfo, /CCLI Song # 123456/);
+  assert.match(song.songSelectInfo, /Additional copyright administrator/);
   const v1 = song.lyrics.indexOf("[V1]");
   const c = song.lyrics.indexOf("[C]");
   const v2 = song.lyrics.indexOf("[V2]");
   assert.ok(v1 < c && c < v2);
   // The chorus is repeated by verse_order.
   assert.equal((song.lyrics.match(/\[C\]\n/g) ?? []).length, 2);
+});
+
+test("moves a SongSelect footer out of plain text lyrics", () => {
+  const song = parseSongFile(
+    "songselect-lyrics.txt",
+    `A Song
+
+Verse 1
+First lyric line
+Second lyric line
+
+Writer Name
+CCLI Song # 987654
+© 2024 Example Music | Admin Publishing
+For use solely with the SongSelect Terms of Use. All rights reserved.
+CCLI Licence No. 1234`,
+  );
+  assert.doesNotMatch(song.lyrics, /CCLI Song|Example Music|For use solely|Writer Name/);
+  assert.match(song.songSelectInfo, /Writer Name/);
+  assert.match(song.songSelectInfo, /Admin Publishing/);
+  assert.match(song.songSelectInfo, /CCLI Licence No. 1234/);
 });
 
 test("imports plain text with a title line", () => {

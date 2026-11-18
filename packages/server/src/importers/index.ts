@@ -1,5 +1,6 @@
 import { addDefaultVerseTags } from "../lyrics.js";
 import { bareSectionLabel } from "../section-labels.js";
+import { LEGAL_LINE, extractLegalFooter } from "./footer.js";
 
 export type ImportFormat = "openlp" | "chordpro" | "text";
 
@@ -12,6 +13,7 @@ export interface ImportedSong {
   ccli: string | null;
   key: string | null;
   lyrics: string;
+  songSelectInfo: string | null;
   warnings: string[];
 }
 
@@ -32,9 +34,6 @@ export interface SongFilePreview extends ImportedSong {
 const CHORD_DIRECTIVE = /^\s*\{([a-zA-Z0-9_-]+)\s*(?::\s*([^}]*))?\}\s*$/;
 const SECTION_LABEL =
   /^(v(?:erse)?\s*\d*[a-z]?|c(?:h?orus)?\s*\d*[a-z]?|b(?:ridge)?\s*\d*[a-z]?|(?:intro|int|instr|inst|instrumental|outro|ending|end|tag|turnaround|turn|interlude|pre[- ]?chorus|prechorus|pc|p|t|i|o|e)\s*\d*[a-z]?)$/i;
-const LEGAL_LINE =
-  /^(ccli\s*(song|licen[cs]e)|for use solely with the songselect|note:\s*reproduction|©|copyright|\(c\)|all rights reserved)/i;
-
 function decodeEntities(value: string): string {
   return value
     .replace(/&lt;/g, "<")
@@ -197,6 +196,7 @@ export function parseOpenLp(filename: string, content: string): ImportedSong {
     ccli: ccliMatch ? cleanText(ccliMatch[1]) || null : null,
     key: keyMatch ? cleanText(keyMatch[1]) || null : null,
     lyrics,
+    songSelectInfo: null,
     warnings,
   };
 }
@@ -234,9 +234,12 @@ export function parseChordPro(filename: string, content: string): ImportedSong {
     metadata.set(k, list);
   };
 
+  const sourceLines = content.replace(/^\uFEFF/, "").replace(/\r\n?/g, "\n").split("\n");
+  const footer = extractLegalFooter(sourceLines);
+
   const orderTokens = (() => {
     const values: string[] = [];
-    for (const raw of content.replace(/^\uFEFF/, "").replace(/\r\n?/g, "\n").split("\n")) {
+    for (const raw of sourceLines) {
       const directive = raw.match(CHORD_DIRECTIVE);
       if (!directive) continue;
       const key = directive[1].toLowerCase();
@@ -264,7 +267,8 @@ export function parseChordPro(filename: string, content: string): ImportedSong {
     current = { label, lines: [] };
   };
 
-  for (const rawLine of content.replace(/^\uFEFF/, "").replace(/\r\n?/g, "\n").split("\n")) {
+  for (const [lineIndex, rawLine] of sourceLines.entries()) {
+    if (lineIndex >= footer.start) break;
     const line = rawLine.replace(/\s+$/, "");
     const directive = line.match(CHORD_DIRECTIVE);
     if (directive) {
@@ -386,6 +390,7 @@ export function parseChordPro(filename: string, content: string): ImportedSong {
     ccli,
     key: first(metadata.get("key")),
     lyrics,
+    songSelectInfo: footer.text,
     warnings: [...new Set(warnings)],
   };
 }
@@ -437,7 +442,9 @@ export function parsePlainText(filename: string, content: string): ImportedSong 
     break;
   }
 
+  const footer = extractLegalFooter(lines, { includeAuthorLine: true });
   const lyrics = lines
+    .slice(0, footer.start)
     .map((line) => {
       const label = bareSectionLabel(line);
       return label ? `[${label}]` : line;
@@ -455,6 +462,7 @@ export function parsePlainText(filename: string, content: string): ImportedSong 
     ccli: null,
     key: null,
     lyrics,
+    songSelectInfo: footer.text,
     warnings,
   };
 }

@@ -42,6 +42,7 @@ interface SongRow {
   different_from_ids: string | null;
   source_format: string | null;
   source_path: string | null;
+  songselect_info: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -104,6 +105,7 @@ function mapSong(row: SongRow): Song {
     differentFromIds: parseDifferentIds(row.different_from_ids),
     sourceFormat: row.source_format,
     sourcePath: row.source_path,
+    songSelectInfo: row.songselect_info,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -255,6 +257,7 @@ export async function songRoutes(app: FastifyInstance): Promise<void> {
           ccli: song.ccli,
           key: song.key,
           lyrics: song.lyrics,
+          songSelectInfo: song.songSelectInfo,
           warnings: song.warnings,
         },
       };
@@ -451,8 +454,8 @@ export async function songRoutes(app: FastifyInstance): Promise<void> {
       const id = randomUUID();
       const now = new Date().toISOString();
       db.prepare(
-        `INSERT INTO songs (id, title, alternate_titles, author, copyright, ccli, key, lyrics, verse_order, lyrics_markdown, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO songs (id, title, alternate_titles, author, copyright, ccli, key, lyrics, verse_order, lyrics_markdown, songselect_info, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       ).run(
         id,
         parsed.data.title,
@@ -464,6 +467,7 @@ export async function songRoutes(app: FastifyInstance): Promise<void> {
         addDefaultVerseTags(parsed.data.lyrics),
         parsed.data.verseOrder ?? null,
         parsed.data.lyricsMarkdown ? 1 : 0,
+        parsed.data.songSelectInfo ?? null,
         now,
         now,
       );
@@ -485,7 +489,7 @@ export async function songRoutes(app: FastifyInstance): Promise<void> {
       const data = parsed.data;
       db.prepare(
         `UPDATE songs SET title = ?, alternate_titles = ?, author = ?, copyright = ?, ccli = ?, key = ?, lyrics = ?, verse_order = ?,
-           lyrics_markdown = ?, updated_at = ? WHERE id = ?`,
+           lyrics_markdown = ?, songselect_info = ?, updated_at = ? WHERE id = ?`,
       ).run(
         data.title ?? existing.title,
         data.alternateTitles !== undefined ? data.alternateTitles : existing.alternate_titles,
@@ -496,6 +500,7 @@ export async function songRoutes(app: FastifyInstance): Promise<void> {
         data.lyrics !== undefined ? addDefaultVerseTags(data.lyrics) : existing.lyrics,
         data.verseOrder !== undefined ? data.verseOrder : existing.verse_order,
         data.lyricsMarkdown !== undefined ? (data.lyricsMarkdown ? 1 : 0) : existing.lyrics_markdown,
+        data.songSelectInfo !== undefined ? data.songSelectInfo : existing.songselect_info,
         new Date().toISOString(),
         id,
       );

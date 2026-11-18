@@ -15,6 +15,7 @@ const EMPTY = {
   verseOrder: "",
   lyricsMarkdown: false,
   lyrics: "",
+  songSelectInfo: "",
 };
 
 function formFromSong(song: Song) {
@@ -28,6 +29,7 @@ function formFromSong(song: Song) {
     verseOrder: song.verseOrder ?? "",
     lyricsMarkdown: song.lyricsMarkdown,
     lyrics: song.lyrics,
+    songSelectInfo: song.songSelectInfo ?? "",
   };
 }
 
@@ -93,6 +95,7 @@ export function SongEditDialog({
         verseOrder: form.verseOrder.trim() || null,
         lyricsMarkdown: form.lyricsMarkdown,
         lyrics: form.lyrics,
+        songSelectInfo: form.songSelectInfo.trim() || null,
       });
       const next = formFromSong(result.song);
       setForm(next);
@@ -123,6 +126,11 @@ export function SongEditDialog({
       label: "Lyrics format",
       before: baseline.lyricsMarkdown ? "Markdown" : "Plain text",
       after: form.lyricsMarkdown ? "Markdown" : "Plain text",
+    },
+    {
+      label: "SongSelect info",
+      before: baseline.songSelectInfo,
+      after: form.songSelectInfo,
     },
   ]);
 
@@ -218,6 +226,18 @@ export function SongEditDialog({
                 />
               </label>
             </div>
+
+            <label className="songselect-info-field">
+              SongSelect info
+              <textarea
+                value={form.songSelectInfo}
+                onChange={(event) =>
+                  setForm({ ...form, songSelectInfo: event.target.value })
+                }
+                rows={3}
+                placeholder="Copyright, CCLI and licence text captured from a SongSelect sheet"
+              />
+            </label>
 
             <label className="checkbox markdown-field">
               <input

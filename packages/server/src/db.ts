@@ -82,6 +82,7 @@ db.exec(`
     different_from_ids TEXT NOT NULL DEFAULT '[]',
     source_format TEXT,
     source_path TEXT,
+    songselect_info TEXT,
     archived_at TEXT,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
@@ -323,6 +324,7 @@ ensureColumn("songs", "priority", "INTEGER NOT NULL DEFAULT 0");
 ensureColumn("songs", "different_from_ids", "TEXT NOT NULL DEFAULT '[]'");
 ensureColumn("songs", "source_format", "TEXT");
 ensureColumn("songs", "source_path", "TEXT");
+ensureColumn("songs", "songselect_info", "TEXT");
 ensureColumn("songs", "verse_order", "TEXT");
 ensureColumn("songs", "alternate_titles", "TEXT");
 ensureColumn("songs", "lyrics_markdown", "INTEGER NOT NULL DEFAULT 0");
