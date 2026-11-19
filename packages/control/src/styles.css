@@ -1495,6 +1495,19 @@ body.resizing-live-queue {
   text-align: center;
 }
 
+.page-heading-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.page-heading-actions .checkbox {
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
 .page-section {
   max-width: 76px;
   color: var(--muted);
@@ -1543,9 +1556,29 @@ body.resizing-live-queue {
   object-fit: contain;
 }
 
-.page-text .chord,
 .item-row .chord {
   display: none;
+}
+
+.page-text .chord {
+  color: var(--warning);
+  font-weight: 700;
+  font-size: 0.7em;
+  line-height: 0;
+  vertical-align: super;
+  margin-right: 0.12em;
+}
+
+.page-text .lyric-split {
+  display: none;
+}
+
+.page-list.fullscreen-version .page-text .chord {
+  display: none;
+}
+
+.page-list.fullscreen-version .page-text .lyric-split {
+  display: inline;
 }
 
 .item-icon {

@@ -154,6 +154,10 @@ export default function HelpPage({ onOpenSettings }: { onOpenSettings: () => voi
                 Click a <strong>page</strong> to show it immediately.
               </li>
               <li>
+                <strong>Fullscreen version</strong> in the Pages heading hides chord symbols and
+                shows syllable split hyphens. It is on by default and only changes the preview.
+              </li>
+              <li>
                 A queued revision is shown in the banner and waits until the current item finishes
                 before applying.
               </li>

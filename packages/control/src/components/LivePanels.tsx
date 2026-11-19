@@ -1,13 +1,21 @@
 import type { LiveState } from "@sm/shared";
 
-export function PageList({ live, onCommand }: { live: LiveState; onCommand: (payload: Record<string, unknown>) => void }) {
+export function PageList({
+  live,
+  onCommand,
+  fullscreen = true,
+}: {
+  live: LiveState;
+  onCommand: (payload: Record<string, unknown>) => void;
+  fullscreen?: boolean;
+}) {
   const pages = live.queuedItemIndex != null ? live.queuedPages ?? [] : live.pages;
   const currentPage = live.queuedItemIndex != null ? 0 : live.pageIndex;
   if (!pages.length) {
     return <p className="muted">{live.queuedItemIndex != null ? "Queued item has no pages." : "No pages in the current item."}</p>;
   }
   return (
-    <div className="page-list">
+    <div className={`page-list ${fullscreen ? "fullscreen-version" : ""}`}>
       {pages.map((page) => (
         <button
           key={page.index}

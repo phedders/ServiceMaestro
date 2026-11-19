@@ -81,10 +81,19 @@ const MIN_QUEUE_HEIGHT = 220;
 const MAX_QUEUE_HEIGHT = 1000;
 const QUEUE_HEIGHT_STORAGE_KEY = "sm-live-queue-height";
 const PHONE_LINEAR_STORAGE_KEY = "sm-live-phone-linear";
+const FULLSCREEN_PAGE_LIST_STORAGE_KEY = "sm-live-fullscreen-pages";
 
 function initialPhoneLinear(): boolean {
   try {
     return window.localStorage.getItem(PHONE_LINEAR_STORAGE_KEY) !== "0";
+  } catch {
+    return true;
+  }
+}
+
+function initialFullscreenPageList(): boolean {
+  try {
+    return window.localStorage.getItem(FULLSCREEN_PAGE_LIST_STORAGE_KEY) !== "0";
   } catch {
     return true;
   }
@@ -152,6 +161,7 @@ export default function LivePage({
   const previewScreen = findPreviewScreen(previewScreenId);
   const [queueHeight, setQueueHeight] = useState(initialQueueHeight);
   const [phoneLinear, setPhoneLinear] = useState(initialPhoneLinear);
+  const [fullscreenPageList, setFullscreenPageList] = useState(initialFullscreenPageList);
   const queueResizeRef = useRef<{ startY: number; startHeight: number } | null>(null);
 
   useEffect(() => {
@@ -169,6 +179,17 @@ export default function LivePage({
       // Layout persistence is optional; the checkbox still works for this session.
     }
   }, [phoneLinear]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(
+        FULLSCREEN_PAGE_LIST_STORAGE_KEY,
+        fullscreenPageList ? "1" : "0",
+      );
+    } catch {
+      // Layout persistence is optional; the toggle still works for this session.
+    }
+  }, [fullscreenPageList]);
 
   useEffect(() => () => document.body.classList.remove("resizing-live-queue"), []);
 
@@ -559,15 +580,32 @@ export default function LivePage({
           <ReadOnlyFieldset className="panel">
             <div className="panel-heading">
               <h2>Pages</h2>
-              <span className="muted">
-                {live.queuedItemIndex != null
-                  ? `Queued: ${live.queuedTitle ?? "item"} · ${live.queuedPages?.length ?? 0} pages`
-                  : live.pageCount
-                    ? `${live.pageIndex + 1} / ${live.pageCount}`
-                    : "0 pages"}
-              </span>
+              <div className="page-heading-actions">
+                <label
+                  className="checkbox page-fullscreen-toggle"
+                  title="Preview the fullscreen version: hide chord symbols and show syllable split hyphens"
+                >
+                  <input
+                    type="checkbox"
+                    checked={fullscreenPageList}
+                    onChange={(event) => setFullscreenPageList(event.target.checked)}
+                  />
+                  Fullscreen version
+                </label>
+                <span className="muted">
+                  {live.queuedItemIndex != null
+                    ? `Queued: ${live.queuedTitle ?? "item"} · ${live.queuedPages?.length ?? 0} pages`
+                    : live.pageCount
+                      ? `${live.pageIndex + 1} / ${live.pageCount}`
+                      : "0 pages"}
+                </span>
+              </div>
             </div>
-            <PageList live={live} onCommand={onCommand} />
+            <PageList
+              live={live}
+              onCommand={onCommand}
+              fullscreen={fullscreenPageList}
+            />
           </ReadOnlyFieldset>
         </div>
         <button
