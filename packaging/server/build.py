@@ -80,8 +80,9 @@ def prepare_payload(
     (payload / "runtime" / "node").chmod(0o755)
     if license_path and license_path.exists():
         shutil.copy2(license_path, payload / "runtime" / "NODE-LICENSE.txt")
-    for name in ("service-maestro.service", "service-maestro.env", "config.yaml", "README.package"):
+    for name in ("service-maestro.service", "service-maestro.env", "README.package"):
         shutil.copy2(SERVER / name, payload / name)
+    shutil.copy2(SERVER / "config.template.yaml", payload / "config.yaml")
     return payload
 
 
