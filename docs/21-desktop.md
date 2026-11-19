@@ -151,6 +151,7 @@ not lost. Delete it manually for a complete reset.
 
 ## CI release workflow
 
-`.github/workflows/desktop.yml` builds the Windows and macOS ZIPs on a release
-tag and uploads them to the GitHub release. The workflow can also be started
-manually from the Actions tab.
+`.github/workflows/desktop.yml` builds the Windows/macOS desktop ZIPs, the CLI
+Debian package and the server `.deb`, `.rpm` and `.src.rpm` on a release tag, then
+uploads them to the GitHub release. The workflow can also be started manually from
+the Actions tab.

@@ -182,3 +182,11 @@ Or use OCI tooling such as `skopeo`:
 ```sh
 skopeo copy docker://ghcr.io/phedders/servicemaestro-packages:0.1.0 dir:sm-packages
 ```
+
+
+## CI release workflow
+
+`.github/workflows/desktop.yml` runs on `v*` tags and manual dispatch. It builds
+the desktop ZIPs, CLI Debian package and the server Debian, RPM and source RPM
+packages, uploads them as workflow artifacts and attaches them to the GitHub
+release for the tag.
