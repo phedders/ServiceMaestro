@@ -10,6 +10,11 @@ import {
   type ChurchSuitePlanSummary,
 } from "@sm/shared";
 import { getBooks, getPassage, listTranslations } from "./bible.js";
+import {
+  applyBiblePartRange,
+  parseBibleReference,
+  type ParsedBibleReference,
+} from "./bible-reference.js";
 import { db } from "./db.js";
 import { getChurchsuitePlan, listChurchsuitePlanItems, listChurchsuiteTypes } from "./churchsuite.js";
 import { saveSetlistToGit } from "./git-store.js";
@@ -76,34 +81,6 @@ function normalizeBookName(value: string): string {
     .replace(/^revelation of john$/, "revelation");
 }
 
-interface ParsedBibleReference {
-  bookName: string;
-  chapter: number;
-  from: number | null;
-  to: number | null;
-}
-
-function parseBibleReference(value: string): ParsedBibleReference | null {
-  const cleaned = value
-    .replace(/^reading\s*:\s*/i, "")
-    .replace(/\s*\([^)]*\)\s*$/, "")
-    .trim();
-  const match = cleaned.match(
-    /^((?:[1-3]\s*)?[A-Za-z][A-Za-z .'-]*?)\s+(\d{1,3})(?:\s*[:.]\s*(\d{1,3})(?:\s*[-–—]\s*(\d{1,3}))?)?$/,
-  );
-  if (!match) return null;
-  const chapter = Number(match[2]);
-  if (!Number.isInteger(chapter) || chapter <= 0) return null;
-  const from = match[3] ? Number(match[3]) : null;
-  const to = match[4] ? Number(match[4]) : from;
-  return {
-    bookName: match[1].trim(),
-    chapter,
-    from: from && from > 0 ? from : null,
-    to: to && to > 0 ? to : null,
-  };
-}
-
 function readingTexts(item: ChurchsuitePlanItem): string[] {
   return [
     item.name,
@@ -147,10 +124,18 @@ function readingForItem(
     parsed.to ?? undefined,
   );
   if (!passage) return null;
+  const fromLabel = `${passage.from}${parsed.fromPart ?? ""}`;
+  const toLabel = `${passage.to}${parsed.toPart ?? ""}`;
+  const hasRange = passage.to !== passage.from || Boolean(parsed.toPart);
   const reference = `${passage.bookName} ${passage.chapter}${
-    parsed.from ? `:${passage.from}${passage.to !== passage.from ? `–${passage.to}` : ""}` : ""
+    parsed.from ? `:${fromLabel}${hasRange ? `–${toLabel}` : ""}` : ""
   }`;
-  const preview = passage.verses
+  const previewVerses = applyBiblePartRange(
+    passage.verses,
+    parsed.fromPart,
+    parsed.toPart,
+  );
+  const preview = previewVerses
     .slice(0, 2)
     .map((verse) => `${verse.number} ${verse.text}`)
     .join(" ")
@@ -164,6 +149,8 @@ function readingForItem(
     chapter: passage.chapter,
     from: passage.from,
     to: passage.to,
+    fromPart: parsed.fromPart,
+    toPart: parsed.toPart,
     verseCount: passage.verses.length,
     summary: `${reference} · ${passage.verses.length} verse${
       passage.verses.length === 1 ? "" : "s"
@@ -415,6 +402,11 @@ export async function importChurchsuitePlan(
         item.reading.to,
       );
       if (passage) {
+        const verses = applyBiblePartRange(
+          passage.verses,
+          item.reading.fromPart,
+          item.reading.toPart,
+        );
         insert.run(
           randomUUID(),
           id,
@@ -423,7 +415,7 @@ export async function importChurchsuitePlan(
           null,
           item.reading.reference,
           `${item.reading.reference} (${item.reading.translationName})\n${formatBibleVerses(
-            passage.verses,
+            verses,
             layout,
           )}`,
           "bible",

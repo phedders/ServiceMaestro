@@ -1407,6 +1407,8 @@ export interface ChurchSuiteBibleReading {
   chapter: number;
   from: number;
   to: number;
+  fromPart: string | null;
+  toPart: string | null;
   verseCount: number;
   summary: string;
   preview: string;

@@ -14,7 +14,7 @@ Source: <https://github.com/ChurchSuite/churchsuite-api/blob/master/src/planning
 >
 > Administrators can disable the ChurchSuite adapter under **Settings → External adapters**. The ChurchSuite menu page, plan lookup, connection test, empty-item settings and ChurchSuite help are then hidden, and `/api/integrations/churchsuite/*` returns 404. Credentials, permissions and imported set lists are retained for when it is re-enabled.
 >
-> **Reading and skip overrides:** items whose type is **Reading** are checked for a Bible reference in the item name and available text. When a local Bible translation resolves the reference, the preview shows a passage summary and **Add as line per verse** / **Add as paragraph** layout choices; the selected layout is stored as a Bible text item during import. Items that would normally be skipped are still shown in the preview with an **Include** button; included items are imported as editable text placeholders (or as a Bible reading when one was detected).
+> **Reading and skip overrides:** items whose type is **Reading** are checked for a Bible reference in the item name and available text. When a local Bible translation resolves the reference, the preview shows a passage summary and **Add as line per verse** / **Add as paragraph** layout choices; the selected layout is stored as a Bible text item during import. Verse-part suffixes such as `1 Corinthians 14:33b-40` are supported: `b` starts at the second sentence or clause of verse 33, and `c` at the third. Items that would normally be skipped are still shown in the preview with an **Include** button; included items are imported as editable text placeholders (or as a Bible reading when one was detected).
 
 ## 1. What the API provides
 
