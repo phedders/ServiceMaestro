@@ -28,6 +28,7 @@ A self-hosted server application for running church service visuals: manage song
 > - [WebSockets API](docs/19-websockets.md) — Socket.IO control and output endpoints, authentication, rooms, events, payloads and reconnection.
 > - [Shell CLI](docs/20-cli.md) — dependency-free Python client, login/config, one-shot transport commands, generic API access and interactive keyboard control.
 > - [Windows and macOS desktop packages](docs/21-desktop.md) — portable installers bundling the app, Node.js runtime and launcher.
+> - [Native Linux server packages](docs/22-server-packages.md) — Debian, RPM and source RPM packages with a bundled Node runtime and systemd service.
 
 ## Quick start
 
@@ -105,6 +106,7 @@ Open <https://localhost:8080/musicians> to see the read-only musician view. It h
 - **MQTT bridge** — optional, admin-enabled MQTT adapter with encrypted broker credentials, protocol override, incoming command-to-API mappings with source-client filters and payload templates, retained status/live publishing, activity events, debug diagnostics, and user-facing button/dropdown controls placed on the Live control page or in the Menu dropdown. Controls can publish under the outgoing prefix or to an absolute MQTT topic. See [16](docs/16-mqtt.md).
 - **Shell CLI** — `tools/sm` is a dependency-free Python client for the authenticated HTTP API. It supports login/cookie storage, set-list selection, transport and live-control shortcuts, arbitrary API calls and an interactive keyboard control mode. `make deb` builds an installable `service-maestro-cli` Debian package with the `sm` command, man page and Bash completion. See [20](docs/20-cli.md).
 - **Windows/macOS desktop packages** — `make desktop` builds portable ZIPs with the compiled app, bundled Node.js runtime, native launcher, icons, Windows install/uninstall scripts and a drag-to-Applications macOS `.app`. The launcher stores data in the user profile, chooses free localhost ports, opens the browser and stops the server cleanly. See [21](docs/21-desktop.md).
+- **Native Linux server packages** — `make server-packages` builds an `amd64` Debian package, an `x86_64` RPM and a source RPM with a bundled Node.js runtime, systemd unit, generated first-run credentials, `/etc` configuration and persistent `/var/lib` data. `make publish-all` builds every package, pushes the container image and publishes the package bundle as an OCI image on GHCR. See [22](docs/22-server-packages.md).
 - **Git-backed shared data** — designed: local-only repos by default with optional remote, auto-save/push on by default, separate songs/setlists/(optional LFS) Bibles repos, standard SSH or HTTP(S)+token URIs. See [11](docs/11-git-data-sync.md).
 - **Displays** — vanilla HTML/CSS/JS, no CDN, snapshot-on-connect, transparent main output, full-screen, chord and stage lyric variants.
 - **Persistence** — SQLite (WAL) for users, sessions, songs, set lists, session snapshots and dashboard layouts; the live session survives a restart.

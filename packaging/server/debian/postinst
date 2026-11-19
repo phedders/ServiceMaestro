@@ -1,0 +1,53 @@
+#!/bin/sh
+set -e
+
+if [ "$1" = "configure" ]; then
+  if ! getent group service-maestro >/dev/null 2>&1; then
+    addgroup --system service-maestro >/dev/null 2>&1 || true
+  fi
+  if ! getent passwd service-maestro >/dev/null 2>&1; then
+    adduser --system --ingroup service-maestro --home /var/lib/service-maestro \
+      --no-create-home --disabled-login --gecos "Service Maestro" service-maestro \
+      >/dev/null 2>&1 || true
+  fi
+
+  install -d -o service-maestro -g service-maestro -m 0750 \
+    /var/lib/service-maestro \
+    /var/lib/service-maestro/data \
+    /var/lib/service-maestro/ssl \
+    /var/lib/service-maestro/imports \
+    /var/lib/service-maestro/imports/songselect \
+    /var/lib/service-maestro/library \
+    /var/lib/service-maestro/library/songs \
+    /var/lib/service-maestro/library/bible \
+    /var/lib/service-maestro/library/images
+
+  install -d -o root -g service-maestro -m 0750 /etc/service-maestro
+  chown root:service-maestro /etc/service-maestro/service-maestro.env /etc/service-maestro/config.yaml 2>/dev/null || true
+  chmod 0640 /etc/service-maestro/service-maestro.env 2>/dev/null || true
+  chmod 0644 /etc/service-maestro/config.yaml 2>/dev/null || true
+
+  if [ ! -s /etc/service-maestro/admin-password ]; then
+    (umask 077; openssl rand -base64 24 | tr -d '\n' > /etc/service-maestro/admin-password)
+  fi
+  if [ ! -s /etc/service-maestro/output-token ]; then
+    (umask 077; openssl rand -base64 32 | tr -d '\n' > /etc/service-maestro/output-token)
+  fi
+  chown root:service-maestro \
+    /etc/service-maestro/admin-password \
+    /etc/service-maestro/output-token 2>/dev/null || true
+  chmod 0640 \
+    /etc/service-maestro/admin-password \
+    /etc/service-maestro/output-token 2>/dev/null || true
+
+  systemctl daemon-reload >/dev/null 2>&1 || true
+  systemctl enable service-maestro.service >/dev/null 2>&1 || true
+  systemctl restart service-maestro.service >/dev/null 2>&1 || true
+
+  echo "Service Maestro is installed and starts at https://$(hostname -f 2>/dev/null || hostname):8080"
+  echo "Initial admin password: /etc/service-maestro/admin-password"
+  echo "Service status: systemctl status service-maestro"
+fi
+
+#DEBHELPER#
+exit 0

@@ -1,0 +1,14 @@
+Package: service-maestro-server
+Version: @VERSION@
+Section: web
+Priority: optional
+Architecture: amd64
+Depends: adduser, ca-certificates, git, openssl, systemd
+Recommends: git-lfs, openssh-client
+Installed-Size: @INSTALLED_SIZE@
+Maintainer: Service Maestro <phedders@users.noreply.github.com>
+Description: self-hosted church service presentation server
+ Service Maestro manages songs, set lists, Bible passages, media, displays and
+ live service control. This package bundles its Node.js runtime and installs a
+ systemd service with a local HTTPS certificate, data directories and first-run
+ administrator credentials.

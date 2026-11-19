@@ -1,0 +1,52 @@
+Service Maestro server package
+==============================
+
+The package installs a bundled Node.js runtime and the compiled application in:
+
+  /usr/lib/service-maestro
+
+The systemd service is:
+
+  service-maestro.service
+
+Configuration
+-------------
+Environment:
+  /etc/service-maestro/service-maestro.env
+
+YAML configuration:
+  /etc/service-maestro/config.yaml
+
+Data, media and SSL files:
+  /var/lib/service-maestro
+
+First-run secrets are generated automatically:
+  /etc/service-maestro/admin-password
+  /etc/service-maestro/output-token
+
+The initial admin username is "admin". The generated password is only used
+when the admin account is first created. Change it in the web UI after logging
+in. Remove the credentials file after saving the password somewhere safe if
+you do not want the initial value to remain on disk.
+
+Commands
+--------
+  systemctl status service-maestro
+  systemctl restart service-maestro
+  journalctl -u service-maestro -f
+
+  cat /etc/service-maestro/admin-password
+  cat /etc/service-maestro/output-token
+
+Web interface:
+  https://<server>:8080
+
+Display listener:
+  http://<server>:8081/display/
+
+The server creates a self-signed HTTPS certificate on first start. Browsers
+warn until a trusted certificate is configured with SM_SSL_CERT_FILE and
+SM_SSL_KEY_FILE in service-maestro.env.
+
+Data and media are preserved when the package is upgraded. A package purge
+removes /var/lib/service-maestro and the service user.

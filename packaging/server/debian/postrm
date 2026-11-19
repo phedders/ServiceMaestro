@@ -1,0 +1,20 @@
+#!/bin/sh
+set -e
+
+if [ "$1" = "purge" ]; then
+  systemctl stop service-maestro.service >/dev/null 2>&1 || true
+  systemctl disable service-maestro.service >/dev/null 2>&1 || true
+  rm -f /etc/service-maestro/admin-password /etc/service-maestro/output-token
+  rm -rf /etc/service-maestro /var/lib/service-maestro
+  if getent passwd service-maestro >/dev/null 2>&1; then
+    deluser --system service-maestro >/dev/null 2>&1 || true
+  fi
+  if getent group service-maestro >/dev/null 2>&1; then
+    delgroup --system service-maestro >/dev/null 2>&1 || true
+  fi
+fi
+
+systemctl daemon-reload >/dev/null 2>&1 || true
+
+#DEBHELPER#
+exit 0

@@ -47,7 +47,7 @@ Non-goals (v1): replacing the ChurchSuite planning service, DMX/lighting desk co
 | Songs / scores | Site download adapters, encrypted credentials, `pdfjs-dist` viewer, signed asset URLs | Authorised downloads only; see [06-songselect-and-scores.md](06-songselect-and-scores.md). |
 | Validation | Zod schemas shared via `packages/shared` | One schema for REST + WS. |
 | Tests | Vitest (unit/integration), Playwright (control → output) | Covers parsers, state, sync. |
-| Packaging | Docker image + compose; or systemd + `node dist/server.js` | Single process, mounted data volumes. |
+| Packaging | Docker image + compose; Debian/RPM server packages with systemd; Windows/macOS desktop ZIPs; CLI Debian package | Single process, mounted or package-managed data volumes. |
 
 Alternative if the team prefers Python: FastAPI + SQLAlchemy/SQLite + React. The architecture is unchanged; only the runtime and DB driver change.
 

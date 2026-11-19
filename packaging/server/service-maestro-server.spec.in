@@ -1,0 +1,134 @@
+Name:           service-maestro-server
+Version:        @VERSION@
+Release:        1
+Summary:        Self-hosted church service presentation server
+License:        Proprietary
+URL:            https://github.com/phedders/ServiceMaestro
+Source0:        %{name}-%{version}.tar.gz
+BuildArch:      x86_64
+ExclusiveArch:  x86_64
+AutoReqProv:    no
+
+Requires:       ca-certificates
+Requires:       git
+Requires:       openssl
+Requires(pre):  shadow-utils
+Requires(post): systemd
+Requires(preun): systemd
+Requires(postun): systemd
+
+%global debug_package %{nil}
+%global __strip /bin/true
+
+%description
+Service Maestro manages songs, set lists, Bible passages, media, displays and
+live service control. This package bundles the Node.js runtime and installs a
+systemd service with local data directories and generated first-run credentials.
+
+%prep
+%setup -q
+
+%build
+# Prebuilt application and Node.js runtime are supplied in the source archive.
+
+%install
+rm -rf %{buildroot}
+install -d %{buildroot}%{_prefix}/lib/service-maestro
+cp -a app runtime %{buildroot}%{_prefix}/lib/service-maestro/
+
+install -d %{buildroot}/usr/lib/systemd/system
+install -m 0644 service-maestro.service %{buildroot}/usr/lib/systemd/system/service-maestro.service
+
+install -d %{buildroot}%{_sysconfdir}/service-maestro
+install -m 0640 service-maestro.env %{buildroot}%{_sysconfdir}/service-maestro/service-maestro.env
+install -m 0644 config.yaml %{buildroot}%{_sysconfdir}/service-maestro/config.yaml
+
+install -d %{buildroot}/var/lib/service-maestro
+install -d %{buildroot}/var/lib/service-maestro/data
+install -d %{buildroot}/var/lib/service-maestro/ssl
+install -d %{buildroot}/var/lib/service-maestro/imports
+install -d %{buildroot}/var/lib/service-maestro/imports/songselect
+install -d %{buildroot}/var/lib/service-maestro/library
+install -d %{buildroot}/var/lib/service-maestro/library/songs
+install -d %{buildroot}/var/lib/service-maestro/library/bible
+install -d %{buildroot}/var/lib/service-maestro/library/images
+
+install -d %{buildroot}%{_docdir}/service-maestro-server
+install -m 0644 README.package %{buildroot}%{_docdir}/service-maestro-server/README.md
+
+%pre
+if ! getent group service-maestro >/dev/null 2>&1; then
+  /usr/sbin/groupadd -r service-maestro >/dev/null 2>&1 || :
+fi
+if ! getent passwd service-maestro >/dev/null 2>&1; then
+  /usr/sbin/useradd -r -g service-maestro -d /var/lib/service-maestro \
+    -s /sbin/nologin -c "Service Maestro" service-maestro >/dev/null 2>&1 || :
+fi
+
+%post
+install -d -o service-maestro -g service-maestro -m 0750 \
+  /var/lib/service-maestro \
+  /var/lib/service-maestro/data \
+  /var/lib/service-maestro/ssl \
+  /var/lib/service-maestro/imports \
+  /var/lib/service-maestro/imports/songselect \
+  /var/lib/service-maestro/library \
+  /var/lib/service-maestro/library/songs \
+  /var/lib/service-maestro/library/bible \
+  /var/lib/service-maestro/library/images
+
+install -d -o root -g service-maestro -m 0750 /etc/service-maestro
+chown root:service-maestro /etc/service-maestro/service-maestro.env /etc/service-maestro/config.yaml >/dev/null 2>&1 || :
+chmod 0640 /etc/service-maestro/service-maestro.env 2>/dev/null || :
+chmod 0644 /etc/service-maestro/config.yaml 2>/dev/null || :
+
+if [ ! -s /etc/service-maestro/admin-password ]; then
+  (umask 077; openssl rand -base64 24 | tr -d '\n' > /etc/service-maestro/admin-password)
+fi
+if [ ! -s /etc/service-maestro/output-token ]; then
+  (umask 077; openssl rand -base64 32 | tr -d '\n' > /etc/service-maestro/output-token)
+fi
+chown root:service-maestro /etc/service-maestro/admin-password /etc/service-maestro/output-token >/dev/null 2>&1 || :
+chmod 0640 /etc/service-maestro/admin-password /etc/service-maestro/output-token 2>/dev/null || :
+
+systemctl daemon-reload >/dev/null 2>&1 || :
+systemctl enable service-maestro.service >/dev/null 2>&1 || :
+systemctl restart service-maestro.service >/dev/null 2>&1 || :
+
+echo "Service Maestro is installed and starts at https://$(hostname -f 2>/dev/null || hostname):8080"
+echo "Initial admin password: /etc/service-maestro/admin-password"
+echo "Service status: systemctl status service-maestro"
+
+%preun
+if [ "$1" -eq 0 ]; then
+  systemctl stop service-maestro.service >/dev/null 2>&1 || :
+  systemctl disable service-maestro.service >/dev/null 2>&1 || :
+fi
+
+%postun
+systemctl daemon-reload >/dev/null 2>&1 || :
+
+%files
+%dir %attr(0755,root,root) /usr/lib/service-maestro
+/usr/lib/service-maestro/app
+/usr/lib/service-maestro/runtime
+%attr(0644,root,root) /usr/lib/systemd/system/service-maestro.service
+%dir %attr(0750,root,service-maestro) /etc/service-maestro
+%config(noreplace) %attr(0640,root,service-maestro) /etc/service-maestro/service-maestro.env
+%config(noreplace) %attr(0644,root,root) /etc/service-maestro/config.yaml
+%ghost %attr(0640,root,service-maestro) /etc/service-maestro/admin-password
+%ghost %attr(0640,root,service-maestro) /etc/service-maestro/output-token
+%dir %attr(0750,service-maestro,service-maestro) /var/lib/service-maestro
+%dir %attr(0750,service-maestro,service-maestro) /var/lib/service-maestro/data
+%dir %attr(0750,service-maestro,service-maestro) /var/lib/service-maestro/ssl
+%dir %attr(0750,service-maestro,service-maestro) /var/lib/service-maestro/imports
+%dir %attr(0750,service-maestro,service-maestro) /var/lib/service-maestro/imports/songselect
+%dir %attr(0750,service-maestro,service-maestro) /var/lib/service-maestro/library
+%dir %attr(0750,service-maestro,service-maestro) /var/lib/service-maestro/library/songs
+%dir %attr(0750,service-maestro,service-maestro) /var/lib/service-maestro/library/bible
+%dir %attr(0750,service-maestro,service-maestro) /var/lib/service-maestro/library/images
+%doc %{_docdir}/service-maestro-server/README.md
+
+%changelog
+* Thu Nov 19 2026 Service Maestro <phedders@users.noreply.github.com> - @VERSION@-1
+- Initial server package.
