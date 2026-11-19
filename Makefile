@@ -10,13 +10,16 @@ PUBLISH_LATEST ?= 1
 
 IMAGE_TAGS = --tag "$(IMAGE):$(TAG)"$(if $(and $(filter 1,$(PUBLISH_LATEST)),$(filter-out latest,$(TAG))), --tag "$(IMAGE):latest")
 
-.PHONY: help image deb login publish
+.PHONY: help image deb desktop desktop-windows desktop-macos login publish
 
 help:
 	@printf '%s\n' \
 		'Service Maestro targets:' \
 		'  make image    Build $(IMAGE):$(TAG)' \
 		'  make deb      Build dist/service-maestro-cli_$(VERSION)_all.deb' \
+		'  make desktop         Build Windows and macOS desktop ZIPs' \
+		'  make desktop-windows Build the Windows desktop ZIP' \
+		'  make desktop-macos   Build both macOS desktop ZIPs' \
 		'  make login    Log in to GHCR using GHCR_TOKEN or GITHUB_TOKEN' \
 		'  make publish  Build and push $(IMAGE):$(TAG)$(if $(filter 1,$(PUBLISH_LATEST)), and :latest)' \
 		'' \
@@ -40,6 +43,15 @@ image:
 
 deb:
 	VERSION="$(VERSION)" "$(CURDIR)/tools/build-deb"
+
+desktop:
+	VERSION="$(VERSION)" python3 packaging/desktop/build.py
+
+desktop-windows:
+	VERSION="$(VERSION)" python3 packaging/desktop/build.py --target windows-x64
+
+desktop-macos:
+	VERSION="$(VERSION)" python3 packaging/desktop/build.py --target macos-arm64 --target macos-x64
 
 up: image
 	git push

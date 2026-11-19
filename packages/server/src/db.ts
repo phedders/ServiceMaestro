@@ -440,6 +440,6 @@ if (!admin) {
   ).run(randomUUID(), "admin", hashPassword(ADMIN_PASSWORD), now);
   // eslint-disable-next-line no-console
   console.warn(
-    `[sm] Seeded admin user "admin" (password from SM_ADMIN_PASSWORD, default "admin"). Change it before use.`,
+    `[sm] Seeded admin user "admin" with the configured SM_ADMIN_PASSWORD. Change it before use.`,
   );
 }
