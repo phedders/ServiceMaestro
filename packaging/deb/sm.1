@@ -1,0 +1,204 @@
+.TH SM 1 "November 2026" "service-maestro-cli" "User Commands"
+.SH NAME
+sm \- command-line client for Service Maestro
+.SH SYNOPSIS
+.B sm
+[\fIGLOBAL OPTIONS\fR]
+\fICOMMAND\fR
+[\fIARGUMENTS\fR]
+.sp
+.B sm control
+.SH DESCRIPTION
+.B sm
+logs in to a Service Maestro server, stores an \fBsm_session\fR cookie, and controls
+the live output through the authenticated HTTP API. It also exposes a generic
+\fBapi\fR command and an interactive keyboard transport.
+.SH GLOBAL OPTIONS
+.TP
+.BI \-\-url " URL"
+Server base URL. Defaults to \fBhttps://localhost:8080\fR, then the saved value, then
+the \fBSM_URL\fR environment variable.
+.TP
+.B \-\-insecure
+Skip TLS certificate verification, for the locally generated self-signed certificate.
+.TP
+.B \-\-secure
+Force TLS certificate verification.
+.TP
+.BI \-\-cookie " COOKIE"
+Session cookie value or a full \fBsm_session=...\fR header.
+.TP
+.BI \-\-username " USER"
+Username for login or automatic re-login.
+.TP
+.BI \-\-password " PASSWORD"
+Password. Prefer \fBSM_PASSWORD\fR or the interactive prompt.
+.TP
+.BI \-\-config " FILE"
+Alternate config file. Defaults to \fB~/.config/service-maestro/cli.json\fR.
+.TP
+.BI \-\-timeout " SECONDS"
+HTTP timeout.
+.TP
+.B \-\-json
+Print the raw live state as JSON.
+.TP
+.B \-\-quiet
+Suppress command result output.
+.SH COMMANDS
+.TP
+.B login
+Prompt for a password, log in and save the session cookie. Supports
+\fB\-\-username\fR, \fB\-\-password\fR and \fB\-\-no-save\fR.
+.TP
+.B logout
+Call the logout endpoint and remove the saved cookie.
+.TP
+.B status
+Show the current live session, set list, item, page, blank state and controls.
+.TP
+.B control
+Run the interactive keyboard transport. Press \fB?\fR for the shortcut list and
+\fBq\fR to quit.
+.TP
+.BI "api " METHOD " " PATH " [" BODY ]
+Call any API endpoint. BODY is JSON, \fB@file\fR or \fB-\fR for stdin.
+.TP
+.B setlists [SEARCH]
+List set lists and their IDs.
+.TP
+.B songs [SEARCH]
+List songs.
+.TP
+.BI "start " SETLIST
+Start a live session. Accepts an exact ID or a unique name/date match.
+.TP
+.BI "apply " SETLIST
+Apply a set list to the current live session. Use \fB\-\-now\fR to replace immediately.
+.TP
+.B stop
+Stop the live session.
+.TP
+.B next
+Advance one page, or into the next item at a boundary.
+.TP
+.B prev
+Go back one page, or into the previous item at a boundary.
+.TP
+.BI "page " DELTA
+Move by a page delta.
+.TP
+.BI "goto-page " INDEX
+Jump to a zero-based page index.
+.TP
+.BI "goto-item " INDEX
+Jump to a zero-based live queue item.
+.TP
+.B blank [on|off|toggle]
+Toggle or set output blanking.
+.TP
+.B show
+Unblank the output.
+.TP
+.BI "transpose " DELTA
+Transpose the current song by semitones.
+.TP
+.BI "lines " COUNT
+Set lines per page.
+.TP
+.B footer [TEXT]
+Set the footer; omit the text or use \fB\-\-clear\fR to clear it.
+.TP
+.B bible-verses [on|off|toggle]
+Show or hide Bible verse numbers.
+.TP
+.B quick-text [TEXT]
+Show transient quick text. Omit the text or use \fB-\fR to read stdin.
+.TP
+.B autoplay [on|off|toggle]
+Temporarily override autoplay. Supports \fB\-\-mode\fR, \fB\-\-delay\fR and \fB\-\-reset\fR.
+.TP
+.B items
+List the live queue.
+.SH INTERACTIVE SHORTCUTS
+.TP
+.B n, Space, Enter, Right
+Next page.
+.TP
+.B p, Backspace, Left
+Previous page.
+.TP
+.B j, Down / k, Up
+Next or previous live item.
+.TP
+.B b
+Toggle blank.
+.TP
+.B s
+Show/unblank.
+.TP
+.B [ / ]
+Transpose down or up one semitone.
+.TP
+.B - / +
+Fewer or more lines per page.
+.TP
+.B v
+Toggle Bible verse numbers.
+.TP
+.B a / A
+Toggle autoplay or reset the temporary autoplay override.
+.TP
+.B f / x
+Prompt for footer text or quick text.
+.TP
+.B g / i
+Prompt for a one-based page or item number.
+.TP
+.B r
+Refresh.
+.TP
+.B ?
+Show or hide shortcut help.
+.TP
+.B q
+Quit and restore the terminal.
+.SH FILES
+.TP
+.I ~/.config/service-maestro/cli.json
+Saved URL, TLS preference, username and session cookie. Written with mode 0600.
+.SH ENVIRONMENT
+.TP
+.B SM_URL
+Server base URL.
+.TP
+.B SM_COOKIE
+Session cookie value or full cookie header.
+.TP
+.B SM_USERNAME
+Username for login or automatic re-login.
+.TP
+.B SM_PASSWORD
+Password for automatic login. Avoid putting this in shell history.
+.TP
+.B SM_INSECURE
+Set to 1 to skip TLS certificate verification.
+.TP
+.B SM_CLI_CONFIG
+Alternate config file path.
+.SH EXAMPLES
+.nf
+sm --insecure login --username operator
+sm setlists
+sm start "Sunday morning"
+sm next
+sm blank
+sm control
+sm api GET /api/live
+.fi
+.SH SECURITY
+The saved session cookie is equivalent to a logged-in browser session. Keep the
+config file private. Prefer \fBSM_PASSWORD\fR or the interactive prompt over
+\fB\-\-password\fR. Only use \fB\-\-insecure\fR with a trusted local development server.
+.SH SEE ALSO
+Documentation under \fI/usr/share/doc/service-maestro-cli/\fR.

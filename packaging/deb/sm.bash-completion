@@ -1,0 +1,35 @@
+# bash completion for the Service Maestro CLI
+_sm_complete() {
+  local cur prev
+  COMPREPLY=()
+  cur="${COMP_WORDS[COMP_CWORD]}"
+  prev="${COMP_WORDS[COMP_CWORD-1]}"
+
+  if [[ "$prev" == "--config" || "$prev" == "--cookie" || "$prev" == "--password" || "$prev" == "--url" || "$prev" == "--username" ]]; then
+    return 0
+  fi
+
+  if [[ "$cur" == -* ]]; then
+    COMPREPLY=( $(compgen -W "--url --insecure --secure --cookie --username --password --config --timeout --json --quiet --help" -- "$cur") )
+    return 0
+  fi
+
+  local commands="login logout status control api setlists songs start apply stop next prev page goto-page goto-item blank show transpose lines footer bible-verses quick-text autoplay items"
+  if [[ $COMP_CWORD -eq 1 ]]; then
+    COMPREPLY=( $(compgen -W "$commands" -- "$cur") )
+    return 0
+  fi
+
+  case "${COMP_WORDS[1]}" in
+    blank|bible-verses|autoplay)
+      COMPREPLY=( $(compgen -W "on off toggle" -- "$cur") )
+      ;;
+    api)
+      if [[ $COMP_CWORD -eq 2 ]]; then
+        COMPREPLY=( $(compgen -W "GET POST PUT PATCH DELETE" -- "$cur") )
+      fi
+      ;;
+  esac
+}
+
+complete -F _sm_complete sm

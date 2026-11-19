@@ -36,3 +36,7 @@ library/
 
 # Accidental URL-like Git path working trees
 packages/server/http:/
+
+# Python bytecode
+__pycache__/
+*.pyc

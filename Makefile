@@ -10,18 +10,20 @@ PUBLISH_LATEST ?= 1
 
 IMAGE_TAGS = --tag "$(IMAGE):$(TAG)"$(if $(and $(filter 1,$(PUBLISH_LATEST)),$(filter-out latest,$(TAG))), --tag "$(IMAGE):latest")
 
-.PHONY: help image login publish
+.PHONY: help image deb login publish
 
 help:
 	@printf '%s\n' \
-		'Service Maestro image targets:' \
+		'Service Maestro targets:' \
 		'  make image    Build $(IMAGE):$(TAG)' \
+		'  make deb      Build dist/service-maestro-cli_$(VERSION)_all.deb' \
 		'  make login    Log in to GHCR using GHCR_TOKEN or GITHUB_TOKEN' \
 		'  make publish  Build and push $(IMAGE):$(TAG)$(if $(filter 1,$(PUBLISH_LATEST)), and :latest)' \
 		'' \
 		'Variables:' \
 		'  IMAGE=$(IMAGE)' \
 		'  TAG=$(TAG)' \
+		'  VERSION=$(VERSION)' \
 		'  PUBLISH_LATEST=$(PUBLISH_LATEST)' \
 		'  DOCKER=$(DOCKER)' \
 		'  GHCR_USER=$(GHCR_USER)'
@@ -35,6 +37,9 @@ image:
 		--label "org.opencontainers.image.version=$(TAG)" \
 		$(IMAGE_TAGS) \
 		.
+
+deb:
+	VERSION="$(VERSION)" "$(CURDIR)/tools/build-deb"
 
 up: image
 	git push

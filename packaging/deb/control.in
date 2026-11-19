@@ -1,0 +1,12 @@
+Package: service-maestro-cli
+Version: @VERSION@
+Section: utils
+Priority: optional
+Architecture: all
+Depends: python3 (>= 3.8)
+Installed-Size: @INSTALLED_SIZE@
+Maintainer: Service Maestro <phedders@users.noreply.github.com>
+Description: command-line client for Service Maestro
+ Control live transport, inspect the live queue, manage set lists, call any
+ Service Maestro HTTP API endpoint and run an interactive keyboard transport
+ from a terminal. The client uses only the Python standard library.

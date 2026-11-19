@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+PACKAGE="service-maestro-cli"
+
+if [[ -z "${VERSION:-}" ]]; then
+  VERSION="$(python3 -c 'import json, sys; print(json.load(open(sys.argv[1]))["version"])' "$ROOT/package.json" 2>/dev/null || true)"
+fi
+if [[ -z "${VERSION:-}" ]]; then
+  echo "VERSION is not set and package.json has no version" >&2
+  exit 1
+fi
+
+# Debian versions use '~' for pre-release ordering and reserve '-' for the
+# package revision. package.json versions such as 1.2.3-beta become 1.2.3~beta.
+DEB_VERSION="${VERSION#v}"
+DEB_VERSION="${DEB_VERSION//-/\~}"
+
+OUT_DIR="${OUT_DIR:-$ROOT/dist}"
+STAGE="$(mktemp -d)"
+trap 'rm -rf "$STAGE"' EXIT
+PKG_ROOT="$STAGE/$PACKAGE"
+
+install -d "$PKG_ROOT/DEBIAN" \
+  "$PKG_ROOT/usr/bin" \
+  "$PKG_ROOT/usr/share/doc/$PACKAGE" \
+  "$PKG_ROOT/usr/share/man/man1" \
+  "$PKG_ROOT/usr/share/bash-completion/completions"
+
+install -m 0755 "$ROOT/tools/sm" "$PKG_ROOT/usr/bin/sm"
+install -m 0644 "$ROOT/docs/20-cli.md" "$PKG_ROOT/usr/share/doc/$PACKAGE/README.md"
+install -m 0644 "$ROOT/packaging/deb/sm.bash-completion" \
+  "$PKG_ROOT/usr/share/bash-completion/completions/sm"
+gzip -9 -n -c "$ROOT/packaging/deb/sm.1" > "$PKG_ROOT/usr/share/man/man1/sm.1.gz"
+chmod 0644 "$PKG_ROOT/usr/share/man/man1/sm.1.gz"
+
+INSTALLED_SIZE="$(du -sk "$PKG_ROOT/usr" | cut -f1)"
+sed \
+  -e "s/@VERSION@/$DEB_VERSION/g" \
+  -e "s/@INSTALLED_SIZE@/$INSTALLED_SIZE/g" \
+  "$ROOT/packaging/deb/control.in" > "$PKG_ROOT/DEBIAN/control"
+
+(
+  cd "$PKG_ROOT"
+  find usr -type f -print0 | sort -z | xargs -0 md5sum
+) > "$PKG_ROOT/DEBIAN/md5sums"
+chmod 0644 "$PKG_ROOT/DEBIAN/control" "$PKG_ROOT/DEBIAN/md5sums"
+
+mkdir -p "$OUT_DIR"
+DEB="$OUT_DIR/${PACKAGE}_${DEB_VERSION}_all.deb"
+dpkg-deb --root-owner-group --build "$PKG_ROOT" "$DEB" >/dev/null
+printf '%s\n' "$DEB"

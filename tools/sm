@@ -1,0 +1,1025 @@
+#!/usr/bin/env python3
+"""
+Service Maestro command-line client.
+
+Uses the same HTTP API as the control UI. Authentication is a normal
+sm_session cookie created by /api/auth/login.
+
+Examples:
+  tools/sm login --username operator
+  tools/sm status
+  tools/sm setlists
+  tools/sm start "Sunday morning"
+  tools/sm next
+  tools/sm blank
+  tools/sm control
+  tools/sm api GET /api/live
+"""
+
+from __future__ import annotations
+
+import argparse
+import getpass
+import json
+import os
+import select
+import shutil
+import ssl
+import sys
+import termios
+import time
+import tty
+import urllib.error
+import urllib.parse
+import urllib.request
+from pathlib import Path
+from typing import Any, Callable
+
+DEFAULT_URL = "https://localhost:8080"
+COOKIE_NAME = "sm_session"
+USER_AGENT = "service-maestro-cli/1.0"
+CONFIG_ENV = "SM_CLI_CONFIG"
+
+
+class CliError(Exception):
+    pass
+
+
+class ApiError(CliError):
+    def __init__(self, status: int, message: str, payload: Any = None):
+        super().__init__(message)
+        self.status = status
+        self.payload = payload
+
+
+def env_flag(name: str, default: bool = False) -> bool:
+    value = os.environ.get(name)
+    if value is None:
+        return default
+    return value.strip().lower() not in {"", "0", "false", "no", "off"}
+
+
+def config_path(args: argparse.Namespace | None = None) -> Path:
+    explicit = getattr(args, "config", None) if args else None
+    return Path(explicit or os.environ.get(CONFIG_ENV) or "~/.config/service-maestro/cli.json").expanduser()
+
+
+def load_config(path: Path) -> dict[str, Any]:
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (FileNotFoundError, json.JSONDecodeError, OSError):
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def save_config(path: Path, values: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        path.parent.chmod(0o700)
+    except OSError:
+        pass
+    current = load_config(path)
+    current.update(values)
+    path.write_text(json.dumps(current, indent=2) + "\n", encoding="utf-8")
+    try:
+        path.chmod(0o600)
+    except OSError:
+        pass
+
+
+def normalize_cookie(value: str | None) -> str | None:
+    if not value:
+        return None
+    value = value.strip()
+    if not value:
+        return None
+    if "=" not in value:
+        return f"{COOKIE_NAME}={value}"
+    return value
+
+
+def cookie_from_headers(headers: Any) -> str | None:
+    getter = getattr(headers, "get_all", None)
+    values = getter("Set-Cookie") if getter else None
+    if not values:
+        raw = headers.get("Set-Cookie") if headers else None
+        values = [raw] if raw else []
+    for value in values:
+        first = value.split(";", 1)[0].strip()
+        if first.startswith(f"{COOKIE_NAME}="):
+            return first
+    return None
+
+
+def ssl_context(insecure: bool) -> ssl.SSLContext:
+    if insecure:
+        return ssl._create_unverified_context()
+    return ssl.create_default_context()
+
+
+class Client:
+    def __init__(
+        self,
+        base_url: str,
+        cookie: str | None = None,
+        insecure: bool = False,
+        timeout: float = 20.0,
+        username: str | None = None,
+        password: str | None = None,
+    ):
+        self.base_url = base_url.rstrip("/")
+        self.cookie = normalize_cookie(cookie)
+        self.insecure = insecure
+        self.timeout = timeout
+        self.username = username
+        self.password = password
+        self.context = ssl_context(insecure)
+
+    def url(self, path: str) -> str:
+        if path.startswith("http://") or path.startswith("https://"):
+            return path
+        return f"{self.base_url}/{path.lstrip('/')}"
+
+    def _request(
+        self,
+        method: str,
+        path: str,
+        body: Any = None,
+        *,
+        allow_anonymous: bool = False,
+    ) -> tuple[Any, Any]:
+        data = None
+        headers = {"Accept": "application/json", "User-Agent": USER_AGENT}
+        if body is not None:
+            data = json.dumps(body).encode("utf-8")
+            headers["Content-Type"] = "application/json"
+        if self.cookie and not allow_anonymous:
+            headers["Cookie"] = self.cookie
+        request = urllib.request.Request(
+            self.url(path),
+            data=data,
+            headers=headers,
+            method=method.upper(),
+        )
+        try:
+            with urllib.request.urlopen(
+                request, timeout=self.timeout, context=self.context
+            ) as response:
+                raw = response.read().decode("utf-8", "replace")
+        except urllib.error.HTTPError as exc:
+            raw = exc.read().decode("utf-8", "replace")
+            payload: Any = None
+            if raw:
+                try:
+                    payload = json.loads(raw)
+                except json.JSONDecodeError:
+                    payload = None
+            message = (
+                payload.get("error")
+                if isinstance(payload, dict) and payload.get("error")
+                else f"HTTP {exc.code} {exc.reason}"
+            )
+            if isinstance(payload, dict) and payload.get("issues"):
+                message += f" ({payload['issues']})"
+            raise ApiError(exc.code, str(message), payload) from None
+        except urllib.error.URLError as exc:
+            reason = str(exc.reason)
+            hint = ""
+            if "CERTIFICATE_VERIFY_FAILED" in reason or "certificate verify failed" in reason.lower():
+                hint = " Use --insecure for a locally generated/self-signed certificate."
+            elif "Connection refused" in reason:
+                hint = " Check SM_URL and that the Service Maestro server is running."
+            raise CliError(f"Could not reach {self.base_url}: {reason}.{hint}") from None
+
+        payload = json.loads(raw) if raw.strip() else {}
+        return payload, response.headers
+
+    def login(self, username: str, password: str) -> dict[str, Any]:
+        payload, headers = self._request(
+            "POST",
+            "/api/auth/login",
+            {"username": username, "password": password},
+            allow_anonymous=True,
+        )
+        cookie = cookie_from_headers(headers)
+        if not cookie:
+            raise CliError("Login succeeded but the server did not return an sm_session cookie.")
+        self.cookie = cookie
+        self.username = username
+        self.password = password
+        return payload if isinstance(payload, dict) else {}
+
+    def request(self, method: str, path: str, body: Any = None) -> Any:
+        if not self.cookie and self.username and self.password and not path.endswith("/api/auth/login"):
+            self.login(self.username, self.password)
+        if not self.cookie:
+            raise CliError(
+                "Not logged in. Run 'sm login --username <user>' or set SM_COOKIE / SM_USERNAME and SM_PASSWORD."
+            )
+        try:
+            payload, _ = self._request(method, path, body)
+        except ApiError as exc:
+            if exc.status != 401 or not self.username or not self.password:
+                raise
+            self.login(self.username, self.password)
+            payload, _ = self._request(method, path, body)
+        return payload
+
+    def get(self, path: str) -> Any:
+        return self.request("GET", path)
+
+    def post(self, path: str, body: Any = None) -> Any:
+        return self.request("POST", path, body)
+
+
+def build_client(args: argparse.Namespace) -> tuple[Client, dict[str, Any], Path]:
+    path = config_path(args)
+    config = load_config(path)
+    url = args.url or os.environ.get("SM_URL") or config.get("url") or DEFAULT_URL
+    if args.insecure and args.secure:
+        raise CliError("Choose either --insecure or --secure, not both.")
+    if args.insecure:
+        insecure = True
+    elif args.secure:
+        insecure = False
+    elif os.environ.get("SM_INSECURE") is not None:
+        insecure = env_flag("SM_INSECURE")
+    else:
+        insecure = bool(config.get("insecure", False))
+    cookie = normalize_cookie(
+        args.cookie or os.environ.get("SM_COOKIE") or config.get("cookie")
+    )
+    username = args.username or os.environ.get("SM_USERNAME") or config.get("username")
+    password = args.password or os.environ.get("SM_PASSWORD")
+    client = Client(
+        base_url=url,
+        cookie=cookie,
+        insecure=insecure,
+        timeout=args.timeout,
+        username=username,
+        password=password,
+    )
+    settings = {
+        "url": client.base_url,
+        "insecure": insecure,
+        "username": username,
+    }
+    return client, settings, path
+
+
+def print_json(value: Any) -> None:
+    json.dump(value, sys.stdout, indent=2, ensure_ascii=False)
+    sys.stdout.write("\n")
+
+
+def item_title(state: dict[str, Any]) -> str:
+    return str(state.get("title") or state.get("setlistName") or "No live item")
+
+
+def state_line(state: dict[str, Any]) -> str:
+    status = state.get("status", "idle")
+    if status == "idle":
+        return "No live session"
+    item_index = int(state.get("itemIndex") or 0) + 1
+    items = state.get("items") or []
+    item_count = len(items) if items else item_index
+    page_count = int(state.get("pageCount") or 0)
+    page_index = int(state.get("pageIndex") or 0) + (1 if page_count else 0)
+    output = "BLANKED" if state.get("blank") else "shown"
+    return (
+        f"{status.upper()} · item {item_index}/{item_count} · page {page_index}/{page_count} "
+        f"· {output} · {item_title(state)}"
+    )
+
+
+def print_state(state: dict[str, Any]) -> None:
+    status = str(state.get("status", "idle"))
+    print(f"Service Maestro — {status.upper()}")
+    if status == "idle":
+        print("No live session.")
+        return
+    items = state.get("items") or []
+    item_index = int(state.get("itemIndex") or 0) + 1
+    page_count = int(state.get("pageCount") or 0)
+    page_index = int(state.get("pageIndex") or 0) + (1 if page_count else 0)
+    print(f"Set list:  {state.get('setlistName') or '—'}")
+    print(f"Item:      {item_index}/{len(items) or item_index} · {item_title(state)}")
+    print(f"Page:      {page_index}/{page_count}")
+    print(f"Output:    {'BLANKED' if state.get('blank') else 'shown'}")
+    print(
+        "Controls:  "
+        f"transpose {int(state.get('transpose') or 0):+d} · lines {state.get('maxLines', '—')} "
+        f"· Bible verses {'shown' if state.get('bibleVerseNumbers', True) else 'hidden'}"
+    )
+    if state.get("footer"):
+        print(f"Footer:    {state['footer']}")
+    if state.get("pendingUpdate"):
+        print(f"Queued:    revision {state.get('pendingRevision') or '?'} awaits the next item")
+    autoplay = state.get("autoplay")
+    if isinstance(autoplay, dict):
+        print(
+            "Autoplay:  "
+            f"{'on' if autoplay.get('autoplay') else 'off'} · {autoplay.get('mode', 'loop')} "
+            f"· {autoplay.get('delaySeconds', '?')}s"
+            + (" · temporary override" if autoplay.get("overridden") else "")
+        )
+
+
+def print_state_short(state: dict[str, Any]) -> None:
+    if state.get("status") == "idle":
+        print("No live session")
+        return
+    items = state.get("items") or []
+    item_index = int(state.get("itemIndex") or 0) + 1
+    page_count = int(state.get("pageCount") or 0)
+    page_index = int(state.get("pageIndex") or 0) + (1 if page_count else 0)
+    output = "BLANKED" if state.get("blank") else "shown"
+    print(
+        f"item {item_index}/{len(items) or item_index} · page {page_index}/{page_count} "
+        f"· {output} · {item_title(state)}"
+    )
+
+
+def resolve_setlist(client: Client, query: str) -> dict[str, Any]:
+    rows = client.get("/api/setlists").get("setlists", [])
+    exact = [
+        row
+        for row in rows
+        if row.get("id") == query or str(row.get("name", "")).lower() == query.lower()
+    ]
+    if len(exact) == 1:
+        return exact[0]
+    needle = query.lower()
+    matches = [
+        row
+        for row in rows
+        if needle in str(row.get("name", "")).lower()
+        or needle in str(row.get("serviceDate", ""))
+    ]
+    if len(matches) == 1:
+        return matches[0]
+    if not matches:
+        raise CliError(f"No set list matches “{query}”. Run 'sm setlists' to list them.")
+    print(f"More than one set list matches “{query}”:", file=sys.stderr)
+    for row in matches[:20]:
+        print(
+            f"  {row.get('id')}  {row.get('serviceDate')}  {row.get('name')}",
+            file=sys.stderr,
+        )
+    raise CliError("Use a set-list ID or a more specific name.")
+
+
+def live_state(client: Client) -> dict[str, Any]:
+    payload = client.get("/api/live")
+    return payload.get("state", payload) if isinstance(payload, dict) else {}
+
+
+def live_command(client: Client, command: dict[str, Any]) -> dict[str, Any]:
+    payload = client.post("/api/live/command", command)
+    return payload.get("state", payload) if isinstance(payload, dict) else {}
+
+
+def print_live_result(args: argparse.Namespace, state: dict[str, Any]) -> None:
+    if args.json:
+        print_json(state)
+    elif not args.quiet:
+        print_state_short(state)
+
+
+def toggle_value(value: str) -> bool | None:
+    if value == "on":
+        return True
+    if value == "off":
+        return False
+    return None
+
+
+def prompt_line(label: str, restore: Callable[[], None], enter_raw: Callable[[], None]) -> str:
+    restore()
+    try:
+        return input(label)
+    finally:
+        enter_raw()
+
+
+def interactive_control(client: Client, poll_interval: float = 1.0) -> None:
+    if not sys.stdin.isatty() or not sys.stdout.isatty():
+        raise CliError("The interactive control needs a terminal. Use one-shot commands instead.")
+
+    state: dict[str, Any] = {}
+    message = ""
+    show_help = False
+    fd = sys.stdin.fileno()
+    original = termios.tcgetattr(fd)
+
+    def enter_raw() -> None:
+        tty.setcbreak(fd)
+
+    def restore() -> None:
+        termios.tcsetattr(fd, termios.TCSADRAIN, original)
+
+    def read_key(timeout: float) -> str | None:
+        ready, _, _ = select.select([sys.stdin], [], [], timeout)
+        if not ready:
+            return None
+        data = os.read(fd, 8)
+        if not data:
+            return "q"
+        text = data.decode("utf-8", "replace")
+        sequences = {
+            "\x1b[A": "up",
+            "\x1b[B": "down",
+            "\x1b[C": "right",
+            "\x1b[D": "left",
+            "\x1b[5~": "pageup",
+            "\x1b[6~": "pagedown",
+        }
+        return sequences.get(text, text[:1])
+
+    def send(command: dict[str, Any], label: str) -> None:
+        nonlocal state, message
+        try:
+            state = live_command(client, command)
+            message = label
+        except (ApiError, CliError) as exc:
+            message = str(exc)
+
+    def refresh() -> None:
+        nonlocal state, message
+        try:
+            state = live_state(client)
+        except (ApiError, CliError) as exc:
+            message = str(exc)
+
+    def draw() -> None:
+        width = shutil.get_terminal_size((100, 30)).columns
+        status = str(state.get("status", "idle"))
+        lines: list[str] = ["Service Maestro — " + status.upper(), ""]
+        if status == "idle":
+            lines.append("No live session.")
+            lines.append("Start one with:  sm start <set list>")
+            lines.append("")
+        else:
+            items = state.get("items") or []
+            current = int(state.get("itemIndex") or 0)
+            page_count = int(state.get("pageCount") or 0)
+            page_index = int(state.get("pageIndex") or 0) + (1 if page_count else 0)
+            lines.append(f"Set list : {state.get('setlistName') or '—'}")
+            lines.append(
+                f"Item     : {current + 1}/{len(items) or current + 1}  {item_title(state)}"
+            )
+            lines.append(
+                f"Page     : {page_index}/{page_count}    "
+                f"Output: {'BLANKED' if state.get('blank') else 'shown'}"
+            )
+            lines.append(
+                f"Controls : transpose {int(state.get('transpose') or 0):+d} · "
+                f"lines {state.get('maxLines', '—')} · "
+                f"Bible verses {'shown' if state.get('bibleVerseNumbers', True) else 'hidden'}"
+            )
+            if state.get("footer"):
+                lines.append(f"Footer   : {state['footer']}")
+            autoplay = state.get("autoplay")
+            if isinstance(autoplay, dict):
+                lines.append(
+                    f"Autoplay : {'on' if autoplay.get('autoplay') else 'off'} · "
+                    f"{autoplay.get('mode', 'loop')} · {autoplay.get('delaySeconds', '?')}s"
+                )
+            lines.append("")
+            start = max(0, current - 3)
+            end = min(len(items), current + 5)
+            if items:
+                for index in range(start, end):
+                    item = items[index]
+                    marker = "▶" if index == current else " "
+                    lines.append(
+                        f"{marker} {index + 1:>2}. {item.get('title') or '(untitled)'} "
+                        f"[{item.get('kind')}]"
+                    )
+            lines.append("")
+
+        if show_help:
+            lines.extend(
+                [
+                    "Shortcuts",
+                    "  n / Space / →   next page",
+                    "  p / ⌫ / ←       previous page",
+                    "  j / k / ↑ / ↓   next / previous item",
+                    "  b               blank or show output",
+                    "  s               show output",
+                    "  [ / ]           transpose down / up",
+                    "  - / +           fewer / more lines",
+                    "  v               toggle Bible verse numbers",
+                    "  a / A           autoplay on-off / reset override",
+                    "  f               set footer",
+                    "  x               send quick text",
+                    "  g / i           go to page / item",
+                    "  r               refresh",
+                    "  ?               hide this help",
+                    "  q               quit",
+                ]
+            )
+        else:
+            lines.extend(
+                [
+                    "n/Space/→ next   p/← prev   j/k item   b blank   s show",
+                    "[/] transpose   -/+ lines   v Bible verses   a autoplay   A reset",
+                    "f footer   x quick text   g page   i item   r refresh   ? help   q quit",
+                ]
+            )
+
+        if message:
+            lines.append("")
+            lines.append("› " + message)
+        output = "\x1b[H\x1b[2J" + "\n".join(line[: max(20, width - 1)] for line in lines)
+        sys.stdout.write(output + "\n")
+        sys.stdout.flush()
+
+    def prompt(label: str) -> str:
+        nonlocal message
+        restore()
+        try:
+            return input(label)
+        except (EOFError, KeyboardInterrupt):
+            return ""
+        finally:
+            enter_raw()
+            message = ""
+
+    enter_raw()
+    refresh()
+    draw()
+    next_poll = time.monotonic() + poll_interval
+    try:
+        while True:
+            key = read_key(0.2)
+            if key is None:
+                if time.monotonic() >= next_poll and not show_help:
+                    refresh()
+                    next_poll = time.monotonic() + poll_interval
+                    draw()
+                continue
+            next_poll = time.monotonic() + poll_interval
+            current = int(state.get("itemIndex") or 0)
+            items = state.get("items") or []
+            if key in {"q", "\x03"}:
+                break
+            if key == "?":
+                show_help = not show_help
+            elif key in {"n", " ", "\r", "\n", "right"}:
+                send({"type": "page", "delta": 1}, "next page")
+            elif key in {"p", "\x7f", "\x08", "left"}:
+                send({"type": "page", "delta": -1}, "previous page")
+            elif key in {"j", "down"}:
+                send({"type": "goto", "itemIndex": min(current + 1, max(0, len(items) - 1))}, "next item")
+            elif key in {"k", "up"}:
+                send({"type": "goto", "itemIndex": max(0, current - 1)}, "previous item")
+            elif key == "b":
+                send({"type": "blank"}, "blank toggled")
+            elif key == "s":
+                send({"type": "blank", "value": False}, "output shown")
+            elif key == "[":
+                send({"type": "transpose", "delta": -1}, "transpose down")
+            elif key == "]":
+                send({"type": "transpose", "delta": 1}, "transpose up")
+            elif key == "-":
+                send(
+                    {"type": "maxLines", "value": max(1, int(state.get("maxLines") or 4) - 1)},
+                    "fewer lines",
+                )
+            elif key == "+":
+                send(
+                    {"type": "maxLines", "value": min(30, int(state.get("maxLines") or 4) + 1)},
+                    "more lines",
+                )
+            elif key == "v":
+                send(
+                    {"type": "bibleVerseNumbers", "value": not state.get("bibleVerseNumbers", True)},
+                    "Bible verse numbers toggled",
+                )
+            elif key == "a":
+                autoplay = state.get("autoplay")
+                if not isinstance(autoplay, dict):
+                    message = "The current item has no autoplay settings"
+                else:
+                    send(
+                        {"type": "autoplay", "autoplay": not bool(autoplay.get("autoplay"))},
+                        "autoplay toggled",
+                    )
+            elif key == "A":
+                send({"type": "autoplay", "reset": True}, "autoplay reset")
+            elif key == "f":
+                text = prompt("Footer text (leave empty to clear): ")
+                send({"type": "footer", "text": text}, "footer updated")
+            elif key == "x":
+                text = prompt("Quick text: ")
+                if text:
+                    try:
+                        state = client.post("/api/live/quick-text", {"text": text, "mode": "direct"})
+                        message = "quick text shown"
+                    except (ApiError, CliError) as exc:
+                        message = str(exc)
+            elif key == "g":
+                value = prompt("Page number (1-based): ")
+                try:
+                    page = int(value)
+                except ValueError:
+                    page = 0
+                if page > 0:
+                    send({"type": "goto", "pageIndex": page - 1}, f"went to page {page}")
+            elif key == "i":
+                value = prompt("Item number (1-based): ")
+                try:
+                    item = int(value)
+                except ValueError:
+                    item = 0
+                if item > 0:
+                    send({"type": "goto", "itemIndex": item - 1}, f"went to item {item}")
+            elif key == "r":
+                refresh()
+                message = "refreshed"
+            draw()
+    finally:
+        restore()
+        sys.stdout.write("\x1b[2J\x1b[H")
+        sys.stdout.flush()
+
+
+def command_payload(args: argparse.Namespace) -> dict[str, Any] | None:
+    name = args.command
+    if name == "next":
+        return {"type": "page", "delta": 1}
+    if name == "prev":
+        return {"type": "page", "delta": -1}
+    if name == "page":
+        return {"type": "page", "delta": args.delta}
+    if name in {"goto-page", "page-index"}:
+        return {"type": "goto", "pageIndex": args.index}
+    if name in {"goto-item", "item"}:
+        return {"type": "goto", "itemIndex": args.index}
+    if name == "blank":
+        return {"type": "blank", **({"value": toggle_value(args.state)} if toggle_value(args.state) is not None else {})}
+    if name == "show":
+        return {"type": "blank", "value": False}
+    if name == "transpose":
+        return {"type": "transpose", "delta": args.delta}
+    if name == "lines":
+        return {"type": "maxLines", "value": args.count}
+    if name == "footer":
+        if args.clear:
+            text = ""
+        else:
+            text = " ".join(args.text).strip()
+        return {"type": "footer", "text": text}
+    if name in {"bible-verses", "bible"}:
+        value = toggle_value(args.state)
+        return {"type": "bibleVerseNumbers", **({"value": value} if value is not None else {})}
+    if name == "autoplay":
+        if args.reset:
+            return {"type": "autoplay", "reset": True}
+        payload: dict[str, Any] = {"type": "autoplay"}
+        value = toggle_value(args.state)
+        if value is not None:
+            payload["autoplay"] = value
+        if args.mode:
+            payload["mode"] = args.mode
+        if args.delay is not None:
+            payload["delaySeconds"] = args.delay
+        return payload
+    return None
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        prog="sm",
+        description="Control Service Maestro from the shell.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=(
+            "Keyboard shortcut mode:\n"
+            "  sm control\n\n"
+            "Examples:\n"
+            "  sm login --username operator\n"
+            "  sm setlists\n"
+            "  sm start \"Sunday morning\"\n"
+            "  sm next\n"
+            "  sm blank\n"
+            "  sm api POST /api/live/command '{\"type\":\"page\",\"delta\":1}'\n"
+        ),
+    )
+    parser.add_argument("--url", help=f"Service Maestro base URL (default: {DEFAULT_URL})")
+    parser.add_argument("--insecure", action="store_true", help="Skip TLS certificate verification")
+    parser.add_argument("--secure", action="store_true", help="Force TLS certificate verification")
+    parser.add_argument("--cookie", help="Session cookie value or full sm_session=... header")
+    parser.add_argument("--username", help="Username for login or automatic re-login")
+    parser.add_argument("--password", help="Password (prefer SM_PASSWORD or an interactive prompt)")
+    parser.add_argument("--config", help="Path to the CLI config file")
+    parser.add_argument("--timeout", type=float, default=20.0, help="HTTP timeout in seconds")
+    parser.add_argument("--json", action="store_true", help="Print raw JSON state")
+    parser.add_argument("--quiet", action="store_true", help="Suppress command result output")
+
+    sub = parser.add_subparsers(dest="command")
+
+    login = sub.add_parser("login", help="Log in and save the session cookie")
+    login.add_argument("--username", dest="login_username", help="Username")
+    login.add_argument("--password", dest="login_password", help="Password")
+    login.add_argument("--no-save", action="store_true", help="Do not save the cookie")
+    login.set_defaults(handler="login")
+
+    sub.add_parser("logout", help="Log out and remove the saved cookie").set_defaults(
+        handler="logout"
+    )
+    sub.add_parser("status", help="Show the current live state").set_defaults(handler="status")
+    sub.add_parser("control", help="Interactive keyboard control").set_defaults(
+        handler="control"
+    )
+
+    api = sub.add_parser("api", help="Call any API endpoint")
+    api.add_argument("method")
+    api.add_argument("path")
+    api.add_argument("body", nargs="?", help="JSON body, @file, or - for stdin")
+    api.set_defaults(handler="api")
+
+    setlists = sub.add_parser("setlists", help="List set lists")
+    setlists.add_argument("search", nargs="?", help="Filter by name, date or ID")
+    setlists.set_defaults(handler="setlists")
+
+    songs = sub.add_parser("songs", help="List songs")
+    songs.add_argument("search", nargs="?", help="Filter by title")
+    songs.add_argument("--limit", type=int, default=50)
+    songs.set_defaults(handler="songs")
+
+    start = sub.add_parser("start", help="Start a live session")
+    start.add_argument("setlist", help="Set-list ID or name")
+    start.add_argument("--rehearsal", action="store_true", help="Start in rehearsal mode")
+    start.set_defaults(handler="start")
+
+    apply = sub.add_parser("apply", help="Apply a set list to the current live session")
+    apply.add_argument("setlist", help="Set-list ID or name")
+    apply.add_argument("--now", action="store_true", help="Apply immediately instead of after the current item")
+    apply.set_defaults(handler="apply")
+
+    sub.add_parser("stop", help="Stop the live session").set_defaults(handler="stop")
+    sub.add_parser("next", help="Next page / next item at the boundary").set_defaults(
+        handler="live"
+    )
+    sub.add_parser("prev", help="Previous page / previous item at the boundary").set_defaults(
+        handler="live"
+    )
+
+    page = sub.add_parser("page", help="Move by a number of pages")
+    page.add_argument("delta", type=int, help="e.g. 1, -1 or 3")
+    page.set_defaults(handler="live")
+
+    goto_page = sub.add_parser("goto-page", aliases=["page-index"], help="Go to a page index (0-based)")
+    goto_page.add_argument("index", type=int)
+    goto_page.set_defaults(handler="live")
+
+    goto_item = sub.add_parser("goto-item", aliases=["item"], help="Go to an item index (0-based)")
+    goto_item.add_argument("index", type=int)
+    goto_item.set_defaults(handler="live")
+
+    blank = sub.add_parser("blank", help="Toggle or set blank")
+    blank.add_argument("state", nargs="?", choices=["on", "off", "toggle"], default="toggle")
+    blank.set_defaults(handler="live")
+
+    sub.add_parser("show", help="Unblank the output").set_defaults(handler="live")
+
+    transpose = sub.add_parser("transpose", help="Transpose the current song by semitones")
+    transpose.add_argument("delta", type=int)
+    transpose.set_defaults(handler="live")
+
+    lines = sub.add_parser("lines", help="Set lines per page")
+    lines.add_argument("count", type=int)
+    lines.set_defaults(handler="live")
+
+    footer = sub.add_parser("footer", help="Set or clear the footer")
+    footer.add_argument("text", nargs="*", help="Footer text; leave empty to clear")
+    footer.add_argument("--clear", action="store_true")
+    footer.set_defaults(handler="live")
+
+    bible = sub.add_parser(
+        "bible-verses", aliases=["bible"], help="Show/hide Bible verse numbers"
+    )
+    bible.add_argument("state", nargs="?", choices=["on", "off", "toggle"], default="toggle")
+    bible.set_defaults(handler="live")
+
+    quick = sub.add_parser("quick-text", help="Show transient quick text")
+    quick.add_argument("text", nargs="*", help="Text; omit or use - to read stdin")
+    quick.set_defaults(handler="quick-text")
+
+    autoplay = sub.add_parser("autoplay", help="Temporarily change item autoplay")
+    autoplay.add_argument("state", nargs="?", choices=["on", "off", "toggle"], default="toggle")
+    autoplay.add_argument("--mode", choices=["single", "loop", "bounce"])
+    autoplay.add_argument("--delay", type=int)
+    autoplay.add_argument("--reset", action="store_true")
+    autoplay.set_defaults(handler="live")
+
+    sub.add_parser("items", help="List live queue items").set_defaults(handler="items")
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = build_parser()
+    args = parser.parse_args(argv)
+    if not args.command:
+        parser.print_help()
+        return 2
+    handler = getattr(args, "handler", args.command)
+    try:
+        client, settings, config_file = build_client(args)
+        if handler == "login":
+            username = (
+                getattr(args, "login_username", None)
+                or args.username
+                or os.environ.get("SM_USERNAME")
+                or settings.get("username")
+            )
+            if not username:
+                username = input("Username: ")
+            password = (
+                getattr(args, "login_password", None)
+                or args.password
+                or os.environ.get("SM_PASSWORD")
+            )
+            if password is None:
+                password = getpass.getpass("Password: ")
+            payload = client.login(username, password)
+            if not args.no_save:
+                save_config(
+                    config_file,
+                    {
+                        "url": settings["url"],
+                        "insecure": settings["insecure"],
+                        "username": username,
+                        "cookie": client.cookie,
+                    },
+                )
+            user = payload.get("user") if isinstance(payload, dict) else None
+            name = user.get("username") if isinstance(user, dict) else username
+            print(f"Logged in as {name}.")
+            if not args.no_save:
+                print(f"Session saved to {config_file}")
+            return 0
+
+        if handler == "logout":
+            try:
+                if client.cookie:
+                    client.post("/api/auth/logout")
+            except CliError:
+                pass
+            config = load_config(config_file)
+            config.pop("cookie", None)
+            save_config(config_file, config)
+            print("Logged out.")
+            return 0
+
+        if handler == "status":
+            state = live_state(client)
+            if args.json:
+                print_json(state)
+            elif not args.quiet:
+                print_state(state)
+            return 0
+
+        if handler == "control":
+            interactive_control(client)
+            return 0
+
+        if handler == "api":
+            method = args.method.upper()
+            body: Any = None
+            if args.body:
+                raw = sys.stdin.read() if args.body == "-" else args.body
+                if raw.lstrip().startswith("@"):
+                    raw = Path(raw.lstrip()[1:]).read_text(encoding="utf-8")
+                try:
+                    body = json.loads(raw)
+                except json.JSONDecodeError as exc:
+                    raise CliError(f"Request body is not valid JSON: {exc}") from None
+            result = client.request(method, args.path, body)
+            print_json(result)
+            return 0
+
+        if handler == "setlists":
+            result = client.get("/api/setlists")
+            rows = result.get("setlists", []) if isinstance(result, dict) else []
+            if args.search:
+                needle = args.search.lower()
+                rows = [
+                    row
+                    for row in rows
+                    if needle in str(row.get("name", "")).lower()
+                    or needle in str(row.get("serviceDate", ""))
+                    or needle == str(row.get("id"))
+                ]
+            if args.json:
+                print_json(rows)
+            else:
+                for row in rows:
+                    print(
+                        f"{row.get('id')}  {row.get('serviceDate')}  "
+                        f"{(row.get('serviceTime') or '--:--')[:5]}  {row.get('name')}"
+                    )
+                if not rows:
+                    print("No set lists found.")
+            return 0
+
+        if handler == "songs":
+            query = urllib.parse.urlencode(
+                {"limit": max(1, min(args.limit, 500)), **({"q": args.search} if args.search else {})}
+            )
+            result = client.get(f"/api/songs?{query}")
+            rows = result.get("songs", []) if isinstance(result, dict) else []
+            if args.json:
+                print_json(rows)
+            else:
+                for row in rows:
+                    print(
+                        f"{row.get('id')}  {row.get('key') or '--':>3}  "
+                        f"{row.get('title')}  {row.get('author') or ''}"
+                    )
+                if not rows:
+                    print("No songs found.")
+            return 0
+
+        if handler == "start":
+            row = resolve_setlist(client, args.setlist)
+            result = client.post(
+                "/api/live/start",
+                {"setlistId": row["id"], "status": "rehearsal" if args.rehearsal else "live"},
+            )
+            state = result.get("state", result) if isinstance(result, dict) else {}
+            if args.json:
+                print_json(state)
+            elif not args.quiet:
+                print_state_short(state)
+            return 0
+
+        if handler == "apply":
+            row = resolve_setlist(client, args.setlist)
+            result = client.post(
+                "/api/live/apply",
+                {"setlistId": row["id"], "mode": "now" if args.now else "after-current"},
+            )
+            state = result.get("state", result) if isinstance(result, dict) else {}
+            print_live_result(args, state)
+            return 0
+
+        if handler == "stop":
+            result = client.post("/api/live/stop")
+            state = result.get("state", result) if isinstance(result, dict) else {}
+            print_live_result(args, state)
+            return 0
+
+        if handler == "quick-text":
+            text = " ".join(args.text).strip()
+            if not text or text == "-":
+                text = sys.stdin.read().strip()
+            if not text:
+                raise CliError("Enter some quick text or pipe it on stdin.")
+            result = client.post("/api/live/quick-text", {"text": text, "mode": "direct"})
+            state = result.get("state", result) if isinstance(result, dict) else {}
+            print_live_result(args, state)
+            return 0
+
+        if handler == "items":
+            state = live_state(client)
+            rows = state.get("items") or []
+            if args.json:
+                print_json(rows)
+            else:
+                current = int(state.get("itemIndex") or 0)
+                for row in rows:
+                    marker = "▶" if int(row.get("index", -1)) == current else " "
+                    print(
+                        f"{marker} {int(row.get('index', 0)) + 1:>2}  "
+                        f"{row.get('title')}  [{row.get('kind')}]"
+                    )
+                if not rows:
+                    print("No live session.")
+            return 0
+
+        if handler == "live":
+            payload = command_payload(args)
+            if payload is None:
+                raise CliError("Unknown live command")
+            state = live_command(client, payload)
+            print_live_result(args, state)
+            return 0
+
+        raise CliError(f"Unknown command: {args.command}")
+    except ApiError as exc:
+        print(f"sm: {exc}", file=sys.stderr)
+        if exc.status == 401:
+            print("Hint: run 'sm login' or check SM_COOKIE / SM_USERNAME / SM_PASSWORD.", file=sys.stderr)
+        return 1
+    except CliError as exc:
+        print(f"sm: {exc}", file=sys.stderr)
+        return 1
+    except KeyboardInterrupt:
+        print("", file=sys.stderr)
+        return 130
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
