@@ -122,6 +122,7 @@ messages to merge.
   "maxLines": 4,
   "transpose": 0,
   "footer": "",
+  "bibleVerseNumbers": true,
   "pages": [
     {
       "index": 1,
@@ -160,6 +161,7 @@ Key fields:
 | `mode` | Active item kind: `song`, `text`, `image`, `image_list`, `tarp`, `presentation`, or `idle` when no session is active. Blanking is reported by `blank`, not by `mode`. |
 | `blank` | Output is hidden or faded out. |
 | `transpose`, `maxLines`, `footer` | Current live overrides. |
+| `bibleVerseNumbers` | Show or hide the superscript verse numbers on Bible paragraph pages. Defaults to `true`. |
 | `pages` | Rendered pages for the current item. `html` is already sanitized and styled. `stinger` is an optional transition overlay. |
 | `items` | Summaries of the active queue (index, kind, title, notes), not full item content. |
 | `background` | Optional rendered CSS for the active display background. Item/set-list backgrounds take precedence over the global background. |
@@ -230,6 +232,7 @@ Valid payloads:
 | `{ "type": "transpose", "delta": 1 }` | Change transpose by `-12…12` semitones per command. The state is clamped to `-24…24`. |
 | `{ "type": "maxLines", "value": 4 }` | Set lines per page, `1…30`. |
 | `{ "type": "footer", "text": "…" }` | Set footer text, up to 500 characters. Empty text clears it. |
+| `{ "type": "bibleVerseNumbers", "value": false }` | Show or hide Bible verse numbers. Omit `value` to toggle. Defaults to shown. |
 | `{ "type": "autoplay", "autoplay": true, "mode": "loop", "delaySeconds": 8 }` | Override autoplay for the current image-list/Tarp item. Fields are optional; `mode` is `single`, `loop` or `bounce`; `delaySeconds` is `1…300`. |
 | `{ "type": "autoplay", "reset": true }` | Remove the current item's autoplay override and return to its configured values. |
 

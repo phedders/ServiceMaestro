@@ -14,6 +14,7 @@ export const EMPTY_LIVE: LiveState = {
   maxLines: 4,
   transpose: 0,
   footer: "",
+  bibleVerseNumbers: true,
   pages: [],
   items: [],
   version: 0,

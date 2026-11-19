@@ -1517,6 +1517,7 @@ export interface LiveState {
   maxLines: number;
   transpose: number;
   footer: string;
+  bibleVerseNumbers: boolean;
   pages: LivePage[];
   items: LiveItemSummary[];
   background?: { render: string } | null;
@@ -1916,8 +1917,20 @@ export interface BiblePassage {
 
 export type BibleLayout = "paragraph" | "verses";
 
-export function formatBibleVerses(verses: BibleVerse[], layout: BibleLayout): string {
-  const texts = verses.map((verse) => verse.text.trim()).filter(Boolean);
+export function formatBibleVerses(
+  verses: BibleVerse[],
+  layout: BibleLayout,
+  options: { verseNumbers?: boolean } = {},
+): string {
+  const texts = verses
+    .map((verse) => {
+      const text = verse.text.trim();
+      if (!text) return "";
+      return options.verseNumbers && layout === "paragraph"
+        ? `<sup class="sm-bible-verse">${verse.number}</sup> ${text}`
+        : text;
+    })
+    .filter(Boolean);
   return layout === "paragraph" ? texts.join(" ") : texts.join("\n");
 }
 
@@ -2109,6 +2122,7 @@ export const liveCommandSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("transpose"), delta: z.number().int().min(-12).max(12) }),
   z.object({ type: z.literal("maxLines"), value: z.number().int().min(1).max(30) }),
   z.object({ type: z.literal("footer"), text: z.string().max(500) }),
+  z.object({ type: z.literal("bibleVerseNumbers"), value: z.boolean().optional() }),
   z.object({
     type: z.literal("autoplay"),
     autoplay: z.boolean().optional(),

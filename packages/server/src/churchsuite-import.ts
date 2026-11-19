@@ -417,6 +417,7 @@ export async function importChurchsuitePlan(
           `${item.reading.reference} (${item.reading.translationName})\n${formatBibleVerses(
             verses,
             layout,
+            { verseNumbers: layout === "paragraph" },
           )}`,
           "bible",
           "text",

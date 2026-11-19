@@ -65,6 +65,19 @@ body.display-stage {
   white-space: pre-wrap;
 }
 
+.sm-bible-verse {
+  font-size: 0.62em;
+  line-height: 0;
+  vertical-align: super;
+  margin-right: 0.3em;
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.hide-bible-verse-numbers .sm-bible-verse {
+  display: none;
+}
+
 .section-label {
   font-size: 0.35em;
   letter-spacing: 0.16em;

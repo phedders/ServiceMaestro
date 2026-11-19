@@ -6,7 +6,9 @@ export function SlidePreview({ live, compact = false }: { live: LiveState; compa
   const config = live.displayConfig;
   return (
     <div
-      className={`slide-preview ${compact ? "compact" : ""} ${live.blank ? "blanked" : ""}`}
+      className={`slide-preview ${compact ? "compact" : ""} ${live.blank ? "blanked" : ""} ${
+        live.bibleVerseNumbers === false ? "hide-bible-verse-numbers" : ""
+      }`}
       style={
         config
           ? ({

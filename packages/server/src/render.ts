@@ -299,6 +299,7 @@ function chordToken(value: string): string | null {
 export interface LineRenderOptions {
   markdown?: boolean;
   splitWords?: boolean;
+  bibleVerseNumbers?: boolean;
 }
 
 function applyInlineMarkdown(html: string): string {
@@ -311,8 +312,21 @@ function applyInlineMarkdown(html: string): string {
     .replace(/(^|[^*])\*([^*\s][^*]*?)\*/g, "$1<em>$2</em>");
 }
 
-function renderPlainTextSegment(value: string): string {
-  return escapeHtml(value);
+function renderPlainTextSegment(value: string, bibleVerseNumbers = false): string {
+  if (!bibleVerseNumbers) return escapeHtml(value);
+  // Bible paragraph imports keep their verse numbers as lightweight markup.
+  // Only the exact marker emitted by formatBibleVerses is allowed through.
+  const parts: string[] = [];
+  const re = /<sup class="sm-bible-verse">(\d{1,3})<\/sup>/g;
+  let last = 0;
+  let match: RegExpExecArray | null;
+  while ((match = re.exec(value))) {
+    parts.push(escapeHtml(value.slice(last, match.index)));
+    parts.push(`<sup class="sm-bible-verse">${match[1]}</sup>`);
+    last = match.index + match[0].length;
+  }
+  parts.push(escapeHtml(value.slice(last)));
+  return parts.join("");
 }
 
 const SPLIT_SENTINEL = "\uE000";
@@ -344,7 +358,7 @@ export function renderLine(
   const re = /\[([^\]]+)\]/g;
   let match: RegExpExecArray | null;
   while ((match = re.exec(text))) {
-    parts.push(renderPlainTextSegment(text.slice(last, match.index)));
+    parts.push(renderPlainTextSegment(text.slice(last, match.index), options.bibleVerseNumbers));
     const token = match[1].trim();
     const chord = chordToken(token);
     if (chord) {
@@ -356,7 +370,7 @@ export function renderLine(
     }
     last = match.index + match[0].length;
   }
-  parts.push(renderPlainTextSegment(text.slice(last)));
+  parts.push(renderPlainTextSegment(text.slice(last), options.bibleVerseNumbers));
   let html = parts.join("");
   if (options.markdown) html = applyInlineMarkdown(html);
   if (options.splitWords) html = wrapSplitMarkers(html);
@@ -494,14 +508,46 @@ function countWrapWords(text: string): number {
     .filter((token) => /[a-z0-9]/i.test(token)).length;
 }
 
+const BIBLE_VERSE_MARKER_RE = /<sup class="sm-bible-verse">(\d{1,3})<\/sup>/g;
+const BIBLE_VERSE_TOKEN_RE = /\uE100(\d{1,3})\uE101/g;
+
+function protectBibleVerseMarkers(value: string): string {
+  return value.replace(BIBLE_VERSE_MARKER_RE, (_match, number: string) => `\uE100${number}\uE101`);
+}
+
+function restoreBibleVerseMarkers(value: string): string {
+  return value.replace(
+    BIBLE_VERSE_TOKEN_RE,
+    (_match, number: string) => `<sup class="sm-bible-verse">${number}</sup>`,
+  );
+}
+
+function visibleTextLength(value: string): number {
+  return value
+    .replace(BIBLE_VERSE_MARKER_RE, "")
+    .replace(BIBLE_VERSE_TOKEN_RE, "")
+    .length;
+}
+
 function wrapWords(text: string, maxChars: number): string[] {
-  const words = text.trim().split(/\s+/).filter(Boolean);
+  const words = protectBibleVerseMarkers(text).trim().split(/\s+/).filter(Boolean);
   if (!words.length) return [""];
 
   // Keep SongSelect-style "sat - is - fied" sequences together so a line wrap
   // never separates the " - " marker from the following syllable.
   const units: string[] = [];
   for (let index = 0; index < words.length; ) {
+    const word = words[index];
+    // A Bible verse number is markup, so keep it with the first word of its
+    // verse instead of wrapping it onto a line of its own.
+    if (
+      /^\uE100\d{1,3}\uE101$/.test(word) &&
+      index + 1 < words.length
+    ) {
+      units.push(`${word} ${words[index + 1]}`);
+      index += 2;
+      continue;
+    }
     if (index + 2 < words.length && words[index + 1] === "-") {
       let unit = words[index];
       index += 1;
@@ -518,18 +564,23 @@ function wrapWords(text: string, maxChars: number): string[] {
 
   const lines: string[] = [];
   let current = "";
+  let currentWidth = 0;
   for (const unit of units) {
+    const unitWidth = visibleTextLength(unit);
     if (!current) {
       current = unit;
-    } else if (`${current} ${unit}`.length <= maxChars) {
+      currentWidth = unitWidth;
+    } else if (currentWidth + 1 + unitWidth <= maxChars) {
       current += ` ${unit}`;
+      currentWidth += 1 + unitWidth;
     } else {
       lines.push(current);
       current = unit;
+      currentWidth = unitWidth;
     }
   }
   if (current) lines.push(current);
-  return lines;
+  return lines.map(restoreBibleVerseMarkers);
 }
 
 function paginateBlock(block: Block, options: RenderOptions): Block[] {
@@ -681,6 +732,7 @@ export function buildPages(
           `<div class="line">${renderLine(line.text, semitones, {
             markdown: item.kind === "song" && Boolean(item.lyricsMarkdown),
             splitWords: item.kind === "song",
+            bibleVerseNumbers: item.kind === "text" && item.contentSource === "bible",
           })}</div>`,
       )
       .join("");

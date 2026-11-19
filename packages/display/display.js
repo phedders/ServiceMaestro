@@ -792,6 +792,10 @@ body.sm-output-configured.mode-image .sm-footer {
       state.mode === "image" || state.mode === "image_list",
     );
     document.body.classList.toggle("mode-tarp", state.mode === "tarp");
+    document.body.classList.toggle(
+      "hide-bible-verse-numbers",
+      state.bibleVerseNumbers === false,
+    );
     const pageKey = currentPageKey(state);
     const pageChanged = Boolean(pageKey && displayedPageKey && pageKey !== displayedPageKey);
     const tarpPageChange = Boolean(

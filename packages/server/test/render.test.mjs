@@ -177,6 +177,34 @@ test("keeps uppercase single-letter chords out of section labels", () => {
   assert.match(pages[0].html, /class="chord"/);
 });
 
+test("renders Bible verse numbers as superscript only for Bible text items", () => {
+  const pages = buildPages({
+    kind: "text",
+    title: "1 Corinthians 14:33b–40",
+    content:
+      '<sup class="sm-bible-verse">33</sup> as in all the churches of the saints. <sup class="sm-bible-verse">34</sup> The women are to keep silent.',
+    contentSource: "bible",
+    transpose: 0,
+    maxLines: 4,
+  });
+  assert.equal(pages.length, 1);
+  assert.match(
+    pages[0].html,
+    /<sup class="sm-bible-verse">33<\/sup> as in all the churches/,
+  );
+  assert.match(pages[0].html, /<sup class="sm-bible-verse">34<\/sup> The women/);
+
+  const plain = buildPages({
+    kind: "text",
+    title: "Not Bible",
+    content: '<sup class="sm-bible-verse">33</sup> literal text',
+    transpose: 0,
+    maxLines: 4,
+  });
+  assert.doesNotMatch(plain[0].html, /<sup/);
+  assert.match(plain[0].html, /&lt;sup class=&quot;sm-bible-verse&quot;&gt;33&lt;\/sup&gt;/);
+});
+
 test("renders markdown text items and strips scripts", () => {
   const pages = buildPages({
     kind: "text",

@@ -79,6 +79,7 @@ export function idleState(): LiveState {
     maxLines: 4,
     transpose: 0,
     footer: "",
+    bibleVerseNumbers: true,
     pages: [],
     items: [],
     version: 0,
@@ -434,6 +435,7 @@ class LiveService {
         : null;
       state.pendingUpdate = Boolean(pending);
       state.pendingRevision = pending?.revisionNo ?? null;
+      if (typeof state.bibleVerseNumbers !== "boolean") state.bibleVerseNumbers = true;
       this.active = {
         id: row.id,
         setlistId: row.setlist_id,
@@ -491,6 +493,7 @@ class LiveService {
       maxLines: displayConfig.maxLines,
       transpose: 0,
       footer: "",
+      bibleVerseNumbers: true,
       pages: [],
       items: summaries(items),
       version: 1,
@@ -733,6 +736,10 @@ class LiveService {
       }
       case "footer":
         state.footer = String(command.text ?? "");
+        break;
+      case "bibleVerseNumbers":
+        state.bibleVerseNumbers =
+          typeof command.value === "boolean" ? command.value : !state.bibleVerseNumbers;
         break;
       case "autoplay": {
         const record = this.active;

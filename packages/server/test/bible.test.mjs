@@ -25,6 +25,14 @@ test("formats Bible verses as a paragraph or one line per verse", () => {
   ];
   assert.equal(formatBibleVerses(verses, "paragraph"), "In the beginning The earth was formless");
   assert.equal(formatBibleVerses(verses, "verses"), "In the beginning\nThe earth was formless");
+  assert.equal(
+    formatBibleVerses(verses, "paragraph", { verseNumbers: true }),
+    '<sup class="sm-bible-verse">1</sup> In the beginning <sup class="sm-bible-verse">2</sup> The earth was formless',
+  );
+  assert.equal(
+    formatBibleVerses(verses, "verses", { verseNumbers: true }),
+    "In the beginning\nThe earth was formless",
+  );
 });
 
 test("cleans Bible markup and entities", () => {

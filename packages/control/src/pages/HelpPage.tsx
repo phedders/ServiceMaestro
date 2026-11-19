@@ -129,6 +129,10 @@ export default function HelpPage({ onOpenSettings }: { onOpenSettings: () => voi
               <li>
                 <strong>Lines / page</strong> temporarily changes automatic page splitting.
               </li>
+              <li>
+                <strong>Bible verses</strong> hides or shows the superscript verse numbers on
+                Bible paragraph pages without changing the saved passage.
+              </li>
             </ul>
           </article>
           <article className="help-card">
@@ -407,6 +411,8 @@ export default function HelpPage({ onOpenSettings }: { onOpenSettings: () => voi
               <li>
                 <strong>Layout</strong> chooses <strong>Paragraph</strong> or{" "}
                 <strong>Line per verse</strong> for the passage text and the set-list item.
+                Paragraph imports keep the verse numbers as superscript; the transport{" "}
+                <strong>Bible verses</strong> button can hide or show them on the live outputs.
               </li>
               <li>
                 <strong>Add to current setlist</strong> saves the passage; <strong>Add to live

@@ -1868,7 +1868,9 @@ export default function SetlistsPage({
     );
     if (!verses.length) return;
     const reference = bibleReference();
-    const body = formatBibleVerses(verses, bibleLayout);
+    const body = formatBibleVerses(verses, bibleLayout, {
+      verseNumbers: bibleLayout === "paragraph",
+    });
     try {
       const result = await api.addItem(detail.id, {
         kind: "text",

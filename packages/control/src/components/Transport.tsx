@@ -86,6 +86,24 @@ export function Transport({
             +
           </button>
         </div>
+        <div className="stepper">
+          <span>Bible verses</span>
+          <button
+            type="button"
+            className={`button small ${live.bibleVerseNumbers ? "ghost" : "primary"}`}
+            disabled={!active}
+            onClick={() =>
+              onCommand({ type: "bibleVerseNumbers", value: !live.bibleVerseNumbers })
+            }
+            title={
+              live.bibleVerseNumbers
+                ? "Hide the Bible verse numbers on the live outputs"
+                : "Show the Bible verse numbers on the live outputs"
+            }
+          >
+            {live.bibleVerseNumbers ? "Hide" : "Show"}
+          </button>
+        </div>
       </div>
       {active && autoplay && (
         <div className="transport-autoplay">

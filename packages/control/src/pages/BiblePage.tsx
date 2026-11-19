@@ -123,9 +123,9 @@ export default function BiblePage({
     } (${passage.translationName})`;
   }
 
-  function passageBody() {
+  function passageBody(verseNumbers = false) {
     if (!verses.length) return "";
-    const text = formatBibleVerses(verses, layout);
+    const text = formatBibleVerses(verses, layout, { verseNumbers });
     return includeReference ? `${reference()}\n${text}` : text;
   }
 
@@ -137,7 +137,7 @@ export default function BiblePage({
 
   async function addToSetlist() {
     if (!canWrite) return;
-    const body = passageBody();
+    const body = passageBody(layout === "paragraph");
     if (!targetSetlist || !body) return;
     setAdding(true);
     try {
