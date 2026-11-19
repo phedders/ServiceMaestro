@@ -270,6 +270,11 @@ export default function HelpPage({ onOpenSettings }: { onOpenSettings: () => voi
                 <strong>Save to song library</strong> updates the shared song for future services.
               </li>
               <li>
+                <strong>Big Print</strong> and <strong>Chords Print</strong> export PDF, Word (DOCX)
+                or OpenDocument (ODF). Both default to bold text and italic choruses; repeated
+                identical choruses become a <code>&lt;CHORUS&gt;</code> placeholder.
+              </li>
+              <li>
                 Song items have an <strong>ALT</strong> button for locally stored versions with similar
                 titles. Compare metadata and lyric differences before switching versions.
               </li>

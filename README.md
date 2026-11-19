@@ -14,7 +14,7 @@ there is no required cloud service.
 - Song library with chords, section labels, keys, alternative titles, CCLI and verse orders.
 - OpenLP/OpenLyrics, ChordPro and plain-text importers.
 - SongSelect search, lyric/ChordPro/lead/vocal downloads and automatic update checks.
-- Set lists with drag reordering, per-item edits, printable song sheets and chord charts.
+- Set lists with drag reordering, per-item edits, and printable Big Print song sheets and chord charts in PDF, Word (DOCX) or OpenDocument (ODF).
 - ChurchSuite plan import, song matching, service-time inference and repeatable sync.
 - Bible passage import with paragraph or line-per-verse layouts and optional verse numbers.
 - Export/import of reference JSON or self-contained set-list bundles.

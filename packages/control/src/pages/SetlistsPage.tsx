@@ -32,7 +32,7 @@ import {
   type TextFormat,
 } from "@sm/shared";
 import { useAdapters } from "../adapters";
-import { api, ApiError } from "../api";
+import { api, ApiError, type SetlistSheetFormat } from "../api";
 import { BibleLayoutButtons } from "../components/BibleLayoutButtons";
 import { ChurchSuiteSyncDialog } from "../components/ChurchSuiteSyncDialog";
 import { IsoDateInput } from "../components/IsoDateInput";
@@ -1425,15 +1425,21 @@ export default function SetlistsPage({
     useState<ChurchSuiteSyncPreview | null>(null);
   const [churchsuiteSyncing, setChurchsuiteSyncing] = useState(false);
   const [creatingSongPdf, setCreatingSongPdf] = useState(false);
+  const [songPdfFormat, setSongPdfFormat] = useState<SetlistSheetFormat>("pdf");
   const [songPdfFontSize, setSongPdfFontSize] = useState(15);
   const [songPdfColumns, setSongPdfColumns] = useState(1);
+  const [songPdfBold, setSongPdfBold] = useState(true);
+  const [songPdfChorusItalic, setSongPdfChorusItalic] = useState(true);
   const [creatingChordPdf, setCreatingChordPdf] = useState(false);
+  const [chordPdfFormat, setChordPdfFormat] = useState<SetlistSheetFormat>("pdf");
   const [chordPdfFontSize, setChordPdfFontSize] = useState(15);
   const [chordPdfColumns, setChordPdfColumns] = useState(1);
   const [chordPdfOrientation, setChordPdfOrientation] = useState<"portrait" | "landscape">(
     "portrait",
   );
   const [chordPdfChordsOnly, setChordPdfChordsOnly] = useState(true);
+  const [chordPdfBold, setChordPdfBold] = useState(true);
+  const [chordPdfChorusItalic, setChordPdfChorusItalic] = useState(true);
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
   const [dragId, setDragId] = useState<string | null>(null);
@@ -2034,9 +2040,12 @@ export default function SetlistsPage({
     if (!detail) return;
     setCreatingSongPdf(true);
     try {
-      const { blob, filename } = await api.downloadSetlistSongsPdf(detail.id, {
+      const { blob, filename } = await api.downloadSetlistSongsSheet(detail.id, {
         fontSize: songPdfFontSize,
         columns: songPdfColumns,
+        format: songPdfFormat,
+        boldText: songPdfBold,
+        chorusItalic: songPdfChorusItalic,
       });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
@@ -2046,10 +2055,10 @@ export default function SetlistsPage({
       link.click();
       link.remove();
       window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-      notify("Song sheet PDF downloaded");
+      notify(`Song sheet ${songPdfFormat.toUpperCase()} downloaded`);
     } catch (error) {
       notify(
-        error instanceof ApiError ? error.message : "Could not create the song sheet PDF",
+        error instanceof ApiError ? error.message : "Could not create the song sheet",
         "error",
       );
     } finally {
@@ -2061,11 +2070,14 @@ export default function SetlistsPage({
     if (!detail) return;
     setCreatingChordPdf(true);
     try {
-      const { blob, filename } = await api.downloadSetlistChordsPdf(detail.id, {
+      const { blob, filename } = await api.downloadSetlistChordsSheet(detail.id, {
         fontSize: chordPdfFontSize,
         columns: chordPdfColumns,
         orientation: chordPdfOrientation,
         chordsOnly: chordPdfChordsOnly,
+        format: chordPdfFormat,
+        boldText: chordPdfBold,
+        chorusItalic: chordPdfChorusItalic,
       });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
@@ -2075,10 +2087,10 @@ export default function SetlistsPage({
       link.click();
       link.remove();
       window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-      notify("Chords PDF downloaded");
+      notify(`Chords ${chordPdfFormat.toUpperCase()} downloaded`);
     } catch (error) {
       notify(
-        error instanceof ApiError ? error.message : "Could not create the chords PDF",
+        error instanceof ApiError ? error.message : "Could not create the chords sheet",
         "error",
       );
     } finally {
@@ -2359,12 +2371,26 @@ export default function SetlistsPage({
         </ReadOnlyFieldset>
 
         <div className="big-print-pdf">
-          <h3>Big Print PDF</h3>
+          <h3>Big Print</h3>
           <p className="hint">
-            Printable song words for elderly members. Size and columns apply only to this download;
+            Large-print song words for elderly members. Page titles are 40% larger than the main
+            text and song titles 20% larger. Size, columns and styling apply only to this download;
             defaults live in Settings.
           </p>
           <div className="big-print-controls">
+            <label>
+              Format
+              <select
+                value={songPdfFormat}
+                onChange={(event) =>
+                  setSongPdfFormat(event.target.value as SetlistSheetFormat)
+                }
+              >
+                <option value="pdf">PDF</option>
+                <option value="docx">Word (DOCX)</option>
+                <option value="odf">OpenDocument (ODF)</option>
+              </select>
+            </label>
             <label>
               Text size
               <input
@@ -2390,27 +2416,43 @@ export default function SetlistsPage({
                 <option value={3}>3 columns</option>
               </select>
             </label>
+            <label className="checkbox">
+              <input
+                type="checkbox"
+                checked={songPdfBold}
+                onChange={(event) => setSongPdfBold(event.target.checked)}
+              />
+              Bold text
+            </label>
+            <label className="checkbox">
+              <input
+                type="checkbox"
+                checked={songPdfChorusItalic}
+                onChange={(event) => setSongPdfChorusItalic(event.target.checked)}
+              />
+              Italic choruses
+            </label>
             <button
               className="button primary small"
               onClick={createSongPdf}
               disabled={!detail || creatingSongPdf || !detail.items.some((item) => item.kind === "song")}
               title={
                 detail?.items.some((item) => item.kind === "song")
-                  ? "Download a printable PDF containing the words of every song in this service"
+                  ? `Download a ${songPdfFormat.toUpperCase()} containing the words of every song in this service`
                   : "Add at least one song to create a song sheet"
               }
             >
-              {creatingSongPdf ? "Creating PDF…" : "Create PDF of the songs"}
+              {creatingSongPdf ? "Creating…" : `Create ${songPdfFormat.toUpperCase()} of the songs`}
             </button>
           </div>
         </div>
 
         <div className="big-print-pdf">
-          <h3>Chords Print PDF</h3>
+          <h3>Chords Print</h3>
           <p className="hint">
-            Printable chord charts for musicians. Chord symbols and section labels are kept. Choose
-            portrait or landscape, and include only songs that contain chords or every song in the
-            set list. Size and columns apply only to this download.
+            Chord charts for musicians. Chord symbols and section labels are kept, repeated identical
+            choruses become &lt;CHORUS&gt; placeholders, and choruses are italic by default. Choose
+            portrait or landscape, and include songs with chords or every song in the set list.
           </p>
           <div className="chord-pdf-options">
             <div className="bible-layout-options">
@@ -2418,7 +2460,7 @@ export default function SetlistsPage({
               <div
                 className="segmented-buttons"
                 role="group"
-                aria-label="Chords PDF page orientation"
+                aria-label="Chords page orientation"
               >
                 <button
                   type="button"
@@ -2449,6 +2491,35 @@ export default function SetlistsPage({
                 onChange={(event) => setChordPdfChordsOnly(event.target.checked)}
               />
               Songs with Chords only
+            </label>
+            <label>
+              Format
+              <select
+                value={chordPdfFormat}
+                onChange={(event) =>
+                  setChordPdfFormat(event.target.value as SetlistSheetFormat)
+                }
+              >
+                <option value="pdf">PDF</option>
+                <option value="docx">Word (DOCX)</option>
+                <option value="odf">OpenDocument (ODF)</option>
+              </select>
+            </label>
+            <label className="checkbox">
+              <input
+                type="checkbox"
+                checked={chordPdfBold}
+                onChange={(event) => setChordPdfBold(event.target.checked)}
+              />
+              Bold text
+            </label>
+            <label className="checkbox">
+              <input
+                type="checkbox"
+                checked={chordPdfChorusItalic}
+                onChange={(event) => setChordPdfChorusItalic(event.target.checked)}
+              />
+              Italic choruses
             </label>
           </div>
           <div className="big-print-controls">
@@ -2491,7 +2562,7 @@ export default function SetlistsPage({
                     : "Add at least one song to create a chord chart"
               }
             >
-              {creatingChordPdf ? "Creating PDF…" : "Create chords PDF"}
+              {creatingChordPdf ? "Creating…" : `Create chords ${chordPdfFormat.toUpperCase()}`}
             </button>
           </div>
           <p className="hint">

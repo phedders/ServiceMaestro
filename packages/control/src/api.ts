@@ -118,12 +118,17 @@ export type SetlistMediaType =
   | "score"
   | "tab";
 
+export type SetlistSheetFormat = "pdf" | "docx" | "odf";
+
 interface SetlistPdfOptions {
   fontSize?: number;
   columns?: number;
   orientation?: "portrait" | "landscape";
   chordsOnly?: boolean;
   mediaType?: "vocal" | "lead" | "score" | "tab";
+  format?: SetlistSheetFormat;
+  boldText?: boolean;
+  chorusItalic?: boolean;
 }
 
 async function downloadSetlistPdf(
@@ -138,7 +143,12 @@ async function downloadSetlistPdf(
   if (options.orientation !== undefined) params.set("orientation", options.orientation);
   if (options.chordsOnly !== undefined) params.set("chordsOnly", String(options.chordsOnly));
   if (options.mediaType !== undefined) params.set("type", options.mediaType);
-  const response = await fetch(`/api/setlists/${id}/${file}${params.size ? `?${params}` : ""}`, {
+  if (options.boldText !== undefined) params.set("bold", String(options.boldText));
+  if (options.chorusItalic !== undefined) params.set("chorusItalic", String(options.chorusItalic));
+  const format = options.format ?? "pdf";
+  const path =
+    format === "pdf" || file === "media.pdf" ? file : file.replace(/\.pdf$/, `.${format}`);
+  const response = await fetch(`/api/setlists/${id}/${path}${params.size ? `?${params}` : ""}`, {
     credentials: "include",
   });
   if (!response.ok) {
@@ -765,12 +775,20 @@ export const api = {
     request<{ revision: SetlistRevisionInfo }>(`/api/setlists/${id}/publish`, { method: "POST" }),
   exportSetlistUrl: (id: string, format: "json" | "bundle") =>
     `/api/setlists/${id}/export?format=${format}`,
-  downloadSetlistSongsPdf: (
-    id: string,
-    options: { fontSize?: number; columns?: number } = {},
-  ) => downloadSetlistPdf(id, "songs.pdf", "service-songs.pdf", options),
-  downloadSetlistChordsPdf: (id: string, options: SetlistPdfOptions = {}) =>
-    downloadSetlistPdf(id, "chords.pdf", "service-chords.pdf", options),
+  downloadSetlistSongsSheet: (id: string, options: SetlistPdfOptions = {}) =>
+    downloadSetlistPdf(
+      id,
+      "songs.pdf",
+      `service-songs.${options.format ?? "pdf"}`,
+      options,
+    ),
+  downloadSetlistChordsSheet: (id: string, options: SetlistPdfOptions = {}) =>
+    downloadSetlistPdf(
+      id,
+      "chords.pdf",
+      `service-chords.${options.format ?? "pdf"}`,
+      options,
+    ),
   downloadSetlistMediaPdf: (id: string, mediaType: SetlistMediaType) => {
     if (mediaType === "default") {
       return downloadSetlistPdf(id, "songs.pdf", "service-lyrics.pdf");

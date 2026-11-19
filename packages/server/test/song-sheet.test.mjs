@@ -303,3 +303,131 @@ test("multi-column song sheets use fewer pages than single-column output", () =>
   const data = JSON.parse(result.stdout);
   assert.ok(data.singlePages > data.multiPages, JSON.stringify(data));
 });
+
+test("prints repeated choruses and exports DOCX/ODF big-print and chord sheets", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "sm-song-docs-"));
+  const emptyEnv = path.join(dir, "empty.env");
+  const emptyConfig = path.join(dir, "config.yaml");
+  fs.writeFileSync(emptyEnv, "");
+  fs.writeFileSync(emptyConfig, "{}\n");
+
+  const script = `
+    const { db } = await import(process.env.SM_MODULE_BASE + "db.js");
+    const { unzipSync, strFromU8 } = await import("fflate");
+    const {
+      songSheetLayout,
+      isChorusSectionLabel,
+      buildSongSheetDocument,
+      buildChordSheetDocument,
+    } = await import(process.env.SM_MODULE_BASE + "song-sheet.js");
+    const now = new Date().toISOString();
+    const lyrics = [
+      "[Verse 1]",
+      "A[C]mazing grace how sweet the sound",
+      "That saved a wretch like me",
+      "",
+      "[Chorus]",
+      "How [F]sweet the sound",
+      "That saved a wretch",
+      "",
+      "[Verse 2]",
+      "I once was lost but now am found",
+      "",
+      "[Chorus]",
+      "How [F]sweet the sound",
+      "That saved a wretch",
+    ].join("\\n");
+    db.prepare(
+      "INSERT INTO songs (id, title, author, copyright, ccli, lyrics, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+    ).run(
+      "song-docs",
+      "Amazing Grace",
+      "John Newton",
+      "Public domain",
+      "12345",
+      lyrics,
+      now,
+      now,
+    );
+    db.prepare(
+      "INSERT INTO setlists (id, name, service_date, service_time, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
+    ).run("setlist-docs", "Sunday Service", "2026-11-22", "10:30", now, now);
+    db.prepare(
+      "INSERT INTO setlist_items (id, setlist_id, position, kind, song_id, title) VALUES (?, ?, ?, ?, ?, ?)",
+    ).run("item-docs", "setlist-docs", 0, "song", "song-docs", "Amazing Grace");
+
+    const read = (buffer, name) => strFromU8(unzipSync(new Uint8Array(buffer))[name]);
+    const songsDocx = await buildSongSheetDocument("setlist-docs", "docx", { fontSize: 15 });
+    const songsDocxPlain = await buildSongSheetDocument("setlist-docs", "docx", {
+      fontSize: 15,
+      boldText: false,
+      chorusItalic: false,
+    });
+    const songsOdf = await buildSongSheetDocument("setlist-docs", "odf", { fontSize: 15 });
+    const chordsDocx = await buildChordSheetDocument("setlist-docs", "docx", { fontSize: 15 });
+    const chordsOdf = await buildChordSheetDocument("setlist-docs", "odf", { fontSize: 15 });
+
+    console.log(JSON.stringify({
+      layout: songSheetLayout(lyrics),
+      chorus: isChorusSectionLabel("Chorus"),
+      c: isChorusSectionLabel("c"),
+      c2: isChorusSectionLabel("c2"),
+      verse: isChorusSectionLabel("Verse 1"),
+      songsDocx: read(songsDocx.buffer, "word/document.xml"),
+      songsDocxPlain: read(songsDocxPlain.buffer, "word/document.xml"),
+      songsOdf: read(songsOdf.buffer, "content.xml"),
+      chordsDocx: read(chordsDocx.buffer, "word/document.xml"),
+      chordsOdf: read(chordsOdf.buffer, "content.xml"),
+      songsDocxName: songsDocx.filename,
+      songsOdfType: songsOdf.contentType,
+      chordsOdfName: chordsOdf.filename,
+    }));
+  `;
+
+  const result = spawnSync(process.execPath, ["--input-type=module", "-e", script], {
+    encoding: "utf8",
+    env: {
+      PATH: process.env.PATH,
+      SM_ENV_FILE: emptyEnv,
+      SM_CONFIG_FILE: emptyConfig,
+      SM_DATA_DIR: dir,
+      SM_GIT_ENABLED: "false",
+      SM_MODULE_BASE: moduleBase,
+    },
+  });
+  assert.equal(result.status, 0, result.stderr);
+  const data = JSON.parse(result.stdout);
+
+  assert.equal(data.chorus, true);
+  assert.equal(data.c, true);
+  assert.equal(data.c2, true);
+  assert.equal(data.verse, false);
+  assert.equal(
+    data.layout.filter((line) => line.text === "<CHORUS>").length,
+    1,
+  );
+  assert.match(data.songsDocxName, /sunday-service-2026-11-22-songs\.docx/);
+  assert.match(data.chordsOdfName, /sunday-service-2026-11-22-chords\.odf/);
+  assert.equal(data.songsOdfType, "application/vnd.oasis.opendocument.text");
+
+  // Page title 140%, song title 120%, metadata 8pt (sizes are half-points in DOCX).
+  assert.match(data.songsDocx, /<w:sz w:val="42"\/>/);
+  assert.match(data.songsDocx, /<w:sz w:val="36"\/>/);
+  assert.match(data.songsDocx, /<w:sz w:val="16"\/>/);
+  assert.match(data.songsDocx, /<w:b\/>/);
+  assert.match(data.songsDocx, /<w:i\/>/);
+  assert.match(data.songsDocx, /&lt;CHORUS&gt;/);
+  assert.doesNotMatch(data.songsDocxPlain, /<w:i\/>/);
+  assert.doesNotMatch(data.songsDocxPlain, /<w:b\/>/);
+
+  assert.match(data.songsOdf, /fo:font-size="21pt"/);
+  assert.match(data.songsOdf, /fo:font-size="18pt"/);
+  assert.match(data.songsOdf, /fo:font-size="8pt"/);
+  assert.match(data.songsOdf, /fo:font-weight="bold"/);
+  assert.match(data.songsOdf, /fo:font-style="italic"/);
+  assert.match(data.songsOdf, /&lt;CHORUS&gt;/);
+
+  assert.match(data.chordsDocx, /Chorus/);
+  assert.match(data.chordsDocx, /&lt;CHORUS&gt;/);
+  assert.match(data.chordsOdf, /&lt;CHORUS&gt;/);
+});

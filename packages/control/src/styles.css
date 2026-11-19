@@ -1813,13 +1813,17 @@ body.resizing-live-queue {
 
 .big-print-controls {
   display: grid;
-  grid-template-columns: 90px minmax(110px, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
   gap: 9px;
   align-items: end;
 }
 
 .big-print-controls .button {
   grid-column: 1 / -1;
+}
+
+.big-print-controls .checkbox {
+  align-self: center;
 }
 
 .transfer-panel {
