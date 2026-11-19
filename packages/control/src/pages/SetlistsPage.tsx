@@ -14,6 +14,7 @@ import {
   type BibleLayout,
   type BiblePassage,
   type BibleTranslationInfo,
+  type ChurchSuiteSyncPreview,
   type ImageAsset,
   type LiveState,
   type PlaybackMode,
@@ -33,6 +34,7 @@ import {
 import { useAdapters } from "../adapters";
 import { api, ApiError } from "../api";
 import { BibleLayoutButtons } from "../components/BibleLayoutButtons";
+import { ChurchSuiteSyncDialog } from "../components/ChurchSuiteSyncDialog";
 import { IsoDateInput } from "../components/IsoDateInput";
 import { PageContentEditor } from "../components/PageContentEditor";
 import { SaveButton } from "../components/SaveButton";
@@ -1397,7 +1399,7 @@ export default function SetlistsPage({
   notify: (text: string, kind?: "info" | "error") => void;
 }) {
   const { canWrite } = usePageAccess();
-  const { songSelectEnabled } = useAdapters();
+  const { songSelectEnabled, churchSuiteEnabled } = useAdapters();
   const [setlists, setSetlists] = useState<SetlistSummary[]>([]);
   const [selectedId, setSelectedId] = useSessionState<string | null>(
     "setlists:selected",
@@ -1419,6 +1421,9 @@ export default function SetlistsPage({
   const [importPreview, setImportPreview] = useState<SetlistImportPreview | null>(null);
   const [importReport, setImportReport] = useState<SetlistImportReport | null>(null);
   const [importing, setImporting] = useState(false);
+  const [churchsuiteSyncPreview, setChurchsuiteSyncPreview] =
+    useState<ChurchSuiteSyncPreview | null>(null);
+  const [churchsuiteSyncing, setChurchsuiteSyncing] = useState(false);
   const [creatingSongPdf, setCreatingSongPdf] = useState(false);
   const [songPdfFontSize, setSongPdfFontSize] = useState(15);
   const [songPdfColumns, setSongPdfColumns] = useState(1);
@@ -1980,6 +1985,48 @@ export default function SetlistsPage({
       notify(error instanceof ApiError ? error.message : "Could not publish", "error");
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function openChurchsuiteSync() {
+    if (!detail?.churchsuitePlanId || !canWrite) return;
+    setChurchsuiteSyncing(true);
+    try {
+      const result = await api.churchsuiteSyncPreview(detail.churchsuitePlanId, {});
+      setChurchsuiteSyncPreview(result.preview);
+    } catch (error) {
+      notify(
+        error instanceof ApiError ? error.message : "Could not check ChurchSuite changes",
+        "error",
+      );
+    } finally {
+      setChurchsuiteSyncing(false);
+    }
+  }
+
+  async function syncFromChurchsuite(mode: "create" | "sync") {
+    if (!detail?.churchsuitePlanId || !canWrite) return;
+    setChurchsuiteSyncing(true);
+    try {
+      const result = await api.importChurchsuitePlan(detail.churchsuitePlanId, { mode });
+      setChurchsuiteSyncPreview(null);
+      await loadList(result.report.setlistId);
+      notify(
+        mode === "sync"
+          ? `Updated set list “${result.report.setlistName}” from ChurchSuite`
+          : `Created separate set list “${result.report.setlistName}” from ChurchSuite`,
+      );
+    } catch (error) {
+      notify(
+        error instanceof ApiError
+          ? error.message
+          : mode === "sync"
+            ? "Could not update set list from ChurchSuite"
+            : "Could not create a separate set list",
+        "error",
+      );
+    } finally {
+      setChurchsuiteSyncing(false);
     }
   }
 
@@ -2565,6 +2612,16 @@ export default function SetlistsPage({
           <div className="panel-heading">
             <h2>{detail.name}</h2>
             <div className="button-row">
+              {churchSuiteEnabled && detail.churchsuitePlanId != null && (
+                <button
+                  className="button ghost"
+                  onClick={() => void openChurchsuiteSync()}
+                  disabled={busy || churchsuiteSyncing || !canWrite}
+                  title="Compare this set list with its ChurchSuite plan and sync any changes"
+                >
+                  {churchsuiteSyncing ? "Checking CS…" : "Sync updates from CS"}
+                </button>
+              )}
               <button
                 className="button ghost"
                 onClick={publish}
@@ -3181,6 +3238,16 @@ export default function SetlistsPage({
         </ReadOnlyFieldset>
       ) : (
         <section className="panel empty-state">Create a set list to get started.</section>
+      )}
+
+      {churchsuiteSyncPreview && (
+        <ChurchSuiteSyncDialog
+          preview={churchsuiteSyncPreview}
+          busy={churchsuiteSyncing}
+          onSync={() => void syncFromChurchsuite("sync")}
+          onCreateNew={() => void syncFromChurchsuite("create")}
+          onClose={() => setChurchsuiteSyncPreview(null)}
+        />
       )}
     </div>
   );

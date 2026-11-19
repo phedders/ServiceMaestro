@@ -269,3 +269,133 @@ test("compares a ChurchSuite plan with its existing set list", () => {
   assert.equal(data.finalRows[2].churchsuite_item_id, 103);
   assert.equal(data.finalRows[3].churchsuite_item_id, null);
 });
+
+test("a set-list sync preserves an existing song choice until the plan item changes", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "sm-churchsuite-preserve-"));
+  const emptyEnv = path.join(dir, "empty.env");
+  const emptyConfig = path.join(dir, "config.yaml");
+  fs.writeFileSync(emptyEnv, "");
+  fs.writeFileSync(emptyConfig, "{}\n");
+
+  const script = `
+    const base = process.env.SM_MODULE_BASE;
+    const { db } = await import(base + "db.js");
+    const { applyChurchsuiteSync } = await import(base + "churchsuite-import.js");
+    const now = new Date().toISOString();
+    db.prepare(
+      "INSERT INTO songs (id, title, lyrics, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
+    ).run("song-a", "Amazing Grace", "Amazing grace", now, now);
+    db.prepare(
+      "INSERT INTO songs (id, title, lyrics, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
+    ).run("song-b", "New Grace", "New grace", now, now);
+
+    function previewFor(id, name) {
+      return {
+        plan: {
+          id: 77,
+          identifier: "PLAN-77",
+          name: "Sunday",
+          date: "2026-11-22",
+          time: "10:30",
+          status: "published",
+        },
+        items: [
+          {
+            id,
+            order: 1,
+            typeId: 4,
+            typeName: "Worship",
+            name,
+            isSong: true,
+            key: "G",
+            author: null,
+            notes: null,
+            duration: null,
+            reading: null,
+            action: "song",
+            matchedSong: { id: "song-b", title: "New Grace", key: "G" },
+            matchCandidates: [],
+          },
+        ],
+        existingSetlist: null,
+        songCount: 1,
+        matchedCount: 1,
+        placeholderCount: 0,
+        emptyCount: 0,
+      };
+    }
+
+    function setup(id, name, snapshotName) {
+      const setlistId = "setlist-" + id;
+      db.prepare(
+        "INSERT INTO setlists (id, name, service_date, service_time, notes, churchsuite_plan_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+      ).run(setlistId, "Sunday", "2026-11-22", "10:30", "Imported", 77, now, now);
+      db.prepare(
+        "INSERT INTO setlist_items (id, setlist_id, position, kind, song_id, title, content_source, text_format, text_align, key_override, transpose, max_lines, churchsuite_item_id, churchsuite_snapshot) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      ).run(
+        "row-" + id,
+        setlistId,
+        "0",
+        "song",
+        "song-a",
+        "Amazing Grace",
+        "text",
+        null,
+        null,
+        "G",
+        0,
+        4,
+        id,
+        JSON.stringify({ name: snapshotName, reading: null, layout: null }),
+      );
+      return {
+        id: setlistId,
+        name: "Sunday",
+        serviceDate: "2026-11-22",
+        serviceTime: "10:30",
+        updatedAt: now,
+        itemCount: 1,
+      };
+    }
+
+    const preserved = await applyChurchsuiteSync(
+      { ...previewFor(201, "Amazing Grace"), existingSetlist: setup(201, "Amazing Grace", "Amazing Grace") },
+      {},
+    );
+    const preservedRow = db
+      .prepare("SELECT song_id FROM setlist_items WHERE setlist_id = ?")
+      .get("setlist-201");
+
+    const changed = await applyChurchsuiteSync(
+      { ...previewFor(202, "New Grace"), existingSetlist: setup(202, "New Grace", "Old Grace") },
+      {},
+    );
+    const changedRow = db
+      .prepare("SELECT song_id FROM setlist_items WHERE setlist_id = ?")
+      .get("setlist-202");
+
+    console.log(JSON.stringify({
+      preserved: { report: preserved.report, songId: preservedRow.song_id },
+      changed: { report: changed.report, songId: changedRow.song_id },
+    }));
+  `;
+
+  const result = spawnSync(process.execPath, ["--input-type=module", "-e", script], {
+    encoding: "utf8",
+    env: {
+      PATH: process.env.PATH,
+      SM_ENV_FILE: emptyEnv,
+      SM_CONFIG_FILE: emptyConfig,
+      SM_DATA_DIR: dir,
+      SM_GIT_ENABLED: "false",
+      SM_MODULE_BASE: moduleBase,
+    },
+  });
+  assert.equal(result.status, 0, result.stderr);
+  const data = JSON.parse(result.stdout);
+
+  assert.equal(data.preserved.songId, "song-a");
+  assert.equal(data.preserved.report.updated, 0);
+  assert.equal(data.changed.songId, "song-b");
+  assert.equal(data.changed.report.updated, 1);
+});

@@ -342,6 +342,7 @@ ensureColumn("setlists", "stinger_id", "TEXT");
 ensureColumn("setlists", "archived_at", "TEXT");
 ensureColumn("setlists", "churchsuite_plan_id", "INTEGER");
 ensureColumn("setlist_items", "churchsuite_item_id", "INTEGER");
+ensureColumn("setlist_items", "churchsuite_snapshot", "TEXT");
 ensureColumn("tarp_presentations", "archived_at", "TEXT");
 ensureColumn("service_sessions", "revision_id", "TEXT");
 ensureColumn("service_sessions", "pending_json", "TEXT");

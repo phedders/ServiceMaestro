@@ -489,6 +489,7 @@ export interface SetlistSummary {
   notes: string | null;
   backgroundId: string | null;
   stingerId: string | null;
+  churchsuitePlanId: number | null;
   itemCount: number;
   updatedAt: string;
 }

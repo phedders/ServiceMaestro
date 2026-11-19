@@ -96,6 +96,7 @@ export interface ChurchsuiteSetlistItemRow {
   verse_order: string | null;
   notes: string | null;
   churchsuite_item_id: number | null;
+  churchsuite_snapshot: string | null;
 }
 
 export interface ChurchsuiteDesiredItem {
@@ -110,6 +111,8 @@ export interface ChurchsuiteDesiredItem {
   textAlign: "left" | null;
   keyOverride: string | null;
   notes: string | null;
+  bibleLayout: BibleLayout | null;
+  snapshot: string;
 }
 
 interface DesiredItemsResult {
@@ -409,6 +412,77 @@ function setlistItemRows(setlistId: string): ChurchsuiteSetlistItemRow[] {
     .all(setlistId) as ChurchsuiteSetlistItemRow[];
 }
 
+interface ChurchsuiteItemSnapshot {
+  name: string | null;
+  reading: string | null;
+  layout: BibleLayout | null;
+}
+
+function parseItemSnapshot(value: string | null): ChurchsuiteItemSnapshot | null {
+  if (!value) return null;
+  try {
+    const parsed = JSON.parse(value) as Partial<ChurchsuiteItemSnapshot> | null;
+    if (!parsed || typeof parsed !== "object") return null;
+    return {
+      name: typeof parsed.name === "string" ? parsed.name : null,
+      reading: typeof parsed.reading === "string" ? parsed.reading : null,
+      layout:
+        parsed.layout === "paragraph" || parsed.layout === "verses"
+          ? parsed.layout
+          : null,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function inferBibleLayout(row: ChurchsuiteSetlistItemRow): BibleLayout | null {
+  if (row.content_source !== "bible") return null;
+  const lines = (row.content ?? "").split("\n");
+  return lines.length > 2 ? "verses" : "paragraph";
+}
+
+/**
+ * A set-list page sync has no import form values. Reuse the choices already
+ * stored on the linked items, but only while the underlying plan item is
+ * unchanged, so a new ChurchSuite song or reading still updates normally.
+ */
+function withExistingChoices(
+  preview: ChurchSuitePlanPreview,
+  rows: ChurchsuiteSetlistItemRow[],
+  input: ChurchsuiteImportOptions,
+): ChurchsuiteImportOptions {
+  const byPlanItem = new Map(
+    rows
+      .filter((row) => row.churchsuite_item_id != null)
+      .map((row) => [row.churchsuite_item_id as number, row]),
+  );
+  const songSelections: Record<string, string> = {};
+  const bibleLayouts: Record<string, BibleLayout> = {};
+  for (const item of preview.items) {
+    const row = byPlanItem.get(item.id);
+    if (!row) continue;
+    const snapshot = parseItemSnapshot(row.churchsuite_snapshot);
+    const samePlanItem = !snapshot || snapshot.name === null || snapshot.name === (item.name || null);
+    if (item.isSong && row.song_id && samePlanItem) {
+      const song = db
+        .prepare("SELECT id FROM songs WHERE id = ? AND archived_at IS NULL")
+        .get(row.song_id) as { id: string } | undefined;
+      if (song) songSelections[String(item.id)] = row.song_id;
+    }
+    if (item.reading) {
+      const layout = snapshot?.layout ?? inferBibleLayout(row);
+      const sameReading = !snapshot || snapshot.reading === item.reading.reference;
+      if (layout && sameReading) bibleLayouts[String(item.id)] = layout;
+    }
+  }
+  return {
+    ...input,
+    songSelections: { ...songSelections, ...(input.songSelections ?? {}) },
+    bibleLayouts: { ...bibleLayouts, ...(input.bibleLayouts ?? {}) },
+  };
+}
+
 function importMeta(
   preview: ChurchSuitePlanPreview,
   input: ChurchsuiteImportOptions,
@@ -465,8 +539,11 @@ export function buildDesiredSetlistItems(
       textAlign: "left",
       keyOverride: item.key,
       notes: item.notes,
+      bibleLayout: null,
+      snapshot: "",
     };
 
+    let bibleLayout: BibleLayout | null = null;
     if (selectedSong && item.isSong) {
       Object.assign(desired, {
         kind: "song",
@@ -491,6 +568,7 @@ export function buildDesiredSetlistItems(
       songsMatched += 1;
     } else if (item.reading) {
       const layout = input.bibleLayouts?.[String(item.id)] ?? "verses";
+      bibleLayout = layout;
       const passage = getPassage(
         item.reading.translation,
         item.reading.book,
@@ -526,6 +604,12 @@ export function buildDesiredSetlistItems(
       placeholders += 1;
     }
 
+    desired.bibleLayout = bibleLayout;
+    desired.snapshot = JSON.stringify({
+      name: item.name?.trim() || null,
+      reading: item.reading?.reference ?? null,
+      layout: bibleLayout,
+    });
     items.push(desired);
   }
 
@@ -706,6 +790,17 @@ export function analyseChurchsuiteSync(
     if ((row.key_override ?? null) !== (item.keyOverride ?? null)) {
       fields.push({ label: "Key", before: row.key_override, after: item.keyOverride });
     }
+    if (item.bibleLayout) {
+      const existingLayout =
+        parseItemSnapshot(row.churchsuite_snapshot)?.layout ?? inferBibleLayout(row);
+      if (existingLayout !== item.bibleLayout) {
+        fields.push({
+          label: "Bible layout",
+          before: existingLayout,
+          after: item.bibleLayout,
+        });
+      }
+    }
     if ((row.notes ?? null) !== (item.notes ?? null)) {
       fields.push({
         label: "Notes",
@@ -766,8 +861,8 @@ function insertSetlistItem(
     `INSERT INTO setlist_items
      (id, setlist_id, position, kind, song_id, title, content, content_source,
       text_format, text_align, key_override, transpose, max_lines, verse_order, notes,
-      churchsuite_item_id)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      churchsuite_item_id, churchsuite_snapshot)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   ).run(
     randomUUID(),
     setlistId,
@@ -785,6 +880,7 @@ function insertSetlistItem(
     null,
     item.notes,
     item.planItemId,
+    item.snapshot || null,
   );
 }
 
@@ -847,13 +943,17 @@ export async function previewChurchsuiteSync(
   if (!preview.existingSetlist) {
     throw new Error("This ChurchSuite plan has no existing set list");
   }
-  const desired = buildDesiredSetlistItems(preview, input);
+  const rows = setlistItemRows(preview.existingSetlist.id);
+  const desired = buildDesiredSetlistItems(
+    preview,
+    withExistingChoices(preview, rows, input),
+  );
   if (!desired.items.length) throw new Error("This plan has no importable items");
   const meta = importMeta(preview, input);
   const analysis = analyseChurchsuiteSync(
     desired.items,
     preview.existingSetlist,
-    setlistItemRows(preview.existingSetlist.id),
+    rows,
     meta,
   );
   return {
@@ -878,11 +978,13 @@ export async function applyChurchsuiteSync(
   if (!preview.existingSetlist) {
     throw new Error("This ChurchSuite plan has no existing set list");
   }
-  const desired = buildDesiredSetlistItems(preview, input);
-  if (!desired.items.length) throw new Error("This plan has no importable items");
-
   const existing = preview.existingSetlist;
   const rows = setlistItemRows(existing.id);
+  const desired = buildDesiredSetlistItems(
+    preview,
+    withExistingChoices(preview, rows, input),
+  );
+  if (!desired.items.length) throw new Error("This plan has no importable items");
   const meta = importMeta(preview, input);
   const analysis = analyseChurchsuiteSync(desired.items, existing, rows, meta);
   const now = new Date().toISOString();
@@ -891,7 +993,7 @@ export async function applyChurchsuiteSync(
     `UPDATE setlist_items
      SET position = ?, kind = ?, song_id = ?, title = ?, content = ?,
          content_source = ?, text_format = ?, text_align = ?, key_override = ?,
-         notes = ?, churchsuite_item_id = ?
+         notes = ?, churchsuite_item_id = ?, churchsuite_snapshot = ?
      WHERE id = ? AND setlist_id = ?`,
   );
   db.transaction(() => {
@@ -928,6 +1030,7 @@ export async function applyChurchsuiteSync(
           item.keyOverride,
           item.notes,
           item.planItemId,
+          item.snapshot || null,
           row.id,
           existing.id,
         );

@@ -432,7 +432,8 @@ export default function HelpPage({ onOpenSettings }: { onOpenSettings: () => voi
                     If the plan already has a set list, <strong>Review and update…</strong> highlights
                     added, changed and removed items. <strong>Sync changes</strong> updates the
                     existing set list instead of creating a duplicate, while keeping manually added
-                    items.
+                    items. A linked set list also has <strong>Sync updates from CS</strong> at the top
+                    of the Set lists editor.
                   </li>
                 </>
               )}

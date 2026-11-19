@@ -27,6 +27,7 @@ interface SetlistRow {
   notes: string | null;
   background_id: string | null;
   stinger_id: string | null;
+  churchsuite_plan_id: number | null;
   created_at: string;
   updated_at: string;
   item_count?: number;
@@ -111,6 +112,7 @@ function mapSetlist(row: SetlistRow): SetlistSummary {
     notes: row.notes,
     backgroundId: row.background_id,
     stingerId: row.stinger_id,
+    churchsuitePlanId: row.churchsuite_plan_id ?? null,
     itemCount: row.item_count ?? 0,
     updatedAt: row.updated_at,
   };

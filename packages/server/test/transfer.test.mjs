@@ -66,13 +66,20 @@ test("parses ChurchSuite provenance from a set list manifest", () => {
       JSON.stringify({
         ...MANIFEST,
         setlist: { ...MANIFEST.setlist, churchsuitePlanId: 42 },
-        items: [{ ...MANIFEST.items[0], churchsuiteItemId: 103 }],
+        items: [
+          {
+            ...MANIFEST.items[0],
+            churchsuiteItemId: 103,
+            churchsuiteSnapshot: '{"name":"Reading","reading":"John 1:1","layout":"paragraph"}',
+          },
+        ],
       }),
     ),
     "service.json",
   );
   assert.equal(parsed.manifest.setlist.churchsuitePlanId, 42);
   assert.equal(parsed.manifest.items[0].churchsuiteItemId, 103);
+  assert.match(parsed.manifest.items[0].churchsuiteSnapshot ?? "", /John 1:1/);
 });
 
 test("rejects an unknown format version", () => {

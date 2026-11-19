@@ -53,6 +53,7 @@ const itemSchema = z.object({
   stingerId: z.string().nullable().optional(),
   stingerPageOverrides: z.record(z.string(), z.string()).optional(),
   churchsuiteItemId: z.number().int().positive().nullable().optional(),
+  churchsuiteSnapshot: z.string().max(2000).nullable().optional(),
   song: songSchema.nullable().optional(),
   assetIds: z.array(z.string()).optional(),
 });
@@ -238,6 +239,7 @@ export function buildSetlistExport(
     verse_order: string | null;
     notes: string | null;
     churchsuite_item_id: number | null;
+    churchsuite_snapshot: string | null;
   }>;
 
   const assets: NonNullable<SetlistManifest["assets"]> = [];
@@ -288,6 +290,7 @@ export function buildSetlistExport(
         stingerId: row.stinger_id,
         stingerPageOverrides: parseStingerOverrides(row.stinger_overrides_json),
         churchsuiteItemId: row.churchsuite_item_id ?? null,
+        churchsuiteSnapshot: row.churchsuite_snapshot ?? null,
         song: song
           ? {
               title: song.title,
@@ -325,6 +328,7 @@ export function buildSetlistExport(
         stingerId: row.stinger_id,
         stingerPageOverrides: parseStingerOverrides(row.stinger_overrides_json),
         churchsuiteItemId: row.churchsuite_item_id ?? null,
+        churchsuiteSnapshot: row.churchsuite_snapshot ?? null,
       };
     }
     return {
@@ -347,6 +351,7 @@ export function buildSetlistExport(
       stingerId: row.stinger_id,
       stingerPageOverrides: parseStingerOverrides(row.stinger_overrides_json),
       churchsuiteItemId: row.churchsuite_item_id ?? null,
+      churchsuiteSnapshot: row.churchsuite_snapshot ?? null,
     };
   });
 
@@ -499,8 +504,8 @@ export function importSetlistFile(
      (id, setlist_id, position, kind, song_id, title, content, content_source,
       text_format, text_align, image_fit, background_id, stinger_id,
       stinger_overrides_json, key_override, transpose, max_lines, verse_order, notes,
-      churchsuite_item_id)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      churchsuite_item_id, churchsuite_snapshot)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   );
 
   let importedItems = 0;
@@ -582,6 +587,7 @@ export function importSetlistFile(
       item.verseOrder ?? null,
       item.notes ?? null,
       item.churchsuiteItemId ?? null,
+      item.churchsuiteSnapshot ?? null,
     );
     importedItems += 1;
 
