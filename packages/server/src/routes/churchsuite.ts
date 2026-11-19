@@ -11,6 +11,8 @@ import {
 import {
   importChurchsuitePlan,
   previewChurchsuitePlan,
+  previewChurchsuiteSync,
+  syncChurchsuitePlan,
 } from "../churchsuite-import.js";
 
 async function requireChurchSuite(
@@ -89,6 +91,26 @@ export async function churchsuiteRoutes(app: FastifyInstance): Promise<void> {
   );
 
   app.post(
+    "/api/integrations/churchsuite/plans/:id/sync-preview",
+    { preHandler: [requireAuth, requireChurchSuite, requirePermission("churchsuite")] },
+    async (request, reply) => {
+      const id = Number((request.params as { id: string }).id);
+      if (!Number.isInteger(id) || id <= 0) {
+        return reply.code(400).send({ error: "Invalid plan id" });
+      }
+      const parsed = churchsuiteImportSchema.safeParse(request.body ?? {});
+      if (!parsed.success) {
+        return reply.code(400).send({ error: "Invalid import options", issues: parsed.error.issues });
+      }
+      try {
+        return { preview: await previewChurchsuiteSync(id, parsed.data) };
+      } catch (error) {
+        return reply.code(400).send({ error: (error as Error).message });
+      }
+    },
+  );
+
+  app.post(
     "/api/integrations/churchsuite/plans/:id/import",
     { preHandler: [requireAuth, requireChurchSuite, requirePermission("churchsuite")] },
     async (request, reply) => {
@@ -101,7 +123,9 @@ export async function churchsuiteRoutes(app: FastifyInstance): Promise<void> {
         return reply.code(400).send({ error: "Invalid import options", issues: parsed.error.issues });
       }
       try {
-        return await importChurchsuitePlan(id, parsed.data);
+        return parsed.data.mode === "sync"
+          ? await syncChurchsuitePlan(id, parsed.data)
+          : await importChurchsuitePlan(id, parsed.data);
       } catch (error) {
         return reply.code(400).send({ error: (error as Error).message });
       }

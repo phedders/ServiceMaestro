@@ -4,10 +4,15 @@ import {
   type BibleBook,
   type BibleLayout,
   type ChurchSuiteBibleReading,
+  type ChurchSuiteExistingSetlist,
   type ChurchSuiteImportReport,
   type ChurchSuiteItemPreview,
   type ChurchSuitePlanPreview,
   type ChurchSuitePlanSummary,
+  type ChurchSuiteSyncChange,
+  type ChurchSuiteSyncFieldChange,
+  type ChurchSuiteSyncPreview,
+  type ChurchSuiteSyncSummary,
 } from "@sm/shared";
 import { getBooks, getPassage, listTranslations } from "./bible.js";
 import {
@@ -54,6 +59,74 @@ interface ChurchsuitePlanItem {
 }
 
 type LocalSong = MatchingSongRow;
+
+export interface ChurchsuiteImportOptions {
+  mode?: "create" | "sync";
+  name?: string;
+  serviceDate?: string;
+  serviceTime?: string | null;
+  songSelections?: Record<string, string>;
+  bibleLayouts?: Record<string, BibleLayout>;
+  includeSkipped?: number[];
+}
+
+interface ExistingSetlistRow {
+  id: string;
+  name: string;
+  service_date: string;
+  service_time: string | null;
+  updated_at: string;
+  notes: string | null;
+  item_count: number;
+}
+
+export interface ChurchsuiteSetlistItemRow {
+  id: string;
+  position: number;
+  kind: "song" | "text" | "image" | "image_list" | "tarp";
+  song_id: string | null;
+  title: string;
+  content: string | null;
+  content_source: string | null;
+  text_format: string | null;
+  text_align: string | null;
+  key_override: string | null;
+  transpose: number;
+  max_lines: number;
+  verse_order: string | null;
+  notes: string | null;
+  churchsuite_item_id: number | null;
+}
+
+export interface ChurchsuiteDesiredItem {
+  planItemId: number;
+  sequence: number;
+  kind: "song" | "text";
+  songId: string | null;
+  title: string;
+  content: string | null;
+  contentSource: "text" | "bible";
+  textFormat: "text" | null;
+  textAlign: "left" | null;
+  keyOverride: string | null;
+  notes: string | null;
+}
+
+interface DesiredItemsResult {
+  items: ChurchsuiteDesiredItem[];
+  songsMatched: number;
+  placeholders: number;
+  emptyItems: number;
+  skipped: number;
+}
+
+interface SyncAnalysis {
+  changes: ChurchSuiteSyncChange[];
+  summary: ChurchSuiteSyncSummary;
+  matches: Map<number, ChurchsuiteSetlistItemRow>;
+  removedRows: ChurchsuiteSetlistItemRow[];
+  manualRows: ChurchsuiteSetlistItemRow[];
+}
 
 function compactDate(value: string): string {
   const match = value.match(/^(\d{4})-?(\d{2})-?(\d{2})/);
@@ -259,16 +332,20 @@ export async function previewChurchsuitePlan(planId: number): Promise<ChurchSuit
       };
     });
 
+  const planSummary: ChurchSuitePlanSummary = {
+    id: plan.id,
+    identifier: plan.identifier ?? null,
+    name: plan.name?.trim() || `ChurchSuite plan ${plan.id}`,
+    date: plan.date ?? "",
+    time: plan.time ?? null,
+    status: plan.status ?? "unknown",
+  };
+  const existing = findChurchsuiteSetlist(plan.id, planSummary.identifier);
+
   return {
-    plan: {
-      id: plan.id,
-      identifier: plan.identifier ?? null,
-      name: plan.name?.trim() || `ChurchSuite plan ${plan.id}`,
-      date: plan.date ?? "",
-      time: plan.time ?? null,
-      status: plan.status ?? "unknown",
-    },
+    plan: planSummary,
     items: previewItems,
+    existingSetlist: existing ? existingSummary(existing) : null,
     songCount: previewItems.filter((item) => item.isSong).length,
     matchedCount: previewItems.filter((item) => item.matchedSong).length,
     placeholderCount: previewItems.filter((item) => item.action === "placeholder").length,
@@ -285,28 +362,57 @@ function placeholderContent(item: ChurchSuiteItemPreview): string {
   return lines.filter(Boolean).join("\n");
 }
 
-export async function importChurchsuitePlan(
+const EXISTING_SETLIST_SELECT = `
+  SELECT s.id, s.name, s.service_date, s.service_time, s.updated_at, s.notes,
+         (SELECT COUNT(*) FROM setlist_items i WHERE i.setlist_id = s.id) AS item_count
+  FROM setlists s
+  WHERE s.archived_at IS NULL`;
+
+function findChurchsuiteSetlist(
   planId: number,
-  input: {
-    name?: string;
-    serviceDate?: string;
-    serviceTime?: string | null;
-    songSelections?: Record<string, string>;
-    bibleLayouts?: Record<string, BibleLayout>;
-    includeSkipped?: number[];
-  } = {},
-): Promise<{ report: ChurchSuiteImportReport; setlist: unknown }> {
-  const preview = await previewChurchsuitePlan(planId);
-  const includedSkipped = new Set(input.includeSkipped ?? []);
-  if (
-    !preview.items.some(
-      (item) => item.action !== "skip" || includedSkipped.has(item.id),
+  identifier?: string | null,
+): ExistingSetlistRow | undefined {
+  const linked = db
+    .prepare(
+      `${EXISTING_SETLIST_SELECT} AND s.churchsuite_plan_id = ? ORDER BY s.updated_at DESC LIMIT 1`,
     )
-  ) {
-    throw new Error("This plan has no importable items");
-  }
-  const id = randomUUID();
-  const now = new Date().toISOString();
+    .get(planId) as ExistingSetlistRow | undefined;
+  if (linked) return linked;
+
+  // Set lists imported before plan IDs were stored keep the plan reference in
+  // their notes. Match that fallback once, then future syncs use the column.
+  const legacy = db
+    .prepare(
+      `${EXISTING_SETLIST_SELECT} AND s.notes LIKE 'Imported from ChurchSuite plan %' ORDER BY s.updated_at DESC`,
+    )
+    .all() as ExistingSetlistRow[];
+  return legacy.find((row) => {
+    const reference = row.notes?.match(/\(([^()]*)\)\s*$/)?.[1]?.trim();
+    return reference === String(planId) || Boolean(identifier && reference === identifier);
+  });
+}
+
+function existingSummary(row: ExistingSetlistRow): ChurchSuiteExistingSetlist {
+  return {
+    id: row.id,
+    name: row.name,
+    serviceDate: row.service_date,
+    serviceTime: row.service_time,
+    updatedAt: row.updated_at,
+    itemCount: Number(row.item_count ?? 0),
+  };
+}
+
+function setlistItemRows(setlistId: string): ChurchsuiteSetlistItemRow[] {
+  return db
+    .prepare("SELECT * FROM setlist_items WHERE setlist_id = ? ORDER BY position ASC, rowid ASC")
+    .all(setlistId) as ChurchsuiteSetlistItemRow[];
+}
+
+function importMeta(
+  preview: ChurchSuitePlanPreview,
+  input: ChurchsuiteImportOptions,
+): { name: string; serviceDate: string; serviceTime: string | null; notes: string } {
   const serviceDate = input.serviceDate || preview.plan.date;
   if (!serviceDate) throw new Error("ChurchSuite plan has no service date");
   const serviceTime =
@@ -318,33 +424,26 @@ export async function importChurchsuitePlan(
   const name =
     input.name?.trim() ||
     `${compactDate(serviceDate)}-${preview.plan.name}`.slice(0, 200);
-
-  db.prepare(
-    `INSERT INTO setlists (id, name, service_date, service_time, notes, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
-  ).run(
-    id,
+  return {
     name,
     serviceDate,
     serviceTime,
-    `Imported from ChurchSuite plan ${preview.plan.name} (${preview.plan.identifier ?? planId})`,
-    now,
-    now,
-  );
+    notes: `Imported from ChurchSuite plan ${preview.plan.name} (${preview.plan.identifier ?? preview.plan.id})`,
+  };
+}
 
-  const insert = db.prepare(
-    `INSERT INTO setlist_items
-     (id, setlist_id, position, kind, song_id, title, content, content_source,
-      text_format, text_align, key_override, transpose, max_lines, verse_order, notes)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-  );
+export function buildDesiredSetlistItems(
+  preview: ChurchSuitePlanPreview,
+  input: ChurchsuiteImportOptions = {},
+): DesiredItemsResult {
+  const includedSkipped = new Set(input.includeSkipped ?? []);
   const findSong = db.prepare("SELECT id, title FROM songs WHERE id = ?");
-
-  let position = 0;
+  const items: ChurchsuiteDesiredItem[] = [];
   let songsMatched = 0;
   let placeholders = 0;
   let emptyItems = 0;
   let skipped = 0;
+
   for (const item of preview.items) {
     if (item.action === "skip" && !includedSkipped.has(item.id)) {
       skipped += 1;
@@ -354,43 +453,41 @@ export async function importChurchsuitePlan(
     const selectedSong = selectedId
       ? (findSong.get(selectedId) as { id: string; title: string } | undefined)
       : undefined;
+    const desired: ChurchsuiteDesiredItem = {
+      planItemId: item.id,
+      sequence: items.length,
+      kind: "text",
+      songId: null,
+      title: item.name || item.typeName || "ChurchSuite item",
+      content: placeholderContent(item),
+      contentSource: "text",
+      textFormat: "text",
+      textAlign: "left",
+      keyOverride: item.key,
+      notes: item.notes,
+    };
+
     if (selectedSong && item.isSong) {
-      insert.run(
-        randomUUID(),
-        id,
-        position,
-        "song",
-        selectedSong.id,
-        selectedSong.title,
-        null,
-        "text",
-        null,
-        null,
-        item.key,
-        0,
-        4,
-        null,
-        item.notes,
-      );
+      Object.assign(desired, {
+        kind: "song",
+        songId: selectedSong.id,
+        title: selectedSong.title,
+        content: null,
+        contentSource: "text",
+        textFormat: null,
+        textAlign: null,
+      });
       songsMatched += 1;
     } else if (item.action === "song" && item.matchedSong) {
-      insert.run(
-        randomUUID(),
-        id,
-        position,
-        "song",
-        item.matchedSong.id,
-        item.matchedSong.title,
-        null,
-        "text",
-        null,
-        null,
-        item.key,
-        0,
-        4,
-        null,
-        item.notes,
-      );
+      Object.assign(desired, {
+        kind: "song",
+        songId: item.matchedSong.id,
+        title: item.matchedSong.title,
+        content: null,
+        contentSource: "text",
+        textFormat: null,
+        textAlign: null,
+      });
       songsMatched += 1;
     } else if (item.reading) {
       const layout = input.bibleLayouts?.[String(item.id)] ?? "verses";
@@ -407,102 +504,463 @@ export async function importChurchsuitePlan(
           item.reading.fromPart,
           item.reading.toPart,
         );
-        insert.run(
-          randomUUID(),
-          id,
-          position,
-          "text",
-          null,
-          item.reading.reference,
-          `${item.reading.reference} (${item.reading.translationName})\n${formatBibleVerses(
+        Object.assign(desired, {
+          title: item.reading.reference,
+          content: `${item.reading.reference} (${item.reading.translationName})\n${formatBibleVerses(
             verses,
             layout,
             { verseNumbers: layout === "paragraph" },
           )}`,
-          "bible",
-          "text",
-          "left",
-          null,
-          0,
-          4,
-          null,
-          item.notes,
-        );
+          contentSource: "bible",
+        });
         placeholders += 1;
       } else {
-        insert.run(
-          randomUUID(),
-          id,
-          position,
-          "text",
-          null,
-          item.name || item.typeName || "ChurchSuite item",
-          placeholderContent(item),
-          "text",
-          "text",
-          "left",
-          null,
-          0,
-          4,
-          null,
-          item.notes,
-        );
+        desired.content = placeholderContent(item);
         placeholders += 1;
       }
     } else if (item.action === "empty") {
-      insert.run(
-        randomUUID(),
-        id,
-        position,
-        "text",
-        null,
-        item.name || item.typeName || "ChurchSuite item",
-        "",
-        "text",
-        "text",
-        "left",
-        null,
-        0,
-        4,
-        null,
-        item.notes || placeholderContent(item),
-      );
+      desired.content = "";
+      desired.notes = item.notes || placeholderContent(item);
       emptyItems += 1;
     } else {
-      insert.run(
-        randomUUID(),
-        id,
-        position,
-        "text",
-        null,
-        item.name || item.typeName || "ChurchSuite item",
-        placeholderContent(item),
-        "text",
-        "text",
-        "left",
-        null,
-        0,
-        4,
-        null,
-        item.notes,
-      );
       placeholders += 1;
     }
-    position += 1;
+
+    items.push(desired);
   }
 
+  return { items, songsMatched, placeholders, emptyItems, skipped };
+}
+
+function nonEmpty(value: string | null): string | null {
+  const text = value?.trim();
+  return text ? text : null;
+}
+
+function changeValue(value: string | null, limit = 320): string | null {
+  const text = nonEmpty(value);
+  if (!text) return null;
+  return text.length > limit ? `${text.slice(0, limit - 1)}…` : text;
+}
+
+function describeDesired(item: ChurchsuiteDesiredItem): string {
+  if (item.kind === "song") return item.songId ? "Matched local song" : "Song placeholder";
+  if (item.contentSource === "bible") return "Bible reading";
+  return item.content ? "Text placeholder" : "Empty item";
+}
+
+function matchExistingItems(
+  desired: ChurchsuiteDesiredItem[],
+  rows: ChurchsuiteSetlistItemRow[],
+): {
+  matches: Map<number, ChurchsuiteSetlistItemRow>;
+  removedRows: ChurchsuiteSetlistItemRow[];
+  manualRows: ChurchsuiteSetlistItemRow[];
+} {
+  const used = new Set<string>();
+  const matches = new Map<number, ChurchsuiteSetlistItemRow>();
+  const desiredIds = new Set(desired.map((item) => item.planItemId));
+
+  for (const item of desired) {
+    const row = rows.find(
+      (candidate) =>
+        !used.has(candidate.id) && candidate.churchsuite_item_id === item.planItemId,
+    );
+    if (row) {
+      matches.set(item.planItemId, row);
+      used.add(row.id);
+    }
+  }
+
+  for (const item of desired) {
+    if (matches.has(item.planItemId)) continue;
+    let row =
+      item.kind === "song" && item.songId
+        ? rows.find(
+            (candidate) =>
+              !used.has(candidate.id) &&
+              candidate.churchsuite_item_id == null &&
+              candidate.kind === "song" &&
+              candidate.song_id === item.songId,
+          )
+        : undefined;
+    if (!row) {
+      row = rows.find(
+        (candidate) =>
+          !used.has(candidate.id) &&
+          candidate.churchsuite_item_id == null &&
+          candidate.kind === item.kind &&
+          normalize(candidate.title) === normalize(item.title),
+      );
+    }
+    if (!row) {
+      const candidate = rows[item.sequence];
+      if (
+        candidate &&
+        !used.has(candidate.id) &&
+        candidate.churchsuite_item_id == null &&
+        candidate.kind === item.kind
+      ) {
+        row = candidate;
+      }
+    }
+    if (row) {
+      matches.set(item.planItemId, row);
+      used.add(row.id);
+    }
+  }
+
+  const removedRows = rows.filter(
+    (row) =>
+      !used.has(row.id) &&
+      row.churchsuite_item_id != null &&
+      !desiredIds.has(row.churchsuite_item_id),
+  );
+  const removedIds = new Set(removedRows.map((row) => row.id));
+  const manualRows = rows.filter((row) => !used.has(row.id) && !removedIds.has(row.id));
+  return { matches, removedRows, manualRows };
+}
+
+export function analyseChurchsuiteSync(
+  desired: ChurchsuiteDesiredItem[],
+  existing: ChurchSuiteExistingSetlist,
+  rows: ChurchsuiteSetlistItemRow[],
+  meta: { name: string; serviceDate: string; serviceTime: string | null },
+): SyncAnalysis {
+  const { matches, removedRows, manualRows } = matchExistingItems(desired, rows);
+  const changes: ChurchSuiteSyncChange[] = [];
+  let updated = 0;
+  let unchanged = 0;
+
+  const setlistFields: ChurchSuiteSyncFieldChange[] = [];
+  if (existing.name !== meta.name) {
+    setlistFields.push({ label: "Name", before: existing.name, after: meta.name });
+  }
+  if (existing.serviceDate !== meta.serviceDate) {
+    setlistFields.push({
+      label: "Service date",
+      before: existing.serviceDate,
+      after: meta.serviceDate,
+    });
+  }
+  if ((existing.serviceTime ?? null) !== (meta.serviceTime ?? null)) {
+    setlistFields.push({
+      label: "Service time",
+      before: existing.serviceTime,
+      after: meta.serviceTime,
+    });
+  }
+  if (setlistFields.length) {
+    changes.push({
+      kind: "setlist",
+      title: "Set list details",
+      detail: `“${existing.name}”`,
+      fields: setlistFields,
+    });
+  }
+
+  for (const item of desired) {
+    const row = matches.get(item.planItemId);
+    if (!row) {
+      changes.push({
+        kind: "added",
+        title: item.title,
+        detail: describeDesired(item),
+        fields: [],
+      });
+      continue;
+    }
+    const fields: ChurchSuiteSyncFieldChange[] = [];
+    if (row.kind !== item.kind) {
+      fields.push({ label: "Item type", before: row.kind, after: item.kind });
+    }
+    if (row.song_id !== item.songId) {
+      fields.push({
+        label: "Song",
+        before: row.song_id ? row.title : null,
+        after: item.songId ? item.title : null,
+      });
+    } else if (row.title !== item.title) {
+      fields.push({ label: "Title", before: row.title, after: item.title });
+    }
+    if ((row.content ?? null) !== (item.content ?? null)) {
+      fields.push({
+        label: "Content",
+        before: changeValue(row.content),
+        after: changeValue(item.content),
+      });
+    }
+    if ((row.content_source ?? "text") !== item.contentSource) {
+      fields.push({
+        label: "Content source",
+        before: row.content_source ?? "text",
+        after: item.contentSource,
+      });
+    }
+    if ((row.text_format ?? null) !== item.textFormat) {
+      fields.push({ label: "Format", before: row.text_format, after: item.textFormat });
+    }
+    if ((row.text_align ?? null) !== item.textAlign) {
+      fields.push({ label: "Alignment", before: row.text_align, after: item.textAlign });
+    }
+    if ((row.key_override ?? null) !== (item.keyOverride ?? null)) {
+      fields.push({ label: "Key", before: row.key_override, after: item.keyOverride });
+    }
+    if ((row.notes ?? null) !== (item.notes ?? null)) {
+      fields.push({
+        label: "Notes",
+        before: changeValue(row.notes),
+        after: changeValue(item.notes),
+      });
+    }
+    if (row.position !== item.sequence) {
+      fields.push({
+        label: "Position",
+        before: String(row.position + 1),
+        after: String(item.sequence + 1),
+      });
+    }
+    if (fields.length) {
+      updated += 1;
+      changes.push({
+        kind: "updated",
+        title: item.title,
+        detail: describeDesired(item),
+        fields,
+      });
+    } else {
+      unchanged += 1;
+    }
+  }
+
+  for (const row of removedRows) {
+    changes.push({
+      kind: "removed",
+      title: row.title,
+      detail: "No longer in the ChurchSuite plan",
+      fields: [],
+    });
+  }
+
+  return {
+    changes,
+    summary: {
+      added: changes.filter((change) => change.kind === "added").length,
+      updated,
+      removed: removedRows.length,
+      unchanged,
+      manual: manualRows.length,
+    },
+    matches,
+    removedRows,
+    manualRows,
+  };
+}
+
+function insertSetlistItem(
+  setlistId: string,
+  item: ChurchsuiteDesiredItem,
+  position: number,
+): void {
+  db.prepare(
+    `INSERT INTO setlist_items
+     (id, setlist_id, position, kind, song_id, title, content, content_source,
+      text_format, text_align, key_override, transpose, max_lines, verse_order, notes,
+      churchsuite_item_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  ).run(
+    randomUUID(),
+    setlistId,
+    position,
+    item.kind,
+    item.songId,
+    item.title,
+    item.content,
+    item.contentSource,
+    item.textFormat,
+    item.textAlign,
+    item.keyOverride,
+    0,
+    4,
+    null,
+    item.notes,
+    item.planItemId,
+  );
+}
+
+export async function importChurchsuitePlan(
+  planId: number,
+  input: ChurchsuiteImportOptions = {},
+): Promise<{ report: ChurchSuiteImportReport; setlist: unknown }> {
+  const preview = await previewChurchsuitePlan(planId);
+  const desired = buildDesiredSetlistItems(preview, input);
+  if (!desired.items.length) throw new Error("This plan has no importable items");
+
+  const id = randomUUID();
+  const now = new Date().toISOString();
+  const meta = importMeta(preview, input);
+
+  db.prepare(
+    `INSERT INTO setlists
+       (id, name, service_date, service_time, notes, churchsuite_plan_id, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+  ).run(
+    id,
+    meta.name,
+    meta.serviceDate,
+    meta.serviceTime,
+    meta.notes,
+    planId,
+    now,
+    now,
+  );
+
+  for (const item of desired.items) insertSetlistItem(id, item, item.sequence);
   db.prepare("UPDATE setlists SET updated_at = ? WHERE id = ?").run(now, id);
   await saveSetlistToGit(id).catch(() => undefined);
   const setlist = db.prepare("SELECT * FROM setlists WHERE id = ?").get(id);
   return {
     report: {
       setlistId: id,
-      setlistName: name,
-      itemCount: position,
-      songsMatched,
-      placeholders,
-      emptyItems,
-      skipped,
+      setlistName: meta.name,
+      mode: "created",
+      itemCount: desired.items.length,
+      songsMatched: desired.songsMatched,
+      placeholders: desired.placeholders,
+      emptyItems: desired.emptyItems,
+      skipped: desired.skipped,
+      added: desired.items.length,
+      updated: 0,
+      removed: 0,
+      unchanged: 0,
+      manual: 0,
+    },
+    setlist,
+  };
+}
+
+export async function previewChurchsuiteSync(
+  planId: number,
+  input: ChurchsuiteImportOptions = {},
+): Promise<ChurchSuiteSyncPreview> {
+  const preview = await previewChurchsuitePlan(planId);
+  if (!preview.existingSetlist) {
+    throw new Error("This ChurchSuite plan has no existing set list");
+  }
+  const desired = buildDesiredSetlistItems(preview, input);
+  if (!desired.items.length) throw new Error("This plan has no importable items");
+  const meta = importMeta(preview, input);
+  const analysis = analyseChurchsuiteSync(
+    desired.items,
+    preview.existingSetlist,
+    setlistItemRows(preview.existingSetlist.id),
+    meta,
+  );
+  return {
+    existingSetlist: preview.existingSetlist,
+    changes: analysis.changes,
+    summary: analysis.summary,
+  };
+}
+
+export async function syncChurchsuitePlan(
+  planId: number,
+  input: ChurchsuiteImportOptions = {},
+): Promise<{ report: ChurchSuiteImportReport; setlist: unknown }> {
+  const preview = await previewChurchsuitePlan(planId);
+  return applyChurchsuiteSync(preview, input);
+}
+
+export async function applyChurchsuiteSync(
+  preview: ChurchSuitePlanPreview,
+  input: ChurchsuiteImportOptions = {},
+): Promise<{ report: ChurchSuiteImportReport; setlist: unknown }> {
+  if (!preview.existingSetlist) {
+    throw new Error("This ChurchSuite plan has no existing set list");
+  }
+  const desired = buildDesiredSetlistItems(preview, input);
+  if (!desired.items.length) throw new Error("This plan has no importable items");
+
+  const existing = preview.existingSetlist;
+  const rows = setlistItemRows(existing.id);
+  const meta = importMeta(preview, input);
+  const analysis = analyseChurchsuiteSync(desired.items, existing, rows, meta);
+  const now = new Date().toISOString();
+
+  const updateItem = db.prepare(
+    `UPDATE setlist_items
+     SET position = ?, kind = ?, song_id = ?, title = ?, content = ?,
+         content_source = ?, text_format = ?, text_align = ?, key_override = ?,
+         notes = ?, churchsuite_item_id = ?
+     WHERE id = ? AND setlist_id = ?`,
+  );
+  db.transaction(() => {
+    db.prepare(
+      `UPDATE setlists
+       SET name = ?, service_date = ?, service_time = ?, notes = ?,
+           churchsuite_plan_id = ?, updated_at = ?
+       WHERE id = ?`,
+    ).run(
+      meta.name,
+      meta.serviceDate,
+      meta.serviceTime,
+      meta.notes,
+      preview.plan.id,
+      now,
+      existing.id,
+    );
+
+    const removeItem = db.prepare("DELETE FROM setlist_items WHERE id = ? AND setlist_id = ?");
+    for (const row of analysis.removedRows) removeItem.run(row.id, existing.id);
+
+    for (const item of desired.items) {
+      const row = analysis.matches.get(item.planItemId);
+      if (row) {
+        updateItem.run(
+          item.sequence,
+          item.kind,
+          item.songId,
+          item.title,
+          item.content,
+          item.contentSource,
+          item.textFormat,
+          item.textAlign,
+          item.keyOverride,
+          item.notes,
+          item.planItemId,
+          row.id,
+          existing.id,
+        );
+      } else {
+        insertSetlistItem(existing.id, item, item.sequence);
+      }
+    }
+
+    const updatePosition = db.prepare(
+      "UPDATE setlist_items SET position = ? WHERE id = ? AND setlist_id = ?",
+    );
+    analysis.manualRows.forEach((row, index) => {
+      updatePosition.run(desired.items.length + index, row.id, existing.id);
+    });
+  })();
+
+  await saveSetlistToGit(existing.id).catch(() => undefined);
+  const setlist = db.prepare("SELECT * FROM setlists WHERE id = ?").get(existing.id);
+  return {
+    report: {
+      setlistId: existing.id,
+      setlistName: meta.name,
+      mode: "updated",
+      itemCount: desired.items.length,
+      songsMatched: desired.songsMatched,
+      placeholders: desired.placeholders,
+      emptyItems: desired.emptyItems,
+      skipped: desired.skipped,
+      added: analysis.summary.added,
+      updated: analysis.summary.updated,
+      removed: analysis.summary.removed,
+      unchanged: analysis.summary.unchanged,
+      manual: analysis.summary.manual,
     },
     setlist,
   };

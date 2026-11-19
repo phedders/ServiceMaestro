@@ -1438,20 +1438,63 @@ export interface ChurchSuiteItemPreview {
 export interface ChurchSuitePlanPreview {
   plan: ChurchSuitePlanSummary;
   items: ChurchSuiteItemPreview[];
+  existingSetlist: ChurchSuiteExistingSetlist | null;
   songCount: number;
   matchedCount: number;
   placeholderCount: number;
   emptyCount: number;
 }
 
+export interface ChurchSuiteExistingSetlist {
+  id: string;
+  name: string;
+  serviceDate: string;
+  serviceTime: string | null;
+  updatedAt: string;
+  itemCount: number;
+}
+
+export interface ChurchSuiteSyncFieldChange {
+  label: string;
+  before: string | null;
+  after: string | null;
+}
+
+export interface ChurchSuiteSyncChange {
+  kind: "added" | "removed" | "updated" | "setlist";
+  title: string;
+  detail: string | null;
+  fields: ChurchSuiteSyncFieldChange[];
+}
+
+export interface ChurchSuiteSyncSummary {
+  added: number;
+  updated: number;
+  removed: number;
+  unchanged: number;
+  manual: number;
+}
+
+export interface ChurchSuiteSyncPreview {
+  existingSetlist: ChurchSuiteExistingSetlist;
+  changes: ChurchSuiteSyncChange[];
+  summary: ChurchSuiteSyncSummary;
+}
+
 export interface ChurchSuiteImportReport {
   setlistId: string;
   setlistName: string;
+  mode: "created" | "updated";
   itemCount: number;
   songsMatched: number;
   placeholders: number;
   emptyItems: number;
   skipped: number;
+  added: number;
+  updated: number;
+  removed: number;
+  unchanged: number;
+  manual: number;
 }
 
 export interface SongSelectWatchFile {
@@ -2639,6 +2682,7 @@ export const gitSettingsSchema = z.object({
 });
 
 export const churchsuiteImportSchema = z.object({
+  mode: z.enum(["create", "sync"]).default("create"),
   name: z.string().trim().min(1).max(200).optional(),
   serviceDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   serviceTime: z.string().trim().max(10).optional().nullable(),

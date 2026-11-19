@@ -4395,6 +4395,183 @@ body.resizing-live-queue {
   color: var(--muted);
 }
 
+.cs-sync-modal {
+  width: min(820px, 96vw);
+}
+
+.cs-sync-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 14px;
+}
+
+.cs-sync-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 9px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--panel-2);
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.cs-sync-chip.added {
+  color: #86efac;
+  border-color: rgba(74, 222, 128, 0.35);
+  background: rgba(74, 222, 128, 0.08);
+}
+
+.cs-sync-chip.updated {
+  color: #fde68a;
+  border-color: rgba(250, 204, 21, 0.35);
+  background: rgba(250, 204, 21, 0.08);
+}
+
+.cs-sync-chip.removed {
+  color: #fca5a5;
+  border-color: rgba(248, 113, 113, 0.35);
+  background: rgba(248, 113, 113, 0.08);
+}
+
+.cs-sync-chip.manual {
+  color: #c4b5fd;
+}
+
+.cs-sync-changes {
+  display: grid;
+  gap: 10px;
+  max-height: 52vh;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.cs-sync-change {
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--border);
+  border-radius: 9px;
+  background: var(--panel-2);
+  padding: 10px 12px;
+}
+
+.cs-sync-change.added {
+  border-left-color: var(--success);
+}
+
+.cs-sync-change.updated,
+.cs-sync-change.setlist {
+  border-left-color: var(--warning);
+}
+
+.cs-sync-change.removed {
+  border-left-color: #f87171;
+}
+
+.cs-sync-change-heading {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.cs-sync-change-heading p {
+  margin: 0;
+}
+
+.cs-sync-change > p {
+  margin: 5px 0 0;
+  font-size: 0.76rem;
+}
+
+.cs-sync-kind {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.15);
+  color: var(--muted);
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.cs-sync-kind.added {
+  color: #86efac;
+}
+
+.cs-sync-kind.updated,
+.cs-sync-kind.setlist {
+  color: #fde68a;
+}
+
+.cs-sync-kind.removed {
+  color: #fca5a5;
+}
+
+.cs-sync-fields {
+  display: grid;
+  gap: 6px;
+  margin-top: 9px;
+}
+
+.cs-sync-field {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+  padding-top: 6px;
+  border-top: 1px dashed rgba(148, 163, 184, 0.16);
+  font-size: 0.76rem;
+}
+
+.cs-sync-label {
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.cs-sync-before,
+.cs-sync-after {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.cs-sync-before {
+  color: #fca5a5;
+  text-decoration: line-through;
+  text-decoration-color: rgba(248, 113, 113, 0.45);
+}
+
+.cs-sync-after {
+  color: #86efac;
+}
+
+.cs-sync-arrow {
+  color: var(--muted);
+}
+
+.cs-sync-empty {
+  margin: 0;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--panel-2);
+  color: var(--muted);
+}
+
+.cs-sync-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+
 .config-kv > div {
   display: grid;
   gap: 3px;

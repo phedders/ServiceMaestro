@@ -52,6 +52,7 @@ const itemSchema = z.object({
   backgroundId: z.string().nullable().optional(),
   stingerId: z.string().nullable().optional(),
   stingerPageOverrides: z.record(z.string(), z.string()).optional(),
+  churchsuiteItemId: z.number().int().positive().nullable().optional(),
   song: songSchema.nullable().optional(),
   assetIds: z.array(z.string()).optional(),
 });
@@ -82,6 +83,7 @@ const manifestSchema = z.object({
     notes: z.string().nullable().optional(),
     backgroundId: z.string().nullable().optional(),
     stingerId: z.string().nullable().optional(),
+    churchsuitePlanId: z.number().int().positive().nullable().optional(),
     archivedAt: z.string().nullable().optional(),
   }),
   items: z.array(itemSchema).max(1000),
@@ -210,6 +212,7 @@ export function buildSetlistExport(
         notes: string | null;
         background_id: string | null;
         stinger_id: string | null;
+        churchsuite_plan_id: number | null;
         archived_at: string | null;
       }
     | undefined;
@@ -234,6 +237,7 @@ export function buildSetlistExport(
     max_lines: number;
     verse_order: string | null;
     notes: string | null;
+    churchsuite_item_id: number | null;
   }>;
 
   const assets: NonNullable<SetlistManifest["assets"]> = [];
@@ -283,6 +287,7 @@ export function buildSetlistExport(
         backgroundId: row.background_id,
         stingerId: row.stinger_id,
         stingerPageOverrides: parseStingerOverrides(row.stinger_overrides_json),
+        churchsuiteItemId: row.churchsuite_item_id ?? null,
         song: song
           ? {
               title: song.title,
@@ -319,6 +324,7 @@ export function buildSetlistExport(
         backgroundId: row.background_id,
         stingerId: row.stinger_id,
         stingerPageOverrides: parseStingerOverrides(row.stinger_overrides_json),
+        churchsuiteItemId: row.churchsuite_item_id ?? null,
       };
     }
     return {
@@ -340,6 +346,7 @@ export function buildSetlistExport(
       backgroundId: row.background_id,
       stingerId: row.stinger_id,
       stingerPageOverrides: parseStingerOverrides(row.stinger_overrides_json),
+      churchsuiteItemId: row.churchsuite_item_id ?? null,
     };
   });
 
@@ -368,6 +375,7 @@ export function buildSetlistExport(
       notes: setlist.notes,
       backgroundId: setlist.background_id,
       stingerId: setlist.stinger_id,
+      churchsuitePlanId: setlist.churchsuite_plan_id ?? null,
       archivedAt: setlist.archived_at ?? null,
     },
     items,
@@ -471,8 +479,8 @@ export function importSetlistFile(
   db.prepare(
     `INSERT INTO setlists
      (id, name, service_date, service_time, notes, background_id, stinger_id,
-      created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      churchsuite_plan_id, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   ).run(
     setlistId,
     name,
@@ -481,6 +489,7 @@ export function importSetlistFile(
     manifest.setlist.notes ?? null,
     manifest.setlist.backgroundId ?? null,
     manifest.setlist.stingerId ?? null,
+    manifest.setlist.churchsuitePlanId ?? null,
     now,
     now,
   );
@@ -489,8 +498,9 @@ export function importSetlistFile(
     `INSERT INTO setlist_items
      (id, setlist_id, position, kind, song_id, title, content, content_source,
       text_format, text_align, image_fit, background_id, stinger_id,
-      stinger_overrides_json, key_override, transpose, max_lines, verse_order, notes)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      stinger_overrides_json, key_override, transpose, max_lines, verse_order, notes,
+      churchsuite_item_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   );
 
   let importedItems = 0;
@@ -571,6 +581,7 @@ export function importSetlistFile(
       item.maxLines ?? 4,
       item.verseOrder ?? null,
       item.notes ?? null,
+      item.churchsuiteItemId ?? null,
     );
     importedItems += 1;
 

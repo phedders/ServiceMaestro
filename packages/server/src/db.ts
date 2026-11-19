@@ -340,6 +340,8 @@ ensureColumn("setlist_items", "stinger_overrides_json", "TEXT");
 ensureColumn("setlists", "background_id", "TEXT");
 ensureColumn("setlists", "stinger_id", "TEXT");
 ensureColumn("setlists", "archived_at", "TEXT");
+ensureColumn("setlists", "churchsuite_plan_id", "INTEGER");
+ensureColumn("setlist_items", "churchsuite_item_id", "INTEGER");
 ensureColumn("tarp_presentations", "archived_at", "TEXT");
 ensureColumn("service_sessions", "revision_id", "TEXT");
 ensureColumn("service_sessions", "pending_json", "TEXT");
@@ -354,6 +356,9 @@ ensureColumn("display_config", "lower_third_image_padding", "INTEGER NOT NULL DE
 ensureColumn("display_config", "lower_third_font_family", "TEXT");
 ensureColumn("display_config", "lower_third_text_scale", "REAL");
 db.exec("CREATE INDEX IF NOT EXISTS idx_songs_source_path ON songs(source_path)");
+db.exec(
+  "CREATE INDEX IF NOT EXISTS idx_setlists_churchsuite_plan ON setlists(churchsuite_plan_id)",
+);
 
 db.prepare(
   `INSERT INTO display_config

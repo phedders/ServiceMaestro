@@ -4,11 +4,13 @@ import type {
   ChurchSuiteImportReport,
   ChurchSuitePlanPreview,
   ChurchSuitePlanSummary,
+  ChurchSuiteSyncPreview,
   SiteScraperImportResult,
   SiteScraperProviderSummary,
 } from "@sm/shared";
 import { useAdapters } from "../adapters";
 import { api, ApiError } from "../api";
+import { ChurchSuiteSyncDialog } from "../components/ChurchSuiteSyncDialog";
 import { EyeIcon } from "../components/Icons";
 import { IsoDateInput } from "../components/IsoDateInput";
 import { SiteSongLookupDialog } from "../components/SiteSongLookupDialog";
@@ -70,6 +72,7 @@ export default function ChurchsuitePage({
   const [importDate, setImportDate] = useState(isoDate(new Date()));
   const [importTime, setImportTime] = useState("");
   const [importing, setImporting] = useState(false);
+  const [syncPreview, setSyncPreview] = useState<ChurchSuiteSyncPreview | null>(null);
   const [report, setReport] = useState<ChurchSuiteImportReport | null>(null);
   const [songSelections, setSongSelections] = useState<Record<number, string>>({});
   const [bibleLayouts, setBibleLayouts] = useState<Record<number, BibleLayout>>({});
@@ -166,6 +169,7 @@ export default function ChurchsuitePage({
     setPreview(null);
     setPreviewLoading(true);
     setReport(null);
+    setSyncPreview(null);
     try {
       const result = await api.churchsuitePlanPreview(plan.id);
       setPreview(result.preview);
@@ -184,9 +188,15 @@ export default function ChurchsuitePage({
         ),
       );
       setIncludedSkipped(new Set());
-      setImportName(`${compactDate(result.preview.plan.date)}-${result.preview.plan.name}`.slice(0, 200));
-      setImportDate(result.preview.plan.date);
-      setImportTime(result.preview.plan.time?.slice(0, 5) ?? "");
+      const existing = result.preview.existingSetlist;
+      setImportName(
+        existing?.name ??
+          `${compactDate(result.preview.plan.date)}-${result.preview.plan.name}`.slice(0, 200),
+      );
+      setImportDate(existing?.serviceDate ?? result.preview.plan.date);
+      setImportTime(
+        existing?.serviceTime?.slice(0, 5) ?? result.preview.plan.time?.slice(0, 5) ?? "",
+      );
     } catch (error) {
       notify(error instanceof ApiError ? error.message : "Could not load ChurchSuite plan", "error");
     } finally {
@@ -241,27 +251,72 @@ export default function ChurchsuitePage({
     });
   }
 
-  async function createSetlist() {
+  function importPayload() {
+    if (!preview) return null;
+    return {
+      name: importName.trim() || undefined,
+      serviceDate: importDate,
+      serviceTime: importTime || null,
+      songSelections: Object.fromEntries(
+        Object.entries(songSelections).map(([itemId, songId]) => [itemId, songId]),
+      ),
+      bibleLayouts: Object.fromEntries(
+        Object.entries(bibleLayouts).map(([itemId, layout]) => [itemId, layout]),
+      ),
+      includeSkipped: [...includedSkipped],
+    };
+  }
+
+  async function runImport(mode: "create" | "sync") {
     if (!preview || !canWrite) return;
+    const payload = importPayload();
+    if (!payload) return;
     setImporting(true);
     setReport(null);
     try {
       const result = await api.importChurchsuitePlan(preview.plan.id, {
-        name: importName.trim() || undefined,
-        serviceDate: importDate,
-        serviceTime: importTime || null,
-        songSelections: Object.fromEntries(
-          Object.entries(songSelections).map(([itemId, songId]) => [itemId, songId]),
-        ),
-        bibleLayouts: Object.fromEntries(
-          Object.entries(bibleLayouts).map(([itemId, layout]) => [itemId, layout]),
-        ),
-        includeSkipped: [...includedSkipped],
+        ...payload,
+        mode,
       });
       setReport(result.report);
-      notify(`Created set list “${result.report.setlistName}”`);
+      setSyncPreview(null);
+      notify(
+        mode === "sync"
+          ? `Updated set list “${result.report.setlistName}”`
+          : `Created set list “${result.report.setlistName}”`,
+      );
     } catch (error) {
-      notify(error instanceof ApiError ? error.message : "Could not create set list", "error");
+      notify(
+        error instanceof ApiError
+          ? error.message
+          : mode === "sync"
+            ? "Could not update set list"
+            : "Could not create set list",
+        "error",
+      );
+    } finally {
+      setImporting(false);
+    }
+  }
+
+  async function createSetlist() {
+    if (!preview || !canWrite || importing) return;
+    if (!preview.existingSetlist) {
+      await runImport("create");
+      return;
+    }
+    const payload = importPayload();
+    if (!payload) return;
+    setImporting(true);
+    setReport(null);
+    try {
+      const result = await api.churchsuiteSyncPreview(preview.plan.id, payload);
+      setSyncPreview(result.preview);
+    } catch (error) {
+      notify(
+        error instanceof ApiError ? error.message : "Could not check ChurchSuite plan changes",
+        "error",
+      );
     } finally {
       setImporting(false);
     }
@@ -590,11 +645,28 @@ export default function ChurchsuitePage({
                   className="button primary"
                   onClick={createSetlist}
                   disabled={importing}
-                  title="Create a draft set list from this plan without changing the live session"
+                  title={
+                    preview.existingSetlist
+                      ? "Review ChurchSuite changes and update the existing set list"
+                      : "Create a draft set list from this plan without changing the live session"
+                  }
                 >
-                  {importing ? "Creating…" : "Create set list"}
+                  {importing
+                    ? preview.existingSetlist
+                      ? "Checking changes…"
+                      : "Creating…"
+                    : preview.existingSetlist
+                      ? "Review and update…"
+                      : "Create set list"}
                 </button>
               </ReadOnlyFieldset>
+              {preview.existingSetlist && (
+                <p className="hint">
+                  This plan is already linked to “{preview.existingSetlist.name}”. The button reviews
+                  what changed in ChurchSuite and updates that set list instead of creating a
+                  duplicate.
+                </p>
+              )}
               <p className="hint">
                 Matched songs link to the local song library. Unmatched songs and named non-song items
                 become editable text placeholders. The draft is not sent live automatically.
@@ -602,16 +674,26 @@ export default function ChurchsuitePage({
 
               {report && (
                 <div className="cs-report">
-                  <strong>Created “{report.setlistName}”</strong>
-                  <span>
-                    {report.itemCount} items · {report.songsMatched} songs matched ·{" "}
-                    {report.placeholders} placeholders · {report.emptyItems} empty ·{" "}
-                    {report.skipped} skipped
-                  </span>
+                  <strong>
+                    {report.mode === "updated" ? "Updated" : "Created"} “{report.setlistName}”
+                  </strong>
+                  {report.mode === "updated" ? (
+                    <span>
+                      {report.added} added · {report.updated} changed · {report.removed} removed ·{" "}
+                      {report.unchanged} unchanged
+                      {report.manual > 0 ? ` · ${report.manual} manual kept` : ""}
+                    </span>
+                  ) : (
+                    <span>
+                      {report.itemCount} items · {report.songsMatched} songs matched ·{" "}
+                      {report.placeholders} placeholders · {report.emptyItems} empty ·{" "}
+                      {report.skipped} skipped
+                    </span>
+                  )}
                   <button
                     className="button ghost small"
                     onClick={onOpenSetlists}
-                    title="Open Set lists to review and edit the new draft"
+                    title="Open Set lists to review and edit the draft"
                   >
                     Open set lists
                   </button>
@@ -623,6 +705,15 @@ export default function ChurchsuitePage({
       </div>
 
       <SongLyricsDialog song={lyricsPreview} onClose={() => setLyricsPreview(null)} />
+      {syncPreview && (
+        <ChurchSuiteSyncDialog
+          preview={syncPreview}
+          busy={importing}
+          onSync={() => void runImport("sync")}
+          onCreateNew={() => void runImport("create")}
+          onClose={() => setSyncPreview(null)}
+        />
+      )}
       {lookup && songSelectEnabled && siteProvider && (
         <SiteSongLookupDialog
           provider={siteProvider}

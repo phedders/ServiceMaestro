@@ -20,6 +20,7 @@ import type {
   ChurchSuiteImportReport,
   ChurchSuitePlanPreview,
   ChurchSuitePlanSummary,
+  ChurchSuiteSyncPreview,
   ChordProFilePreview,
   ClickerConfig,
   ClickerConfigInput,
@@ -599,9 +600,28 @@ export const api = {
     request<{ preview: ChurchSuitePlanPreview }>(
       `/api/integrations/churchsuite/plans/${id}/preview`,
     ),
+  churchsuiteSyncPreview: (
+    id: number,
+    payload: {
+      name?: string;
+      serviceDate?: string;
+      serviceTime?: string | null;
+      songSelections?: Record<string, string>;
+      bibleLayouts?: Record<string, "paragraph" | "verses">;
+      includeSkipped?: number[];
+    },
+  ) =>
+    request<{ preview: ChurchSuiteSyncPreview }>(
+      `/api/integrations/churchsuite/plans/${id}/sync-preview`,
+      {
+        method: "POST",
+        body: JSON.stringify(payload),
+      },
+    ),
   importChurchsuitePlan: (
     id: number,
     payload: {
+      mode?: "create" | "sync";
       name?: string;
       serviceDate?: string;
       serviceTime?: string | null;

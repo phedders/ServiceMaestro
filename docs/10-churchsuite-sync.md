@@ -12,6 +12,8 @@ Source: <https://github.com/ChurchSuite/churchsuite-api/blob/master/src/planning
 >
 > The ChurchSuite page now lists plans by date range, previews items, matches local songs by title/alternative title, and creates draft set lists; when multiple local songs match, the preview shows a selectable comparison table with author, CCLI, key, alternate titles and lyric first lines. Unmatched song and service items become editable text placeholders. Unmatched **song** items also show **Lookup song in SongSelect** when site credentials are configured, opening the SongSelect search dialog in place with lyric preview and download/import actions. Importing a song from that dialog automatically links the new or updated local song back to the ChurchSuite item and preselects it for the draft set list. Set-list song items also expose an **ALT** popup with similar local versions and a line-level difference view. Settings includes a global list of ChurchSuite plan object types that should become empty set-list items with no pages (seeded with Welcome, Misc, Countdown, Prayers and Announcement); their text is kept in the item notes.
 >
+> **Syncing an existing draft:** each imported set list records its ChurchSuite plan. Opening that plan again and pressing **Review and update…** compares the current plan with the linked set list and opens a change dialog showing added, changed and removed items with old → new values. **Sync changes** updates the existing set list in place, preserving its ID, keeping manually added items and retaining local presentation settings such as transpose, page lines, backgrounds and stingers. If the plan is unchanged the dialog reports that there is nothing to sync. **Create separate set list** remains available when a deliberate duplicate is needed. Set lists imported before plan IDs were recorded are matched through their ChurchSuite note and upgraded on the first sync.
+>
 > Administrators can disable the ChurchSuite adapter under **Settings → External adapters**. The ChurchSuite menu page, plan lookup, connection test, empty-item settings and ChurchSuite help are then hidden, and `/api/integrations/churchsuite/*` returns 404. Credentials, permissions and imported set lists are retained for when it is re-enabled.
 >
 > **Reading and skip overrides:** items whose type is **Reading** are checked for a Bible reference in the item name and available text. When a local Bible translation resolves the reference, the preview shows a passage summary and **Add as line per verse** / **Add as paragraph** layout choices; the selected layout is stored as a Bible text item during import. Verse-part suffixes such as `1 Corinthians 14:33b-40` are supported: `b` starts at the second sentence or clause of verse 33, and `c` at the third. Items that would normally be skipped are still shown in the preview with an **Include** button; included items are imported as editable text placeholders (or as a Bible reading when one was detected).
@@ -305,9 +307,13 @@ POST /api/integrations/churchsuite/disconnect
 
 GET  /api/integrations/churchsuite/plans?from=&to=&status=published&site=
 GET  /api/integrations/churchsuite/plans/:id/preview
-POST /api/integrations/churchsuite/plans/:id/import
-POST /api/integrations/churchsuite/plans/:id/resync
+POST /api/integrations/churchsuite/plans/:id/import       (mode=create|sync)
+POST /api/integrations/churchsuite/plans/:id/sync-preview (change summary for the existing draft)
 ```
+
+The preview response includes `existingSetlist` when this plan already has a linked draft. The
+`sync-preview` response lists added, updated and removed items with before/after values so the
+control UI can show the confirmation dialog before `mode=sync` updates that set list.
 
 Preview response (shape):
 
@@ -364,8 +370,8 @@ Import body:
 
 ## 11. Delivery phases
 
-1. **Read-only import** — client credentials, upcoming plans, preview, mapping dialog, create draft set list.
-2. **Mappings and re-sync** — persist external IDs, diff changes, update draft, apply-to-live integration.
+1. **Read-only import** — client credentials, upcoming plans, preview, mapping dialog, create draft set list. **Implemented.**
+2. **Mappings and re-sync** — persist external IDs, diff changes, update draft, apply-to-live integration. Draft diff/update implemented; apply-to-live remains open.
 3. **Charts and Bible items** — import arrangement `chart` as ChordPro/song asset; map Bible question responses to Bible set-list items.
 4. **Scheduled sync** — optional periodic poll for new/changed plans with notifications; still never auto-live.
 

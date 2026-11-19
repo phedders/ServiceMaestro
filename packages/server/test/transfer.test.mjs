@@ -60,6 +60,21 @@ test("parses a bundle and keeps asset bytes", () => {
   assert.equal(parsed.files.get("assets/a1.pdf")?.length, 3);
 });
 
+test("parses ChurchSuite provenance from a set list manifest", () => {
+  const parsed = parseSetlistFile(
+    Buffer.from(
+      JSON.stringify({
+        ...MANIFEST,
+        setlist: { ...MANIFEST.setlist, churchsuitePlanId: 42 },
+        items: [{ ...MANIFEST.items[0], churchsuiteItemId: 103 }],
+      }),
+    ),
+    "service.json",
+  );
+  assert.equal(parsed.manifest.setlist.churchsuitePlanId, 42);
+  assert.equal(parsed.manifest.items[0].churchsuiteItemId, 103);
+});
+
 test("rejects an unknown format version", () => {
   assert.throws(
     () =>

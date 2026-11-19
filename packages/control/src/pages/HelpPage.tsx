@@ -419,14 +419,22 @@ export default function HelpPage({ onOpenSettings }: { onOpenSettings: () => voi
                 session</strong> displays it now without saving.
               </li>
               {churchSuiteEnabled && (
-                <li>
-                  ChurchSuite plans can be reviewed and turned into a draft set list. Matched songs
-                  link to the library. When several local songs match, compare their metadata and
-                  lyrics and choose the right version before importing. Unmatched named items become
-                  editable text placeholders. Plan object types listed under{" "}
-                  <strong>Settings → ChurchSuite empty items</strong> become empty items with no
-                  pages, keeping their text in the notes.
-                </li>
+                <>
+                  <li>
+                    ChurchSuite plans can be reviewed and turned into a draft set list. Matched songs
+                    link to the library. When several local songs match, compare their metadata and
+                    lyrics and choose the right version before importing. Unmatched named items become
+                    editable text placeholders. Plan object types listed under{" "}
+                    <strong>Settings → ChurchSuite empty items</strong> become empty items with no
+                    pages, keeping their text in the notes.
+                  </li>
+                  <li>
+                    If the plan already has a set list, <strong>Review and update…</strong> highlights
+                    added, changed and removed items. <strong>Sync changes</strong> updates the
+                    existing set list instead of creating a duplicate, while keeping manually added
+                    items.
+                  </li>
+                </>
               )}
             </ul>
           </article>
