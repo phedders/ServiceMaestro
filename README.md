@@ -1,269 +1,248 @@
 # Service Maestro
 
-A self-hosted server application for running church service visuals: manage song lyrics, set lists and dynamic text, then drive them onto **separate HTTP frontends** that OBS (or any browser) can use as sources.
+Service Maestro is a self-hosted church service presentation system. It manages songs,
+set lists, Bible passages, text, images and presentations, then drives them onto separate
+browser-based outputs for projectors, confidence monitors and OBS.
 
-> **Status: Phase 1 walking skeleton is implemented and runnable.**
-> Live sessions, set lists, songs, Bible, quick text and OBS-ready outputs work end-to-end. The grid dashboard page is temporarily hidden while its live-control semantics are reworked. Importers, multi-user layout co-editing and the site-scraping download framework are designed but not yet fully built.
->
-> Design documents:
->
-> - [Analysis of the existing Node-RED system](docs/01-node-red-analysis.md)
-> - [Architecture](docs/02-architecture.md)
-> - [Content model](docs/03-content-model.md)
-> - [Sample files](docs/04-sample-files.md)
-> - [Container deployment](docs/05-container-deployment.md)
-> - [Song resources, scores and tabs](docs/06-songselect-and-scores.md)
-> - [Bible source formats](docs/07-bible-sources.md)
-> - [Dashboard layout editor](docs/08-dashboard-layout-editor.md)
-> - [Phase 1 status](docs/09-phase-1-status.md) — what is implemented and what is next.
-> - [ChurchSuite planning sync](docs/10-churchsuite-sync.md) — API analysis, credential findings and song-matching design.
-> - [Git-backed shared data](docs/11-git-data-sync.md) — songs/setlists/bibles repositories shared between instances.
-> - [Waiting list](docs/12-waiting-list.md) — blocked items and what they need.
-> - [Display templates and text formats](docs/13-display-templates.md) — templated outputs, Markdown/HTML/RST text items, blank start and preview sizing.
-> - [Tarp presentation module](docs/14-tarp.md) — two-view presentation editor, themes, animations and set-list integration plan.
-> - [Transition stingers](docs/15-stingers.md) — transparent SVG/image overlays, set-list/item/page overrides and live playback.
-> - [MQTT adapter](docs/16-mqtt.md) — optional broker bridge, incoming API command mappings, outgoing live/event information and configurable external controls.
-> - [USB clicker remotes](docs/17-clicker.md) — experimental per-user USB presenter capture and live-action mappings.
-> - [External presentations](docs/18-external-presentations.md) — public Canva/PowerPoint/Google Slides iframe embedding and private-link window launching.
-> - [WebSockets API](docs/19-websockets.md) — Socket.IO control and output endpoints, authentication, rooms, events, payloads and reconnection.
-> - [Shell CLI](docs/20-cli.md) — dependency-free Python client, login/config, one-shot transport commands, generic API access and interactive keyboard control.
-> - [Windows and macOS desktop packages](docs/21-desktop.md) — portable installers bundling the app, Node.js runtime and launcher.
-> - [Native Linux server packages](docs/22-server-packages.md) — Debian, RPM and source RPM packages with a bundled Node runtime and systemd service.
+Everything runs on your own server. The control interface, live state and data stay local;
+there is no required cloud service.
 
-## Quick start
+## What it does
 
-Requires Node.js 24+.
+### Songs and service planning
+
+- Song library with chords, section labels, keys, alternative titles, CCLI and verse orders.
+- OpenLP/OpenLyrics, ChordPro and plain-text importers.
+- SongSelect search, lyric/ChordPro/lead/vocal downloads and automatic update checks.
+- Set lists with drag reordering, per-item edits, printable song sheets and chord charts.
+- ChurchSuite plan import, song matching, service-time inference and repeatable sync.
+- Bible passage import with paragraph or line-per-verse layouts and optional verse numbers.
+- Export/import of reference JSON or self-contained set-list bundles.
+
+### Live control
+
+- Snapshot-based live sessions: editing a set list never changes the running service.
+- Previous/next, blank/show, page selection, item queue, transpose, line count, footer,
+  quick text, Bible verse-number toggle and item autoplay controls.
+- Keyboard shortcuts, optional USB clicker mappings, MQTT controls and a shell CLI.
+- Publish revisions and safely apply updates after the current item or immediately.
+- Per-user accounts, passkey login, module permissions and an activity log.
+
+### Displays and media
+
+- Lower-third, full-screen, centered two-thirds, stage and chords outputs.
+- Plain-HTML display pages for OBS Browser Sources and ordinary browsers.
+- Configurable templates, fonts, colours, backgrounds, fades, clocks and page limits.
+- Global and per-item backgrounds, transition stingers, images and image-sequence playback.
+- Tarp presentations with independent normal and lower-third layouts.
+- External Canva/PowerPoint/Google Slides presentation embedding or window launching.
+- Standalone musicians view with lyrics, notes, score PDFs and tabs on personal devices.
+
+## Install
+
+### Docker / Podman
+
+Run the published image:
 
 ```sh
-npm install
-npm run build
+docker run -d --name service-maestro --restart unless-stopped \
+  -p 8080:8080 -p 8081:8081 \
+  -e SM_ADMIN_PASSWORD='replace-me' \
+  -e SM_OUTPUT_TOKEN='replace-with-a-long-random-token' \
+  -v "$PWD/data:/data" \
+  -v "$PWD/library/songs:/library/songs:ro" \
+  -v "$PWD/library/bible:/library/bible:ro" \
+  -v "$PWD/library/images:/library/images" \
+  ghcr.io/phedders/servicemaestro:latest
+```
 
-# pick a real password — this seeds the first admin account
+If the GHCR package is private, run `docker login ghcr.io` first.
+
+Or build from a checkout with Compose:
+
+```sh
+cp .env.example .env
+# edit .env: set SM_ADMIN_PASSWORD, SM_OUTPUT_TOKEN, integrations and paths
+docker compose up -d --build
+```
+
+`compose.yaml` publishes ports `6111` and `6112` by default; edit it if you need
+`8080`/`8081`. See [container deployment](docs/05-container-deployment.md) for Podman,
+Incus/LXC, backups, reverse proxies and hardening.
+
+### Debian / RPM server packages
+
+Native packages bundle Node.js and install a systemd service:
+
+```sh
+sudo apt install ./service-maestro-server_<version>_amd64.deb
+# or
+sudo dnf install ./service-maestro-server-<version>-1.x86_64.rpm
+```
+
+The initial admin password is generated at `/etc/service-maestro/admin-password`.
+Data lives under `/var/lib/service-maestro`; configuration lives under
+`/etc/service-maestro`.
+
+Download packages from the release/package bundle, or build them with:
+
+```sh
+make server-packages
+```
+
+See [native server packages](docs/22-server-packages.md).
+
+### Windows and macOS desktop
+
+Download the ZIP for your platform from GitHub releases:
+
+- `ServiceMaestro-windows-x64.zip`
+- `ServiceMaestro-macos-arm64.zip` (Apple silicon)
+- `ServiceMaestro-macos-x64.zip` (Intel)
+
+On Windows, run `ServiceMaestro.exe` or `Install Service Maestro.cmd`. On macOS, drag
+`Service Maestro.app` to Applications. Both packages bundle Node.js and open the browser
+automatically. See [desktop packages](docs/21-desktop.md).
+
+Build desktop packages locally with `make desktop`.
+
+### From source
+
+Requires Node.js 24+:
+
+```sh
+npm ci
+npm run build
 SM_ADMIN_PASSWORD='change-me' npm start
 ```
 
-Open <https://localhost:8080> and sign in as `admin` with the password you set (default is `admin` if the variable is omitted — change it). The control interface is HTTPS-only. If no certificate is supplied, a local self-signed certificate is generated in `data/ssl`; the browser will show a trust warning until you install a trusted certificate.
+The control interface is at <https://localhost:8080>; displays are served at
+<http://localhost:8081/display/>.
 
-### Development
+### Optional shell CLI
 
-```sh
-# terminal 1: HTTPS API + HTTP displays on :8080
-npm run dev -w @sm/server
-
-# terminal 2: React control UI on :5173 with HTTPS API proxy
-npm run dev -w @sm/control
-```
-
-Or `npm run dev` runs both (HTTPS server on 8080, control dev UI on 5173).
-
-### Display outputs (OBS Browser Sources)
-
-| Output | Canonical URL | Aliases |
-| --- | --- | --- |
-| Lower-third / main (`lowerthird`) | `/display/lowerthird` | `/display/twothirds`, `/display/main`, `/display/lower`, `/obs-main`, `/obs-lower`, `/obs-lowerthird`, `/obs-twothirds` |
-| Full screen (`full`) | `/display/full` | `/display/fullscreen`, `/display/mainfull`, `/obs-mainfull`, `/obs-fullscreen` |
-| Centered two-thirds | `/display/two-thirds` | `/display/two_thirds`, `/obs-two-thirds` |
-| Stage monitor (lyrics) | `/display/stage` | `/obs-stage` |
-
-These are seeded defaults. Use **Menu → Outputs** to create, remove or customise outputs; each output has its own `/display/<id>` URL and can define its own fade, background, layout, panel, text, page mode and image limits. Shared outputs live in `settings/shared.json`; local extras stay on this server. The plain-HTTP display listener does **not** require a token by default, so `http://host:8081/display/stage` works directly. Set `SM_DISPLAY_REQUIRE_TOKEN=true` to require `?token=…`. The control-origin `/display/*` views remain token-protected. Displays receive a **full snapshot on connect**, so refreshing or reconnecting OBS never blanks the screen. The server sends a heartbeat every 15 seconds; a display that receives no heartbeat for 45 seconds reloads itself to recover the connection. The `/obs-*` aliases remain on the HTTPS control port for compatibility; use the `/display/*` paths through the plain-HTTP read-only display listener for OBS.
-
-The **Menu** button in the navigation opens an **External links** list for every view plus Settings. Displays are also served by a separate **read-only listener** on `SM_DISPLAY_PORT` (default `8081`) over plain HTTP. It serves only the `/display/*` tree — views, `/display/assets`, `/display/fonts`, `/display/images/file`, `/display/icon.svg` and the read-only `/display/socket.ro.io` — with no login, control UI or API. A forward proxy can expose only `/display/*` from this port without exposing the control server. These replace the old `/display-assets`, `/fonts` and `/api/images/file` paths.
-
-### Musicians view
-
-Open <https://localhost:8080/musicians> to see the read-only musician view. It has a **By setlist | All songs** toggle: set-list mode defaults to the current/next dated service, while all-songs mode browses the full library with search. Both modes let each musician open lyrics, notes, score PDFs and tabs on their own device without touching the live session.
-
-## What works now
-
-- **Authentication and users** — multiple accounts with independent scrypt passwords, WebAuthn passkey login and registration, self-service password changes, admin password resets, and admin-controlled module write permissions. One seeded `admin`; sessions use secure HTTP-only cookies on the HTTPS-only control interface. An admin-only activity log records logins, failed logins, content changes, live commands, exports, PDF downloads and account actions.
-- **Songs** — create/edit lyrics with inline chords (`A[C]mazing`), section labels (`[Verse 1]`), key, author, alternative titles, CCLI and copyright; optional inline Markdown styling; multiple named verse orders. Untagged lyrics receive sequential `[V1]`, `[V2]`, … labels split on blank lines when created or imported. **Simplify page IDs** on import or save converts spaced/long section names into unique compact IDs such as `[Verse 1]` → `[v1]`, using the conversion table in Settings. The song editor has **Add to current setlist** and **Make LIVE Now** actions. The song editor and set-list song items have **Update from SongSelect**; the editor also has **Fix page names**, which applies the current page-ID shortcuts and unique minimisation to that song only. The library has a multi-select mode for archiving or deleting songs in bulk, with a select-all-shown option and Git-safe batch actions. The editor also has **Archive**, which hides the song from all normal lists while preserving references and allowing restoration. Trailing SongSelect copyright/CCLI text is stored separately in **SongSelect info**, not in the lyrics.
-- **External presentations (experimental)** — **Menu → Experimental → Presentations** stores public Canva, PowerPoint and Google Slides embeds per user. Canva/Google links are normalised to their embed views, PowerPoint embed iframe code is accepted, and each presentation can be shown fullscreen, opened in a new window, or sent live to the display outputs with **Show live**. Private SharePoint links usually require sign-in and cannot be framed; use the window launcher and let the physical USB clicker operate the focused presentation. Service Maestro cannot inject keys into a cross-origin presentation frame or start the provider's slideshow. See [18](docs/18-external-presentations.md).
-- **USB clicker remotes (experimental)** — **Menu → Experimental → Clicker** captures a USB presentation remote such as the Logitech R400 and maps its buttons to live actions. Because browsers block HID access to keyboard-class devices, capture uses the key events the remote sends (PageUp, PageDown, F5, Escape, period). Mappings are saved per user, with a test-listening toggle on the Clicker page; a live-page enable toggle is planned. See [17](docs/17-clicker.md).
-- **DeDupe** — **Menu → DeDupe** scans the song library for songs with matching titles, CCLI numbers or identical lyrics. Each version has a full-lyrics eye preview and a line-level difference view against the reference version, marks versions that contain embedded chords, and estimates when two versions would be identical once chord symbols and section labels are ignored. The comparison popup can hide chords to show the actual lyric differences, and each version reports the number of lines that differ without chords plus a word-level estimate that ignores different word or line splits. Mark one version as **Preferred** (used as a tie-breaker by song matching and ChurchSuite imports), mark two versions as **Mark as Different** so they stop appearing as duplicates, or delete duplicate songs. The preferred and mark-as-different choices are available from the comparison popup and are saved in the song metadata and Git files. Each version and both sides of the comparison popup also have an **Edit** action that opens a quick song editor for metadata and lyric changes.
-- **Library import** — scan a folder for OpenLP/OpenLyrics XML, ChordPro and plain-text files; preview titles/formats/warnings, then import. Duplicate CCLI/title matches are detected during the scan and can be **skipped**, **replaced**, or imported as a **duplicate** with an edited title/alternative titles. OpenLP `verseOrder` and ChordPro `{comment: …}` sections are honoured; bare headings such as `Verse 2` or `Chorus:` are also recognised as section labels. SongSelect legal footers and bar markers are removed; the trailing CCLI/copyright block is preserved in the song’s **SongSelect info** field instead of the lyrics.
-- **Site scraper credentials** — each user can save encrypted personal credentials for SongSelect song downloads in **Settings → My account**. Server-level fallback credentials can be supplied under `songScraping` in `config.yaml`. A personal credential set overrides the server fallback, and secrets are never returned to the browser. The SongSelect adapter supports search, lyric preview, lyrics text, ChordPro, lead-sheet PDF and vocal-sheet PDF downloads from **Songs → Song site downloads**. **Import into Service Maestro** saves the files to the local song and attaches them as musician-view assets for any set list that uses the song. Songs and song items in set lists also have an **Update** action that checks SongSelect for missing files or changed ChordPro/lyrics and offers to refresh them; other site adapters can be added separately. See [06](docs/06-songselect-and-scores.md#capturing-a-browser-session-cookie) for how to capture and store a browser session cookie securely.
-- **Scores and tabs for musicians** — upload PDFs, ChordPro, lyrics or images to a song; the standalone `/musicians` view toggles between **By setlist** (upcoming/current services and their items) and **All songs** (the full song library with search), renders lyrics plus PDFs with a bundled PDF.js viewer (page navigation, **Fit width / Fit height / 1:1** zoom, manual zoom and side-by-side pages when the viewport is wide enough), text and image assets. The selected view pane or the PDF panel can be shown fullscreen from its toolbar. Set-list mode has media-type buttons (**Default**, **Vocal**, **Chords**, **Lead**, plus **Score**/**Tab** when present) that apply to every song and fall back to lyrics when a file is missing; each button has a download half that generates a whole-set-list PDF with the same fallback. It never changes the live session.
-- **Images** — browse `SM_IMAGES_DIR` (default `library/images`) in a folder tree with a global search, upload images from the Images page or a set list, and add image items to set lists for output. Each image also has a **LIVE** button that displays it immediately on every output without changing the set list or live queue. Image items support scale-to-screen (default), 1:1, crop and stretch. A folder can be converted into a **multiple images** set-list item, with optional autoplay, a configurable delay (default 6 seconds) and **Single**, **Loop** or **Bounce** playback. Bounce runs forwards through every page, then backwards, and repeats. On the lower-third output images always keep their aspect ratio, sit in a bottom-anchored area, and are limited by a configurable maximum height (default 30% of the viewport) reduced by configurable padding (default 48px).
-- **Backgrounds** — global background library in the **Menu**, with uploaded images/animated images plus built-in CSS and SVG animations ranging from subtle to wild. Each background can use its own palette or the global background colour theme. Set lists can choose a background, text/song items can override it, and Tarp pages can use them in either view.
-- **Stingers** — transparent SVG and image transition overlays in the **Menu**. Set a default stinger on a set list, override it per item, and add per-page overrides. The display plays the stinger over the outgoing page and swaps to the incoming page while the animation covers the screen.
-- **Tarp (experimental)** — **Menu → Experimental → Tarp**: reusable themes and 16:9/16:10/flex presentations with independent normal/lower-third pages. Flex fills the complete output viewport. The dual-view editor supports text, Markdown and image objects with drag/resize, layering and per-view settings. Set lists can create Tarp items with autoplay/Single/Loop/Bounce playback; normal pages render on full/two-thirds/stage outputs and the lower-third view renders on the lower-third output. Page transitions support **Animate objects** or **Migrate matching objects**; unchanged backgrounds are preserved without fading or restarting. Referenced Tarp presentations/themes are included in set-list export/import and persisted in the setlists Git repository. Presentations can be archived from the editor and restored from Archives; existing set-list items retain their snapshot references. See [14](docs/14-tarp.md).
-- **Bible** — reads the three real schema families found in the samples (MyBible `book`/`verse`, BibleDb `books`/`verses`, and JSON), sanitises ESV markup, and provides a translation/book/chapter/verse-range UI with **Paragraph** or **Line per verse** layout, **Add to current setlist** and **Add to live session**. Paragraph imports keep the verse numbers as superscript, and the transport **Bible verses** button can hide or show them on the live outputs (default show). Each imported translation can be given a short display name under **Settings → Bible**, used in selection lists and passage references when the imported name is very long.
-- **Set lists** — named, dated, with songs and text items; dates display in ISO `YYYY-MM-DD` form and new set lists default to a `YYYY-MM-DD-` name prefix for sortable names. Reorder with arrows or a drag handle; click an item to preview and edit its title, lyrics/text, format, alignment, key, transpose, verse order and notes. **Big Print PDF → Create PDF of the songs** downloads a printable song sheet with chord markers and slide labels removed; text size and columns can be overridden for that download, with font/size/column defaults in Settings. **Chords Print PDF → Create chords PDF** produces musician chord charts with positioned chord symbols and section labels, applying each item’s transpose value. It defaults to **Portrait** and **Songs with Chords only**, with toggles for landscape and for including every song in the set list. The Add song panel searches titles, first lines, alternative titles and optionally the full lyrics/body. Song edits stay local to the set list by default, with **Save in set list** and **Save to song library** options and **Send to live session** when that set list is live. Song items have an **ALT** button that finds local songs with similar titles; the popup shows metadata and a line-level **Difference** view against the current lyrics before switching versions. Set lists have a multi-select mode for archiving or permanently deleting several lists at once. **Archive set list** hides a set list from planning, live and selection lists while retaining its items for restoration.
-- **Live sessions** — a set list is snapshotted when the session starts, so editing the set list afterwards cannot change the live output. Sessions start **blank** until the operator shows the first page. Three quick live-control icons (**previous**, **hide/show**, **next**) sit before **Live control** in the navigation and remain visible on phones; other navigation moves into the burger menu on small screens. On phones, **Expand panels** makes the Live page linear and lets Items/Pages grow to their full height instead of trapping the user in nested scrolling sections; uncheck it to restore the compact scrolling layout.
-- **Publish & apply** — publish a revision, then **apply after the current item** (safe during a service) or **apply now**; queued updates are shown to operators and persisted across restarts.
-- **Configurable outputs** — **Menu → Outputs** manages shared and local output definitions. Seed defaults are lower-third, centered two-thirds, full, stage and chords. Each output configures its template, aliases, fade mode/duration, background colour/alpha, alignment/padding/size limits, lower-third panel, font/colour/scale/line height, current/upcoming page mode, meta/footer/chords/section-label/syllable-split visibility and image limits. An optional **clock overlay** adds a simple analogue clock (no numbers), digital 24-hour clock or digital 12-hour clock with font, size, colour, nine screen positions, shadow/highlight and seconds/second-hand control; it stays visible while content is blank or changing, so a confidence monitor can show the speaker the time. Shared outputs are written to `settings/shared.json`; local extras stay on this server. Templates still come from the set-list repo, a templates folder/repo, or built-in defaults.
-- **Display config** — Live-page panel for the global defaults: font, text colour, text size, **font size units** (**Responsive** rem/vw clamps or **vmin** based on the shortest screen edge), a global background (solid colour, gradient, pattern, background-library preset or image-library file), max lines, max words and smart page splits. Set-list and item backgrounds override the global background. Output definitions can override them per output, including the lower-third font/text size and image height/padding defaults. Full-screen images default to 100% height so they fill the output; other templates default to 78%. Smart splits estimate 1080p coverage from font size and limit page line counts. Server-side smart wrap can be enabled per module (Songs, Text, Bible) and only alters lines at or above a configurable minimum word count (default 15); shorter lines wrap naturally in the browser.
-- **Rich text items** — choose Markdown (default), plain text, HTML or RST in the editor; legacy `format:` headers are extracted into metadata. Text items also have a per-item **left/centre** alignment option. Pages can be authored with inline `<!-- page -->` markers or with separate page boxes in the editor; both serialize to the same page-break format. Page breaks and server-side sanitisation are supported.
-- **Settings page** — personalise the local instance with a site logo and sidebar/top-menu background colour. Administrators can set each of the **SongSelect**, **ChurchSuite** and **MQTT** external adapters to **Off**, **Local** or **Shared** under **External adapters**. Off removes its menu page, action buttons, help sections and settings panels immediately. Local uses this server's configuration. Shared follows the non-secret adapter configuration in `settings/shared.json`; credentials, permissions, per-user accounts and broker passwords remain local. When MQTT is not off, **Menu → MQTT** configures the broker, incoming API command mappings, outgoing information categories and custom live/menu controls. See [16](docs/16-mqtt.md). Import Google Fonts by family name or CSS URL; files are cached in `/data/fonts` and served locally. Font files placed directly in `/data/fonts` are detected automatically and registered as local fonts. Team-wide settings and downloaded font names are recorded in `settings/shared.json` in the set lists repository, so another server applies the same display/style/page settings and highlights fonts it has not cached, with one-click or bulk download. ChurchSuite credential status, connection testing and the list of ChurchSuite object types imported as empty items live here too. The **Big Print PDF** panel sets the default font, text size and column count for printable song sheets and chord charts. The **Song page IDs** table scans existing section names, lets you choose compact IDs, and administrators can manually add names/IDs that were not auto-discovered; **Fix songs** previews then bulk-applies the conversion to songs that still use spaced/long labels. The **Lowercase chords** panel scans for lowercase chord roots such as `[c]` or `[am]`, previews each fix and applies them in bulk while leaving standalone section labels such as `[c]`, `[v1]` and `[c1]` unchanged. Configurable keyboard shortcuts cover hide/show, page navigation and set-list item navigation. A global **Live navigation** setting chooses whether page navigation stops at item boundaries or continues into the previous/next item, and **Auto show on page change** can reveal a blanked output whenever navigation actually changes page or item. A local **Live preview screen** setting emulates 1920×1080, 1920×1200, 2560×1440 or 3840×2160, scaling the display viewport down so preview font sizes and aspect ratio match the real output screen. The default Bible version used by the Bible module and set-list Bible panel is also selected here, and each imported translation can be assigned a shorter display name.
-- **Export/import** — download a reference JSON or self-contained ZIP bundle (songs, text, PDF/tab assets) and import it as a new draft with a preview; matching uses CCLI/title and never affects a live service.
-- **Live control** — switchable live preview for fullscreen, lower-third, two-thirds, stage or chords; next/previous, page show, item queue, take an item live from its first page with its **Live** button, append an item’s pages to the current live queue with its **+** button, blank, transpose, max-lines, footer and quick text. When the current item is an image list or Tarp presentation, the transport shows its autoplay state, playback mode and delay, and allows a temporary live-session override without changing the saved set list.
-- **Help page** — built-in operator guide with service-day quick start, publish/apply guidance, item and image tips, display/OBS URLs, current keyboard shortcuts and troubleshooting.
-- **Archives** — **Menu → Archives** lists archived set lists, songs and Tarp presentations with select-all, bulk restore and bulk permanent-delete actions. Archived items are removed from normal lists and pickers but remain available to existing set-list snapshots; archive state persists through Git-backed song, set-list and Tarp files.
-- **Layout** — collapse the left sidebar or move navigation into a top bar; when the sidebar is hidden, a compact burger menu in the top-right contains every primary page, display link and secondary menu option, plus sidebar restore and sign-out. Smaller screens automatically use the top-bar layout.
-- **Song word joins** — SongSelect/SongPro split words such as `can - not` or `sat - is - fied` display joined on lower-third/centered two-thirds/stage and keep the split form in the chords view. Each output has a **Hide syllable/chord splits** toggle, so the exact split markers can be hidden or shown per display. Split markers next to chords are handled too.
-- **Dashboard** — the configurable widget dashboard page is currently hidden from the navigation; its widgets changed live output and need a safer design before it returns.
-- **ChurchSuite planning** — browse published plans for a date range, review the plan’s service items, see local song matches and create a draft set list. Matched songs link to the library; if several local songs match, a comparison table shows title, author, CCLI, key, alternative titles and first lines so the operator can select the right version. Unmatched songs and named service items become editable text placeholders. **Reading** items whose name or text is a Bible reference show the local passage summary plus **Add as line per verse** and **Add as paragraph** import options; verse-part references such as `14:33b-40` start at the second sentence or clause of the verse; skipped items can be overridden with **Include**. When site credentials are available, unmatched song items show **Lookup song in SongSelect**, which searches and downloads lyrics, ChordPro, lead and vocal files without leaving the planner. Configurable plan object types (seeded with Welcome, Misc, Countdown, Prayers and Announcement) become empty set-list items with no pages; their ChurchSuite text is kept in the item notes. A time in the plan title, such as `The 10:30 Service`, pre-fills the draft service time. Each imported set list records its plan: reopening that plan defaults to a change dialog that highlights added, updated and removed items and syncs the linked set list in place instead of creating a duplicate; manually added items and local presentation settings are preserved. The same **Sync updates from CS** action is available at the top of a linked set list. See [10](docs/10-churchsuite-sync.md).
-- **MQTT bridge** — optional, admin-enabled MQTT adapter with encrypted broker credentials, protocol override, incoming command-to-API mappings with source-client filters and payload templates, retained status/live publishing, activity events, debug diagnostics, and user-facing button/dropdown controls placed on the Live control page or in the Menu dropdown. Controls can publish under the outgoing prefix or to an absolute MQTT topic. See [16](docs/16-mqtt.md).
-- **Shell CLI** — `tools/sm` is a dependency-free Python client for the authenticated HTTP API. It supports login/cookie storage, set-list selection, transport and live-control shortcuts, arbitrary API calls and an interactive keyboard control mode. `make deb` builds an installable `service-maestro-cli` Debian package with the `sm` command, man page and Bash completion. See [20](docs/20-cli.md).
-- **Windows/macOS desktop packages** — `make desktop` builds portable ZIPs with the compiled app, bundled Node.js runtime, native launcher, icons, Windows install/uninstall scripts and a drag-to-Applications macOS `.app`. The launcher stores data in the user profile, chooses free localhost ports, opens the browser and stops the server cleanly. See [21](docs/21-desktop.md).
-- **Native Linux server packages** — `make server-packages` builds an `amd64` Debian package, an `x86_64` RPM and a source RPM with a bundled Node.js runtime, systemd unit, generated first-run credentials, `/etc` configuration and persistent `/var/lib` data. `make publish-all` builds every package, pushes the container image and publishes the package bundle as an OCI image on GHCR. See [22](docs/22-server-packages.md).
-- **Git-backed shared data** — designed: local-only repos by default with optional remote, auto-save/push on by default, separate songs/setlists/(optional LFS) Bibles repos, standard SSH or HTTP(S)+token URIs. See [11](docs/11-git-data-sync.md).
-- **Displays** — vanilla HTML/CSS/JS, no CDN, snapshot-on-connect, transparent main output, full-screen, chord and stage lyric variants.
-- **Persistence** — SQLite (WAL) for users, sessions, songs, set lists, session snapshots and dashboard layouts; the live session survives a restart.
-- **Git-backed data (local foundation)** — songs and set lists are written to local Git repositories and committed automatically (`autoSave` default on); optional remotes, pull/push and Bibles/LFS are configurable. The Settings page shows repository status and can change auto-commit, auto-push, pull interval and fast-forward-vs-merge behaviour at runtime. See [11](docs/11-git-data-sync.md).
-- **Container** — multi-stage Dockerfile, non-root UID 10001, health check, Compose file; image builds and runs.
-
-## Configuration
-
-Create `config.yaml` (or `.json`) from [`config.example.yaml`](config.example.yaml). The server loads it automatically from the working directory, the application root, or `/config/`; you can also set an explicit path:
+The repository includes a dependency-free Python client for the HTTP API:
 
 ```sh
-SM_CONFIG_FILE=/config/config.yaml npm start
+tools/sm --help
+tools/sm --insecure login --username admin
+tools/sm control
 ```
 
-The file covers the server, data paths, SongSelect watcher, ChurchSuite and Git repositories. Environment variables always take precedence, so a container can keep only secrets and deployment-specific values in its environment. See [Git-backed shared data](docs/11-git-data-sync.md#3-configuration) for the repository layout and URI forms.
+A Debian package can be built with `make deb`. See [shell CLI](docs/20-cli.md).
 
-Listener ports are set with `SM_PORT` and `SM_DISPLAY_PORT`; both are read at startup and must be different.
+## First run
 
-The control interface is HTTPS by default. If a forward proxy terminates TLS and forwards plain HTTP to Service Maestro, set `SM_SSL_ENABLED=false`. Do not expose that HTTP control port directly; keep `SM_SECURE_COOKIES=true` so browsers still use Secure cookies through the proxy.
+1. Open `https://<server>:8080` and sign in as `admin`.
+2. Use the first-run password:
+   - Docker/source: `SM_ADMIN_PASSWORD`
+   - Native packages: `/etc/service-maestro/admin-password`
+   - Desktop builds: the first-run dialog or `credentials.txt` in the data folder
+3. Change the password under **Settings → My account**.
+4. Open **Menu → Outputs** and copy the display URLs into your projector browser or OBS.
+5. Open the musicians view at `/musicians` when needed.
 
-### HTTPS certificates and passkeys
+Default display URLs:
 
-- **External certificate (recommended):** put the full chain in `SM_SSL_DIR/cert.pem` and the private key in `key.pem`, or set `SM_SSL_CERT_FILE`/`SM_SSL_KEY_FILE`.
-- **Local CA:** use a local CA-signed certificate for LAN names such as `brix.foo`; install the public CA on each device. The app can serve it from **Settings → Control HTTPS** or `/display/ca.crt` on the display port.
-- **Reverse proxy:** set `SM_SSL_ENABLED=false`, keep secure cookies, and terminate TLS at Caddy/nginx/Traefik.
-- **Passkeys:** set `SM_WEBAUTHN_RP_ID` to the hostname and `SM_WEBAUTHN_ORIGIN` to the exact browser URL, including any non-standard port. Use the same URL on every device; changing either value invalidates existing passkeys.
+| Output | URL |
+| --- | --- |
+| Lower-third / main | `http://<server>:8081/display/lowerthird` |
+| Full screen | `http://<server>:8081/display/full` |
+| Centered two-thirds | `http://<server>:8081/display/two-thirds` |
+| Stage monitor | `http://<server>:8081/display/stage` |
+| Chords | `http://<server>:8081/display/chords` |
 
-Full setup commands for external certificates, local CA generation, device trust, reverse proxies and passkey verification are in [HTTPS certificates and passkeys](docs/05-container-deployment.md#41-https-certificate-options).
+Outputs, aliases, templates, fades and sizing are configurable under **Menu → Outputs**.
+The control interface uses HTTPS. A generated self-signed certificate produces a browser
+warning until you install a trusted certificate.
+
+## Essential configuration
+
+Configuration can come from environment variables, a YAML/JSON file, or both. Environment
+variables take precedence. Start from [`.env.example`](.env.example) and
+[`config.example.yaml`](config.example.yaml).
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `SM_PORT` | `8080` | Control HTTPS/WebSocket port (HTTP when TLS is disabled) |
-| `SM_DISPLAY_PORT` | `8081` | Read-only display HTTP/WebSocket port; serves only `/display/*` |
-| `SM_DISPLAY_REQUIRE_TOKEN` | `false` | Require `?token=` on the plain-HTTP display listener; control-origin `/display/*` remains token-protected |
+| `SM_ADMIN_PASSWORD` | `admin` | Password for the seeded `admin` account |
+| `SM_OUTPUT_TOKEN` | `dev-output` | Shared token for control-origin display endpoints |
 | `SM_HOST` | `0.0.0.0` | Bind address |
-| `SM_DATA_DIR` | `packages/server/data` | SQLite + runtime data |
-| `SM_SONGS_DIR` | `samples/` (local) | Source directory scanned for OpenLP/ChordPro/text imports |
-| `SM_BIBLE_DIR` | `samples/bible/` (local) | SQLite/JSON Bible translations |
-| `SM_IMAGES_DIR` | `library/images/` (local) / `/library/images` (container) | Image library for backgrounds and slides |
-| `SM_SONGSELECT_WATCH_DIR` | `/data/imports/songselect` | Watched SongSelect download folder |
-| `SM_SONGSELECT_WATCH_ENABLED` | `true` | Enable the background SongSelect drop-folder watcher |
-| `SM_SONGSELECT_WATCH_INTERVAL` | `10` | Seconds between watched-folder scans |
-| `SM_ADMIN_PASSWORD` | `admin` | Password for the seeded admin |
-| `SM_OUTPUT_TOKEN` | `dev-output` | Token for control-origin display routes; display listener requires it only when `SM_DISPLAY_REQUIRE_TOKEN=true` |
-| `SM_SECRET_KEY` | generated `data/secret.key` | Master key for encrypted site credentials |
-| `SM_SONG_SCRAPING_PROVIDER` | `songselect` | Site scraping provider id |
-| `SM_SONG_SCRAPING_BASE_URL` | `https://songselect.ccli.com` | Download-site base URL |
-| `SM_SONG_SCRAPING_USERNAME` | unset | Optional server-level fallback username |
-| `SM_SONG_SCRAPING_PASSWORD` | unset | Optional server-level fallback password |
-| `SM_SONG_SCRAPING_COOKIE` | unset | Optional server-level fallback session cookie |
-| `SM_LOG_LEVEL` | `info` | Fastify log level |
-| `SM_SECURE_COOKIES` | `true` | Marks session cookies Secure; set to `0` only for special proxy setups |
-| `SM_TRUST_PROXY` | `false` | Honour `X-Forwarded-*` from a trusted reverse proxy |
-| `SM_SSL_ENABLED` | `true` | Serve control over HTTPS; set `false` only behind a TLS-terminating forward proxy |
-| `SM_SSL_DIR` | `/data/ssl` | Control HTTPS certificate directory |
-| `SM_SSL_CERT_FILE` | `cert.pem` in `SM_SSL_DIR` | Trusted certificate/full-chain path |
-| `SM_SSL_KEY_FILE` | `key.pem` in `SM_SSL_DIR` | Private key path |
-| `SM_SSL_HOSTS` | unset | Extra comma-separated DNS names/IPs for a generated certificate |
-| `SM_WEBAUTHN_RP_NAME` | `Service Maestro` | Passkey relying-party display name |
-| `SM_WEBAUTHN_RP_ID` | derived from request | Passkey RP ID; set explicitly for a proxy/domain |
-| `SM_WEBAUTHN_ORIGIN` | derived from request | Browser-facing HTTPS origin for passkeys |
-| `SM_BRANDING_NAV_BACKGROUND` | unset | Default sidebar/top-menu background for this instance |
-| `SM_BRANDING_LOGO_FILE` | unset | Default site logo file for this instance |
-| `SM_GIT_ENABLED` | `true` | Enable local/remote Git persistence |
-| `SM_GIT_AUTO_SAVE` | `true` | Write + commit on each song/set-list change |
-| `SM_GIT_AUTO_PUSH` | `true` | Push after commit when a remote is configured |
-| `SM_GIT_SONGS_PATH` | `/data/repos/songs` | Songs repo working tree |
-| `SM_GIT_SETLISTS_PATH` | `/data/repos/setlists` | Set lists repo working tree |
-| `SM_GIT_BIBLES_PATH` | `/data/repos/bibles` | Optional Bibles repo |
-| `SM_CONFIG_FILE` | unset | YAML/JSON config; environment variables override file values |
-| `SM_TEMPLATES_DIR` | `/data/templates` | Display template folder (after the set-list repo lookup) |
-| `SM_FONTS_DIR` | `/data/fonts` | Imported Google Fonts plus manually placed local fonts |
-| `SM_CHURCHSUITE_CLIENT_ID` | unset | ChurchSuite OAuth client id / API user identifier |
-| `SM_CHURCHSUITE_CLIENT_SECRET` | unset | ChurchSuite OAuth secret (prefer Docker secrets in production) |
-| `SM_CHURCHSUITE_TOKEN_URL` | `https://login.churchsuite.com/oauth2/token` | Token endpoint |
-| `SM_CHURCHSUITE_SCOPES` | `planning.read` | Requested scopes |
-| `SM_CHURCHSUITE_API_URL` | `https://api.churchsuite.com/v2` | API base URL |
+| `SM_PORT` | `8080` | Control HTTPS/API port |
+| `SM_DISPLAY_PORT` | `8081` | Read-only display HTTP port |
+| `SM_DATA_DIR` | `packages/server/data` (source), `/data` (container) | SQLite database and runtime data |
+| `SM_IMAGES_DIR` | `library/images` (source), `/library/images` (container) | Image library |
+| `SM_SONGS_DIR` | `samples/` (source), `/library/songs` (container) | Source folder for bulk song imports |
+| `SM_BIBLE_DIR` | `samples/bible/` (source), `/library/bible` (container) | Bible translation files |
+| `SM_CONFIG_FILE` | auto-detected | Explicit YAML/JSON configuration file |
+| `SM_SSL_ENABLED` | `true` | HTTPS on the control listener |
+| `SM_SSL_DIR` | `SM_DATA_DIR/ssl` | Generated/local certificate directory |
+| `SM_SSL_CERT_FILE` / `SM_SSL_KEY_FILE` | `cert.pem` / `key.pem` | Trusted certificate and key |
+| `SM_WEBAUTHN_RP_ID` | derived | Passkey relying-party hostname |
+| `SM_WEBAUTHN_ORIGIN` | derived | Exact browser URL for passkeys |
+| `SM_GIT_ENABLED` | `true` (`false` in desktop builds) | Git-backed song/set-list persistence |
+| `SM_SECURE_COOKIES` | `true` | Secure session cookies |
+| `SM_TRUST_PROXY` | `false` | Trust forwarded headers from a reverse proxy |
 
-## Docker / Podman
+For public or untrusted networks:
 
-```sh
-docker build -t service-maestro .
-docker run --rm -p 8080:8080 -p 8081:8081 \
-  -e SM_ADMIN_PASSWORD='change-me' \
-  -e SM_OUTPUT_TOKEN='a-long-random-output-token' \
-  -v "$PWD/data:/data" \
-  service-maestro
-```
+- Put Service Maestro behind a trusted reverse proxy or install a trusted certificate.
+- Keep `SM_SECURE_COOKIES=true`.
+- Set `SM_WEBAUTHN_RP_ID` and `SM_WEBAUTHN_ORIGIN` explicitly to the public hostname.
+- Do not expose the plain-HTTP control port directly.
+- Restrict the display listener to the network that needs it.
 
-Open the control interface at <https://localhost:8080>; the display listener remains at <http://localhost:8081/display/>. Certificates live in `./data/ssl` and a self-signed pair is generated automatically when needed.
+See [HTTPS certificates and passkeys](docs/05-container-deployment.md#41-https-certificate-options)
+and [Git-backed shared data](docs/11-git-data-sync.md) for the full options.
 
-Or `docker compose up -d` / `podman-compose up -d`. The container runs as UID/GID 10001; ensure the mounted data directory is writable by that user (`chown -R 10001:10001 ./data`, or use Incus `shift=true`). For host-specific ports or library paths, copy `compose.override.example.yaml` to `compose.override.yaml` and edit it. The real override is git-ignored.
+## Data and backups
 
-Copy `.env.example` to `.env` next to `compose.yaml` for local credentials. Docker Compose reads that file automatically; never commit it. ChurchSuite credentials belong under `SM_CHURCHSUITE_CLIENT_ID` and `SM_CHURCHSUITE_CLIENT_SECRET`, and the Settings page can test the connection.
+| Install type | Data location |
+| --- | --- |
+| Docker/Podman | mounted `/data` volume |
+| Debian/RPM | `/var/lib/service-maestro` |
+| Windows | `%LOCALAPPDATA%\ServiceMaestro` |
+| macOS | `~/Library/Application Support/Service Maestro` |
 
-### Publishing the image to GitHub
+Back up the data directory. It contains the SQLite database, uploads, fonts, SSL material
+and local Git repositories. Songs and set lists can also be synced between instances with
+Git; see [Git-backed shared data](docs/11-git-data-sync.md).
 
-`make publish` builds the production image and pushes it to
-`ghcr.io/phedders/servicemaestro`, tagged with the version from `package.json` and `latest`.
+## Documentation
 
-Log in with a GitHub token that can write packages (a classic token with `write:packages`, or a
-fine-grained token with package write permission), then publish:
+| Topic | Document |
+| --- | --- |
+| Architecture and data model | [docs/02-architecture.md](docs/02-architecture.md) |
+| Container deployment, HTTPS, reverse proxies, passkeys | [docs/05-container-deployment.md](docs/05-container-deployment.md) |
+| Songs, SongSelect, scores and tabs | [docs/06-songselect-and-scores.md](docs/06-songselect-and-scores.md) |
+| Bible source formats | [docs/07-bible-sources.md](docs/07-bible-sources.md) |
+| ChurchSuite planning sync | [docs/10-churchsuite-sync.md](docs/10-churchsuite-sync.md) |
+| Git-backed shared data | [docs/11-git-data-sync.md](docs/11-git-data-sync.md) |
+| Display templates and text formats | [docs/13-display-templates.md](docs/13-display-templates.md) |
+| Tarp presentations | [docs/14-tarp.md](docs/14-tarp.md) |
+| Transition stingers | [docs/15-stingers.md](docs/15-stingers.md) |
+| MQTT bridge | [docs/16-mqtt.md](docs/16-mqtt.md) |
+| USB clicker remotes | [docs/17-clicker.md](docs/17-clicker.md) |
+| External presentations | [docs/18-external-presentations.md](docs/18-external-presentations.md) |
+| WebSocket API | [docs/19-websockets.md](docs/19-websockets.md) |
+| Shell CLI | [docs/20-cli.md](docs/20-cli.md) |
+| Windows/macOS desktop packages | [docs/21-desktop.md](docs/21-desktop.md) |
+| Native Linux server packages and `publish-all` | [docs/22-server-packages.md](docs/22-server-packages.md) |
+
+## Building and publishing
 
 ```sh
-read -rsp 'GHCR token: ' GHCR_TOKEN; echo
-printf '%s' "$GHCR_TOKEN" | docker login ghcr.io -u YOUR_GITHUB_USERNAME --password-stdin
-unset GHCR_TOKEN
-make publish
+make image              # application container image
+make deb                # CLI Debian package
+make server-packages    # server .deb, .rpm and .src.rpm
+make desktop            # Windows and macOS desktop ZIPs
+make package-bundle     # all packages plus SHA256SUMS
+make publish-all        # build everything and push the image and package bundle to GHCR
 ```
 
-Alternatively, pass the token to the Makefile so it performs the login:
+`make publish-all` pushes:
 
-```sh
-read -rsp 'GHCR token: ' GHCR_TOKEN; echo
-GHCR_TOKEN="$GHCR_TOKEN" GHCR_USER=YOUR_GITHUB_USERNAME make publish
-unset GHCR_TOKEN
-```
+- `ghcr.io/phedders/servicemaestro:<version>`
+- `ghcr.io/phedders/servicemaestro-packages:<version>`
 
-Use `make help` to see the defaults, or override them:
-
-```sh
-make publish TAG=dev PUBLISH_LATEST=0
-make publish IMAGE=ghcr.io/your-user/service-maestro
-```
-
-The first push creates a private package. Change its visibility in the package settings on GitHub
-if anonymous pulls are needed. The build uses the local Docker engine by default; set
-`DOCKER=podman` to use Podman.
-
-See [05-container-deployment.md](docs/05-container-deployment.md) for Incus/LXC, read-only root filesystem, backups and hardening.
-
-## Project structure
-
-```
-service-maestro/
-├── packages/
-│   ├── shared/       TypeScript types + Zod schemas
-│   ├── server/       Fastify API, SQLite, Socket.IO, live state, rendering
-│   ├── control/      React + Vite operator UI (dashboard temporarily hidden) + standalone musicians view
-│   └── display/      Vanilla OBS display pages (main / full / stage)
-├── docs/             Design documents
-├── samples/          Git-ignored real inputs (Bible, ChordPro, OpenLP, SongSelect)
-├── Dockerfile
-├── Makefile          Local image build and GHCR publish targets
-├── compose.yaml
-└── package.json      npm workspaces
-```
-
-## Gap to the full design
-
-Not yet implemented:
-
-- Song assets (PDF/tab files) in the songs Git repository; Git conflict UI; remote sync exists but has not been exercised against a live remote.
-- Song versions/arrangements beyond the single lyrics field and verse-order override.
-- Dynamic text themes and the full theme editor.
-- Dashboard widget palette/publish and Yjs co-editing.
-- Site scraper adapters, CCLI reporting and backups/scan jobs.
-- User/role management beyond the seeded admin; output tokens are currently a single shared token.
-
-The next step is Git asset persistence/conflict handling or the theme editor. See the [architecture phases](docs/02-architecture.md#14-phased-delivery).
+Set `GHCR_TOKEN` or `GITHUB_TOKEN` before publishing. See
+[native server packages](docs/22-server-packages.md#publish-everything-to-ghcr).
