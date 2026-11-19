@@ -1978,6 +1978,42 @@ export function formatBibleVerses(
   return layout === "paragraph" ? texts.join(" ") : texts.join("\n");
 }
 
+/**
+ * Infer a service start time from a plan title such as "The 10:30 Service".
+ * Returns a 24-hour HH:MM string, or null when no credible time is present.
+ */
+export function inferServiceTimeFromText(value: string | null | undefined): string | null {
+  const text = value?.trim();
+  if (!text) return null;
+
+  const toHours = (hour: number, meridiem: string | undefined): number | null => {
+    const marker = meridiem?.replace(/\./g, "").toLowerCase();
+    if (!marker) return hour;
+    if (marker !== "am" && marker !== "pm") return null;
+    if (hour === 12) return marker === "am" ? 0 : 12;
+    return marker === "pm" ? hour + 12 : hour;
+  };
+
+  const withMinutes = text.match(
+    /\b([01]?\d|2[0-3])[:.]([0-5]\d)\s*(a\.?m\.?|p\.?m\.?)?\b/i,
+  );
+  if (withMinutes) {
+    const hour = toHours(Number(withMinutes[1]), withMinutes[3]);
+    if (hour != null && hour >= 0 && hour <= 23) {
+      return `${String(hour).padStart(2, "0")}:${withMinutes[2]}`;
+    }
+  }
+
+  const hourOnly = text.match(/\b(1[0-2]|0?[1-9])\s*(a\.?m\.?|p\.?m\.?)\b/i);
+  if (hourOnly) {
+    const hour = toHours(Number(hourOnly[1]), hourOnly[2]);
+    if (hour != null && hour >= 0 && hour <= 23) {
+      return `${String(hour).padStart(2, "0")}:00`;
+    }
+  }
+  return null;
+}
+
 export type SongAssetKind = "score_pdf" | "guitar_tab" | "chordpro" | "lyrics" | "image";
 
 export interface SongAsset {

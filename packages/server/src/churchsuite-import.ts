@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import {
   formatBibleVerses,
+  inferServiceTimeFromText,
   type BibleBook,
   type BibleLayout,
   type ChurchSuiteBibleReading,
@@ -492,9 +493,8 @@ function importMeta(
   const serviceTime =
     input.serviceTime !== undefined
       ? input.serviceTime || null
-      : preview.plan.time
-        ? preview.plan.time.slice(0, 5)
-        : null;
+      : inferServiceTimeFromText(preview.plan.name) ??
+        (preview.plan.time ? preview.plan.time.slice(0, 5) : null);
   const name =
     input.name?.trim() ||
     `${compactDate(serviceDate)}-${preview.plan.name}`.slice(0, 200);

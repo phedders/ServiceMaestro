@@ -426,7 +426,8 @@ export default function HelpPage({ onOpenSettings }: { onOpenSettings: () => voi
                     lyrics and choose the right version before importing. Unmatched named items become
                     editable text placeholders. Plan object types listed under{" "}
                     <strong>Settings → ChurchSuite empty items</strong> become empty items with no
-                    pages, keeping their text in the notes.
+                    pages, keeping their text in the notes. A time in the plan title, such as
+                  <strong>The 10:30 Service</strong>, pre-fills the service time.
                   </li>
                   <li>
                     If the plan already has a set list, <strong>Review and update…</strong> highlights

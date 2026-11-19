@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
-import type {
-  BibleLayout,
-  ChurchSuiteImportReport,
-  ChurchSuitePlanPreview,
-  ChurchSuitePlanSummary,
-  ChurchSuiteSyncPreview,
-  SiteScraperImportResult,
-  SiteScraperProviderSummary,
+import {
+  inferServiceTimeFromText,
+  type BibleLayout,
+  type ChurchSuiteImportReport,
+  type ChurchSuitePlanPreview,
+  type ChurchSuitePlanSummary,
+  type ChurchSuiteSyncPreview,
+  type SiteScraperImportResult,
+  type SiteScraperProviderSummary,
 } from "@sm/shared";
 import { useAdapters } from "../adapters";
 import { api, ApiError } from "../api";
@@ -195,7 +196,10 @@ export default function ChurchsuitePage({
       );
       setImportDate(existing?.serviceDate ?? result.preview.plan.date);
       setImportTime(
-        existing?.serviceTime?.slice(0, 5) ?? result.preview.plan.time?.slice(0, 5) ?? "",
+        existing?.serviceTime?.slice(0, 5) ??
+          inferServiceTimeFromText(result.preview.plan.name) ??
+          result.preview.plan.time?.slice(0, 5) ??
+          "",
       );
     } catch (error) {
       notify(error instanceof ApiError ? error.message : "Could not load ChurchSuite plan", "error");
