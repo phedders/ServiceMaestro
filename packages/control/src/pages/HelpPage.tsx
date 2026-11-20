@@ -275,8 +275,10 @@ export default function HelpPage({ onOpenSettings }: { onOpenSettings: () => voi
               </li>
               <li>
                 <strong>Big Print</strong> and <strong>Chords Print</strong> export PDF, Word (DOCX)
-                or OpenDocument (ODF). Both default to bold text and italic choruses; repeated
-                identical choruses become a <code>&lt;CHORUS&gt;</code> placeholder.
+                or OpenDocument (ODF). Big Print also supports portrait, landscape and a
+                saddle-stitch booklet with two A5 pages per landscape A4 side. Both default to bold
+                text and italic choruses; repeated identical choruses become a
+                <code>&lt;CHORUS&gt;</code> placeholder.
               </li>
               <li>
                 Song items have an <strong>ALT</strong> button for locally stored versions with similar

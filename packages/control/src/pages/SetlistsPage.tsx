@@ -1426,6 +1426,9 @@ export default function SetlistsPage({
   const [churchsuiteSyncing, setChurchsuiteSyncing] = useState(false);
   const [creatingSongPdf, setCreatingSongPdf] = useState(false);
   const [songPdfFormat, setSongPdfFormat] = useState<SetlistSheetFormat>("pdf");
+  const [songPdfOrientation, setSongPdfOrientation] = useState<
+    "portrait" | "landscape" | "booklet"
+  >("portrait");
   const [songPdfFontSize, setSongPdfFontSize] = useState(15);
   const [songPdfColumns, setSongPdfColumns] = useState(1);
   const [songPdfBold, setSongPdfBold] = useState(true);
@@ -2043,6 +2046,7 @@ export default function SetlistsPage({
       const { blob, filename } = await api.downloadSetlistSongsSheet(detail.id, {
         fontSize: songPdfFontSize,
         columns: songPdfColumns,
+        orientation: songPdfOrientation,
         format: songPdfFormat,
         boldText: songPdfBold,
         chorusItalic: songPdfChorusItalic,
@@ -2387,8 +2391,30 @@ export default function SetlistsPage({
                 }
               >
                 <option value="pdf">PDF</option>
-                <option value="docx">Word (DOCX)</option>
-                <option value="odf">OpenDocument (ODF)</option>
+                <option value="docx" disabled={songPdfOrientation === "booklet"}>
+                  Word (DOCX)
+                </option>
+                <option value="odf" disabled={songPdfOrientation === "booklet"}>
+                  OpenDocument (ODF)
+                </option>
+              </select>
+            </label>
+            <label>
+              Orientation
+              <select
+                value={songPdfOrientation}
+                onChange={(event) => {
+                  const orientation = event.target.value as
+                    | "portrait"
+                    | "landscape"
+                    | "booklet";
+                  setSongPdfOrientation(orientation);
+                  if (orientation === "booklet") setSongPdfFormat("pdf");
+                }}
+              >
+                <option value="portrait">Portrait</option>
+                <option value="landscape">Landscape</option>
+                <option value="booklet">Booklet (2-up)</option>
               </select>
             </label>
             <label>
@@ -2445,6 +2471,13 @@ export default function SetlistsPage({
               {creatingSongPdf ? "Creating…" : `Create ${songPdfFormat.toUpperCase()} of the songs`}
             </button>
           </div>
+          {songPdfOrientation === "booklet" && (
+            <p className="hint">
+              Booklet lays two A5 pages on each landscape A4 side, in saddle-stitch order.
+              Print double-sided, flip on the short edge, fold and staple down the middle.
+              Booklet output is PDF only.
+            </p>
+          )}
         </div>
 
         <div className="big-print-pdf">

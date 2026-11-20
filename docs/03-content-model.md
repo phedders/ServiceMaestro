@@ -533,7 +533,7 @@ Musicians
 Set Lists
   Calendar/list  named + dated services; duplicate; archive; export/import (JSON or bundle)
   Editor         draft revision, drag handle/drag-drop, inline preview/edit, live badge, diff preview, apply-to-live
-  Print exports Big Print song words plus chord charts in PDF, DOCX or ODF, with portrait/landscape and songs-with-chords-only options
+  Print exports Big Print song words plus chord charts in PDF, DOCX or ODF, with portrait/landscape, saddle-stitch booklet, and songs-with-chords-only options
 
 Live (Control)
   Current service: pages, set list queue, quick text, next/prev, blank/fade

@@ -20,6 +20,34 @@ const HEADER_SIZE = 9;
 const COLUMN_GAP = 22;
 const SONG_GAP = 16;
 
+interface PageGeometry {
+  width: number;
+  height: number;
+  margin: number;
+  bottomMargin: number;
+}
+
+const PORTRAIT_GEOMETRY: PageGeometry = {
+  width: PAGE_WIDTH,
+  height: PAGE_HEIGHT,
+  margin: MARGIN,
+  bottomMargin: BOTTOM_MARGIN,
+};
+
+const LANDSCAPE_GEOMETRY: PageGeometry = {
+  width: PAGE_HEIGHT,
+  height: PAGE_WIDTH,
+  margin: MARGIN,
+  bottomMargin: BOTTOM_MARGIN,
+};
+
+const BOOKLET_CONTENT_GEOMETRY: PageGeometry = {
+  width: PAGE_HEIGHT / 2,
+  height: PAGE_WIDTH,
+  margin: 32,
+  bottomMargin: 32,
+};
+
 const PDF_FONTS: Record<
   SongSheetFont,
   {
@@ -492,9 +520,10 @@ export interface SongSheetOptions {
   pageNumbers?: boolean;
   boldText?: boolean;
   chorusItalic?: boolean;
+  orientation?: "portrait" | "landscape" | "booklet";
 }
 
-export interface ChordSheetOptions extends SongSheetOptions {
+export interface ChordSheetOptions extends Omit<SongSheetOptions, "orientation"> {
   orientation?: "portrait" | "landscape";
   chordsOnly?: boolean;
 }
@@ -505,8 +534,13 @@ async function buildSongSheetPdfFromSongs(
   setlist: SetlistRow,
   songs: SongForPdf[],
   options: SongSheetOptions = {},
+  geometry: PageGeometry = PORTRAIT_GEOMETRY,
 ): Promise<{ buffer: Buffer; filename: string }> {
   if (!songs.length) throw new Error("This set list has no songs");
+  const pageWidth = geometry.width;
+  const pageHeight = geometry.height;
+  const margin = geometry.margin;
+  const bottomMargin = geometry.bottomMargin;
   const settings = getAppSettings();
   const baseSize = Math.max(
     8,
@@ -525,9 +559,9 @@ async function buildSongSheetPdfFromSongs(
   const metadataSize = 8;
   const lineHeight = baseSize * 1.45;
   const paragraphGap = baseSize * 0.6;
-  const contentWidth = PAGE_WIDTH - MARGIN * 2;
+  const contentWidth = pageWidth - margin * 2;
   const columnWidth = (contentWidth - COLUMN_GAP * (columnCount - 1)) / columnCount;
-  const columnX = (index: number) => MARGIN + index * (columnWidth + COLUMN_GAP);
+  const columnX = (index: number) => margin + index * (columnWidth + COLUMN_GAP);
 
   const pdf = await PDFDocument.create();
   const font = await pdf.embedFont(fontChoice.regular);
@@ -536,7 +570,7 @@ async function buildSongSheetPdfFromSongs(
   const boldItalic = await pdf.embedFont(fontChoice.boldItalic);
   const headingFont = boldText ? bold : font;
   const headerTitleLines = wrapLine(pdfSafe(setlist.name), headingFont, pageTitleSize, contentWidth);
-  const headerTitleTop = PAGE_HEIGHT - 28;
+  const headerTitleTop = pageHeight - 28;
   const headerTitleLineHeight = pageTitleSize * 1.12;
   const headerMetaBaseline =
     headerTitleTop - headerTitleLines.length * headerTitleLineHeight - 2;
@@ -548,7 +582,7 @@ async function buildSongSheetPdfFromSongs(
   const muted = rgb(0.38, 0.42, 0.48);
   const rule = rgb(0.82, 0.84, 0.87);
 
-  let page: PDFPage = pdf.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
+  let page: PDFPage = pdf.addPage([pageWidth, pageHeight]);
   let column = 0;
   let y = contentTop;
 
@@ -556,7 +590,7 @@ async function buildSongSheetPdfFromSongs(
     let headerY = headerTitleTop;
     for (const line of headerTitleLines) {
       target.drawText(line, {
-        x: MARGIN,
+        x: margin,
         y: headerY,
         size: pageTitleSize,
         font: headingFont,
@@ -565,15 +599,15 @@ async function buildSongSheetPdfFromSongs(
       headerY -= headerTitleLineHeight;
     }
     target.drawText(pdfSafe(date), {
-      x: MARGIN,
+      x: margin,
       y: headerMetaBaseline,
       size: HEADER_SIZE,
       font: metadataFont,
       color: muted,
     });
     target.drawLine({
-      start: { x: MARGIN, y: headerRuleY },
-      end: { x: PAGE_WIDTH - MARGIN, y: headerRuleY },
+      start: { x: margin, y: headerRuleY },
+      end: { x: pageWidth - margin, y: headerRuleY },
       thickness: 0.6,
       color: rule,
     });
@@ -584,7 +618,7 @@ async function buildSongSheetPdfFromSongs(
     if (column + 1 < columnCount) {
       column += 1;
     } else {
-      page = pdf.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
+      page = pdf.addPage([pageWidth, pageHeight]);
       pageHeader(page);
       column = 0;
     }
@@ -602,7 +636,7 @@ async function buildSongSheetPdfFromSongs(
   };
 
   const ensureSpace = (height: number, continuationTitle?: string) => {
-    if (y - height < BOTTOM_MARGIN) nextColumn(continuationTitle);
+    if (y - height < bottomMargin) nextColumn(continuationTitle);
   };
 
   for (const song of songs) {
@@ -644,7 +678,7 @@ async function buildSongSheetPdfFromSongs(
     for (const line of song.layout) {
       if (line.section) continue;
       if (!line.text) {
-        y = Math.max(BOTTOM_MARGIN, y - paragraphGap);
+        y = Math.max(bottomMargin, y - paragraphGap);
         continue;
       }
       const chorus = line.isChorus && chorusItalic;
@@ -685,7 +719,7 @@ async function buildSongSheetPdfFromSongs(
     const pages = pdf.getPages();
     pages.forEach((target, index) => {
       target.drawText(`${index + 1} / ${pages.length}`, {
-        x: PAGE_WIDTH - MARGIN - 34,
+        x: pageWidth - margin - 34,
         y: 24,
         size: 8,
         font: metadataFont,
@@ -700,12 +734,70 @@ async function buildSongSheetPdfFromSongs(
   };
 }
 
+export function bookletPageOrder(pageCount: number): Array<[number, number]> {
+  const totalPages = Math.max(4, Math.ceil(pageCount / 4) * 4);
+  const sides: Array<[number, number]> = [];
+  for (let sheet = 0; sheet < totalPages / 4; sheet += 1) {
+    sides.push([totalPages - 1 - sheet * 2, sheet * 2]);
+    sides.push([sheet * 2 + 1, totalPages - 2 - sheet * 2]);
+  }
+  return sides;
+}
+
+async function buildBookletSongSheetPdf(
+  setlist: SetlistRow,
+  songs: SongForPdf[],
+  options: SongSheetOptions,
+): Promise<{ buffer: Buffer; filename: string }> {
+  const content = await buildSongSheetPdfFromSongs(
+    setlist,
+    songs,
+    { ...options, orientation: "portrait" },
+    BOOKLET_CONTENT_GEOMETRY,
+  );
+  const contentPdf = await PDFDocument.load(content.buffer);
+  const contentPageCount = contentPdf.getPageCount();
+  const order = bookletPageOrder(contentPageCount);
+  const pdf = await PDFDocument.create();
+  const embedded = await pdf.embedPages(contentPdf.getPages());
+  const sheetWidth = LANDSCAPE_GEOMETRY.width;
+  const sheetHeight = LANDSCAPE_GEOMETRY.height;
+  const halfWidth = sheetWidth / 2;
+  const place = (side: PDFPage, pageIndex: number, x: number) => {
+    if (pageIndex >= contentPageCount) return;
+    side.drawPage(embedded[pageIndex], {
+      x,
+      y: 0,
+      width: halfWidth,
+      height: sheetHeight,
+    });
+  };
+  for (const [left, right] of order) {
+    const side = pdf.addPage([sheetWidth, sheetHeight]);
+    place(side, left, 0);
+    place(side, right, halfWidth);
+  }
+
+  return {
+    buffer: Buffer.from(await pdf.save()),
+    filename: safeFilename(setlist.name, setlist.service_date, "songs-booklet"),
+  };
+}
+
 export async function buildSongSheetPdf(
   setlistId: string,
   options: SongSheetOptions = {},
 ): Promise<{ buffer: Buffer; filename: string }> {
   const { setlist, songs } = loadSongs(setlistId);
-  return buildSongSheetPdfFromSongs(setlist, songs, options);
+  if (options.orientation === "booklet") {
+    return buildBookletSongSheetPdf(setlist, songs, options);
+  }
+  return buildSongSheetPdfFromSongs(
+    setlist,
+    songs,
+    options,
+    options.orientation === "landscape" ? LANDSCAPE_GEOMETRY : PORTRAIT_GEOMETRY,
+  );
 }
 
 export type SetlistMediaType = "vocal" | "lead" | "score" | "tab";
@@ -1087,7 +1179,7 @@ interface SheetPrintContext {
 function sheetPrintContext(
   setlist: SetlistRow,
   songs: SongForPdf[],
-  options: ChordSheetOptions,
+  options: SongSheetOptions,
   chordMode: boolean,
 ): SheetPrintContext {
   const settings = getAppSettings();
@@ -1104,7 +1196,7 @@ function sheetPrintContext(
     songs,
     baseSize,
     columns,
-    landscape: chordMode && options.orientation === "landscape",
+    landscape: options.orientation === "landscape",
     boldText: options.boldText !== false,
     chorusItalic: options.chorusItalic !== false,
     fontFamily: DOC_FONTS[settings.songSheetFontFamily],

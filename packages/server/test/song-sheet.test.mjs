@@ -318,8 +318,11 @@ test("prints repeated choruses and exports DOCX/ODF big-print and chord sheets",
       songSheetLayout,
       isChorusSectionLabel,
       buildSongSheetDocument,
+      buildSongSheetPdf,
       buildChordSheetDocument,
+      bookletPageOrder,
     } = await import(process.env.SM_MODULE_BASE + "song-sheet.js");
+    const { PDFDocument } = await import("pdf-lib");
     const now = new Date().toISOString();
     const lyrics = [
       "[Verse 1]",
@@ -366,6 +369,12 @@ test("prints repeated choruses and exports DOCX/ODF big-print and chord sheets",
     const songsOdf = await buildSongSheetDocument("setlist-docs", "odf", { fontSize: 15 });
     const chordsDocx = await buildChordSheetDocument("setlist-docs", "docx", { fontSize: 15 });
     const chordsOdf = await buildChordSheetDocument("setlist-docs", "odf", { fontSize: 15 });
+    const booklet = await buildSongSheetPdf("setlist-docs", {
+      fontSize: 15,
+      orientation: "booklet",
+    });
+    const bookletPdf = await PDFDocument.load(booklet.buffer);
+    const bookletSize = bookletPdf.getPage(0).getSize();
 
     console.log(JSON.stringify({
       layout: songSheetLayout(lyrics),
@@ -378,6 +387,10 @@ test("prints repeated choruses and exports DOCX/ODF big-print and chord sheets",
       songsOdf: read(songsOdf.buffer, "content.xml"),
       chordsDocx: read(chordsDocx.buffer, "word/document.xml"),
       chordsOdf: read(chordsOdf.buffer, "content.xml"),
+      bookletOrder: bookletPageOrder(8),
+      bookletPages: bookletPdf.getPageCount(),
+      bookletSize,
+      bookletName: booklet.filename,
       songsDocxName: songsDocx.filename,
       songsOdfType: songsOdf.contentType,
       chordsOdfName: chordsOdf.filename,
@@ -430,4 +443,15 @@ test("prints repeated choruses and exports DOCX/ODF big-print and chord sheets",
   assert.match(data.chordsDocx, /Chorus/);
   assert.match(data.chordsDocx, /&lt;CHORUS&gt;/);
   assert.match(data.chordsOdf, /&lt;CHORUS&gt;/);
+
+  assert.deepEqual(data.bookletOrder, [
+    [7, 0],
+    [1, 6],
+    [5, 2],
+    [3, 4],
+  ]);
+  assert.equal(data.bookletPages % 2, 0);
+  assert.ok(Math.abs(data.bookletSize.width - 841.89) < 0.01);
+  assert.ok(Math.abs(data.bookletSize.height - 595.28) < 0.01);
+  assert.match(data.bookletName, /songs-booklet\.pdf$/);
 });

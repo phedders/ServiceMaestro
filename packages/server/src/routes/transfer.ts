@@ -53,15 +53,23 @@ export async function transferRoutes(app: FastifyInstance): Promise<void> {
       const query = request.query as {
         fontSize?: string;
         columns?: string;
+        orientation?: string;
         bold?: string;
         chorusItalic?: string;
       };
       const fontSize = query.fontSize === undefined ? undefined : Number(query.fontSize);
       const columns = query.columns === undefined ? undefined : Number(query.columns);
+      const orientation =
+        query.orientation === "landscape"
+          ? "landscape"
+          : query.orientation === "booklet"
+            ? "booklet"
+            : "portrait";
       try {
         const result = await buildSongSheetPdf(id, {
           fontSize: Number.isFinite(fontSize) ? fontSize : undefined,
           columns: Number.isFinite(columns) ? columns : undefined,
+          orientation,
           boldText: queryBool(query.bold, true),
           chorusItalic: queryBool(query.chorusItalic, true),
         });
@@ -190,9 +198,16 @@ export async function transferRoutes(app: FastifyInstance): Promise<void> {
         };
         const fontSize = query.fontSize === undefined ? undefined : Number(query.fontSize);
         const columns = query.columns === undefined ? undefined : Number(query.columns);
+        const songOrientation: "portrait" | "landscape" | "booklet" =
+          query.orientation === "landscape"
+            ? "landscape"
+            : query.orientation === "booklet"
+              ? "booklet"
+              : "portrait";
         const common = {
           fontSize: Number.isFinite(fontSize) ? fontSize : undefined,
           columns: Number.isFinite(columns) ? columns : undefined,
+          orientation: songOrientation,
           boldText: queryBool(query.bold, true),
           chorusItalic: queryBool(query.chorusItalic, true),
         };
@@ -202,7 +217,8 @@ export async function transferRoutes(app: FastifyInstance): Promise<void> {
               ? await buildSongSheetDocument(id, route.format, common)
               : await buildChordSheetDocument(id, route.format, {
                   ...common,
-                  orientation: query.orientation === "landscape" ? "landscape" : "portrait",
+                  orientation:
+                    songOrientation === "landscape" ? "landscape" : "portrait",
                   chordsOnly: queryBool(query.chordsOnly, true),
                 });
           logActivity({

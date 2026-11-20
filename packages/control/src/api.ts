@@ -123,7 +123,7 @@ export type SetlistSheetFormat = "pdf" | "docx" | "odf";
 interface SetlistPdfOptions {
   fontSize?: number;
   columns?: number;
-  orientation?: "portrait" | "landscape";
+  orientation?: "portrait" | "landscape" | "booklet";
   chordsOnly?: boolean;
   mediaType?: "vocal" | "lead" | "score" | "tab";
   format?: SetlistSheetFormat;
