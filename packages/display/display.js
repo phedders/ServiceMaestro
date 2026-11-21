@@ -370,17 +370,17 @@ body.sm-output-configured.mode-image .sm-footer {
     );
     vars.setProperty("--sm-output-fade-ms", `${output.fadeDurationMs}ms`);
     let mode = output.fade;
-    if (mode === "scroll") {
-      if (target === "full") {
-        mode = state.transition === "scroll" ? "scroll" : "template";
-      }
-      if (
-        output.content.pages === "upcoming" ||
+    if (target === "full") {
+      // The Live transport controls the fullscreen page transition.
+      mode = state.transition === "scroll" ? "scroll" : "template";
+    }
+    if (
+      mode === "scroll" &&
+      (output.content.pages === "upcoming" ||
         target === "stage" ||
-        target === "chords"
-      ) {
-        mode = target === "main" ? "text" : "template";
-      }
+        target === "chords")
+    ) {
+      mode = target === "main" ? "text" : "template";
     }
     fadeMode = mode;
     fadeMs = Math.max(0, output.fadeDurationMs);
