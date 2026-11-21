@@ -7,6 +7,7 @@ import {
   simplifySongPageIds,
   songBulkDeleteSchema,
   songDifferentSchema,
+  songFullscreenPreviewSchema,
   songInputSchema,
   songPageIdFixApplySchema,
   songPageNameCandidates,
@@ -27,6 +28,7 @@ import { addDefaultVerseTags } from "../lyrics.js";
 import { parseChordPro } from "../importers/index.js";
 import { getAppSettings } from "../settings.js";
 import { findDuplicateGroups, findSongAlternatives } from "../song-matching.js";
+import { createSongPreview } from "../song-preview.js";
 
 interface SongRow {
   id: string;
@@ -262,6 +264,24 @@ export async function songRoutes(app: FastifyInstance): Promise<void> {
           warnings: song.warnings,
         },
       };
+    },
+  );
+
+  app.post(
+    "/api/songs/preview-fullscreen",
+    { preHandler: requireAuth },
+    async (request, reply) => {
+      const parsed = songFullscreenPreviewSchema.safeParse(request.body ?? {});
+      if (!parsed.success) {
+        return reply.code(400).send({ error: "Invalid preview", issues: parsed.error.issues });
+      }
+      try {
+        return createSongPreview(parsed.data);
+      } catch (error) {
+        return reply.code(400).send({
+          error: error instanceof Error ? error.message : "Could not build the preview",
+        });
+      }
     },
   );
 

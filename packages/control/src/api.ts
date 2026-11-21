@@ -65,6 +65,7 @@ import type {
   SongAsset,
   SongImportReport,
   SongImportScan,
+  SongFullscreenPreviewInput,
   SongImportDecision,
   SongLowercaseChordFixScan,
   SongPageIdFixScan,
@@ -600,6 +601,11 @@ export const api = {
     request<{ preview: ChordProFilePreview }>("/api/songs/chordpro-preview", {
       method: "POST",
       body: JSON.stringify({ filename, content }),
+    }),
+  songFullscreenPreview: (input: SongFullscreenPreviewInput) =>
+    request<{ url: string; pageCount: number }>("/api/songs/preview-fullscreen", {
+      method: "POST",
+      body: JSON.stringify(input),
     }),
   scanSongselectWatch: (force = false) =>
     request<{ report: SongSelectWatchReport; status: SongSelectWatchStatus }>(

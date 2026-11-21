@@ -2131,6 +2131,16 @@ export const songInputSchema = z.object({
   songSelectInfo: z.string().trim().max(20_000).optional().nullable(),
 });
 
+export const songFullscreenPreviewSchema = z.object({
+  title: z.string().trim().max(300).default("Song preview"),
+  lyrics: z.string().max(200_000),
+  lyricsMarkdown: z.boolean().optional().default(false),
+  verseOrder: z.string().trim().max(1000).optional().nullable(),
+  key: z.string().trim().max(10).optional().nullable(),
+});
+
+export type SongFullscreenPreviewInput = z.infer<typeof songFullscreenPreviewSchema>;
+
 export const songBulkDeleteSchema = z.object({
   ids: z.array(z.string().trim().min(1).max(100)).min(1).max(1000),
 });

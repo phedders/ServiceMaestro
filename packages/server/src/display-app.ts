@@ -17,9 +17,10 @@ import {
 import { parseCookies, userForToken } from "./auth.js";
 import { imageMime, resolveImage } from "./images.js";
 import { live } from "./live.js";
-import { resolveDisplayOutput } from "./display-outputs.js";
+import { readPreview } from "./preview-store.js";
+import { listDisplayOutputs, resolveDisplayOutput } from "./display-outputs.js";
 import { installSecurityHeaders } from "./security.js";
-import type { DisplayOutputEntry, DisplayOutputTemplate } from "@sm/shared";
+import type { DisplayOutputEntry, DisplayOutputTemplate, LiveState } from "@sm/shared";
 
 export const OUTPUT_SOCKET_PATH = "/display/socket.ro.io";
 
@@ -40,11 +41,16 @@ function escapeHtml(value: string): string {
     .replace(/'/g, "&#39;");
 }
 
-function outputShell(output: DisplayOutputEntry): string {
-  const version = Math.max(
+function displayAssetVersion(): string {
+  return Math.max(
     fs.statSync(path.join(DISPLAY_DIR, "display.js")).mtimeMs,
     fs.statSync(path.join(DISPLAY_DIR, "display.css")).mtimeMs,
+    fs.statSync(path.join(DISPLAY_DIR, "preview-bootstrap.js")).mtimeMs,
   ).toString(36);
+}
+
+function outputShell(output: DisplayOutputEntry): string {
+  const version = displayAssetVersion();
   let html = fs
     .readFileSync(path.join(DISPLAY_DIR, OUTPUT_HTML_FILES[output.template]), "utf8")
     .replaceAll("/display/assets/display.js", `/display/assets/display.js?v=${version}`)
@@ -59,6 +65,41 @@ function outputShell(output: DisplayOutputEntry): string {
       .replace(/\sdata-output="[^"]*"/i, "");
     return `<body${cleaned} data-target="${output.template}" data-output="${escapeHtml(output.id)}">`;
   });
+}
+
+function scriptJson(value: unknown): string {
+  return JSON.stringify(value)
+    .replace(/</g, "\\u003c")
+    .replace(/\u2028/g, "\\u2028")
+    .replace(/\u2029/g, "\\u2029");
+}
+
+/**
+ * Render a static display page that shows one live-state snapshot without a
+ * socket connection. Used by the song editor's fullscreen preview.
+ */
+export function displayPreviewDocument(state: LiveState, outputId = "full"): string {
+  const output =
+    resolveDisplayOutput(outputId) ??
+    listDisplayOutputs().find((entry) => entry.enabled && entry.template === "full") ??
+    listDisplayOutputs().find((entry) => entry.enabled);
+  if (!output) throw new Error("No display output is available for preview");
+
+  const stub = `<script type="application/json" id="sm-preview-state">${scriptJson(
+    state,
+  )}</script><script src="/display/assets/preview-bootstrap.js?v=${displayAssetVersion()}"></script>`;
+
+  let html = outputShell(output);
+  const socketScript = '<script src="/display/socket.ro.io/socket.io.js"></script>';
+  if (html.includes(socketScript)) {
+    html = html.replace(socketScript, stub);
+  } else {
+    html = html.replace(
+      /<script src="\/display\/assets\/display\.js[^"]*"><\/script>/,
+      (match) => `${stub}${match}`,
+    );
+  }
+  return html;
 }
 
 export async function registerDisplayRoutes(
@@ -132,6 +173,13 @@ export async function registerDisplayRoutes(
       );
     }
     return reply.send(fs.createReadStream(absolute));
+  });
+
+  app.get("/display/song-preview/:token", async (request, reply) => {
+    const token = (request.params as { token: string }).token;
+    const html = readPreview(token);
+    if (!html) return reply.code(404).send({ error: "Preview expired" });
+    return reply.type("text/html; charset=utf-8").header("cache-control", "no-store").send(html);
   });
 
   app.get("/display/:page", async (request, reply) => {

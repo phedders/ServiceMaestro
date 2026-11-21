@@ -19,6 +19,7 @@ import { PageContentEditor } from "../components/PageContentEditor";
 import { SaveButton } from "../components/SaveButton";
 import { LowercaseChordFixDialog } from "../components/LowercaseChordFixDialog";
 import { SiteSongDownloadPanel } from "../components/SiteSongDownloadPanel";
+import { SongFullscreenPreview } from "../components/SongFullscreenPreview";
 import { changeList } from "../form-changes";
 import { ReadOnlyFieldset, usePageAccess } from "../page-access";
 import { compactDate, compactDateTime, pickCurrentSetlist } from "../service-date";
@@ -112,6 +113,12 @@ export default function SongsPage({
   const [siteUpdatingId, setSiteUpdatingId] = useState<string | null>(null);
   const [fixingPageNameId, setFixingPageNameId] = useState<string | null>(null);
   const [fixingLowercaseChordsId, setFixingLowercaseChordsId] = useState<string | null>(null);
+  const [previewingFullscreen, setPreviewingFullscreen] = useState(false);
+  const [fullscreenPreview, setFullscreenPreview] = useState<{
+    url: string;
+    title: string;
+    pageCount: number;
+  } | null>(null);
   const [lowercasePrompt, setLowercasePrompt] = useState<{
     songId: string;
     title: string;
@@ -228,6 +235,31 @@ export default function SongsPage({
     if (!lyricsRevision) return;
     lyricsRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
   }, [lyricsRevision]);
+
+  async function previewFullscreen() {
+    setPreviewingFullscreen(true);
+    try {
+      const result = await api.songFullscreenPreview({
+        title: form.title || "Song preview",
+        lyrics: form.lyrics,
+        lyricsMarkdown: form.lyricsMarkdown,
+        verseOrder: form.verseOrder || null,
+        key: form.key || null,
+      });
+      setFullscreenPreview({
+        url: result.url,
+        title: form.title || "Song preview",
+        pageCount: result.pageCount,
+      });
+    } catch (error) {
+      notify(
+        error instanceof ApiError ? error.message : "Could not build the fullscreen preview",
+        "error",
+      );
+    } finally {
+      setPreviewingFullscreen(false);
+    }
+  }
 
   async function fixPageNames(song: Song) {
     setFixingPageNameId(song.id);
@@ -851,6 +883,14 @@ export default function SongsPage({
         <div className="panel-heading">
           <h2>{selectedId ? "Edit song" : "New song"}</h2>
           <div className="button-row">
+            <button
+              className="button ghost"
+              onClick={() => void previewFullscreen()}
+              disabled={previewingFullscreen || !form.lyrics.trim()}
+              title="Preview the current lyrics as they will appear on the fullscreen output"
+            >
+              {previewingFullscreen ? "Rendering…" : "Preview as fullscreen output"}
+            </button>
             {selectedId && songSelectEnabled && siteProvider && selectedSong && (
               <button
                 className="button ghost"
@@ -1457,6 +1497,15 @@ export default function SongsPage({
 
       {songSelectEnabled && (
         <SiteSongDownloadPanel notify={notify} onImported={(song) => void handleImportedSong(song)} />
+      )}
+
+      {fullscreenPreview && (
+        <SongFullscreenPreview
+          src={fullscreenPreview.url}
+          title={fullscreenPreview.title}
+          pageCount={fullscreenPreview.pageCount}
+          onClose={() => setFullscreenPreview(null)}
+        />
       )}
 
       {lowercasePrompt && (

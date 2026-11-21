@@ -348,6 +348,11 @@ export default function HelpPage({ onOpenSettings }: { onOpenSettings: () => voi
                 <strong> Settings → Lowercase chords</strong>.
               </li>
               <li>
+                Use <strong>Preview as fullscreen output</strong> at the top of the song editor to
+                render the current lyrics, verse order and key with the configured fullscreen
+                output. Step through pages in the preview or open it fullscreen.
+              </li>
+              <li>
                 Attach scores, tabs, ChordPro files or lyric sheets for the read-only musicians view.
               </li>
               <li>
