@@ -231,6 +231,8 @@ export function isSongChordToken(value: string): boolean {
   const token = value.trim();
   if (!token || SECTION_LABEL_TOKEN.test(token)) return false;
   if (token === "N.C." || token === "NC") return true;
+  // A bare dot is a chord continuation/hold marker in several ChordPro sources.
+  if (token === ".") return true;
   return /^[A-G](?:#|b)?[A-Za-z0-9+#°øsusmajmin()/.-]*$/.test(token);
 }
 

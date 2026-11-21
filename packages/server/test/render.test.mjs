@@ -22,6 +22,12 @@ test("renders chord spans and escapes lyrics", () => {
   assert.match(html, /&lt;grace&gt;/);
 });
 
+test("renders a dot chord continuation as a chord, not literal brackets", () => {
+  const html = renderLine("[Gmaj7] [.] [G/B] [C2]", 0);
+  assert.match(html, /data-chord="\."/);
+  assert.doesNotMatch(html, /\[\.\]/);
+});
+
 test("splits sections into pages by max lines", () => {
   const pages = buildPages({
     kind: "song",

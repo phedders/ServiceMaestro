@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   fixLowercaseChords,
+  isSongChordToken,
   simplifySongPageIds,
   songPageNameCandidates,
   songPageOrder,
@@ -112,6 +113,11 @@ test("fixes lowercase chord roots but leaves section labels alone", () => {
     { from: "c2", to: "C2", count: 1 },
     { from: "e", to: "E", count: 1 },
   ]);
+});
+
+test("recognises a dot as a chord continuation marker", () => {
+  assert.equal(isSongChordToken("."), true);
+  assert.equal(isSongChordToken(".."), false);
 });
 
 test("fixes suffix chords on chord lines but keeps standalone numeric sections", () => {

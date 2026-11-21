@@ -292,6 +292,8 @@ function renderRichText(body: string, format: TextFormat): string {
 function chordToken(value: string): string | null {
   if (value === "|" || value === "||:" || value === ":||" || value === "||") return null;
   if (value === "N.C." || value === "NC") return value;
+  // A bare dot is a chord continuation/hold marker in several ChordPro sources.
+  if (value === ".") return value;
   if (/^[A-G](?:#|b)?[A-Za-z0-9+#°øsusmajmin()/.-]*$/.test(value)) return value;
   return null;
 }
