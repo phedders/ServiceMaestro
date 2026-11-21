@@ -67,14 +67,13 @@ jobs:
 
       - name: Publish gh-pages branch
         env:
-          PACKAGES_DEPLOY_KEY: ${{ secrets.PACKAGES_DEPLOY_KEY }}
+          PACKAGES_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
         run: |
-          mkdir -p ~/.ssh
-          printf '%s\n' "$PACKAGES_DEPLOY_KEY" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan github.com >> ~/.ssh/known_hosts
+          printf 'https://x-access-token:%s@github.com\n' "$PACKAGES_TOKEN" > "$RUNNER_TEMP/git-credentials"
+          chmod 600 "$RUNNER_TEMP/git-credentials"
+          git config --global credential.helper "store --file=$RUNNER_TEMP/git-credentials"
           rm -rf packages-pages
-          git clone --branch gh-pages git@github.com:phedders/ServiceMaestro-Packages.git packages-pages
+          git clone --branch gh-pages https://github.com/phedders/ServiceMaestro-Packages.git packages-pages
           rsync -a --delete --exclude '.git' "$GITHUB_WORKSPACE/site/" packages-pages/
           cd packages-pages
           git config user.name "github-actions[bot]"
