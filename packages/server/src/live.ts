@@ -694,12 +694,11 @@ class LiveService {
         }
         if (state.halfPageOffset === 1 && state.pageIndex + 1 < pages.length) {
           state.pageIndex += 1;
-          if (state.pageIndex + 1 < pages.length) {
-            state.halfPageOffset = 1;
-          } else {
-            state.halfPageMode = false;
-            state.halfPageOffset = 0;
-          }
+          state.halfPageOffset = state.pageIndex + 1 < pages.length ? 1 : 0;
+          state.blank = false;
+        } else if (state.halfPageOffset === 0 && state.pageIndex + 1 >= pages.length) {
+          state.halfPageMode = false;
+          state.halfPageOffset = 0;
           state.blank = false;
         }
         break;
@@ -707,24 +706,39 @@ class LiveService {
       case "prevHalf": {
         const pages = state.pages;
         if (!pages.length) break;
+        const lastPage = pages.length - 1;
         if (!state.halfPageMode) {
           if (state.pageIndex > 0) {
-            state.pageIndex -= 1;
-            state.halfPageMode = true;
-            state.halfPageOffset = 1;
+            if (state.pageIndex >= lastPage) {
+              state.halfPageMode = true;
+              state.halfPageOffset = 0;
+            } else {
+              state.pageIndex -= 1;
+              state.halfPageMode = true;
+              state.halfPageOffset = 1;
+            }
             state.blank = false;
           }
           break;
         }
-        if (state.halfPageOffset === 1) {
+        if (state.halfPageOffset === 0) {
           if (state.pageIndex > 0) {
             state.pageIndex -= 1;
+            state.halfPageOffset = 1;
+            state.blank = false;
           } else {
             state.halfPageMode = false;
             state.halfPageOffset = 0;
           }
-          state.blank = false;
+          break;
         }
+        if (state.pageIndex > 0) {
+          state.pageIndex -= 1;
+        } else {
+          state.halfPageMode = false;
+          state.halfPageOffset = 0;
+        }
+        state.blank = false;
         break;
       }
       case "page": {

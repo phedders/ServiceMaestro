@@ -164,7 +164,7 @@ Key fields:
 | `mode` | Active item kind: `song`, `text`, `image`, `image_list`, `tarp`, `presentation`, or `idle` when no session is active. Blanking is reported by `blank`, not by `mode`. |
 | `blank` | Output is hidden or faded out. |
 | `transition` | Fullscreen page-change transition: `fade` or `scroll`. Other outputs use their own per-output transition setting. |
-| `halfPageMode`, `halfPageOffset` | Half-page scroll preview state. `halfPageOffset` is `0` or `1` within the current page. |
+| `halfPageMode`, `halfPageOffset` | Half-page scroll preview state. `halfPageOffset = 1` shows the lower half of the current page and the top of the next; `0` shows the top half of the current page. |
 | `transpose`, `maxLines`, `footer` | Current live overrides. |
 | `bibleVerseNumbers` | Show or hide the superscript verse numbers on Bible paragraph pages. Defaults to `true`. |
 | `pages` | Rendered pages for the current item. `html` is already sanitized and styled. `stinger` is an optional transition overlay. |
@@ -230,8 +230,8 @@ Valid payloads:
 | `{ "type": "next" }` | Advance one page, then into the next item at the item boundary. If an item is queued, commit it at page 0. |
 | `{ "type": "prev" }` | Go back one page, then into the previous item at the item boundary. |
 | `{ "type": "transition", "value": "scroll" }` | Set the fullscreen page-change transition to `fade` or `scroll`. |
-| `{ "type": "nextHalf" }` | Scroll fullscreen/lower-third outputs up by half a page and reveal the top half of the next page. Repeating advances through the item in half-page steps. Stage and chords outputs keep their normal page view. |
-| `{ "type": "prevHalf" }` | Scroll back by half a page, reversing `nextHalf`. From a full page it shows the lower half of the previous page; at the first page it returns to the normal full-page view. |
+| `{ "type": "nextHalf" }` | Scroll fullscreen/lower-third outputs up by half a page and reveal the top half of the next page. Repeating advances through the item in half-page steps; on the last page it scrolls that page's top half to the top, then a further press shows the full final page. Stage and chords outputs keep their normal page view. |
+| `{ "type": "prevHalf" }` | Scroll back by half a page, reversing `nextHalf`. From the full last page it first shows the final page's half view; on earlier pages it shows the lower half of the previous page, and at the first page it returns to the normal full-page view. |
 | `{ "type": "page", "delta": 1 }` | Move by `-50…50` pages. A forward move commits a queued item first. Page boundaries follow the global **Live navigation** setting. |
 | `{ "type": "goto", "itemIndex": 2, "pageIndex": 0 }` | Select an item and/or page directly. At least one field is required. Clears blank. |
 | `{ "type": "queueItem", "itemIndex": 4 }` | Preview an item as the next queued item **without changing the output**. |

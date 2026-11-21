@@ -45,9 +45,13 @@ test("next half scrolls through half-page steps and resets on normal navigation"
     const prevFromFull = live.command({ type: "prevHalf" });
     live.command({ type: "goto", itemIndex: 0 });
     let finalHalf = live.command({ type: "nextHalf" });
+    let lastHalf = null;
     for (let step = 0; step < 100 && finalHalf.halfPageMode; step += 1) {
+      if (finalHalf.pageIndex === finalHalf.pageCount - 1) lastHalf = finalHalf;
       finalHalf = live.command({ type: "nextHalf" });
     }
+    const prevFromFullFinal = live.command({ type: "prevHalf" });
+    const prevFromLastHalf = live.command({ type: "prevHalf" });
     console.log(JSON.stringify({
       started: {
         transition: started.transition,
@@ -88,6 +92,22 @@ test("next half scrolls through half-page steps and resets on normal navigation"
         pageCount: finalHalf.pageCount,
         halfPageMode: finalHalf.halfPageMode,
         halfPageOffset: finalHalf.halfPageOffset,
+      },
+      lastHalf: lastHalf && {
+        pageIndex: lastHalf.pageIndex,
+        pageCount: lastHalf.pageCount,
+        halfPageMode: lastHalf.halfPageMode,
+        halfPageOffset: lastHalf.halfPageOffset,
+      },
+      prevFromFullFinal: {
+        pageIndex: prevFromFullFinal.pageIndex,
+        halfPageMode: prevFromFullFinal.halfPageMode,
+        halfPageOffset: prevFromFullFinal.halfPageOffset,
+      },
+      prevFromLastHalf: {
+        pageIndex: prevFromLastHalf.pageIndex,
+        halfPageMode: prevFromLastHalf.halfPageMode,
+        halfPageOffset: prevFromLastHalf.halfPageOffset,
       },
       normalNext: {
         pageIndex: normalNext.pageIndex,
@@ -150,9 +170,25 @@ test("next half scrolls through half-page steps and resets on normal navigation"
     halfPageMode: false,
     halfPageOffset: 0,
   });
+  assert.deepEqual(data.lastHalf, {
+    pageIndex: data.finalHalf.pageCount - 1,
+    pageCount: data.finalHalf.pageCount,
+    halfPageMode: true,
+    halfPageOffset: 0,
+  });
   assert.equal(data.finalHalf.pageIndex, data.finalHalf.pageCount - 1);
   assert.equal(data.finalHalf.halfPageMode, false);
   assert.equal(data.finalHalf.halfPageOffset, 0);
+  assert.deepEqual(data.prevFromFullFinal, {
+    pageIndex: data.finalHalf.pageCount - 1,
+    halfPageMode: true,
+    halfPageOffset: 0,
+  });
+  assert.deepEqual(data.prevFromLastHalf, {
+    pageIndex: data.finalHalf.pageCount - 2,
+    halfPageMode: true,
+    halfPageOffset: 1,
+  });
   assert.deepEqual(data.normalNext, {
     pageIndex: 2,
     halfPageMode: false,
