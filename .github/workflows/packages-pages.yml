@@ -1,0 +1,88 @@
+name: Publish package repositories
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to publish (leave blank for the latest release)
+        required: false
+        type: string
+  workflow_run:
+    workflows: ["Release packages"]
+    types: [completed]
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: package-repositories
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Resolve release tag
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="${{ inputs.tag }}"
+          if [ -z "$tag" ]; then
+            tag="$(gh release view --repo "${{ github.repository }}" --json tagName --jq .tagName)"
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+      - name: Install repository tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y apt-utils createrepo-c dpkg-dev rsync
+
+      - name: Download release packages
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p downloads
+          gh release download "${{ steps.release.outputs.tag }}" \
+            --repo "${{ github.repository }}" \
+            --dir downloads \
+            --pattern 'service-maestro-cli_*.deb' \
+            --pattern 'service-maestro-server_*_amd64.deb' \
+            --pattern 'service-maestro-server-*.x86_64.rpm'
+
+      - name: Check out package site
+        run: git clone https://github.com/phedders/ServiceMaestro-Packages.git packages-site
+
+      - name: Build repositories
+        working-directory: packages-site
+        run: |
+          DOWNLOADS="$GITHUB_WORKSPACE/downloads" \
+          SITE="$GITHUB_WORKSPACE/site" \
+          ./scripts/build-site.sh "${{ steps.release.outputs.tag }}"
+
+      - name: Publish gh-pages branch
+        env:
+          PACKAGES_DEPLOY_KEY: ${{ secrets.PACKAGES_DEPLOY_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$PACKAGES_DEPLOY_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
+          rm -rf packages-pages
+          git clone --branch gh-pages git@github.com:phedders/ServiceMaestro-Packages.git packages-pages
+          rsync -a --delete --exclude '.git' "$GITHUB_WORKSPACE/site/" packages-pages/
+          cd packages-pages
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Package repositories are already up to date"
+            exit 0
+          fi
+          git commit -m "chore: publish ${{ steps.release.outputs.tag }}"
+          git push origin gh-pages
