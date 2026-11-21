@@ -152,7 +152,7 @@ body.sm-output-configured.mode-image .sm-footer {
 #sm-clock-layer {
   position: fixed;
   inset: 0;
-  z-index: 90;
+  z-index: 0;
   display: none;
   pointer-events: none;
 }
@@ -424,6 +424,7 @@ body.sm-output-configured.mode-image .sm-footer {
     const clock = output?.clock ?? null;
     clockSettings = clock;
     if (!clock?.enabled) {
+      document.body.classList.remove("sm-clock-visible");
       clockLayer.classList.remove("visible", "with-seconds");
       clockLayer.innerHTML = "";
       clockLayer.removeAttribute("data-position");
@@ -435,6 +436,7 @@ body.sm-output-configured.mode-image .sm-footer {
       return;
     }
     const config = state.displayConfig || {};
+    document.body.classList.add("sm-clock-visible");
     clockLayer.classList.add("visible");
     clockLayer.classList.toggle("with-seconds", clock.seconds);
     clockLayer.dataset.position = clock.position;

@@ -204,6 +204,17 @@ body.display-stage #stage::after {
   height: 100%;
 }
 
+/* Keep lyric text legible when it passes over the clock or a busy
+   background. The clock sits below this layer. */
+body.sm-clock-visible .sm-template,
+body.sm-clock-visible .sm-content,
+body.sm-clock-visible .tarp-object-text {
+  text-shadow:
+    0 0 0.05em #000,
+    0 0 0.12em #000,
+    0 0.04em 0.18em rgba(0, 0, 0, 0.85);
+}
+
 #sm-background-layer {
   position: fixed;
   inset: 0;
