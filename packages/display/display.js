@@ -632,7 +632,10 @@ body.sm-output-configured.mode-image .sm-footer {
             availableHeight > 0 ? availableHeight : halfHeight,
           )
         : scrollView
-          ? `<div class="sm-scroll-window" data-scroll-from="${scrollFrom}" data-scroll-to="${scrollTo}" style="height:${Math.max(
+          ? `<div class="sm-scroll-window" data-scroll-from="${scrollFrom}" data-scroll-to="${scrollTo}" data-scroll-max="${Math.max(
+              120,
+              Math.round(availableHeight > 0 ? availableHeight : scrollHeight || 0),
+            )}" style="height:${Math.max(
               120,
               Math.round(scrollHeight || 0),
             )}px"><div class="sm-scroll-track" style="transform:translateY(-${scrollFrom * 100}%)">${scrollTrackHtml(
@@ -1037,6 +1040,24 @@ body.sm-output-configured.mode-image .sm-footer {
     }
   }
 
+  function fitPageScrollHeight(scrollWindow) {
+    const pages = Array.from(scrollWindow.querySelectorAll(".sm-scroll-page"));
+    if (!pages.length) return;
+    // A wrapped line can make the incoming page taller than the outgoing one.
+    // Size the window to the tallest page so the scroll never clips either end.
+    const maxHeight = Number(scrollWindow.dataset.scrollMax) || window.innerHeight;
+    let contentHeight = 0;
+    for (const page of pages) {
+      const content = page.firstElementChild;
+      contentHeight = Math.max(
+        contentHeight,
+        content ? content.getBoundingClientRect().height : page.scrollHeight,
+      );
+    }
+    const height = Math.min(maxHeight, Math.max(120, contentHeight));
+    scrollWindow.style.height = `${height}px`;
+  }
+
   function startPageScroll() {
     const scrollWindow = root.querySelector(".sm-scroll-window");
     if (!scrollWindow) return;
@@ -1044,6 +1065,7 @@ body.sm-output-configured.mode-image .sm-footer {
     const to = Number(scrollWindow.dataset.scrollTo);
     const track = scrollWindow.querySelector(".sm-scroll-track");
     if (!track || !Number.isFinite(from) || !Number.isFinite(to)) return;
+    fitPageScrollHeight(scrollWindow);
     track.style.transform = `translateY(-${from * 100}%)`;
     if (
       from === to ||
@@ -1204,6 +1226,16 @@ body.sm-output-configured.mode-image .sm-footer {
       commit();
     }
   }
+
+  function refreshScrollHeight() {
+    const scrollWindow = root.querySelector(".sm-scroll-window");
+    if (scrollWindow) fitPageScrollHeight(scrollWindow);
+  }
+
+  if (document.fonts) {
+    document.fonts.ready.then(refreshScrollHeight).catch(() => undefined);
+  }
+  window.addEventListener("resize", refreshScrollHeight);
 
   socket.on("live:snapshot", apply);
   socket.on("heartbeat", () => {
