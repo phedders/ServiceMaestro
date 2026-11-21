@@ -33,7 +33,7 @@ make deb
 This writes `dist/service-maestro-cli_<version>_all.deb`. Install or upgrade it with:
 
 ```sh
-sudo apt install ./dist/service-maestro-cli_0.2.0_all.deb
+sudo apt install ./dist/service-maestro-cli_0.2.1_all.deb
 ```
 
 The package depends only on `python3 (>= 3.8)` and installs:
