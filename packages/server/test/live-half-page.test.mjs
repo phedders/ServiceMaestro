@@ -35,6 +35,11 @@ test("next half scrolls through half-page steps and resets on normal navigation"
     const firstHalf = live.command({ type: "nextHalf" });
     const secondHalf = live.command({ type: "nextHalf" });
     const normalNext = live.command({ type: "next" });
+    live.command({ type: "goto", itemIndex: 0 });
+    let finalHalf = live.command({ type: "nextHalf" });
+    for (let step = 0; step < 100 && finalHalf.halfPageMode; step += 1) {
+      finalHalf = live.command({ type: "nextHalf" });
+    }
     console.log(JSON.stringify({
       started: {
         halfPageMode: started.halfPageMode,
@@ -51,6 +56,12 @@ test("next half scrolls through half-page steps and resets on normal navigation"
         pageIndex: secondHalf.pageIndex,
         halfPageMode: secondHalf.halfPageMode,
         halfPageOffset: secondHalf.halfPageOffset,
+      },
+      finalHalf: {
+        pageIndex: finalHalf.pageIndex,
+        pageCount: finalHalf.pageCount,
+        halfPageMode: finalHalf.halfPageMode,
+        halfPageOffset: finalHalf.halfPageOffset,
       },
       normalNext: {
         pageIndex: normalNext.pageIndex,
@@ -87,6 +98,9 @@ test("next half scrolls through half-page steps and resets on normal navigation"
     halfPageMode: true,
     halfPageOffset: 1,
   });
+  assert.equal(data.finalHalf.pageIndex, data.finalHalf.pageCount - 1);
+  assert.equal(data.finalHalf.halfPageMode, false);
+  assert.equal(data.finalHalf.halfPageOffset, 0);
   assert.deepEqual(data.normalNext, {
     pageIndex: 2,
     halfPageMode: false,

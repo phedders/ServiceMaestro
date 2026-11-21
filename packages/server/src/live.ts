@@ -687,7 +687,12 @@ class LiveService {
         }
         if (state.halfPageOffset === 1 && state.pageIndex + 1 < pages.length) {
           state.pageIndex += 1;
-          state.halfPageOffset = state.pageIndex + 1 < pages.length ? 1 : 0;
+          if (state.pageIndex + 1 < pages.length) {
+            state.halfPageOffset = 1;
+          } else {
+            state.halfPageMode = false;
+            state.halfPageOffset = 0;
+          }
           state.blank = false;
         }
         break;

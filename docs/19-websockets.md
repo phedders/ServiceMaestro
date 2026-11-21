@@ -227,7 +227,7 @@ Valid payloads:
 | --- | --- |
 | `{ "type": "next" }` | Advance one page, then into the next item at the item boundary. If an item is queued, commit it at page 0. |
 | `{ "type": "prev" }` | Go back one page, then into the previous item at the item boundary. |
-| `{ "type": "nextHalf" }` | Scroll up by half a page and reveal the top half of the next page. Repeating advances through the item in half-page steps. |
+| `{ "type": "nextHalf" }` | Scroll fullscreen/lower-third outputs up by half a page and reveal the top half of the next page. Repeating advances through the item in half-page steps. Stage and chords outputs keep their normal page view. |
 | `{ "type": "page", "delta": 1 }` | Move by `-50…50` pages. A forward move commits a queued item first. Page boundaries follow the global **Live navigation** setting. |
 | `{ "type": "goto", "itemIndex": 2, "pageIndex": 0 }` | Select an item and/or page directly. At least one field is required. Clears blank. |
 | `{ "type": "queueItem", "itemIndex": 4 }` | Preview an item as the next queued item **without changing the output**. |

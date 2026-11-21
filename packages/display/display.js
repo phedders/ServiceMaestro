@@ -482,10 +482,67 @@ body.sm-output-configured.mode-image .sm-footer {
     );
   }
 
+  function splitPageHtml(pageHtml) {
+    const wrapper = document.createElement("div");
+    wrapper.innerHTML = pageHtml;
+    const root = wrapper.firstElementChild;
+    if (!root || !root.classList.contains("slide-inner")) return null;
+    const children = Array.from(root.children);
+    const lineCount = children.filter((child) => child.classList.contains("line")).length;
+    if (lineCount < 2) return null;
+    const target = Math.ceil(lineCount / 2);
+    let seen = 0;
+    let split = children.length;
+    for (let index = 0; index < children.length; index += 1) {
+      if (children[index].classList.contains("line")) {
+        seen += 1;
+        if (seen >= target) {
+          split = index + 1;
+          break;
+        }
+      }
+    }
+    while (split > 0 && children[split - 1]?.classList.contains("section-label")) {
+      split -= 1;
+    }
+    if (split <= 0 || split >= children.length) return null;
+    const make = (nodes) => {
+      const clone = root.cloneNode(false);
+      for (const node of nodes) clone.appendChild(node.cloneNode(true));
+      return clone.outerHTML;
+    };
+    return { top: make(children.slice(0, split)), bottom: make(children.slice(split)) };
+  }
+
+  function halfTrackHtml(pages) {
+    const splits = pages.map((page) => splitPageHtml(page.html));
+    if (splits.every(Boolean)) {
+      return splits
+        .flatMap((split) => [split.top, split.bottom])
+        .map(
+          (html, index) =>
+            `<div class="sm-half-segment ${
+              index % 2 === 0 ? "sm-half-segment-top" : "sm-half-segment-bottom"
+            }" style="top:${index * 50}%">${html}</div>`,
+        )
+        .join("");
+    }
+    return pages
+      .map(
+        (item, index) =>
+          `<div class="sm-half-page" style="top:${index * 100}%">${item.html}</div>`,
+      )
+      .join("");
+  }
+
   function compose(state, template, halfHeight = 0) {
     const page = state.pages && state.pages[state.pageIndex];
     const pageNumber = page ? state.pageIndex + 1 : 0;
-    const halfMode = Boolean(state.halfPageMode) && Boolean(state.pages?.length);
+    const halfMode =
+      Boolean(state.halfPageMode) &&
+      Boolean(state.pages?.length) &&
+      target !== "stage" &&
+      target !== "chords";
     const halfTo = state.pageIndex * 2 + (state.halfPageOffset ? 1 : 0);
     const halfFrom = displayedHalfIndex ?? state.pageIndex * 2;
     const output = state.outputs && state.outputs[outputId];
@@ -497,12 +554,9 @@ body.sm-output-configured.mode-image .sm-footer {
         ? `<div class="sm-half-window" data-half-from="${halfFrom}" data-half-to="${halfTo}" style="height:${Math.max(
             120,
             Math.round(halfHeight || 0),
-          )}px"><div class="sm-half-track" style="transform:translateY(-${halfFrom * 50}%)">${(state.pages || [])
-            .map(
-              (item, index) =>
-                `<div class="sm-half-page" style="top:${index * 100}%">${item.html}</div>`,
-            )
-            .join("")}</div><div class="sm-half-fade"></div></div>`
+          )}px"><div class="sm-half-track" style="transform:translateY(-${halfFrom * 50}%)">${halfTrackHtml(
+            state.pages || [],
+          )}</div><div class="sm-half-fade"></div></div>`
         : showUpcoming
         ? (state.pages || [])
             .slice(state.pageIndex)
@@ -873,9 +927,17 @@ body.sm-output-configured.mode-image .sm-footer {
     applyClock(state);
 
     const template = templateFor(state);
-    const measuredHeight =
-      root.querySelector(".sm-content")?.getBoundingClientRect().height ?? 0;
-    const halfHeight = measuredHeight > 0 ? measuredHeight : window.innerHeight * 0.65;
+    const contentElement = root.querySelector(".sm-content");
+    const measuredHeight = contentElement?.getBoundingClientRect().height ?? 0;
+    const contentFontSize = contentElement
+      ? Number.parseFloat(window.getComputedStyle(contentElement).fontSize || "0")
+      : 0;
+    const existingHalfWindow = root.querySelector(".sm-half-window");
+    const halfHeight =
+      measuredHeight > 0
+        ? measuredHeight +
+          (existingHalfWindow ? 0 : (Number.isFinite(contentFontSize) ? contentFontSize : 24) * 0.8)
+        : window.innerHeight * 0.65;
     const html = compose(state, template, halfHeight);
     const sameContent = html === lastHtml && template.css === lastCss;
     const halfMode = Boolean(state.halfPageMode) && !blank && Boolean(page);
