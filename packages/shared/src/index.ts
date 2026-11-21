@@ -1766,6 +1766,8 @@ function compactSectionLike(value: string): boolean {
  * alone. Inline [c]/[e]/[b] tokens are treated as chords; standalone [c] or
  * [c1] lines remain section labels. Chord-only lines are only rewritten when
  * another chord already provides context, unless every token is a section.
+ * Numeric suffixes on a chord line (for example [c2] next to [Gmaj7]) are
+ * chords, not section labels.
  */
 export function fixLowercaseChords(lyrics: string): SongLowercaseChordFix {
   const changes = new Map<string, SongLowercaseChordChange>();
@@ -1787,7 +1789,6 @@ export function fixLowercaseChords(lyrics: string): SongLowercaseChordFix {
       const token = raw.trim();
       const allow = !bracketOnly || treatAsChordLine;
       if (!allow) return whole;
-      if (/\d/.test(token) && compactSectionLike(token)) return whole;
       const candidate = uppercaseChordRoots(token);
       if (candidate === token || !isSongChordToken(candidate)) return whole;
       changed = true;

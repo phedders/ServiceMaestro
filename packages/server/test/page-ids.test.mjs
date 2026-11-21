@@ -100,7 +100,7 @@ test("fixes lowercase chord roots but leaves section labels alone", () => {
       "",
       "[e1]",
       "",
-      "How [c2]gratitude stays",
+      "How [C2]gratitude stays",
       "",
       "[G]",
     ].join("\n"),
@@ -109,8 +109,35 @@ test("fixes lowercase chord roots but leaves section labels alone", () => {
     { from: "c", to: "C", count: 2 },
     { from: "g", to: "G", count: 2 },
     { from: "am", to: "Am", count: 1 },
+    { from: "c2", to: "C2", count: 1 },
     { from: "e", to: "E", count: 1 },
   ]);
+});
+
+test("fixes suffix chords on chord lines but keeps standalone numeric sections", () => {
+  const lyrics = [
+    "[Gmaj7] [.] [G/B] [c2] [Gmaj7] [.] [G/B] [c2]",
+    "",
+    "[c2]",
+    "",
+    "[c2] [v1]",
+    "",
+    "How [c2]gratitude stays",
+  ].join("\n");
+  const fixed = fixLowercaseChords(lyrics);
+  assert.equal(
+    fixed.lyrics,
+    [
+      "[Gmaj7] [.] [G/B] [C2] [Gmaj7] [.] [G/B] [C2]",
+      "",
+      "[c2]",
+      "",
+      "[c2] [v1]",
+      "",
+      "How [C2]gratitude stays",
+    ].join("\n"),
+  );
+  assert.deepEqual(fixed.changes, [{ from: "c2", to: "C2", count: 3 }]);
 });
 
 test("lists pages in source order for a set-list verse order", () => {
