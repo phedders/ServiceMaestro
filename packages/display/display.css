@@ -581,6 +581,24 @@ body.display-main.mode-tarp .sm-lowerthird-panel {
   font-weight: 700;
 }
 
+/* Stage/chords half-page preview: the outgoing and incoming halves stay at
+   the normal page size, sit close together, and get breathing room above and
+   below before the remaining upcoming pages. */
+.sm-half-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2em;
+  padding: 1.4vh 0;
+}
+
+.sm-half-preview-part {
+  width: 100%;
+}
+
+.sm-half-preview-part > .slide-inner {
+  width: 100%;
+}
+
 .slide-image {
   display: flex;
   align-items: center;

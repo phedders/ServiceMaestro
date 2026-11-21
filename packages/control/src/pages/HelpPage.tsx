@@ -127,7 +127,8 @@ export default function HelpPage({ onOpenSettings }: { onOpenSettings: () => voi
                 <strong>Next ½</strong> scrolls fullscreen and lower-third outputs up by half a page
                 and reveals the top half of the next page. Repeating it continues through the item
                 in half-page steps, including scrolling the final page to the top before the full
-                last page. Stage and chords outputs stay on normal pages.
+                last page. Stage and chords outputs show the same half-step as a close pair of
+                half sections when they are set to preview upcoming pages.
               </li>
               <li>
                 <strong>Transpose</strong> changes the current song by semitones.

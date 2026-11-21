@@ -590,6 +590,39 @@ body.sm-output-configured.mode-image .sm-footer {
       .join("");
   }
 
+  function stageHalfPreviewHtml(state) {
+    const pages = state.pages || [];
+    const page = pages[state.pageIndex];
+    if (!page) return null;
+    const offset = state.halfPageOffset ? 1 : 0;
+    let first;
+    let second;
+    let remainingStart;
+    if (offset === 1) {
+      const current = splitPageHtml(page.html, state.maxLines);
+      const next = pages[state.pageIndex + 1];
+      const nextSplit = next ? splitPageHtml(next.html, state.maxLines) : null;
+      if (!current || !nextSplit) return null;
+      first = current.bottom;
+      second = nextSplit.top;
+      remainingStart = state.pageIndex + 2;
+    } else {
+      const current = splitPageHtml(page.html, state.maxLines);
+      if (!current) return null;
+      first = current.top;
+      second = current.bottom;
+      remainingStart = state.pageIndex + 1;
+    }
+    const remaining = pages
+      .slice(remainingStart)
+      .map(
+        (item) =>
+          `<div class="sm-page sm-page-upcoming"><div class="sm-page-label">Page ${item.index + 1}</div>${item.html}</div>`,
+      )
+      .join("");
+    return `<div class="sm-half-preview"><div class="sm-half-preview-part">${first}</div><div class="sm-half-preview-part">${second}</div></div>${remaining}`;
+  }
+
   function compose(state, template, halfHeight = 0, scrollHeight = 0, availableHeight = 0) {
     const page = state.pages && state.pages[state.pageIndex];
     const pageNumber = page ? state.pageIndex + 1 : 0;
@@ -604,6 +637,10 @@ body.sm-output-configured.mode-image .sm-footer {
     const showUpcoming = output
       ? output.content.pages === "upcoming"
       : target === "stage" || target === "chords";
+    const stageHalfHtml =
+      showUpcoming && state.halfPageMode && (target === "stage" || target === "chords")
+        ? stageHalfPreviewHtml(state)
+        : null;
     const contextKey = `${state.setlistId || ""}:${state.itemIndex}:${state.title || ""}`;
     const canPageScroll =
       fadeMode === "scroll" &&
@@ -631,6 +668,8 @@ body.sm-output-configured.mode-image .sm-footer {
             halfHeight,
             availableHeight > 0 ? availableHeight : halfHeight,
           )
+        : stageHalfHtml
+          ? stageHalfHtml
         : scrollView
           ? `<div class="sm-scroll-window" data-scroll-from="${scrollFrom}" data-scroll-to="${scrollTo}" data-scroll-max="${Math.max(
               120,

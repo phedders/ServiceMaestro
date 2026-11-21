@@ -230,7 +230,7 @@ Valid payloads:
 | `{ "type": "next" }` | Advance one page, then into the next item at the item boundary. If an item is queued, commit it at page 0. |
 | `{ "type": "prev" }` | Go back one page, then into the previous item at the item boundary. |
 | `{ "type": "transition", "value": "scroll" }` | Set the fullscreen page-change transition to `fade` or `scroll`. |
-| `{ "type": "nextHalf" }` | Scroll fullscreen/lower-third outputs up by half a page and reveal the top half of the next page. Repeating advances through the item in half-page steps; on the last page it scrolls that page's top half to the top, then a further press shows the full final page. Stage and chords outputs keep their normal page view. |
+| `{ "type": "nextHalf" }` | Scroll fullscreen/lower-third outputs up by half a page and reveal the top half of the next page. Repeating advances through the item in half-page steps; on the last page it scrolls that page's top half to the top, then a further press shows the full final page. Stage and chords outputs show the same half-step as a close pair of half sections at normal page size when they preview upcoming pages. |
 | `{ "type": "prevHalf" }` | Scroll back by half a page, reversing `nextHalf`. From the full last page it first shows the final page's half view; on earlier pages it shows the lower half of the previous page, and at the first page it returns to the normal full-page view. |
 | `{ "type": "page", "delta": 1 }` | Move by `-50…50` pages. A forward move commits a queued item first. Page boundaries follow the global **Live navigation** setting. |
 | `{ "type": "goto", "itemIndex": 2, "pageIndex": 0 }` | Select an item and/or page directly. At least one field is required. Clears blank. |
