@@ -153,6 +153,47 @@ rpm -qip dist/server/service-maestro-server-0.2.0-1.src.rpm
 rpmbuild --rebuild dist/server/service-maestro-server-0.2.0-1.src.rpm
 ```
 
+## Hosted APT and DNF repositories
+
+The [Service Maestro Packages](https://github.com/phedders/ServiceMaestro-Packages)
+repository publishes the latest server and CLI packages through GitHub Pages:
+
+- APT: <https://phedders.github.io/ServiceMaestro-Packages/apt/>
+- DNF: <https://phedders.github.io/ServiceMaestro-Packages/rpm/>
+- Index: <https://phedders.github.io/ServiceMaestro-Packages/>
+
+Debian/Ubuntu:
+
+```sh
+echo "deb [trusted=yes] https://phedders.github.io/ServiceMaestro-Packages/apt ./" | sudo tee /etc/apt/sources.list.d/service-maestro.list
+sudo apt update
+sudo apt install service-maestro-server service-maestro-cli
+```
+
+Fedora/RHEL/Rocky:
+
+```sh
+sudo tee /etc/yum.repos.d/service-maestro.repo <<'EOF'
+[service-maestro]
+name=Service Maestro
+baseurl=https://phedders.github.io/ServiceMaestro-Packages/rpm/
+enabled=1
+gpgcheck=0
+EOF
+sudo dnf install service-maestro-server
+```
+
+The packages are currently unsigned, so APT uses `[trusted=yes]` and DNF uses
+`gpgcheck=0`. The site also exposes `SHA256SUMS` and direct package links.
+
+The `Publish package repositories` workflow in this repository refreshes the
+`gh-pages` branch after a successful `Release packages` run. It can also be
+started manually:
+
+```sh
+gh workflow run packages-pages.yml --repo phedders/ServiceMaestro
+```
+
 ## Publish everything to GHCR
 
 `make publish-all` builds the container image, CLI `.deb`, server `.deb`/`.rpm`/

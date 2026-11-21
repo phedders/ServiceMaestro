@@ -85,7 +85,28 @@ The initial admin password is generated at `/etc/service-maestro/admin-password`
 Data lives under `/var/lib/service-maestro`; configuration lives under
 `/etc/service-maestro`.
 
-Download packages from the release/package bundle, or build them with:
+Hosted APT and DNF repositories are published at
+[phedders.github.io/ServiceMaestro-Packages](https://phedders.github.io/ServiceMaestro-Packages/):
+
+```sh
+# Debian / Ubuntu
+echo "deb [trusted=yes] https://phedders.github.io/ServiceMaestro-Packages/apt ./" | sudo tee /etc/apt/sources.list.d/service-maestro.list
+sudo apt update
+sudo apt install service-maestro-server service-maestro-cli
+
+# Fedora / RHEL / Rocky
+sudo tee /etc/yum.repos.d/service-maestro.repo <<'EOF'
+[service-maestro]
+name=Service Maestro
+baseurl=https://phedders.github.io/ServiceMaestro-Packages/rpm/
+enabled=1
+gpgcheck=0
+EOF
+sudo dnf install service-maestro-server
+```
+
+The repositories are currently unsigned. You can also download packages directly
+from the release/package bundle, or build them with:
 
 ```sh
 make server-packages
