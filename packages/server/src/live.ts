@@ -461,8 +461,11 @@ class LiveService {
       if (this.active.state.itemIndex < 0) {
         this.active.state.itemIndex = 0;
         this.active.state.pageIndex = 0;
-        this.renderCurrent();
       }
+      // Pages are persisted as rendered HTML. Rebuild them from the source item
+      // on restore so a deploy that changes the renderer (for example chord
+      // parsing) does not keep serving stale HTML from the previous version.
+      this.renderCurrent();
       if (!this.active.state.blank) this.scheduleAutoplay();
     } catch {
       // Ignore corrupt restore; a new session can be started.
