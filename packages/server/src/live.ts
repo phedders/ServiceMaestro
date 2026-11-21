@@ -704,6 +704,29 @@ class LiveService {
         }
         break;
       }
+      case "prevHalf": {
+        const pages = state.pages;
+        if (!pages.length) break;
+        if (!state.halfPageMode) {
+          if (state.pageIndex > 0) {
+            state.pageIndex -= 1;
+            state.halfPageMode = true;
+            state.halfPageOffset = 1;
+            state.blank = false;
+          }
+          break;
+        }
+        if (state.halfPageOffset === 1) {
+          if (state.pageIndex > 0) {
+            state.pageIndex -= 1;
+          } else {
+            state.halfPageMode = false;
+            state.halfPageOffset = 0;
+          }
+          state.blank = false;
+        }
+        break;
+      }
       case "page": {
         const delta = Number(command.delta ?? 0);
         if (delta > 0 && this.commitQueuedItem()) {

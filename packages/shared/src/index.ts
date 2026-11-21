@@ -2198,6 +2198,7 @@ export const liveCommandSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("next") }),
   z.object({ type: z.literal("prev") }),
   z.object({ type: z.literal("nextHalf") }),
+  z.object({ type: z.literal("prevHalf") }),
   z.object({ type: z.literal("transition"), value: z.enum(["fade", "scroll"]) }),
   z.object({ type: z.literal("page"), delta: z.number().int().min(-50).max(50) }),
   z.object({ type: z.literal("goto"), itemIndex: z.number().int().min(0).optional(), pageIndex: z.number().int().min(0).optional() }),

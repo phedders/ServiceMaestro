@@ -96,6 +96,7 @@ If a command receives a `401`, the CLI retries once after logging in when both
 | `sm apply <id> --now` | Replace the live session immediately |
 | `sm stop` | Stop the live session |
 | `sm next` / `sm prev` | Move one page, crossing item boundaries per the live-navigation setting |
+| `sm next-half` / `sm prev-half` | Scroll half a page forward or back (aliases `half-next` / `half-prev`) |
 | `sm page 3` / `sm page -2` | Move by a page delta |
 | `sm goto-page 4` | Jump to a zero-based page index |
 | `sm goto-item 2` | Jump to a zero-based queue item |
@@ -128,6 +129,7 @@ commands immediately as keys are pressed.
 | --- | --- |
 | `n`, `Space`, `Enter`, `→` | Next page / next item at the boundary |
 | `p`, `Backspace`, `←` | Previous page / previous item at the boundary |
+| `N`, `PageDown` / `P`, `PageUp` | Next / previous half page |
 | `j`, `↓` / `k`, `↑` | Next / previous live item |
 | `b` | Toggle blank |
 | `s` | Show/unblank |
@@ -142,7 +144,8 @@ commands immediately as keys are pressed.
 | `?` | Show or hide the full shortcut list |
 | `q` | Quit and restore the terminal |
 
-The display shows the current set list, item, page, blank state, transpose, line count,
+The display shows the current set list, item, page (with a `½` marker while a half-page
+preview is active), blank state, transpose, line count,
 Bible verse setting, footer, autoplay and nearby queue items.
 
 ## Call any API endpoint

@@ -283,11 +283,9 @@ def state_line(state: dict[str, Any]) -> str:
     item_index = int(state.get("itemIndex") or 0) + 1
     items = state.get("items") or []
     item_count = len(items) if items else item_index
-    page_count = int(state.get("pageCount") or 0)
-    page_index = int(state.get("pageIndex") or 0) + (1 if page_count else 0)
     output = "BLANKED" if state.get("blank") else "shown"
     return (
-        f"{status.upper()} · item {item_index}/{item_count} · page {page_index}/{page_count} "
+        f"{status.upper()} · item {item_index}/{item_count} · page {page_position(state)} "
         f"· {output} · {item_title(state)}"
     )
 
@@ -300,11 +298,9 @@ def print_state(state: dict[str, Any]) -> None:
         return
     items = state.get("items") or []
     item_index = int(state.get("itemIndex") or 0) + 1
-    page_count = int(state.get("pageCount") or 0)
-    page_index = int(state.get("pageIndex") or 0) + (1 if page_count else 0)
     print(f"Set list:  {state.get('setlistName') or '—'}")
     print(f"Item:      {item_index}/{len(items) or item_index} · {item_title(state)}")
-    print(f"Page:      {page_index}/{page_count}")
+    print(f"Page:      {page_position(state)}")
     print(f"Output:    {'BLANKED' if state.get('blank') else 'shown'}")
     print(
         "Controls:  "
@@ -331,11 +327,9 @@ def print_state_short(state: dict[str, Any]) -> None:
         return
     items = state.get("items") or []
     item_index = int(state.get("itemIndex") or 0) + 1
-    page_count = int(state.get("pageCount") or 0)
-    page_index = int(state.get("pageIndex") or 0) + (1 if page_count else 0)
     output = "BLANKED" if state.get("blank") else "shown"
     print(
-        f"item {item_index}/{len(items) or item_index} · page {page_index}/{page_count} "
+        f"item {item_index}/{len(items) or item_index} · page {page_position(state)} "
         f"· {output} · {item_title(state)}"
     )
 
@@ -377,6 +371,14 @@ def live_state(client: Client) -> dict[str, Any]:
 def live_command(client: Client, command: dict[str, Any]) -> dict[str, Any]:
     payload = client.post("/api/live/command", command)
     return payload.get("state", payload) if isinstance(payload, dict) else {}
+
+
+def page_position(state: dict[str, Any]) -> str:
+    page_count = int(state.get("pageCount") or 0)
+    page_index = int(state.get("pageIndex") or 0) + (1 if page_count else 0)
+    if state.get("halfPageMode") and state.get("halfPageOffset") == 1:
+        return f"{page_index}½/{page_count}"
+    return f"{page_index}/{page_count}"
 
 
 def print_live_result(args: argparse.Namespace, state: dict[str, Any]) -> None:
@@ -462,14 +464,12 @@ def interactive_control(client: Client, poll_interval: float = 1.0) -> None:
         else:
             items = state.get("items") or []
             current = int(state.get("itemIndex") or 0)
-            page_count = int(state.get("pageCount") or 0)
-            page_index = int(state.get("pageIndex") or 0) + (1 if page_count else 0)
             lines.append(f"Set list : {state.get('setlistName') or '—'}")
             lines.append(
                 f"Item     : {current + 1}/{len(items) or current + 1}  {item_title(state)}"
             )
             lines.append(
-                f"Page     : {page_index}/{page_count}    "
+                f"Page     : {page_position(state)}    "
                 f"Output: {'BLANKED' if state.get('blank') else 'shown'}"
             )
             lines.append(
@@ -504,6 +504,7 @@ def interactive_control(client: Client, poll_interval: float = 1.0) -> None:
                     "Shortcuts",
                     "  n / Space / →   next page",
                     "  p / ⌫ / ←       previous page",
+                    "  N / P           next / previous half page",
                     "  j / k / ↑ / ↓   next / previous item",
                     "  b               blank or show output",
                     "  s               show output",
@@ -522,7 +523,7 @@ def interactive_control(client: Client, poll_interval: float = 1.0) -> None:
         else:
             lines.extend(
                 [
-                    "n/Space/→ next   p/← prev   j/k item   b blank   s show",
+                    "n/Space/→ next   p/← prev   N/P half page   j/k item   b blank",
                     "[/] transpose   -/+ lines   v Bible verses   a autoplay   A reset",
                     "f footer   x quick text   g page   i item   r refresh   ? help   q quit",
                 ]
@@ -570,6 +571,10 @@ def interactive_control(client: Client, poll_interval: float = 1.0) -> None:
                 send({"type": "page", "delta": 1}, "next page")
             elif key in {"p", "\x7f", "\x08", "left"}:
                 send({"type": "page", "delta": -1}, "previous page")
+            elif key in {"N", "pagedown"}:
+                send({"type": "nextHalf"}, "next half page")
+            elif key in {"P", "pageup"}:
+                send({"type": "prevHalf"}, "previous half page")
             elif key in {"j", "down"}:
                 send({"type": "goto", "itemIndex": min(current + 1, max(0, len(items) - 1))}, "next item")
             elif key in {"k", "up"}:
@@ -651,6 +656,10 @@ def command_payload(args: argparse.Namespace) -> dict[str, Any] | None:
         return {"type": "page", "delta": 1}
     if name == "prev":
         return {"type": "page", "delta": -1}
+    if name in {"next-half", "half-next"}:
+        return {"type": "nextHalf"}
+    if name in {"prev-half", "half-prev"}:
+        return {"type": "prevHalf"}
     if name == "page":
         return {"type": "page", "delta": args.delta}
     if name in {"goto-page", "page-index"}:
@@ -702,6 +711,7 @@ def build_parser() -> argparse.ArgumentParser:
             "  sm setlists\n"
             "  sm start \"Sunday morning\"\n"
             "  sm next\n"
+            "  sm next-half\n"
             "  sm blank\n"
             "  sm api POST /api/live/command '{\"type\":\"page\",\"delta\":1}'\n"
         ),
@@ -765,6 +775,16 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("prev", help="Previous page / previous item at the boundary").set_defaults(
         handler="live"
     )
+    sub.add_parser(
+        "next-half",
+        aliases=["half-next"],
+        help="Scroll half a page towards the next page",
+    ).set_defaults(handler="live")
+    sub.add_parser(
+        "prev-half",
+        aliases=["half-prev"],
+        help="Scroll half a page towards the previous page",
+    ).set_defaults(handler="live")
 
     page = sub.add_parser("page", help="Move by a number of pages")
     page.add_argument("delta", type=int, help="e.g. 1, -1 or 3")

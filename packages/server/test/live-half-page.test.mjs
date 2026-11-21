@@ -36,7 +36,13 @@ test("next half scrolls through half-page steps and resets on normal navigation"
     live.command({ type: "goto", itemIndex: 0 });
     const firstHalf = live.command({ type: "nextHalf" });
     const secondHalf = live.command({ type: "nextHalf" });
+    const backHalf = live.command({ type: "prevHalf" });
+    const backFull = live.command({ type: "prevHalf" });
+    const atStart = live.command({ type: "prevHalf" });
+    live.command({ type: "nextHalf" });
+    live.command({ type: "nextHalf" });
     const normalNext = live.command({ type: "next" });
+    const prevFromFull = live.command({ type: "prevHalf" });
     live.command({ type: "goto", itemIndex: 0 });
     let finalHalf = live.command({ type: "nextHalf" });
     for (let step = 0; step < 100 && finalHalf.halfPageMode; step += 1) {
@@ -62,6 +68,21 @@ test("next half scrolls through half-page steps and resets on normal navigation"
         halfPageMode: secondHalf.halfPageMode,
         halfPageOffset: secondHalf.halfPageOffset,
       },
+      backHalf: {
+        pageIndex: backHalf.pageIndex,
+        halfPageMode: backHalf.halfPageMode,
+        halfPageOffset: backHalf.halfPageOffset,
+      },
+      backFull: {
+        pageIndex: backFull.pageIndex,
+        halfPageMode: backFull.halfPageMode,
+        halfPageOffset: backFull.halfPageOffset,
+      },
+      atStart: {
+        pageIndex: atStart.pageIndex,
+        halfPageMode: atStart.halfPageMode,
+        halfPageOffset: atStart.halfPageOffset,
+      },
       finalHalf: {
         pageIndex: finalHalf.pageIndex,
         pageCount: finalHalf.pageCount,
@@ -72,6 +93,11 @@ test("next half scrolls through half-page steps and resets on normal navigation"
         pageIndex: normalNext.pageIndex,
         halfPageMode: normalNext.halfPageMode,
         halfPageOffset: normalNext.halfPageOffset,
+      },
+      prevFromFull: {
+        pageIndex: prevFromFull.pageIndex,
+        halfPageMode: prevFromFull.halfPageMode,
+        halfPageOffset: prevFromFull.halfPageOffset,
       },
     }));
   `;
@@ -109,6 +135,21 @@ test("next half scrolls through half-page steps and resets on normal navigation"
     halfPageMode: true,
     halfPageOffset: 1,
   });
+  assert.deepEqual(data.backHalf, {
+    pageIndex: 0,
+    halfPageMode: true,
+    halfPageOffset: 1,
+  });
+  assert.deepEqual(data.backFull, {
+    pageIndex: 0,
+    halfPageMode: false,
+    halfPageOffset: 0,
+  });
+  assert.deepEqual(data.atStart, {
+    pageIndex: 0,
+    halfPageMode: false,
+    halfPageOffset: 0,
+  });
   assert.equal(data.finalHalf.pageIndex, data.finalHalf.pageCount - 1);
   assert.equal(data.finalHalf.halfPageMode, false);
   assert.equal(data.finalHalf.halfPageOffset, 0);
@@ -116,5 +157,10 @@ test("next half scrolls through half-page steps and resets on normal navigation"
     pageIndex: 2,
     halfPageMode: false,
     halfPageOffset: 0,
+  });
+  assert.deepEqual(data.prevFromFull, {
+    pageIndex: 1,
+    halfPageMode: true,
+    halfPageOffset: 1,
   });
 });
