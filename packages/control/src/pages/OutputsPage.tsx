@@ -326,6 +326,15 @@ export default function OutputsPage({
               before: !baselineOutput.content.showSplitWords,
               after: !draft.content.showSplitWords,
             },
+            ...(draft.content.pages === "upcoming"
+              ? [
+                  {
+                    label: "Show scrollbar",
+                    before: baselineOutput.content.showScrollbars,
+                    after: draft.content.showScrollbars,
+                  },
+                ]
+              : []),
             { label: "Image", before: baselineOutput.image, after: draft.image },
             { label: "Clock", before: baselineOutput.clock, after: draft.clock },
           ])
@@ -850,6 +859,21 @@ export default function OutputsPage({
                   />
                   Hide syllable/chord splits
                 </label>
+                {draft.content.pages === "upcoming" && (
+                  <label
+                    className="checkbox output-checkbox"
+                    title="Show a scrollbar when the upcoming pages overflow this output"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={draft.content.showScrollbars}
+                      onChange={(event) =>
+                        setContent("showScrollbars", event.target.checked)
+                      }
+                    />
+                    Show scrollbar
+                  </label>
+                )}
               </div>
             </div>
           </section>

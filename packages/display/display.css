@@ -304,6 +304,46 @@ body.idle .sm-template {
   width: 100%;
 }
 
+/* Output scrollbars are hidden by default. Outputs that preview upcoming
+   pages can opt in to a slim scrollbar from Outputs → Content. */
+.sm-stage .sm-content,
+.sm-chords .sm-content {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.sm-stage .sm-content::-webkit-scrollbar,
+.sm-chords .sm-content::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+body.sm-output-scrollbars .sm-stage .sm-content,
+body.sm-output-scrollbars .sm-chords .sm-content {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.35) transparent;
+  -ms-overflow-style: auto;
+}
+
+body.sm-output-scrollbars .sm-stage .sm-content::-webkit-scrollbar,
+body.sm-output-scrollbars .sm-chords .sm-content::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+body.sm-output-scrollbars .sm-stage .sm-content::-webkit-scrollbar-track,
+body.sm-output-scrollbars .sm-chords .sm-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+body.sm-output-scrollbars .sm-stage .sm-content::-webkit-scrollbar-thumb,
+body.sm-output-scrollbars .sm-chords .sm-content::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.32);
+  background-clip: content-box;
+}
+
 /* Tarp pages carry both normal and lower-third layouts. The target output
    chooses which layer is visible. */
 .tarp-page-root {

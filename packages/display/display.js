@@ -256,7 +256,11 @@ body.sm-output-configured.mode-image .sm-footer {
 
     const output = state.outputs && state.outputs[outputId];
     if (!output) {
-      document.body.classList.remove("sm-output-configured", "output-panel-off");
+      document.body.classList.remove(
+        "sm-output-configured",
+        "output-panel-off",
+        "sm-output-scrollbars",
+      );
       for (const property of [
         "--sm-output-bg",
         "--sm-output-text-scale",
@@ -321,6 +325,10 @@ body.sm-output-configured.mode-image .sm-footer {
 
     document.body.classList.add("sm-output-configured");
     document.body.classList.toggle("output-panel-off", !output.panel.enabled);
+    document.body.classList.toggle(
+      "sm-output-scrollbars",
+      output.content.pages === "upcoming" && output.content.showScrollbars,
+    );
     vars.setProperty(
       "--sm-output-bg",
       `rgba(${hexRgb(output.background, "0, 0, 0")}, ${output.backgroundAlpha})`,

@@ -722,6 +722,7 @@ export interface DisplayOutput {
     showChords: boolean;
     showSectionLabels: boolean;
     showSplitWords: boolean;
+    showScrollbars: boolean;
   };
   image: {
     maxHeightPercent: number | null;
@@ -775,6 +776,7 @@ export const DEFAULT_DISPLAY_OUTPUTS: DisplayOutput[] = [
       showChords: false,
       showSectionLabels: false,
       showSplitWords: false,
+      showScrollbars: false,
     },
     image: { maxHeightPercent: null, padding: null },
     clock: { ...DEFAULT_CLOCK_SETTINGS },
@@ -819,6 +821,7 @@ export const DEFAULT_DISPLAY_OUTPUTS: DisplayOutput[] = [
       showChords: false,
       showSectionLabels: false,
       showSplitWords: false,
+      showScrollbars: false,
     },
     image: { maxHeightPercent: 78, padding: 0 },
     clock: { ...DEFAULT_CLOCK_SETTINGS },
@@ -863,6 +866,7 @@ export const DEFAULT_DISPLAY_OUTPUTS: DisplayOutput[] = [
       showChords: false,
       showSectionLabels: false,
       showSplitWords: false,
+      showScrollbars: false,
     },
     image: { maxHeightPercent: 100, padding: 0 },
     clock: { ...DEFAULT_CLOCK_SETTINGS },
@@ -907,6 +911,7 @@ export const DEFAULT_DISPLAY_OUTPUTS: DisplayOutput[] = [
       showChords: false,
       showSectionLabels: true,
       showSplitWords: false,
+      showScrollbars: false,
     },
     image: { maxHeightPercent: 78, padding: 0 },
     clock: { ...DEFAULT_CLOCK_SETTINGS },
@@ -951,6 +956,7 @@ export const DEFAULT_DISPLAY_OUTPUTS: DisplayOutput[] = [
       showChords: true,
       showSectionLabels: true,
       showSplitWords: true,
+      showScrollbars: false,
     },
     image: { maxHeightPercent: 78, padding: 0 },
     clock: { ...DEFAULT_CLOCK_SETTINGS },
@@ -2626,6 +2632,7 @@ const displayOutputContentSchema = z.object({
   showChords: z.boolean().default(false),
   showSectionLabels: z.boolean().default(false),
   showSplitWords: z.boolean().default(false),
+  showScrollbars: z.boolean().default(false),
 });
 const displayOutputImageSchema = z.object({
   maxHeightPercent: z.number().min(5).max(100).nullable().default(null),
