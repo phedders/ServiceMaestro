@@ -482,14 +482,22 @@ body.sm-output-configured.mode-image .sm-footer {
     );
   }
 
-  function splitPageHtml(pageHtml) {
+  function splitPageHtml(pageHtml, maxLines) {
     const wrapper = document.createElement("div");
     wrapper.innerHTML = pageHtml;
     const root = wrapper.firstElementChild;
     if (!root || !root.classList.contains("slide-inner")) return null;
     const children = Array.from(root.children);
     const lineCount = children.filter((child) => child.classList.contains("line")).length;
-    if (lineCount < 2) return null;
+    if (lineCount < 1) return null;
+    const make = (nodes) => {
+      const clone = root.cloneNode(false);
+      for (const node of nodes) clone.appendChild(node.cloneNode(true));
+      return clone.outerHTML;
+    };
+    if (lineCount <= Math.max(1, Math.ceil((maxLines || 4) / 2))) {
+      return { top: make(children), bottom: make([]) };
+    }
     const target = Math.ceil(lineCount / 2);
     let seen = 0;
     let split = children.length;
@@ -506,16 +514,11 @@ body.sm-output-configured.mode-image .sm-footer {
       split -= 1;
     }
     if (split <= 0 || split >= children.length) return null;
-    const make = (nodes) => {
-      const clone = root.cloneNode(false);
-      for (const node of nodes) clone.appendChild(node.cloneNode(true));
-      return clone.outerHTML;
-    };
     return { top: make(children.slice(0, split)), bottom: make(children.slice(split)) };
   }
 
-  function halfTrackHtml(pages) {
-    const splits = pages.map((page) => splitPageHtml(page.html));
+  function halfTrackHtml(pages, maxLines) {
+    const splits = pages.map((page) => splitPageHtml(page.html, maxLines));
     if (splits.every(Boolean)) {
       return splits
         .flatMap((split) => [split.top, split.bottom])
@@ -556,6 +559,7 @@ body.sm-output-configured.mode-image .sm-footer {
             Math.round(halfHeight || 0),
           )}px"><div class="sm-half-track" style="transform:translateY(-${halfFrom * 50}%)">${halfTrackHtml(
             state.pages || [],
+            state.maxLines,
           )}</div><div class="sm-half-fade"></div></div>`
         : showUpcoming
         ? (state.pages || [])
@@ -933,11 +937,22 @@ body.sm-output-configured.mode-image .sm-footer {
       ? Number.parseFloat(window.getComputedStyle(contentElement).fontSize || "0")
       : 0;
     const existingHalfWindow = root.querySelector(".sm-half-window");
-    const halfHeight =
+    const templateElement = root.querySelector(".sm-template");
+    const templateStyle = templateElement ? window.getComputedStyle(templateElement) : null;
+    const availableHeight = templateElement
+      ? Math.max(
+          120,
+          templateElement.getBoundingClientRect().height -
+            (Number.parseFloat(templateStyle?.paddingTop || "0") || 0) -
+            (Number.parseFloat(templateStyle?.paddingBottom || "0") || 0),
+        )
+      : window.innerHeight * 0.78;
+    const desiredHalfHeight =
       measuredHeight > 0
         ? measuredHeight +
           (existingHalfWindow ? 0 : (Number.isFinite(contentFontSize) ? contentFontSize : 24) * 0.8)
         : window.innerHeight * 0.65;
+    const halfHeight = Math.min(desiredHalfHeight, availableHeight);
     const html = compose(state, template, halfHeight);
     const sameContent = html === lastHtml && template.css === lastCss;
     const halfMode = Boolean(state.halfPageMode) && !blank && Boolean(page);
