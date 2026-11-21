@@ -1,4 +1,5 @@
 import type {
+  SiteScraperImportResult,
   SiteScraperProviderSummary,
   SongResourceKind,
 } from "@sm/shared";
@@ -19,12 +20,12 @@ export async function updateSongFromSite(
   songId: string,
   title: string,
   notify: (text: string, kind?: "info" | "error") => void,
-): Promise<boolean> {
+): Promise<SiteScraperImportResult | null> {
   try {
     const check = await api.siteScraperCheckUpdates(provider.id, songId);
     if (!check.hasUpdates) {
       notify(`No missing files or updates found for “${title}”`);
-      return false;
+      return null;
     }
     const missing = check.missingKinds.map((kind: SongResourceKind) => SITE_KIND_LABELS[kind]);
     const changed = check.changedKinds.map((kind: SongResourceKind) => SITE_KIND_LABELS[kind]);
@@ -35,18 +36,18 @@ export async function updateSongFromSite(
       .filter(Boolean)
       .join(" · ");
     if (!window.confirm(`${provider.label} has updates for “${title}” (${details}). Update now?`)) {
-      return false;
+      return null;
     }
     const result = await api.siteScraperImport(provider.id, check.song, check.song.availableKinds);
     notify(
       `${result.created ? "Imported" : "Updated"} “${result.song.title}” with ${result.files.length} file${result.files.length === 1 ? "" : "s"}`,
     );
-    return true;
+    return result;
   } catch (error) {
     notify(
       error instanceof ApiError ? error.message : "Could not check for SongSelect updates",
       "error",
     );
-    return false;
+    return null;
   }
 }

@@ -10,12 +10,14 @@ import type {
   SongImportDecision,
   SongImportReport,
   SongImportScan,
+  SongLowercaseChordChange,
 } from "@sm/shared";
 import { useAdapters } from "../adapters";
 import { api, ApiError } from "../api";
 import { ChordProUpdateDialog } from "../components/ChordProUpdateDialog";
 import { PageContentEditor } from "../components/PageContentEditor";
 import { SaveButton } from "../components/SaveButton";
+import { LowercaseChordFixDialog } from "../components/LowercaseChordFixDialog";
 import { SiteSongDownloadPanel } from "../components/SiteSongDownloadPanel";
 import { changeList } from "../form-changes";
 import { ReadOnlyFieldset, usePageAccess } from "../page-access";
@@ -109,6 +111,12 @@ export default function SongsPage({
   const [siteProvider, setSiteProvider] = useState<SiteScraperProviderSummary | null>(null);
   const [siteUpdatingId, setSiteUpdatingId] = useState<string | null>(null);
   const [fixingPageNameId, setFixingPageNameId] = useState<string | null>(null);
+  const [fixingLowercaseChordsId, setFixingLowercaseChordsId] = useState<string | null>(null);
+  const [lowercasePrompt, setLowercasePrompt] = useState<{
+    songId: string;
+    title: string;
+    changes: SongLowercaseChordChange[];
+  } | null>(null);
   const [chordProOpen, setChordProOpen] = useState(false);
   const [lyricsRevision, setLyricsRevision] = useState(0);
   const lyricsRef = useRef<HTMLDivElement | null>(null);
@@ -168,12 +176,20 @@ export default function SongsPage({
     if (!siteProvider) return;
     setSiteUpdatingId(song.id);
     try {
-      if (await updateSongFromSite(siteProvider, song.id, song.title, notify)) {
+      const result = await updateSongFromSite(siteProvider, song.id, song.title, notify);
+      if (result) {
         const nextSongs = await load();
-        const updated = nextSongs.find((entry) => entry.id === song.id);
+        const updated = nextSongs.find((entry) => entry.id === result.song.id);
         if (updated) {
           select(updated);
           await refreshAssets(updated.id);
+        }
+        if (result.lowercaseChords.count > 0) {
+          setLowercasePrompt({
+            songId: result.song.id,
+            title: result.song.title,
+            changes: result.lowercaseChords.changes,
+          });
         }
       }
     } finally {
@@ -231,6 +247,32 @@ export default function SongsPage({
       notify(error instanceof ApiError ? error.message : "Could not fix page names", "error");
     } finally {
       setFixingPageNameId(null);
+    }
+  }
+
+  async function fixLowercaseChords(song: Pick<Song, "id" | "title">): Promise<boolean> {
+    setFixingLowercaseChordsId(song.id);
+    try {
+      const result = await api.applySongLowercaseChordFixes([song.id]);
+      const nextSongs = await load();
+      if (selectedId === song.id) {
+        const updated = nextSongs.find((entry) => entry.id === song.id);
+        if (updated) select(updated);
+      }
+      notify(
+        result.updated
+          ? `Fixed lowercase chords in “${song.title}”`
+          : `No lowercase chord changes needed for “${song.title}”`,
+      );
+      return true;
+    } catch (error) {
+      notify(
+        error instanceof ApiError ? error.message : "Could not fix lowercase chords",
+        "error",
+      );
+      return false;
+    } finally {
+      setFixingLowercaseChordsId(null);
     }
   }
 
@@ -1077,6 +1119,15 @@ export default function SongsPage({
               <button
                 type="button"
                 className="button ghost small"
+                onClick={() => void fixLowercaseChords(selectedSong)}
+                disabled={fixingLowercaseChordsId !== null}
+                title="Fix lowercase chord roots such as [c] or [am] in this song"
+              >
+                {fixingLowercaseChordsId === selectedSong.id ? "Fixing…" : "Fix lowercase chords"}
+              </button>
+              <button
+                type="button"
+                className="button ghost small"
                 onClick={() => setChordProOpen(true)}
                 title="Compare a downloaded ChordPro file with this song before applying it"
               >
@@ -1406,6 +1457,22 @@ export default function SongsPage({
 
       {songSelectEnabled && (
         <SiteSongDownloadPanel notify={notify} onImported={(song) => void handleImportedSong(song)} />
+      )}
+
+      {lowercasePrompt && (
+        <LowercaseChordFixDialog
+          changes={lowercasePrompt.changes}
+          busy={fixingLowercaseChordsId !== null}
+          onKeep={() => setLowercasePrompt(null)}
+          onFix={() => {
+            void fixLowercaseChords({
+              id: lowercasePrompt.songId,
+              title: lowercasePrompt.title,
+            }).then((fixed) => {
+              if (fixed) setLowercasePrompt(null);
+            });
+          }}
+        />
       )}
     </div>
   );

@@ -342,6 +342,12 @@ export default function HelpPage({ onOpenSettings }: { onOpenSettings: () => voi
                 Named verse orders are saved with the song and can be selected per set-list item.
               </li>
               <li>
+                SongSelect imports and ChordPro updates offer to fix lowercase chord roots such as
+                <code>[c]</code> and <code>[am]</code>. Use <strong>Fix lowercase chords</strong>
+                beside <strong>Fix page names</strong> to fix one song, or scan the whole library in
+                <strong> Settings → Lowercase chords</strong>.
+              </li>
+              <li>
                 Attach scores, tabs, ChordPro files or lyric sheets for the read-only musicians view.
               </li>
               <li>

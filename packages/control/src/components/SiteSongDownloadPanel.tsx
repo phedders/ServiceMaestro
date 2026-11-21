@@ -2,12 +2,14 @@ import { useEffect, useState } from "react";
 import type {
   SiteScraperProviderSummary,
   SiteScraperSearchResult,
+  SongLowercaseChordChange,
   SongResourceKind,
 } from "@sm/shared";
 import { useAdapters } from "../adapters";
 import { api, ApiError } from "../api";
 import { usePageAccess } from "../page-access";
 import { EyeIcon } from "./Icons";
+import { LowercaseChordFixDialog } from "./LowercaseChordFixDialog";
 import { SongLyricsDialog } from "./SongLyricsDialog";
 import { downloadBlob, SITE_KIND_LABELS as KIND_LABELS } from "../site-download";
 
@@ -34,6 +36,12 @@ export function SiteSongDownloadPanel({
     ccli: string | null;
     lyrics: string;
   } | null>(null);
+  const [lowercasePrompt, setLowercasePrompt] = useState<{
+    songId: string;
+    title: string;
+    changes: SongLowercaseChordChange[];
+  } | null>(null);
+  const [fixingLowercase, setFixingLowercase] = useState(false);
 
   const provider = providers.find((entry) => entry.id === providerId) ?? providers[0] ?? null;
 
@@ -112,10 +120,39 @@ export function SiteSongDownloadPanel({
           : `Updated “${result.song.title}” with ${result.files.length} file${result.files.length === 1 ? "" : "s"}`,
       );
       onImported?.(result.song);
+      if (result.lowercaseChords.count > 0) {
+        setLowercasePrompt({
+          songId: result.song.id,
+          title: result.song.title,
+          changes: result.lowercaseChords.changes,
+        });
+      }
     } catch (error) {
       notify(error instanceof ApiError ? error.message : "Could not import the song", "error");
     } finally {
       setImporting(null);
+    }
+  }
+
+  async function fixLowercaseChords() {
+    if (!lowercasePrompt) return;
+    setFixingLowercase(true);
+    try {
+      const result = await api.applySongLowercaseChordFixes([lowercasePrompt.songId]);
+      notify(
+        result.updated
+          ? `Fixed lowercase chords in “${lowercasePrompt.title}”`
+          : `No lowercase chord changes needed for “${lowercasePrompt.title}”`,
+      );
+      await onImported?.({ id: lowercasePrompt.songId, title: lowercasePrompt.title });
+      setLowercasePrompt(null);
+    } catch (error) {
+      notify(
+        error instanceof ApiError ? error.message : "Could not fix lowercase chords",
+        "error",
+      );
+    } finally {
+      setFixingLowercase(false);
     }
   }
 
@@ -242,6 +279,14 @@ export function SiteSongDownloadPanel({
       )}
 
       <SongLyricsDialog song={lyricsPreview} onClose={() => setLyricsPreview(null)} />
+      {lowercasePrompt && (
+        <LowercaseChordFixDialog
+          changes={lowercasePrompt.changes}
+          busy={fixingLowercase}
+          onKeep={() => setLowercasePrompt(null)}
+          onFix={() => void fixLowercaseChords()}
+        />
+      )}
     </section>
   );
 }

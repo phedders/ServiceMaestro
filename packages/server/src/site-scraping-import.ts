@@ -1,4 +1,5 @@
 import { createHash, randomUUID } from "node:crypto";
+import { fixLowercaseChords } from "@sm/shared";
 import type {
   ChordProFilePreview,
   SiteScraperImportResult,
@@ -129,6 +130,10 @@ export async function importSiteSong(
     .filter((asset): asset is NonNullable<typeof asset> => Boolean(asset));
 
   await saveSongToGit(songId);
+  const stored = db.prepare("SELECT lyrics FROM songs WHERE id = ?").get(songId) as
+    | { lyrics: string }
+    | undefined;
+  const lowercase = fixLowercaseChords(stored?.lyrics ?? lyrics);
   return {
     song: { id: songId, title, ccli },
     created,
@@ -138,6 +143,10 @@ export async function importSiteSong(
       bytes: file.data.byteLength,
     })),
     assets: assets.length,
+    lowercaseChords: {
+      count: lowercase.changes.reduce((total, change) => total + change.count, 0),
+      changes: lowercase.changes,
+    },
   };
 }
 

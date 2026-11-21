@@ -27,6 +27,7 @@ import {
   type SiteScraperProviderSummary,
   type Song,
   type SongAlternative,
+  type SongLowercaseChordChange,
   type StingerAsset,
   type TarpPresentationSummary,
   type TextFormat,
@@ -36,6 +37,7 @@ import { api, ApiError, type SetlistSheetFormat } from "../api";
 import { BibleLayoutButtons } from "../components/BibleLayoutButtons";
 import { ChurchSuiteSyncDialog } from "../components/ChurchSuiteSyncDialog";
 import { IsoDateInput } from "../components/IsoDateInput";
+import { LowercaseChordFixDialog } from "../components/LowercaseChordFixDialog";
 import { PageContentEditor } from "../components/PageContentEditor";
 import { SaveButton } from "../components/SaveButton";
 import { changeList } from "../form-changes";
@@ -1449,6 +1451,12 @@ export default function SetlistsPage({
   const [dragOverId, setDragOverId] = useState<string | null>(null);
   const [siteProvider, setSiteProvider] = useState<SiteScraperProviderSummary | null>(null);
   const [siteUpdatingSongId, setSiteUpdatingSongId] = useState<string | null>(null);
+  const [lowercasePrompt, setLowercasePrompt] = useState<{
+    songId: string;
+    title: string;
+    changes: SongLowercaseChordChange[];
+  } | null>(null);
+  const [fixingLowercaseChords, setFixingLowercaseChords] = useState(false);
 
   const [newName, setNewName] = useState(() => defaultSetlistName(today()));
   const [newNameEdited, setNewNameEdited] = useState(false);
@@ -1638,13 +1646,45 @@ export default function SetlistsPage({
     if (!siteProvider) return;
     setSiteUpdatingSongId(song.id);
     try {
-      if (await checkAndUpdateSongFromSite(siteProvider, song.id, song.title, notify)) {
+      const result = await checkAndUpdateSongFromSite(siteProvider, song.id, song.title, notify);
+      if (result) {
         const songResult = await api.songs();
         setSongs(songResult.songs);
         if (selectedId) await loadDetail(selectedId);
+        if (result.lowercaseChords.count > 0) {
+          setLowercasePrompt({
+            songId: result.song.id,
+            title: result.song.title,
+            changes: result.lowercaseChords.changes,
+          });
+        }
       }
     } finally {
       setSiteUpdatingSongId(null);
+    }
+  }
+
+  async function fixLowercaseChords() {
+    if (!lowercasePrompt) return;
+    setFixingLowercaseChords(true);
+    try {
+      const result = await api.applySongLowercaseChordFixes([lowercasePrompt.songId]);
+      notify(
+        result.updated
+          ? `Fixed lowercase chords in “${lowercasePrompt.title}”`
+          : `No lowercase chord changes needed for “${lowercasePrompt.title}”`,
+      );
+      setLowercasePrompt(null);
+      const songResult = await api.songs();
+      setSongs(songResult.songs);
+      if (selectedId) await loadDetail(selectedId);
+    } catch (error) {
+      notify(
+        error instanceof ApiError ? error.message : "Could not fix lowercase chords",
+        "error",
+      );
+    } finally {
+      setFixingLowercaseChords(false);
     }
   }
 
@@ -3351,6 +3391,15 @@ export default function SetlistsPage({
           onSync={() => void syncFromChurchsuite("sync")}
           onCreateNew={() => void syncFromChurchsuite("create")}
           onClose={() => setChurchsuiteSyncPreview(null)}
+        />
+      )}
+
+      {lowercasePrompt && (
+        <LowercaseChordFixDialog
+          changes={lowercasePrompt.changes}
+          busy={fixingLowercaseChords}
+          onKeep={() => setLowercasePrompt(null)}
+          onFix={() => void fixLowercaseChords()}
         />
       )}
     </div>

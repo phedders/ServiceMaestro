@@ -3704,6 +3704,17 @@ body.resizing-live-queue {
   overflow-wrap: anywhere;
 }
 
+.lowercase-chord-modal {
+  width: min(620px, 94vw);
+}
+
+.lowercase-chord-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 14px;
+}
+
 .churchsuite-empty-add {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;

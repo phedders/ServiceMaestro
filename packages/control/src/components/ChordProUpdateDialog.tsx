@@ -1,11 +1,14 @@
 import { useEffect, useState } from "react";
+import { fixLowercaseChords } from "@sm/shared";
 import type {
   ChordProFilePreview,
   SiteScraperProviderSummary,
+  SongLowercaseChordChange,
 } from "@sm/shared";
 import { useAdapters } from "../adapters";
 import { api, ApiError } from "../api";
 import { sideBySideDiff } from "../song-diff";
+import { LowercaseChordFixDialog } from "./LowercaseChordFixDialog";
 
 interface CurrentSongValues {
   title: string;
@@ -38,14 +41,17 @@ export function ChordProUpdateDialog({
   const [source, setSource] = useState("");
   const [loading, setLoading] = useState<"file" | "site" | null>(null);
   const [error, setError] = useState("");
+  const [lowercasePrompt, setLowercasePrompt] = useState<SongLowercaseChordChange[] | null>(
+    null,
+  );
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
+      if (event.key === "Escape" && !lowercasePrompt) onClose();
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [onClose]);
+  }, [lowercasePrompt, onClose]);
 
   async function parseFile(file: File) {
     setLoading("file");
@@ -102,6 +108,7 @@ export function ChordProUpdateDialog({
       ] as Array<[string, string, string]>)
     : [];
   const rows = preview ? sideBySideDiff(current.lyrics, preview.lyrics) : [];
+  const lowercaseChanges = preview ? fixLowercaseChords(preview.lyrics).changes : [];
 
   return (
     <div
@@ -127,8 +134,12 @@ export function ChordProUpdateDialog({
                 <button
                   className="button primary small"
                   onClick={() => {
-                    onApply(preview);
-                    onClose();
+                    if (lowercaseChanges.length) {
+                      setLowercasePrompt(lowercaseChanges);
+                    } else {
+                      onApply(preview);
+                      onClose();
+                    }
                   }}
                   title="Load the ChordPro values into the editor without saving yet"
                 >
@@ -227,6 +238,12 @@ export function ChordProUpdateDialog({
             {preview.warnings.length > 0 && (
               <p className="hint">Parser notes: {preview.warnings.join(" · ")}</p>
             )}
+            {lowercaseChanges.length > 0 && (
+              <p className="hint">
+                Lowercase chord roots were found in this file. You will be offered a fix when you
+                use it.
+              </p>
+            )}
             <p className="hint">
               <strong>Use new version</strong> loads these values into the editor and clears the
               separate <strong>Verse order</strong> field, because the ChordPro file already contains
@@ -235,6 +252,24 @@ export function ChordProUpdateDialog({
           </>
         )}
       </div>
+      {lowercasePrompt && preview && (
+        <LowercaseChordFixDialog
+          changes={lowercasePrompt}
+          keepLabel="Use without fixing"
+          fixLabel="Fix and use"
+          onDismiss={() => setLowercasePrompt(null)}
+          onKeep={() => {
+            onApply(preview);
+            setLowercasePrompt(null);
+            onClose();
+          }}
+          onFix={() => {
+            onApply({ ...preview, lyrics: fixLowercaseChords(preview.lyrics).lyrics });
+            setLowercasePrompt(null);
+            onClose();
+          }}
+        />
+      )}
     </div>
   );
 }

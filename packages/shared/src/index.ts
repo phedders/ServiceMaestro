@@ -116,6 +116,10 @@ export interface SiteScraperImportResult {
     bytes: number;
   }>;
   assets: number;
+  lowercaseChords: {
+    count: number;
+    changes: SongLowercaseChordChange[];
+  };
 }
 
 export interface SiteScraperSongUpdateCheck {

@@ -3,11 +3,13 @@ import type {
   SiteScraperImportResult,
   SiteScraperProviderSummary,
   SiteScraperSearchResult,
+  SongLowercaseChordChange,
   SongResourceKind,
 } from "@sm/shared";
 import { api, ApiError } from "../api";
 import { usePageAccess } from "../page-access";
 import { EyeIcon } from "./Icons";
+import { LowercaseChordFixDialog } from "./LowercaseChordFixDialog";
 import { SongLyricsDialog } from "./SongLyricsDialog";
 import { downloadBlob, SITE_KIND_LABELS } from "../site-download";
 
@@ -38,14 +40,21 @@ export function SiteSongLookupDialog({
     lyrics: string;
   } | null>(null);
   const [searched, setSearched] = useState(false);
+  const [lowercasePrompt, setLowercasePrompt] = useState<{
+    songId: string;
+    title: string;
+    ccli: string | null;
+    changes: SongLowercaseChordChange[];
+  } | null>(null);
+  const [fixingLowercase, setFixingLowercase] = useState(false);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
+      if (event.key === "Escape" && !lowercasePrompt) onClose();
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [onClose]);
+  }, [lowercasePrompt, onClose]);
 
   useEffect(() => {
     if (initialQuery.trim()) void search(initialQuery);
@@ -106,11 +115,51 @@ export function SiteSongLookupDialog({
           ? `Imported “${result.song.title}” with ${result.files.length} file${result.files.length === 1 ? "" : "s"}`
           : `Updated “${result.song.title}” with ${result.files.length} file${result.files.length === 1 ? "" : "s"}`,
       );
-      onImported?.(result.song);
+      if (result.lowercaseChords.count > 0) {
+        setLowercasePrompt({
+          songId: result.song.id,
+          title: result.song.title,
+          ccli: result.song.ccli,
+          changes: result.lowercaseChords.changes,
+        });
+      } else {
+        onImported?.(result.song);
+      }
     } catch (error) {
       notify(error instanceof ApiError ? error.message : "Could not import the song", "error");
     } finally {
       setImporting(null);
+    }
+  }
+
+  function finishLowercasePrompt() {
+    if (!lowercasePrompt) return;
+    onImported?.({
+      id: lowercasePrompt.songId,
+      title: lowercasePrompt.title,
+      ccli: lowercasePrompt.ccli,
+    });
+    setLowercasePrompt(null);
+  }
+
+  async function fixLowercaseChords() {
+    if (!lowercasePrompt) return;
+    setFixingLowercase(true);
+    try {
+      const result = await api.applySongLowercaseChordFixes([lowercasePrompt.songId]);
+      notify(
+        result.updated
+          ? `Fixed lowercase chords in “${lowercasePrompt.title}”`
+          : `No lowercase chord changes needed for “${lowercasePrompt.title}”`,
+      );
+      finishLowercasePrompt();
+    } catch (error) {
+      notify(
+        error instanceof ApiError ? error.message : "Could not fix lowercase chords",
+        "error",
+      );
+    } finally {
+      setFixingLowercase(false);
     }
   }
 
@@ -233,6 +282,14 @@ export function SiteSongLookupDialog({
       </div>
     </div>
     <SongLyricsDialog song={lyricsPreview} onClose={() => setLyricsPreview(null)} />
+    {lowercasePrompt && (
+      <LowercaseChordFixDialog
+        changes={lowercasePrompt.changes}
+        busy={fixingLowercase}
+        onKeep={finishLowercasePrompt}
+        onFix={() => void fixLowercaseChords()}
+      />
+    )}
     </>
   );
 }
