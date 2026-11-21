@@ -1558,6 +1558,8 @@ export interface LiveState {
     | "idle";
   title: string;
   blank: boolean;
+  halfPageMode: boolean;
+  halfPageOffset: number;
   maxLines: number;
   transpose: number;
   footer: string;
@@ -2194,6 +2196,7 @@ export const reorderSchema = z.object({
 export const liveCommandSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("next") }),
   z.object({ type: z.literal("prev") }),
+  z.object({ type: z.literal("nextHalf") }),
   z.object({ type: z.literal("page"), delta: z.number().int().min(-50).max(50) }),
   z.object({ type: z.literal("goto"), itemIndex: z.number().int().min(0).optional(), pageIndex: z.number().int().min(0).optional() }),
   z.object({ type: z.literal("queueItem"), itemIndex: z.number().int().min(0) }),

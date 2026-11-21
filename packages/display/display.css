@@ -450,6 +450,50 @@ body.display-main.mode-tarp .sm-lowerthird-panel {
   gap: 0.35em;
 }
 
+.sm-half-window {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.sm-half-track {
+  position: absolute;
+  inset: 0;
+  will-change: transform;
+}
+
+.sm-half-page {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.sm-half-page > .slide-inner {
+  width: 100%;
+}
+
+.sm-half-fade {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 45%;
+  pointer-events: none;
+  opacity: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.72),
+    rgba(0, 0, 0, 0) 100%
+  );
+}
+
 .sm-content .line {
   white-space: pre-wrap;
 }

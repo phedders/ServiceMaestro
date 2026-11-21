@@ -124,6 +124,10 @@ export default function HelpPage({ onOpenSettings }: { onOpenSettings: () => voi
                 <strong>Blank / Show</strong> hides or reveals the output without ending the session.
               </li>
               <li>
+                <strong>Next ½</strong> scrolls the output up by half a page and reveals the top half
+                of the next page. Repeating it continues through the item in half-page steps.
+              </li>
+              <li>
                 <strong>Transpose</strong> changes the current song by semitones.
               </li>
               <li>

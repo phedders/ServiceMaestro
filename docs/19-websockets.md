@@ -119,6 +119,8 @@ messages to merge.
   "mode": "song",
   "title": "Amazing Grace",
   "blank": false,
+  "halfPageMode": false,
+  "halfPageOffset": 0,
   "maxLines": 4,
   "transpose": 0,
   "footer": "",
@@ -160,6 +162,7 @@ Key fields:
 | `itemIndex`, `pageIndex`, `pageCount` | Current set-list item and zero-based page position. `itemIndex` is `-1` for a transient quick item. |
 | `mode` | Active item kind: `song`, `text`, `image`, `image_list`, `tarp`, `presentation`, or `idle` when no session is active. Blanking is reported by `blank`, not by `mode`. |
 | `blank` | Output is hidden or faded out. |
+| `halfPageMode`, `halfPageOffset` | Half-page scroll preview state. `halfPageOffset` is `0` or `1` within the current page. |
 | `transpose`, `maxLines`, `footer` | Current live overrides. |
 | `bibleVerseNumbers` | Show or hide the superscript verse numbers on Bible paragraph pages. Defaults to `true`. |
 | `pages` | Rendered pages for the current item. `html` is already sanitized and styled. `stinger` is an optional transition overlay. |
@@ -224,6 +227,7 @@ Valid payloads:
 | --- | --- |
 | `{ "type": "next" }` | Advance one page, then into the next item at the item boundary. If an item is queued, commit it at page 0. |
 | `{ "type": "prev" }` | Go back one page, then into the previous item at the item boundary. |
+| `{ "type": "nextHalf" }` | Scroll up by half a page and reveal the top half of the next page. Repeating advances through the item in half-page steps. |
 | `{ "type": "page", "delta": 1 }` | Move by `-50…50` pages. A forward move commits a queued item first. Page boundaries follow the global **Live navigation** setting. |
 | `{ "type": "goto", "itemIndex": 2, "pageIndex": 0 }` | Select an item and/or page directly. At least one field is required. Clears blank. |
 | `{ "type": "queueItem", "itemIndex": 4 }` | Preview an item as the next queued item **without changing the output**. |

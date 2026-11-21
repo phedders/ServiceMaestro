@@ -448,6 +448,7 @@ body.sm-output-configured.mode-image .sm-footer {
   let stingerEndTimer = null;
   let pendingStingerPage = "";
   let displayedPageKey = "";
+  let displayedHalfIndex = null;
 
   function checkHeartbeat() {
     if (document.visibilityState === "hidden") return;
@@ -481,15 +482,28 @@ body.sm-output-configured.mode-image .sm-footer {
     );
   }
 
-  function compose(state, template) {
+  function compose(state, template, halfHeight = 0) {
     const page = state.pages && state.pages[state.pageIndex];
     const pageNumber = page ? state.pageIndex + 1 : 0;
+    const halfMode = Boolean(state.halfPageMode) && Boolean(state.pages?.length);
+    const halfTo = state.pageIndex * 2 + (state.halfPageOffset ? 1 : 0);
+    const halfFrom = displayedHalfIndex ?? state.pageIndex * 2;
     const output = state.outputs && state.outputs[outputId];
     const showUpcoming = output
       ? output.content.pages === "upcoming"
       : target === "stage" || target === "chords";
     const livePages =
-      showUpcoming
+      halfMode
+        ? `<div class="sm-half-window" data-half-from="${halfFrom}" data-half-to="${halfTo}" style="height:${Math.max(
+            120,
+            Math.round(halfHeight || 0),
+          )}px"><div class="sm-half-track" style="transform:translateY(-${halfFrom * 50}%)">${(state.pages || [])
+            .map(
+              (item, index) =>
+                `<div class="sm-half-page" style="top:${index * 100}%">${item.html}</div>`,
+            )
+            .join("")}</div><div class="sm-half-fade"></div></div>`
+        : showUpcoming
         ? (state.pages || [])
             .slice(state.pageIndex)
             .map((item, offset) => {
@@ -503,6 +517,7 @@ body.sm-output-configured.mode-image .sm-footer {
         : page
           ? page.html
           : "";
+    displayedHalfIndex = halfMode ? halfTo : state.pages?.length ? state.pageIndex * 2 : null;
     const isImage = state.mode === "image" || state.mode === "image_list";
     const replacements = {
       content: livePages,
@@ -781,6 +796,46 @@ body.sm-output-configured.mode-image .sm-footer {
     root.innerHTML = html;
   }
 
+  function startHalfScroll() {
+    const halfWindow = root.querySelector(".sm-half-window");
+    if (!halfWindow) return;
+    const from = Number(halfWindow.dataset.halfFrom);
+    const to = Number(halfWindow.dataset.halfTo);
+    const track = halfWindow.querySelector(".sm-half-track");
+    if (!track || !Number.isFinite(from) || !Number.isFinite(to)) return;
+    track.style.transform = `translateY(-${from * 50}%)`;
+    if (
+      from === to ||
+      window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ||
+      typeof track.animate !== "function"
+    ) {
+      track.style.transform = `translateY(-${to * 50}%)`;
+      return;
+    }
+    const duration = 900;
+    const easing = "cubic-bezier(0.4, 0, 0.2, 1)";
+    const animation = track.animate(
+      [
+        { transform: `translateY(-${from * 50}%)` },
+        { transform: `translateY(-${to * 50}%)` },
+      ],
+      { duration, easing, fill: "forwards" },
+    );
+    animation.finished
+      .then(() => {
+        track.style.transform = `translateY(-${to * 50}%)`;
+      })
+      .catch(() => undefined);
+    const fade = halfWindow.querySelector(".sm-half-fade");
+    if (fade) {
+      fade.animate([{ opacity: 0.8 }, { opacity: 0 }], {
+        duration,
+        easing: "ease-out",
+        fill: "forwards",
+      });
+    }
+  }
+
   function apply(state) {
     const page = state.pages && state.pages[state.pageIndex];
     const idle = !page || state.mode === "idle";
@@ -818,8 +873,12 @@ body.sm-output-configured.mode-image .sm-footer {
     applyClock(state);
 
     const template = templateFor(state);
-    const html = compose(state, template);
+    const measuredHeight =
+      root.querySelector(".sm-content")?.getBoundingClientRect().height ?? 0;
+    const halfHeight = measuredHeight > 0 ? measuredHeight : window.innerHeight * 0.65;
+    const html = compose(state, template, halfHeight);
     const sameContent = html === lastHtml && template.css === lastCss;
+    const halfMode = Boolean(state.halfPageMode) && !blank && Boolean(page);
 
     if (pendingStingerPage && pendingStingerPage === pageKey) {
       if (!blank && page) return;
@@ -839,6 +898,7 @@ body.sm-output-configured.mode-image .sm-footer {
         lastCss = template.css;
       }
       swapHtml(html, tarpPageChange);
+      startHalfScroll();
       lastHtml = html;
       displayedPageKey = pageKey;
       // Paint the new text at zero opacity before fading back in.
@@ -854,6 +914,11 @@ body.sm-output-configured.mode-image .sm-footer {
       return;
     }
     if (tarpPageChange) {
+      commit();
+      return;
+    }
+    if (halfMode) {
+      cancelStinger();
       commit();
       return;
     }

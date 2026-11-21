@@ -37,6 +37,14 @@ export function Transport({
           Next →
         </button>
         <button
+          className={`button ${live.halfPageMode ? "primary" : "ghost"}`}
+          disabled={!active}
+          onClick={() => onCommand({ type: "nextHalf" })}
+          title="Scroll up by half a page and reveal the top half of the next page"
+        >
+          Next ½
+        </button>
+        <button
           className={`button ${live.blank ? "danger" : "ghost"}`}
           disabled={!active}
           onClick={() => onCommand({ type: "blank", value: !live.blank })}
@@ -198,6 +206,7 @@ export function Transport({
             <span>{live.title || live.setlistName}</span>
             <span>
               page {live.pageCount ? live.pageIndex + 1 : 0} / {live.pageCount}
+              {live.halfPageMode ? " · ½" : ""}
             </span>
           </>
         ) : (

@@ -76,6 +76,8 @@ export function idleState(): LiveState {
     mode: "idle",
     title: "",
     blank: false,
+    halfPageMode: false,
+    halfPageOffset: 0,
     maxLines: 4,
     transpose: 0,
     footer: "",
@@ -436,6 +438,8 @@ class LiveService {
       state.pendingUpdate = Boolean(pending);
       state.pendingRevision = pending?.revisionNo ?? null;
       if (typeof state.bibleVerseNumbers !== "boolean") state.bibleVerseNumbers = true;
+      if (typeof state.halfPageMode !== "boolean") state.halfPageMode = false;
+      if (!Number.isInteger(state.halfPageOffset)) state.halfPageOffset = 0;
       this.active = {
         id: row.id,
         setlistId: row.setlist_id,
@@ -490,6 +494,8 @@ class LiveService {
       mode: first.kind,
       title: first.title,
       blank: true,
+      halfPageMode: false,
+      halfPageOffset: 0,
       maxLines: displayConfig.maxLines,
       transpose: 0,
       footer: "",
@@ -617,6 +623,8 @@ class LiveService {
       record.transientReturnItemIndex = null;
       record.state.itemIndex = 0;
       record.state.pageIndex = 0;
+      record.state.halfPageMode = false;
+      record.state.halfPageOffset = 0;
       record.state.items = summaries(items);
       record.state.pendingUpdate = false;
       record.state.pendingRevision = null;
@@ -643,6 +651,8 @@ class LiveService {
     record.transientReturnItemIndex = null;
     record.state.itemIndex = 0;
     record.state.pageIndex = 0;
+    record.state.halfPageMode = false;
+    record.state.halfPageOffset = 0;
     record.state.items = summaries(record.items);
     record.state.pendingUpdate = false;
     record.state.pendingRevision = null;
@@ -664,6 +674,24 @@ class LiveService {
       case "prev":
         this.move(-1);
         break;
+      case "nextHalf": {
+        const pages = state.pages;
+        if (!pages.length) break;
+        if (!state.halfPageMode) {
+          if (state.pageIndex + 1 < pages.length) {
+            state.halfPageMode = true;
+            state.halfPageOffset = 1;
+            state.blank = false;
+          }
+          break;
+        }
+        if (state.halfPageOffset === 1 && state.pageIndex + 1 < pages.length) {
+          state.pageIndex += 1;
+          state.halfPageOffset = state.pageIndex + 1 < pages.length ? 1 : 0;
+          state.blank = false;
+        }
+        break;
+      }
       case "page": {
         const delta = Number(command.delta ?? 0);
         if (delta > 0 && this.commitQueuedItem()) {
@@ -831,6 +859,8 @@ class LiveService {
     record.state.title = "Quick text";
     record.state.itemIndex = -1;
     record.state.pageIndex = 0;
+    record.state.halfPageMode = false;
+    record.state.halfPageOffset = 0;
     record.state.blank = false;
     record.state.appendedItems = [];
     this.renderCurrent();
@@ -874,6 +904,8 @@ class LiveService {
     record.state.title = song.title;
     record.state.itemIndex = -1;
     record.state.pageIndex = 0;
+    record.state.halfPageMode = false;
+    record.state.halfPageOffset = 0;
     record.state.blank = false;
     record.state.appendedItems = [];
     this.renderCurrent();
@@ -911,6 +943,8 @@ class LiveService {
     record.state.title = item.title;
     record.state.itemIndex = -1;
     record.state.pageIndex = 0;
+    record.state.halfPageMode = false;
+    record.state.halfPageOffset = 0;
     record.state.blank = false;
     this.renderCurrent();
     record.state.version += 1;
@@ -945,6 +979,8 @@ class LiveService {
     record.state.title = item.title;
     record.state.itemIndex = -1;
     record.state.pageIndex = 0;
+    record.state.halfPageMode = false;
+    record.state.halfPageOffset = 0;
     record.state.blank = false;
     record.state.appendedItems = [];
     this.renderCurrent();
@@ -967,6 +1003,8 @@ class LiveService {
     state.appendedItems = [];
     state.itemIndex = index;
     state.pageIndex = 0;
+    state.halfPageMode = false;
+    state.halfPageOffset = 0;
     state.mode = items[index].kind;
     state.title = items[index].title;
     this.renderCurrent();
@@ -1007,6 +1045,8 @@ class LiveService {
     state.queuedTitle = null;
     state.queuedPages = [];
     state.appendedItems = [...(state.appendedItems ?? []), index];
+    state.halfPageMode = false;
+    state.halfPageOffset = 0;
     this.renderCurrent();
   }
 
@@ -1014,12 +1054,16 @@ class LiveService {
     if (!this.active) return;
     const state = this.active.state;
     state.pageIndex = Math.max(0, Math.min(index, Math.max(0, state.pageCount - 1)));
+    state.halfPageMode = false;
+    state.halfPageOffset = 0;
   }
 
   private move(delta: number): void {
     if (!this.active) return;
     const record = this.active;
     const { state, items } = record;
+    state.halfPageMode = false;
+    state.halfPageOffset = 0;
 
     if (delta > 0 && this.commitQueuedItem()) return;
 
@@ -1086,6 +1130,9 @@ class LiveService {
       0,
       Math.min(record.state.pageIndex, record.state.pages.length - 1),
     );
+    if (record.state.halfPageMode && record.state.pageIndex + 1 >= record.state.pages.length) {
+      record.state.halfPageOffset = 0;
+    }
     record.state.title = item.title;
     record.state.mode = item.kind;
 
