@@ -9,6 +9,7 @@ import {
 } from "@sm/shared";
 import { api, ApiError, type SetlistMediaType } from "../api";
 import { FullscreenButton } from "../components/FullscreenButton";
+import { RenderedLyrics } from "../components/RenderedLyrics";
 import { PdfViewer } from "../components/PdfViewer";
 import { compactDate, pickCurrentSetlist } from "../service-date";
 import { downloadBlob } from "../site-download";
@@ -21,7 +22,7 @@ function TextAsset({ assetId }: { assetId: string }) {
       .then(setText)
       .catch(() => setText("Could not load file"));
   }, [assetId]);
-  return <pre className="text-asset">{text}</pre>;
+  return <RenderedLyrics text={text} className="text-asset" />;
 }
 
 function AssetViewer({ asset }: { asset: SongAsset }) {
@@ -501,9 +502,9 @@ export default function MusiciansPage({
                                 {item.content != null && (
                                   <span className="local-badge">Set-list lyrics</span>
                                 )}
-                                <pre className="lyrics-view">
-                                  {item.content ?? song?.lyrics ?? "Lyrics are not available for this song."}
-                                </pre>
+                                <RenderedLyrics
+                                  text={item.content ?? song?.lyrics ?? "Lyrics are not available for this song."}
+                                />
                                 {mediaType === "default" && (!expandAll || isSelected) && (
                                   <SongFiles
                                     assets={songAssets}
@@ -520,9 +521,9 @@ export default function MusiciansPage({
                             </p>
                           ) : item.kind === "tarp" ? (
                             <p className="muted">Tarp presentation. View it on a display.</p>
-                          ) : (
-                            <pre className="lyrics-view">{item.content}</pre>
-                          )}
+                          ) : item.content ? (
+                            <RenderedLyrics text={item.content} />
+                          ) : null}
                         </div>
                       )}
                     </article>
@@ -598,9 +599,9 @@ export default function MusiciansPage({
                   </div>
                   <FullscreenButton targetRef={viewerRef} />
                 </div>
-                <pre className="lyrics-view">
-                  {selectedAllSong.lyrics || "Lyrics are not available for this song."}
-                </pre>
+                <RenderedLyrics
+                  text={selectedAllSong.lyrics || "Lyrics are not available for this song."}
+                />
                 {loadingAllSongAssets[selectedSongId] ? (
                   <p className="muted">Loading scores and tabs…</p>
                 ) : (

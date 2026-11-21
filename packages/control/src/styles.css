@@ -5704,6 +5704,67 @@ body.resizing-live-queue {
   padding: 14px;
 }
 
+.rendered-lyrics {
+  white-space: pre-wrap;
+}
+
+.rendered-line {
+  min-height: 1.2em;
+}
+
+.rendered-empty {
+  min-height: 0.8em;
+}
+
+.rendered-section {
+  color: #fde68a;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  margin: 0.7em 0 0.2em;
+  text-transform: uppercase;
+}
+
+.rendered-chord-line {
+  margin: 0.15em 0;
+  white-space: pre-wrap;
+}
+
+.rendered-chord {
+  color: #8fd3ff;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-weight: 700;
+}
+
+.rendered-chord-line .rendered-chord {
+  padding-right: 0.2em;
+}
+
+.lyric-chord {
+  display: inline-block;
+  margin-right: 0.18em;
+  vertical-align: bottom;
+}
+
+.lyric-chord .rendered-chord {
+  display: block;
+  font-size: 0.8em;
+  line-height: 1.1;
+  padding: 0;
+}
+
+.lyric-chord-standalone {
+  margin-right: 0.25em;
+}
+
+.rendered-inline-section {
+  color: #fde68a;
+  font-size: 0.8em;
+  font-weight: 700;
+  margin-right: 0.25em;
+  text-transform: uppercase;
+}
+
 .musician-score {
   display: grid;
   gap: 10px;
