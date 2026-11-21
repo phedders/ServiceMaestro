@@ -1040,6 +1040,35 @@ body.sm-output-configured.mode-image .sm-footer {
     }
   }
 
+  function lineVisualRows(element) {
+    const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+    const range = document.createRange();
+    const tops = new Set();
+    let node = walker.nextNode();
+    while (node) {
+      const parent = node.parentElement;
+      if (
+        node.nodeValue?.trim() &&
+        !parent?.closest(".chord, .section-label, sup")
+      ) {
+        range.selectNodeContents(node);
+        for (const rect of range.getClientRects()) {
+          if (rect.width || rect.height) tops.add(Math.round(rect.top / 4));
+        }
+      }
+      node = walker.nextNode();
+    }
+    return tops.size;
+  }
+
+  // A line-height below 1 makes the second visual row of a wrapped lyric
+  // overlap the first. Mark those lines so the stylesheet can loosen them.
+  function markWrappedLines(scope = root) {
+    for (const line of scope.querySelectorAll(".line")) {
+      line.classList.toggle("sm-line-wrapped", lineVisualRows(line) > 1);
+    }
+  }
+
   function fitPageScrollHeight(scrollWindow) {
     const pages = Array.from(scrollWindow.querySelectorAll(".sm-scroll-page"));
     if (!pages.length) return;
@@ -1051,7 +1080,8 @@ body.sm-output-configured.mode-image .sm-footer {
       const content = page.firstElementChild;
       contentHeight = Math.max(
         contentHeight,
-        content ? content.getBoundingClientRect().height : page.scrollHeight,
+        content ? content.getBoundingClientRect().height : 0,
+        content ? content.scrollHeight : 0,
       );
     }
     const height = Math.min(maxHeight, Math.max(120, contentHeight));
@@ -1184,6 +1214,7 @@ body.sm-output-configured.mode-image .sm-footer {
         lastCss = template.css;
       }
       swapHtml(html, tarpPageChange);
+      markWrappedLines();
       startHalfScroll();
       startPageScroll();
       lastHtml = html;
@@ -1228,6 +1259,7 @@ body.sm-output-configured.mode-image .sm-footer {
   }
 
   function refreshScrollHeight() {
+    markWrappedLines();
     const scrollWindow = root.querySelector(".sm-scroll-window");
     if (scrollWindow) fitPageScrollHeight(scrollWindow);
   }

@@ -541,8 +541,24 @@ body.display-main.mode-tarp .sm-lowerthird-panel {
   width: 100%;
 }
 
+/* Scroll pages are height-constrained to the current window. Keep their
+   content at its natural wrapped height instead of letting flexbox squash
+   wrapped lyric lines into a single line box. */
+.sm-scroll-page > *,
+.sm-scroll-page .slide-inner > * {
+  flex: 0 0 auto;
+}
+
 .sm-content .line {
   white-space: pre-wrap;
+}
+
+/* A low configured line-height works for single-line lyrics, but makes the
+   wrapped continuation of a long line overlap the line above. Keep wrapped
+   lines readable without loosening every line in the song. */
+.sm-content .line.sm-line-wrapped {
+  line-height: 1.05;
+  line-height: max(1.05, var(--sm-output-line-height, 1.18));
 }
 
 .sm-meta:empty {
