@@ -10,11 +10,43 @@ import {
 import { api, ApiError, type SetlistMediaType } from "../api";
 import { FullscreenButton } from "../components/FullscreenButton";
 import { RenderedLyrics } from "../components/RenderedLyrics";
+import { transposeKey } from "../chords";
 import { PdfViewer } from "../components/PdfViewer";
 import { compactDate, pickCurrentSetlist } from "../service-date";
 import { downloadBlob } from "../site-download";
 
-function TextAsset({ assetId }: { assetId: string }) {
+function TransposeControl({
+  value,
+  onChange,
+}: {
+  value: number;
+  onChange: (delta: number) => void;
+}) {
+  return (
+    <div className="musician-transpose stepper" aria-label="Transpose chords">
+      <span>Transpose</span>
+      <button
+        type="button"
+        className="button ghost small"
+        onClick={() => onChange(-1)}
+        title="Transpose down one semitone"
+      >
+        −
+      </button>
+      <strong>{value > 0 ? `+${value}` : value}</strong>
+      <button
+        type="button"
+        className="button ghost small"
+        onClick={() => onChange(1)}
+        title="Transpose up one semitone"
+      >
+        +
+      </button>
+    </div>
+  );
+}
+
+function TextAsset({ assetId, semitones = 0 }: { assetId: string; semitones?: number }) {
   const [text, setText] = useState("Loading…");
   useEffect(() => {
     fetch(`/api/assets/${assetId}/file`, { credentials: "include" })
@@ -22,17 +54,17 @@ function TextAsset({ assetId }: { assetId: string }) {
       .then(setText)
       .catch(() => setText("Could not load file"));
   }, [assetId]);
-  return <RenderedLyrics text={text} className="text-asset" />;
+  return <RenderedLyrics text={text} className="text-asset" semitones={semitones} />;
 }
 
-function AssetViewer({ asset }: { asset: SongAsset }) {
+function AssetViewer({ asset, semitones = 0 }: { asset: SongAsset; semitones?: number }) {
   if (asset.mime === "application/pdf" || asset.format === "pdf") {
     return <PdfViewer assetId={asset.id} title={asset.title} />;
   }
   if (asset.mime.startsWith("image/")) {
     return <img className="image-asset" src={`/api/assets/${asset.id}/file`} alt={asset.title} />;
   }
-  return <TextAsset assetId={asset.id} />;
+  return <TextAsset assetId={asset.id} semitones={semitones} />;
 }
 
 function serviceLabel(setlist: SetlistSummary): string {
@@ -69,10 +101,12 @@ function SongFiles({
   assets,
   selectedAsset,
   onSelect,
+  semitones = 0,
 }: {
   assets: SongAsset[];
   selectedAsset: string;
   onSelect: (assetId: string) => void;
+  semitones?: number;
 }) {
   const current = assets.find((asset) => asset.id === selectedAsset);
   if (!assets.length) {
@@ -96,7 +130,11 @@ function SongFiles({
           ))}
         </div>
       </div>
-      {current ? <AssetViewer asset={current} /> : <p className="muted">Choose a file to view.</p>}
+      {current ? (
+        <AssetViewer asset={current} semitones={semitones} />
+      ) : (
+        <p className="muted">Choose a file to view.</p>
+      )}
     </div>
   );
 }
@@ -126,6 +164,8 @@ export default function MusiciansPage({
   const [allSongAssets, setAllSongAssets] = useState<Record<string, SongAsset[]>>({});
   const [loadingAllSongAssets, setLoadingAllSongAssets] = useState<Record<string, boolean>>({});
   const [selectedAllAsset, setSelectedAllAsset] = useState("");
+  const [itemTranspose, setItemTranspose] = useState<Record<string, number>>({});
+  const [songTranspose, setSongTranspose] = useState<Record<string, number>>({});
   const viewerRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
@@ -275,6 +315,8 @@ export default function MusiciansPage({
     () => allSongs.find((song) => song.id === selectedSongId) ?? null,
     [allSongs, selectedSongId],
   );
+  const allSongsSemitones = selectedSongId ? songTranspose[selectedSongId] ?? 0 : 0;
+  const allSongsKey = transposeKey(selectedAllSong?.key, allSongsSemitones);
   const selectedAllSongAssets = selectedSongId ? allSongAssets[selectedSongId] ?? [] : [];
   const filteredAllSongs = useMemo(() => {
     const query = songSearch.trim().toLowerCase();
@@ -289,6 +331,20 @@ export default function MusiciansPage({
   function selectAllSong(song: Song) {
     setSelectedSongId(song.id);
     setSelectedAllAsset("");
+  }
+
+  function adjustItemTranspose(itemId: string, delta: number) {
+    setItemTranspose((current) => ({
+      ...current,
+      [itemId]: Math.max(-24, Math.min(24, (current[itemId] ?? 0) + delta)),
+    }));
+  }
+
+  function adjustSongTranspose(songId: string, delta: number) {
+    setSongTranspose((current) => ({
+      ...current,
+      [songId]: Math.max(-24, Math.min(24, (current[songId] ?? 0) + delta)),
+    }));
   }
 
   function selectItem(item: SetlistItem) {
@@ -438,45 +494,58 @@ export default function MusiciansPage({
                 {detail.items.map((item) => {
                   const songAssets = item.songId ? assets[item.songId] ?? [] : [];
                   const song = item.songId ? songs[item.songId] : undefined;
-                  const key = item.keyOverride ?? song?.key ?? null;
+                  const localTranspose = itemTranspose[item.id] ?? 0;
+                  const semitones = (item.transpose ?? 0) + localTranspose;
+                  const key = transposeKey(item.keyOverride ?? song?.key ?? null, semitones);
                   const mediaAsset =
                     mediaType === "default"
                       ? null
                       : assetForMedia(songAssets, mediaType);
                   const isSelected = item.id === selectedItem;
+                  const showTranspose = item.kind === "song" || item.kind === "text";
                   return (
                     <article key={item.id} className={`musician-item ${isSelected ? "selected" : ""}`}>
-                      <button
-                        className="musician-item-head"
-                        onClick={() => selectItem(item)}
-                        title={`Show lyrics, scores and tabs for “${item.title}”`}
-                      >
-                        <span className={`item-icon ${item.kind}`}>
-                          {item.kind === "song"
-                            ? "♫"
-                            : item.kind === "image_list"
-                              ? "▦"
-                              : item.kind === "tarp"
-                                ? "✦"
-                                : "T"}
-                        </span>
-                        <span>
-                          <strong>{item.title}</strong>
-                          <span className="muted">
+                      <div className="musician-item-header">
+                        <button
+                          className="musician-item-head"
+                          onClick={() => selectItem(item)}
+                          title={`Show lyrics, scores and tabs for “${item.title}”`}
+                        >
+                          <span className={`item-icon ${item.kind}`}>
                             {item.kind === "song"
-                              ? "Song"
+                              ? "♫"
                               : item.kind === "image_list"
-                                ? "Image list"
+                                ? "▦"
                                 : item.kind === "tarp"
-                                  ? "Tarp"
-                                  : "Text"}
-                            {key ? ` · key ${key}` : ""}
-                            {item.transpose ? ` · transpose ${item.transpose > 0 ? "+" : ""}${item.transpose}` : ""}
-                            {songAssets.length ? ` · ${songAssets.length} file${songAssets.length === 1 ? "" : "s"}` : ""}
+                                  ? "✦"
+                                  : "T"}
                           </span>
-                          {item.notes && <span className="musician-notes">{item.notes}</span>}
-                        </span>
-                      </button>
+                          <span>
+                            <strong>{item.title}</strong>
+                            <span className="muted">
+                              {item.kind === "song"
+                                ? "Song"
+                                : item.kind === "image_list"
+                                  ? "Image list"
+                                  : item.kind === "tarp"
+                                    ? "Tarp"
+                                    : "Text"}
+                              {key ? ` · key ${key}` : ""}
+                              {semitones ? ` · transpose ${semitones > 0 ? "+" : ""}${semitones}` : ""}
+                              {songAssets.length ? ` · ${songAssets.length} file${songAssets.length === 1 ? "" : "s"}` : ""}
+                            </span>
+                            {item.notes && <span className="musician-notes">{item.notes}</span>}
+                          </span>
+                        </button>
+                        {showTranspose && (
+                          <div className="musician-item-actions">
+                            <TransposeControl
+                              value={semitones}
+                              onChange={(delta) => adjustItemTranspose(item.id, delta)}
+                            />
+                          </div>
+                        )}
+                      </div>
 
                       {(expandAll || isSelected) && (
                         <div className="musician-item-body">
@@ -490,7 +559,7 @@ export default function MusiciansPage({
                                     {mediaAsset.key ? ` · ${mediaAsset.key}` : ""}
                                   </span>
                                 </div>
-                                <AssetViewer asset={mediaAsset} />
+                                <AssetViewer asset={mediaAsset} semitones={semitones} />
                               </>
                             ) : (
                               <>
@@ -504,12 +573,14 @@ export default function MusiciansPage({
                                 )}
                                 <RenderedLyrics
                                   text={item.content ?? song?.lyrics ?? "Lyrics are not available for this song."}
+                                  semitones={semitones}
                                 />
                                 {mediaType === "default" && (!expandAll || isSelected) && (
                                   <SongFiles
                                     assets={songAssets}
                                     selectedAsset={selectedAsset}
                                     onSelect={setSelectedAsset}
+                                    semitones={semitones}
                                   />
                                 )}
                               </>
@@ -522,7 +593,7 @@ export default function MusiciansPage({
                           ) : item.kind === "tarp" ? (
                             <p className="muted">Tarp presentation. View it on a display.</p>
                           ) : item.content ? (
-                            <RenderedLyrics text={item.content} />
+                            <RenderedLyrics text={item.content} semitones={semitones} />
                           ) : null}
                         </div>
                       )}
@@ -591,16 +662,23 @@ export default function MusiciansPage({
                       {[
                         selectedAllSong.author,
                         selectedAllSong.ccli ? `CCLI ${selectedAllSong.ccli}` : "",
-                        selectedAllSong.key ? `key ${selectedAllSong.key}` : "",
+                        allSongsKey ? `key ${allSongsKey}` : "",
                       ]
                         .filter(Boolean)
                         .join(" · ") || "Song"}
                     </p>
                   </div>
-                  <FullscreenButton targetRef={viewerRef} />
+                  <div className="button-row">
+                    <TransposeControl
+                      value={allSongsSemitones}
+                      onChange={(delta) => adjustSongTranspose(selectedSongId, delta)}
+                    />
+                    <FullscreenButton targetRef={viewerRef} />
+                  </div>
                 </div>
                 <RenderedLyrics
                   text={selectedAllSong.lyrics || "Lyrics are not available for this song."}
+                  semitones={allSongsSemitones}
                 />
                 {loadingAllSongAssets[selectedSongId] ? (
                   <p className="muted">Loading scores and tabs…</p>
@@ -609,6 +687,7 @@ export default function MusiciansPage({
                     assets={selectedAllSongAssets}
                     selectedAsset={selectedAllAsset}
                     onSelect={setSelectedAllAsset}
+                    semitones={allSongsSemitones}
                   />
                 )}
               </>

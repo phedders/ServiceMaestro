@@ -1,5 +1,6 @@
 import { useMemo, type ReactNode } from "react";
 import { isSongChordToken, suggestSongPageId } from "@sm/shared";
+import { transposeChord } from "../chords";
 
 const NAMED_SECTION =
   /^(?:verse|chorus|pre[- ]?chorus|bridge|intro|outro|ending|tag|turnaround|interlude|instrumental|refrain)(?:\s*\d+[a-z]?)?$/i;
@@ -37,7 +38,7 @@ type Block =
   | { type: "chords"; tokens: Token[] }
   | { type: "line"; tokens: Token[] };
 
-function tokenize(line: string): Token[] {
+function tokenize(line: string, semitones: number): Token[] {
   const tokens: Token[] = [];
   const re = /\[([^\]]+)\]/g;
   let last = 0;
@@ -48,7 +49,7 @@ function tokenize(line: string): Token[] {
     }
     const raw = match[1].trim();
     if (isSongChordToken(raw)) {
-      tokens.push({ type: "chord", value: chordDisplay(raw) });
+      tokens.push({ type: "chord", value: transposeChord(chordDisplay(raw), semitones) });
     } else if (isSectionLabel(raw)) {
       tokens.push({ type: "section", value: raw });
     } else {
@@ -62,14 +63,14 @@ function tokenize(line: string): Token[] {
   return tokens;
 }
 
-function parseLyrics(text: string): Block[] {
+function parseLyrics(text: string, semitones: number): Block[] {
   return text.replace(/\r\n?/g, "\n").split("\n").map((line) => {
     if (!line.trim()) return { type: "empty" };
 
     // ChordPro directives are metadata, not lyric content.
     if (/^\s*\{[^}]*\}\s*$/.test(line)) return { type: "empty" };
 
-    const tokens = tokenize(line);
+    const tokens = tokenize(line, semitones);
     if (!tokens.length) return { type: "text", value: line };
 
     const bracketOnly = line.replace(/\[[^\]]+\]/g, "").trim() === "";
@@ -150,11 +151,13 @@ function renderChordTokens(tokens: Token[]): ReactNode[] {
 export function RenderedLyrics({
   text,
   className = "lyrics-view",
+  semitones = 0,
 }: {
   text: string;
   className?: string;
+  semitones?: number;
 }) {
-  const blocks = useMemo(() => parseLyrics(text), [text]);
+  const blocks = useMemo(() => parseLyrics(text, semitones), [text, semitones]);
   return (
     <div className={`${className} rendered-lyrics`}>
       {blocks.map((block, index) => {

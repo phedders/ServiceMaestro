@@ -5656,8 +5656,15 @@ body.resizing-live-queue {
   border-color: rgba(76, 194, 255, 0.5);
 }
 
+.musician-item-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
 .musician-item-head {
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   border: 0;
   background: transparent;
   color: var(--text);
@@ -5666,6 +5673,22 @@ body.resizing-live-queue {
   gap: 10px;
   text-align: left;
   padding: 12px 14px;
+}
+
+.musician-item-actions {
+  flex: 0 0 auto;
+  padding: 10px 12px 0 0;
+}
+
+.musician-transpose {
+  flex: 0 0 auto;
+  gap: 5px;
+  font-size: 0.7rem;
+}
+
+.musician-transpose strong {
+  min-width: 18px;
+  font-size: 0.8rem;
 }
 
 .musician-item-head > span:last-child {
