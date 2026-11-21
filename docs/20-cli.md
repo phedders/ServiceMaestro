@@ -33,7 +33,7 @@ make deb
 This writes `dist/service-maestro-cli_<version>_all.deb`. Install or upgrade it with:
 
 ```sh
-sudo apt install ./dist/service-maestro-cli_0.1.0_all.deb
+sudo apt install ./dist/service-maestro-cli_0.2.0_all.deb
 ```
 
 The package depends only on `python3 (>= 3.8)` and installs:
@@ -87,6 +87,7 @@ If a command receives a `401`, the CLI retries once after logging in when both
 
 | Command | Action |
 | --- | --- |
+| `sm --version` | Show the installed CLI version |
 | `sm status` | Show the current live session, item, page, blank state and controls |
 | `sm setlists [search]` | List set lists with IDs, dates and names |
 | `sm songs [search]` | List songs; use `--limit` to change the count |

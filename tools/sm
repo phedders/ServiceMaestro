@@ -37,7 +37,8 @@ from typing import Any, Callable
 
 DEFAULT_URL = "https://localhost:8080"
 COOKIE_NAME = "sm_session"
-USER_AGENT = "service-maestro-cli/1.0"
+CLI_VERSION = "0.2.0"
+USER_AGENT = f"service-maestro-cli/{CLI_VERSION}"
 CONFIG_ENV = "SM_CLI_CONFIG"
 
 
@@ -722,6 +723,7 @@ def build_parser() -> argparse.ArgumentParser:
             "  sm api POST /api/live/command '{\"type\":\"page\",\"delta\":1}'\n"
         ),
     )
+    parser.add_argument("--version", action="version", version=f"service-maestro-cli {CLI_VERSION}")
     parser.add_argument("--url", help=f"Service Maestro base URL (default: {DEFAULT_URL})")
     parser.add_argument("--insecure", action="store_true", help="Skip TLS certificate verification")
     parser.add_argument("--secure", action="store_true", help="Force TLS certificate verification")

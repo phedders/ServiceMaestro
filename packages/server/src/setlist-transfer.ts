@@ -370,7 +370,7 @@ export function buildSetlistExport(
     format: FORMAT,
     formatVersion: FORMAT_VERSION,
     exportedAt: new Date().toISOString(),
-    generator: "service-maestro/0.1.0",
+    generator: "service-maestro/0.2.0",
     selfContained,
     setlist: {
       id: setlist.id,

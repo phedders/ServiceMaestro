@@ -12,8 +12,8 @@ This GHCR image contains the installable Service Maestro packages:
 Pull and extract the bundle:
 
 ```sh
-docker pull ghcr.io/phedders/servicemaestro-packages:0.1.0
-id=$(docker create ghcr.io/phedders/servicemaestro-packages:0.1.0)
+docker pull ghcr.io/phedders/servicemaestro-packages:0.2.0
+id=$(docker create ghcr.io/phedders/servicemaestro-packages:0.2.0)
 docker cp "$id:/packages" .
 docker rm "$id"
 ```
@@ -21,7 +21,7 @@ docker rm "$id"
 Or use any OCI-compatible tool, for example:
 
 ```sh
-skopeo copy docker://ghcr.io/phedders/servicemaestro-packages:0.1.0 dir:sm-packages
+skopeo copy docker://ghcr.io/phedders/servicemaestro-packages:0.2.0 dir:sm-packages
 ```
 
-Replace `0.1.0` with the desired release tag. `latest` is also published.
+Replace `0.2.0` with the desired release tag. `latest` is also published.
