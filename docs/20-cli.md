@@ -97,6 +97,7 @@ If a command receives a `401`, the CLI retries once after logging in when both
 | `sm stop` | Stop the live session |
 | `sm next` / `sm prev` | Move one page, crossing item boundaries per the live-navigation setting |
 | `sm next-half` / `sm prev-half` | Scroll half a page forward or back (aliases `half-next` / `half-prev`) |
+| `sm setfade` / `sm setscroll` | Set the fullscreen page transition to fade or scroll |
 | `sm page 3` / `sm page -2` | Move by a page delta |
 | `sm goto-page 4` | Jump to a zero-based page index |
 | `sm goto-item 2` | Jump to a zero-based queue item |

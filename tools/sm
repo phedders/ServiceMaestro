@@ -305,7 +305,8 @@ def print_state(state: dict[str, Any]) -> None:
     print(
         "Controls:  "
         f"transpose {int(state.get('transpose') or 0):+d} · lines {state.get('maxLines', '—')} "
-        f"· Bible verses {'shown' if state.get('bibleVerseNumbers', True) else 'hidden'}"
+        f"· Bible verses {'shown' if state.get('bibleVerseNumbers', True) else 'hidden'} "
+        f"· transition {state.get('transition', 'fade')}"
     )
     if state.get("footer"):
         print(f"Footer:    {state['footer']}")
@@ -470,7 +471,8 @@ def interactive_control(client: Client, poll_interval: float = 1.0) -> None:
             )
             lines.append(
                 f"Page     : {page_position(state)}    "
-                f"Output: {'BLANKED' if state.get('blank') else 'shown'}"
+                f"Output: {'BLANKED' if state.get('blank') else 'shown'}    "
+                f"Transition: {state.get('transition', 'fade')}"
             )
             lines.append(
                 f"Controls : transpose {int(state.get('transpose') or 0):+d} · "
@@ -660,6 +662,10 @@ def command_payload(args: argparse.Namespace) -> dict[str, Any] | None:
         return {"type": "nextHalf"}
     if name in {"prev-half", "half-prev"}:
         return {"type": "prevHalf"}
+    if name == "setfade":
+        return {"type": "transition", "value": "fade"}
+    if name == "setscroll":
+        return {"type": "transition", "value": "scroll"}
     if name == "page":
         return {"type": "page", "delta": args.delta}
     if name in {"goto-page", "page-index"}:
@@ -784,6 +790,14 @@ def build_parser() -> argparse.ArgumentParser:
         "prev-half",
         aliases=["half-prev"],
         help="Scroll half a page towards the previous page",
+    ).set_defaults(handler="live")
+    sub.add_parser(
+        "setfade",
+        help="Fade the fullscreen output on page changes",
+    ).set_defaults(handler="live")
+    sub.add_parser(
+        "setscroll",
+        help="Scroll the fullscreen output on consecutive page changes",
     ).set_defaults(handler="live")
 
     page = sub.add_parser("page", help="Move by a number of pages")
