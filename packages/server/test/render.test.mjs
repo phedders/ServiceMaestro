@@ -28,6 +28,43 @@ test("renders a dot chord continuation as a chord, not literal brackets", () => 
   assert.doesNotMatch(html, /\[\.\]/);
 });
 
+test("renders formatted text items for fullscreen display", () => {
+  const pages = buildPages(
+    {
+      kind: "text",
+      title: "Announcements",
+      content: "**Bold** announcement",
+      format: "markdown",
+      textAlign: "center",
+      contentSource: "text",
+      transpose: 0,
+      maxLines: 4,
+    },
+    0,
+    { maxLines: 4, maxWords: 90, smartPageSplits: true },
+  );
+  assert.match(pages[0]?.html ?? "", /class="text-html"/);
+  assert.match(pages[0]?.html ?? "", /<strong>Bold<\/strong>/);
+});
+
+test("renders Bible verse markers for fullscreen text", () => {
+  const pages = buildPages(
+    {
+      kind: "text",
+      title: "Bible reading",
+      content: '<sup class="sm-bible-verse">33</sup> as in all the churches.',
+      format: "text",
+      textAlign: "left",
+      contentSource: "bible",
+      transpose: 0,
+      maxLines: 4,
+    },
+    0,
+    { maxLines: 4, maxWords: 90, smartPageSplits: true },
+  );
+  assert.match(pages[0]?.html ?? "", /sm-bible-verse/);
+});
+
 test("splits sections into pages by max lines", () => {
   const pages = buildPages({
     kind: "song",

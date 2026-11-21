@@ -5788,6 +5788,66 @@ body.resizing-live-queue {
   text-transform: uppercase;
 }
 
+.musicians-text-fullscreen {
+  display: grid;
+  gap: 14px;
+}
+
+.musicians-text-page {
+  background: #101720;
+  border-radius: 8px;
+  padding: 18px;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: #dbe6f4;
+  overflow: auto;
+}
+
+.musicians-text-page .slide-inner {
+  display: block;
+}
+
+.musicians-text-page .line {
+  white-space: pre-wrap;
+}
+
+.musicians-text-page .section-label {
+  color: #fde68a;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  margin-bottom: 0.35em;
+  text-transform: uppercase;
+}
+
+.musicians-text-page .text-html {
+  white-space: normal;
+}
+
+.musicians-text-page .text-html p {
+  margin: 0.45em 0;
+}
+
+.musicians-text-page .text-html h1,
+.musicians-text-page .text-html h2,
+.musicians-text-page .text-html h3 {
+  color: var(--text);
+  margin: 0.6em 0 0.3em;
+}
+
+.musicians-text-page .text-html ul,
+.musicians-text-page .text-html ol {
+  margin: 0.35em 0;
+  padding-left: 1.4em;
+}
+
+.musicians-text-page sup {
+  color: #8fd3ff;
+  font-size: 0.7em;
+  font-weight: 700;
+}
+
 .musician-score {
   display: grid;
   gap: 10px;

@@ -17,7 +17,8 @@ import { db } from "../db.js";
 import { requireAuth, requirePermission } from "../auth.js";
 import { live } from "../live.js";
 import { saveSetlistToGit, deleteSetlistFromGit, saveSongToGit } from "../git-store.js";
-import { extractTextFormat } from "../render.js";
+import { buildPages, extractTextFormat } from "../render.js";
+import { getDisplayConfig } from "../display-config.js";
 
 interface SetlistRow {
   id: string;
@@ -152,6 +153,53 @@ export async function setlistRoutes(app: FastifyInstance): Promise<void> {
     if (!result) return reply.code(404).send({ error: "Set list not found" });
     return { setlist: result };
   });
+
+  app.post(
+    "/api/setlists/:id/items/:itemId/fullscreen-preview",
+    { preHandler: requireAuth },
+    async (request, reply) => {
+      const { id, itemId } = request.params as { id: string; itemId: string };
+      const row = db
+        .prepare("SELECT * FROM setlist_items WHERE id = ? AND setlist_id = ?")
+        .get(itemId, id) as ItemRow | undefined;
+      if (!row) return reply.code(404).send({ error: "Set list item not found" });
+      if (row.kind !== "text") {
+        return reply.code(400).send({ error: "Only text items have a fullscreen text preview" });
+      }
+      const item = mapItem(row);
+      const body = (request.body ?? {}) as { transpose?: unknown };
+      const requestedTranspose = Number(body.transpose);
+      const transpose = Number.isFinite(requestedTranspose)
+        ? Math.max(-24, Math.min(24, Math.trunc(requestedTranspose)))
+        : 0;
+      const config = getDisplayConfig();
+      const maxLines = item.maxLines || config.maxLines;
+      const pages = buildPages(
+        {
+          kind: "text",
+          title: item.title,
+          content: item.content,
+          format: item.format,
+          textAlign: item.textAlign,
+          contentSource: item.contentSource,
+          transpose,
+          maxLines,
+        },
+        0,
+        {
+          maxLines,
+          maxWords: config.maxWords,
+          smartPageSplits: config.smartPageSplits,
+          smartWrapMinWords: config.smartWrapMinWords,
+          smartWrapModules: config.smartWrapModules,
+          textScale: config.textScale,
+        },
+      );
+      return {
+        pages: pages.map(({ index, section, html }) => ({ index, section, html })),
+      };
+    },
+  );
 
   app.post(
     "/api/setlists",

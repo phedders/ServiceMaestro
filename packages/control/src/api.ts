@@ -607,6 +607,13 @@ export const api = {
       method: "POST",
       body: JSON.stringify(input),
     }),
+  setlistItemFullscreenPreview: (setlistId: string, itemId: string, transpose = 0) =>
+    request<{
+      pages: Array<{ index: number; section: string | null; html: string }>;
+    }>(
+      `/api/setlists/${encodeURIComponent(setlistId)}/items/${encodeURIComponent(itemId)}/fullscreen-preview`,
+      { method: "POST", body: JSON.stringify({ transpose }) },
+    ),
   scanSongselectWatch: (force = false) =>
     request<{ report: SongSelectWatchReport; status: SongSelectWatchStatus }>(
       "/api/integrations/songselect/watch/scan",

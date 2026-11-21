@@ -67,6 +67,55 @@ function AssetViewer({ asset, semitones = 0 }: { asset: SongAsset; semitones?: n
   return <TextAsset assetId={asset.id} semitones={semitones} />;
 }
 
+function FullscreenTextPanel({
+  setlistId,
+  itemId,
+  fallback,
+  transpose = 0,
+}: {
+  setlistId: string;
+  itemId: string;
+  fallback: string;
+  transpose?: number;
+}) {
+  const [pages, setPages] = useState<Array<{ index: number; section: string | null; html: string }> | null>(
+    null,
+  );
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    setPages(null);
+    setFailed(false);
+    api
+      .setlistItemFullscreenPreview(setlistId, itemId, transpose)
+      .then((result) => {
+        if (!cancelled) setPages(result.pages);
+      })
+      .catch(() => {
+        if (!cancelled) setFailed(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [setlistId, itemId, transpose]);
+
+  if (failed) return <RenderedLyrics text={fallback} />;
+  if (!pages) return <p className="muted">Rendering fullscreen text…</p>;
+  if (!pages.length) return <RenderedLyrics text={fallback} />;
+  return (
+    <div className="musicians-text-fullscreen">
+      {pages.map((page) => (
+        <div
+          className="musicians-text-page page-text"
+          key={page.index}
+          dangerouslySetInnerHTML={{ __html: page.html }}
+        />
+      ))}
+    </div>
+  );
+}
+
 function serviceLabel(setlist: SetlistSummary): string {
   return `${compactDate(setlist.serviceDate)}${setlist.serviceTime ? ` · ${setlist.serviceTime}` : ""}`;
 }
@@ -593,7 +642,12 @@ export default function MusiciansPage({
                           ) : item.kind === "tarp" ? (
                             <p className="muted">Tarp presentation. View it on a display.</p>
                           ) : item.content ? (
-                            <RenderedLyrics text={item.content} semitones={semitones} />
+                            <FullscreenTextPanel
+                              setlistId={detail.id}
+                              itemId={item.id}
+                              fallback={item.content}
+                              transpose={semitones}
+                            />
                           ) : null}
                         </div>
                       )}
