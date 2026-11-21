@@ -31,6 +31,8 @@ test("next half scrolls through half-page steps and resets on normal navigation"
     ).run("half-item", "half-setlist", 0, "song", "half-song", "Half Page Song", 2);
 
     const started = live.start("half-setlist", "live");
+    const scrollMode = live.command({ type: "transition", value: "scroll" });
+    const fadeMode = live.command({ type: "transition", value: "fade" });
     live.command({ type: "goto", itemIndex: 0 });
     const firstHalf = live.command({ type: "nextHalf" });
     const secondHalf = live.command({ type: "nextHalf" });
@@ -42,9 +44,12 @@ test("next half scrolls through half-page steps and resets on normal navigation"
     }
     console.log(JSON.stringify({
       started: {
+        transition: started.transition,
         halfPageMode: started.halfPageMode,
         halfPageOffset: started.halfPageOffset,
       },
+      scrollMode: scrollMode.transition,
+      fadeMode: fadeMode.transition,
       pageCount: firstHalf.pageCount,
       firstHalf: {
         pageIndex: firstHalf.pageIndex,
@@ -85,7 +90,13 @@ test("next half scrolls through half-page steps and resets on normal navigation"
   assert.equal(result.status, 0, result.stderr);
   const data = JSON.parse(result.stdout);
 
-  assert.deepEqual(data.started, { halfPageMode: false, halfPageOffset: 0 });
+  assert.deepEqual(data.started, {
+    transition: "fade",
+    halfPageMode: false,
+    halfPageOffset: 0,
+  });
+  assert.equal(data.scrollMode, "scroll");
+  assert.equal(data.fadeMode, "fade");
   assert.ok(data.pageCount > 2);
   assert.deepEqual(data.firstHalf, {
     pageIndex: 0,

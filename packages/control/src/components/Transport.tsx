@@ -95,6 +95,27 @@ export function Transport({
           </button>
         </div>
         <div className="stepper">
+          <span>Transition</span>
+          <button
+            type="button"
+            className={`button small ${live.transition === "fade" ? "primary" : "ghost"}`}
+            disabled={!active}
+            onClick={() => onCommand({ type: "transition", value: "fade" })}
+            title="Fade the fullscreen output on page changes"
+          >
+            Fade
+          </button>
+          <button
+            type="button"
+            className={`button small ${live.transition === "scroll" ? "primary" : "ghost"}`}
+            disabled={!active}
+            onClick={() => onCommand({ type: "transition", value: "scroll" })}
+            title="Scroll the fullscreen output on page changes"
+          >
+            Scroll
+          </button>
+        </div>
+        <div className="stepper">
           <span>Bible verses</span>
           <button
             type="button"

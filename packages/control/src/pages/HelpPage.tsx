@@ -135,6 +135,12 @@ export default function HelpPage({ onOpenSettings }: { onOpenSettings: () => voi
                 <strong>Lines / page</strong> temporarily changes automatic page splitting.
               </li>
               <li>
+                <strong>Transition</strong> chooses <strong>Fade</strong> or <strong>Scroll</strong>
+                for fullscreen page changes. Other outputs use their own transition setting under
+                <strong>Menu → Outputs</strong>. Scroll applies only to consecutive pages; jumps
+                always fade.
+              </li>
+              <li>
                 <strong>Bible verses</strong> hides or shows the superscript verse numbers on
                 Bible paragraph pages without changing the saved passage.
               </li>

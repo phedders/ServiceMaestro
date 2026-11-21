@@ -11,6 +11,7 @@ export const EMPTY_LIVE: LiveState = {
   mode: "idle",
   title: "",
   blank: false,
+  transition: "fade",
   halfPageMode: false,
   halfPageOffset: 0,
   maxLines: 4,

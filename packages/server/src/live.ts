@@ -76,6 +76,7 @@ export function idleState(): LiveState {
     mode: "idle",
     title: "",
     blank: false,
+    transition: "fade",
     halfPageMode: false,
     halfPageOffset: 0,
     maxLines: 4,
@@ -438,6 +439,7 @@ class LiveService {
       state.pendingUpdate = Boolean(pending);
       state.pendingRevision = pending?.revisionNo ?? null;
       if (typeof state.bibleVerseNumbers !== "boolean") state.bibleVerseNumbers = true;
+      if (state.transition !== "scroll") state.transition = "fade";
       if (typeof state.halfPageMode !== "boolean") state.halfPageMode = false;
       if (!Number.isInteger(state.halfPageOffset)) state.halfPageOffset = 0;
       this.active = {
@@ -494,6 +496,7 @@ class LiveService {
       mode: first.kind,
       title: first.title,
       blank: true,
+      transition: "fade",
       halfPageMode: false,
       halfPageOffset: 0,
       maxLines: displayConfig.maxLines,
@@ -674,6 +677,10 @@ class LiveService {
       case "prev":
         this.move(-1);
         break;
+      case "transition": {
+        state.transition = command.value === "scroll" ? "scroll" : "fade";
+        break;
+      }
       case "nextHalf": {
         const pages = state.pages;
         if (!pages.length) break;

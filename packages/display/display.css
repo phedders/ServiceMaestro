@@ -504,7 +504,8 @@ body.display-main.mode-tarp .sm-lowerthird-panel {
   width: 100%;
 }
 
-.sm-half-fade {
+.sm-half-fade,
+.sm-scroll-fade {
   position: absolute;
   top: 0;
   left: 0;
@@ -517,6 +518,35 @@ body.display-main.mode-tarp .sm-lowerthird-panel {
     rgba(0, 0, 0, 0.72),
     rgba(0, 0, 0, 0) 100%
   );
+}
+
+.sm-scroll-window {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.sm-scroll-track {
+  position: absolute;
+  inset: 0;
+  will-change: transform;
+}
+
+.sm-scroll-page {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.sm-scroll-page > .slide-inner {
+  width: 100%;
 }
 
 .sm-content .line {

@@ -25,6 +25,7 @@ there is no required cloud service.
 - Previous/next, blank/show, page selection, item queue, transpose, line count, footer,
   quick text, Bible verse-number toggle and item autoplay controls.
 - Keyboard shortcuts, optional USB clicker mappings, MQTT controls and a shell CLI.
+- Fade or scroll transitions for page changes, with per-output settings and a fullscreen transport override.
 - Publish revisions and safely apply updates after the current item or immediately.
 - Per-user accounts, passkey login, module permissions and an activity log.
 

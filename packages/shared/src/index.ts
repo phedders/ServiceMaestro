@@ -634,7 +634,7 @@ export const DISPLAY_OUTPUT_TEMPLATES = [
   "chords",
 ] as const;
 export type DisplayOutputTemplate = (typeof DISPLAY_OUTPUT_TEMPLATES)[number];
-export type DisplayOutputFade = "none" | "text" | "template";
+export type DisplayOutputFade = "none" | "text" | "template" | "scroll";
 export type DisplayOutputScope = "shared" | "local";
 export type DisplayClockPosition =
   | "top-left"
@@ -1558,6 +1558,7 @@ export interface LiveState {
     | "idle";
   title: string;
   blank: boolean;
+  transition: "fade" | "scroll";
   halfPageMode: boolean;
   halfPageOffset: number;
   maxLines: number;
@@ -2197,6 +2198,7 @@ export const liveCommandSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("next") }),
   z.object({ type: z.literal("prev") }),
   z.object({ type: z.literal("nextHalf") }),
+  z.object({ type: z.literal("transition"), value: z.enum(["fade", "scroll"]) }),
   z.object({ type: z.literal("page"), delta: z.number().int().min(-50).max(50) }),
   z.object({ type: z.literal("goto"), itemIndex: z.number().int().min(0).optional(), pageIndex: z.number().int().min(0).optional() }),
   z.object({ type: z.literal("queueItem"), itemIndex: z.number().int().min(0) }),
@@ -2380,7 +2382,7 @@ export const displayOutputSchema = z.object({
   template: z.enum(DISPLAY_OUTPUT_TEMPLATES),
   enabled: z.boolean().default(true),
   aliases: z.array(z.string().trim().min(1).max(80)).max(30).default([]),
-  fade: z.enum(["none", "text", "template"]).default("template"),
+  fade: z.enum(["none", "text", "template", "scroll"]).default("template"),
   fadeDurationMs: z.number().int().min(0).max(2000).default(240),
   background: displayOutputHexColor.default("#000000"),
   backgroundAlpha: z.number().min(0).max(1).default(1),

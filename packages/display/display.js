@@ -289,7 +289,14 @@ body.sm-output-configured.mode-image .sm-footer {
         vars.removeProperty(property);
       }
       fadeMs = 240;
-      fadeMode = target === "main" ? "text" : "template";
+      fadeMode =
+        target === "full"
+          ? state.transition === "scroll"
+            ? "scroll"
+            : "template"
+          : target === "main"
+            ? "text"
+            : "template";
       return;
     }
 
@@ -362,7 +369,20 @@ body.sm-output-configured.mode-image .sm-footer {
       output.content.showSplitWords ? "inline" : "none",
     );
     vars.setProperty("--sm-output-fade-ms", `${output.fadeDurationMs}ms`);
-    fadeMode = output.fade;
+    let mode = output.fade;
+    if (mode === "scroll") {
+      if (target === "full") {
+        mode = state.transition === "scroll" ? "scroll" : "template";
+      }
+      if (
+        output.content.pages === "upcoming" ||
+        target === "stage" ||
+        target === "chords"
+      ) {
+        mode = target === "main" ? "text" : "template";
+      }
+    }
+    fadeMode = mode;
     fadeMs = Math.max(0, output.fadeDurationMs);
   }
 
@@ -449,6 +469,10 @@ body.sm-output-configured.mode-image .sm-footer {
   let pendingStingerPage = "";
   let displayedPageKey = "";
   let displayedHalfIndex = null;
+  let displayedScrollPageIndex = null;
+  let scrollContextKey = "";
+  let pageScrollActive = false;
+  let pageScrollShowing = false;
 
   function checkHeartbeat() {
     if (document.visibilityState === "hidden") return;
@@ -538,7 +562,16 @@ body.sm-output-configured.mode-image .sm-footer {
       .join("");
   }
 
-  function compose(state, template, halfHeight = 0) {
+  function scrollTrackHtml(pages) {
+    return pages
+      .map(
+        (item, index) =>
+          `<div class="sm-scroll-page" style="top:${index * 100}%">${item.html}</div>`,
+      )
+      .join("");
+  }
+
+  function compose(state, template, halfHeight = 0, scrollHeight = 0) {
     const page = state.pages && state.pages[state.pageIndex];
     const pageNumber = page ? state.pageIndex + 1 : 0;
     const halfMode =
@@ -552,6 +585,24 @@ body.sm-output-configured.mode-image .sm-footer {
     const showUpcoming = output
       ? output.content.pages === "upcoming"
       : target === "stage" || target === "chords";
+    const contextKey = `${state.setlistId || ""}:${state.itemIndex}:${state.title || ""}`;
+    const canPageScroll =
+      fadeMode === "scroll" &&
+      !halfMode &&
+      !showUpcoming &&
+      Boolean(state.pages?.length) &&
+      contextKey === scrollContextKey;
+    const scrollTo = state.pageIndex;
+    const scrollFrom =
+      canPageScroll && displayedScrollPageIndex != null
+        ? displayedScrollPageIndex
+        : scrollTo;
+    const scrollDistance =
+      displayedScrollPageIndex == null ? null : Math.abs(scrollTo - displayedScrollPageIndex);
+    const scrollView =
+      canPageScroll &&
+      (scrollDistance === 1 || (scrollDistance === 0 && pageScrollShowing));
+    pageScrollActive = scrollView;
     const livePages =
       halfMode
         ? `<div class="sm-half-window" data-half-from="${halfFrom}" data-half-to="${halfTo}" style="height:${Math.max(
@@ -561,6 +612,13 @@ body.sm-output-configured.mode-image .sm-footer {
             state.pages || [],
             state.maxLines,
           )}</div><div class="sm-half-fade"></div></div>`
+        : scrollView
+          ? `<div class="sm-scroll-window" data-scroll-from="${scrollFrom}" data-scroll-to="${scrollTo}" style="height:${Math.max(
+              120,
+              Math.round(scrollHeight || 0),
+            )}px"><div class="sm-scroll-track" style="transform:translateY(-${scrollFrom * 100}%)">${scrollTrackHtml(
+              state.pages || [],
+            )}</div><div class="sm-scroll-fade"></div></div>`
         : showUpcoming
         ? (state.pages || [])
             .slice(state.pageIndex)
@@ -576,6 +634,13 @@ body.sm-output-configured.mode-image .sm-footer {
           ? page.html
           : "";
     displayedHalfIndex = halfMode ? halfTo : state.pages?.length ? state.pageIndex * 2 : null;
+    if (!halfMode) {
+      displayedScrollPageIndex = scrollTo;
+      scrollContextKey = contextKey;
+      pageScrollShowing = scrollView;
+    } else {
+      pageScrollShowing = false;
+    }
     const isImage = state.mode === "image" || state.mode === "image_list";
     const replacements = {
       content: livePages,
@@ -894,6 +959,46 @@ body.sm-output-configured.mode-image .sm-footer {
     }
   }
 
+  function startPageScroll() {
+    const scrollWindow = root.querySelector(".sm-scroll-window");
+    if (!scrollWindow) return;
+    const from = Number(scrollWindow.dataset.scrollFrom);
+    const to = Number(scrollWindow.dataset.scrollTo);
+    const track = scrollWindow.querySelector(".sm-scroll-track");
+    if (!track || !Number.isFinite(from) || !Number.isFinite(to)) return;
+    track.style.transform = `translateY(-${from * 100}%)`;
+    if (
+      from === to ||
+      window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ||
+      typeof track.animate !== "function"
+    ) {
+      track.style.transform = `translateY(-${to * 100}%)`;
+      return;
+    }
+    const duration = Math.max(400, fadeMs || 700);
+    const easing = "cubic-bezier(0.4, 0, 0.2, 1)";
+    const animation = track.animate(
+      [
+        { transform: `translateY(-${from * 100}%)` },
+        { transform: `translateY(-${to * 100}%)` },
+      ],
+      { duration, easing, fill: "forwards" },
+    );
+    animation.finished
+      .then(() => {
+        track.style.transform = `translateY(-${to * 100}%)`;
+      })
+      .catch(() => undefined);
+    const fade = scrollWindow.querySelector(".sm-scroll-fade");
+    if (fade) {
+      fade.animate([{ opacity: 0.8 }, { opacity: 0 }], {
+        duration,
+        easing: "ease-out",
+        fill: "forwards",
+      });
+    }
+  }
+
   function apply(state) {
     const page = state.pages && state.pages[state.pageIndex];
     const idle = !page || state.mode === "idle";
@@ -953,7 +1058,11 @@ body.sm-output-configured.mode-image .sm-footer {
           (existingHalfWindow ? 0 : (Number.isFinite(contentFontSize) ? contentFontSize : 24) * 0.8)
         : window.innerHeight * 0.65;
     const halfHeight = Math.min(desiredHalfHeight, availableHeight);
-    const html = compose(state, template, halfHeight);
+    const scrollHeight = Math.min(
+      measuredHeight > 0 ? measuredHeight : window.innerHeight * 0.65,
+      availableHeight,
+    );
+    const html = compose(state, template, halfHeight, scrollHeight);
     const sameContent = html === lastHtml && template.css === lastCss;
     const halfMode = Boolean(state.halfPageMode) && !blank && Boolean(page);
 
@@ -976,6 +1085,7 @@ body.sm-output-configured.mode-image .sm-footer {
       }
       swapHtml(html, tarpPageChange);
       startHalfScroll();
+      startPageScroll();
       lastHtml = html;
       displayedPageKey = pageKey;
       // Paint the new text at zero opacity before fading back in.
@@ -999,10 +1109,16 @@ body.sm-output-configured.mode-image .sm-footer {
       commit();
       return;
     }
+    if (pageScrollActive) {
+      cancelStinger();
+      commit();
+      return;
+    }
 
+    const effectiveFadeMode = fadeMode === "scroll" ? "template" : fadeMode;
     cancelStinger();
-    if (root.innerHTML && fadeMode !== "none" && fadeMs > 0) {
-      document.body.classList.add(fadeMode === "text" ? "sm-text-fading" : "sm-fading");
+    if (root.innerHTML && effectiveFadeMode !== "none" && fadeMs > 0) {
+      document.body.classList.add(effectiveFadeMode === "text" ? "sm-text-fading" : "sm-fading");
       if (fadeTimer) clearTimeout(fadeTimer);
       // Wait for the fade-out to finish before swapping the text.
       fadeTimer = setTimeout(commit, fadeMs);

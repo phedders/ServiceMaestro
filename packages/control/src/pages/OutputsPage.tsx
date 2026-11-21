@@ -23,9 +23,10 @@ const TEMPLATE_LABELS: Record<DisplayOutputTemplate, string> = {
 };
 
 const FADE_LABELS = {
-  none: "No fade",
+  none: "No transition",
   text: "Fade text only",
   template: "Fade whole output",
+  scroll: "Scroll pages",
 } as const;
 
 function clone<T>(value: T): T {
@@ -276,9 +277,13 @@ export default function OutputsPage({
             },
             { label: "Enabled", before: baselineOutput.enabled, after: draft.enabled },
             { label: "Aliases", before: baselineOutput.aliases, after: draft.aliases },
-            { label: "Fade", before: baselineOutput.fade, after: draft.fade },
             {
-              label: "Fade duration",
+              label: "Page transition",
+              before: baselineOutput.fade,
+              after: draft.fade,
+            },
+            {
+              label: "Transition duration",
               before: baselineOutput.fadeDurationMs,
               after: draft.fadeDurationMs,
             },
@@ -495,10 +500,10 @@ export default function OutputsPage({
           </section>
 
           <section className="output-form-section">
-            <h3>Fade and background</h3>
+            <h3>Transition and background</h3>
             <div className="output-form-grid">
               <label>
-                Fade
+                Page transition
                 <select
                   value={draft.fade}
                   onChange={(event) =>
@@ -513,7 +518,7 @@ export default function OutputsPage({
                 </select>
               </label>
               <label>
-                Fade duration (ms)
+                Transition duration (ms)
                 <input
                   type="number"
                   min={0}
@@ -545,6 +550,10 @@ export default function OutputsPage({
                 />
               </label>
             </div>
+            <p className="hint">
+              Scroll applies only to consecutive page changes; jumping to a non-consecutive page
+              always fades. The fullscreen output uses the Live transport Transition control.
+            </p>
           </section>
 
           <section className="output-form-section">
