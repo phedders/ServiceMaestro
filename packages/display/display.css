@@ -457,9 +457,13 @@ body.display-main.mode-tarp .sm-lowerthird-panel {
   overflow: hidden;
 }
 
-.sm-half-track {
+.sm-half-window:not(.sm-half-natural) .sm-half-track {
   position: absolute;
   inset: 0;
+}
+
+.sm-half-track {
+  position: relative;
   will-change: transform;
 }
 
@@ -480,24 +484,12 @@ body.display-main.mode-tarp .sm-lowerthird-panel {
 }
 
 .sm-half-segment {
-  position: absolute;
-  left: 0;
+  position: relative;
   width: 100%;
-  height: 50%;
   display: flex;
   flex-direction: column;
   align-items: center;
   overflow: hidden;
-}
-
-.sm-half-segment-top {
-  justify-content: flex-start;
-  padding-top: 0.4em;
-}
-
-.sm-half-segment-bottom {
-  justify-content: flex-end;
-  padding-bottom: 0.4em;
 }
 
 .sm-half-segment > .slide-inner {

@@ -544,22 +544,41 @@ body.sm-output-configured.mode-image .sm-footer {
   function halfTrackHtml(pages, maxLines) {
     const splits = pages.map((page) => splitPageHtml(page.html, maxLines));
     if (splits.every(Boolean)) {
-      return splits
-        .flatMap((split) => [split.top, split.bottom])
-        .map(
-          (html, index) =>
-            `<div class="sm-half-segment ${
-              index % 2 === 0 ? "sm-half-segment-top" : "sm-half-segment-bottom"
-            }" style="top:${index * 50}%">${html}</div>`,
-        )
-        .join("");
+      return {
+        natural: true,
+        html: splits
+          .flatMap((split) => [split.top, split.bottom])
+          .map((html) => `<div class="sm-half-segment">${html}</div>`)
+          .join(""),
+      };
     }
-    return pages
-      .map(
-        (item, index) =>
-          `<div class="sm-half-page" style="top:${index * 100}%">${item.html}</div>`,
-      )
-      .join("");
+    return {
+      natural: false,
+      html: pages
+        .map(
+          (item, index) =>
+            `<div class="sm-half-page" style="top:${index * 100}%">${item.html}</div>`,
+        )
+        .join(""),
+    };
+  }
+
+  function halfWindowHtml(state, halfFrom, halfTo, halfHeight, halfMax) {
+    const track = halfTrackHtml(state.pages || [], state.maxLines);
+    const heightStyle = track.natural
+      ? ""
+      : ` style="height:${Math.max(120, Math.round(halfHeight || 0))}px"`;
+    const transformStyle = track.natural
+      ? ""
+      : ` style="transform:translateY(-${halfFrom * 50}%)"`;
+    return `<div class="sm-half-window${
+      track.natural ? " sm-half-natural" : ""
+    }" data-half-from="${halfFrom}" data-half-to="${halfTo}" data-half-max="${Math.max(
+      120,
+      Math.round(halfMax || 0),
+    )}"${heightStyle}><div class="sm-half-track"${transformStyle}>${
+      track.html
+    }</div><div class="sm-half-fade"></div></div>`;
   }
 
   function scrollTrackHtml(pages) {
@@ -571,7 +590,7 @@ body.sm-output-configured.mode-image .sm-footer {
       .join("");
   }
 
-  function compose(state, template, halfHeight = 0, scrollHeight = 0) {
+  function compose(state, template, halfHeight = 0, scrollHeight = 0, availableHeight = 0) {
     const page = state.pages && state.pages[state.pageIndex];
     const pageNumber = page ? state.pageIndex + 1 : 0;
     const halfMode =
@@ -605,13 +624,13 @@ body.sm-output-configured.mode-image .sm-footer {
     pageScrollActive = scrollView;
     const livePages =
       halfMode
-        ? `<div class="sm-half-window" data-half-from="${halfFrom}" data-half-to="${halfTo}" style="height:${Math.max(
-            120,
-            Math.round(halfHeight || 0),
-          )}px"><div class="sm-half-track" style="transform:translateY(-${halfFrom * 50}%)">${halfTrackHtml(
-            state.pages || [],
-            state.maxLines,
-          )}</div><div class="sm-half-fade"></div></div>`
+        ? halfWindowHtml(
+            state,
+            halfFrom,
+            halfTo,
+            halfHeight,
+            availableHeight > 0 ? availableHeight : halfHeight,
+          )
         : scrollView
           ? `<div class="sm-scroll-window" data-scroll-from="${scrollFrom}" data-scroll-to="${scrollTo}" style="height:${Math.max(
               120,
@@ -926,29 +945,88 @@ body.sm-output-configured.mode-image .sm-footer {
     const to = Number(halfWindow.dataset.halfTo);
     const track = halfWindow.querySelector(".sm-half-track");
     if (!track || !Number.isFinite(from) || !Number.isFinite(to)) return;
-    track.style.transform = `translateY(-${from * 50}%)`;
-    if (
-      from === to ||
-      window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ||
-      typeof track.animate !== "function"
-    ) {
-      track.style.transform = `translateY(-${to * 50}%)`;
+    const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
+
+    if (!halfWindow.classList.contains("sm-half-natural")) {
+      track.style.transform = `translateY(-${from * 50}%)`;
+      if (from === to || reducedMotion || typeof track.animate !== "function") {
+        track.style.transform = `translateY(-${to * 50}%)`;
+        return;
+      }
+      const duration = 900;
+      const easing = "cubic-bezier(0.4, 0, 0.2, 1)";
+      const animation = track.animate(
+        [
+          { transform: `translateY(-${from * 50}%)` },
+          { transform: `translateY(-${to * 50}%)` },
+        ],
+        { duration, easing, fill: "forwards" },
+      );
+      animation.finished
+        .then(() => {
+          track.style.transform = `translateY(-${to * 50}%)`;
+        })
+        .catch(() => undefined);
+      const fade = halfWindow.querySelector(".sm-half-fade");
+      if (fade) {
+        fade.animate([{ opacity: 0.8 }, { opacity: 0 }], {
+          duration,
+          easing: "ease-out",
+          fill: "forwards",
+        });
+      }
       return;
     }
+
+    const segments = Array.from(track.querySelectorAll(".sm-half-segment"));
+    if (!segments.length) return;
+    const offsets = [0];
+    for (const segment of segments) {
+      offsets.push(offsets[offsets.length - 1] + segment.getBoundingClientRect().height);
+    }
+    const fromIndex = Math.min(Math.max(0, Math.round(from)), segments.length - 1);
+    const toIndex = Math.min(Math.max(0, Math.round(to)), segments.length - 1);
+    const maxHeight = Number(halfWindow.dataset.halfMax) || window.innerHeight;
+    const pairHeight = (index) =>
+      Math.min(
+        maxHeight,
+        Math.max(1, offsets[Math.min(index + 2, offsets.length - 1)] - offsets[index]),
+      );
+    const fromOffset = offsets[fromIndex];
+    const toOffset = offsets[toIndex];
+    const startHeight = pairHeight(fromIndex);
+    const endHeight = pairHeight(toIndex);
+    halfWindow.style.height = `${startHeight}px`;
+    track.style.transform = `translateY(-${fromOffset}px)`;
+    if (fromOffset === toOffset && startHeight === endHeight) return;
+
+    if (
+      reducedMotion ||
+      typeof track.animate !== "function" ||
+      typeof halfWindow.animate !== "function"
+    ) {
+      halfWindow.style.height = `${endHeight}px`;
+      track.style.transform = `translateY(-${toOffset}px)`;
+      return;
+    }
+
     const duration = 900;
     const easing = "cubic-bezier(0.4, 0, 0.2, 1)";
-    const animation = track.animate(
+    const trackAnimation = track.animate(
       [
-        { transform: `translateY(-${from * 50}%)` },
-        { transform: `translateY(-${to * 50}%)` },
+        { transform: `translateY(-${fromOffset}px)` },
+        { transform: `translateY(-${toOffset}px)` },
       ],
       { duration, easing, fill: "forwards" },
     );
-    animation.finished
-      .then(() => {
-        track.style.transform = `translateY(-${to * 50}%)`;
-      })
-      .catch(() => undefined);
+    const windowAnimation = halfWindow.animate(
+      [{ height: `${startHeight}px` }, { height: `${endHeight}px` }],
+      { duration, easing, fill: "forwards" },
+    );
+    Promise.allSettled([trackAnimation.finished, windowAnimation.finished]).then(() => {
+      halfWindow.style.height = `${endHeight}px`;
+      track.style.transform = `translateY(-${toOffset}px)`;
+    });
     const fade = halfWindow.querySelector(".sm-half-fade");
     if (fade) {
       fade.animate([{ opacity: 0.8 }, { opacity: 0 }], {
@@ -1062,7 +1140,7 @@ body.sm-output-configured.mode-image .sm-footer {
       measuredHeight > 0 ? measuredHeight : window.innerHeight * 0.65,
       availableHeight,
     );
-    const html = compose(state, template, halfHeight, scrollHeight);
+    const html = compose(state, template, halfHeight, scrollHeight, availableHeight);
     const sameContent = html === lastHtml && template.css === lastCss;
     const halfMode = Boolean(state.halfPageMode) && !blank && Boolean(page);
 
