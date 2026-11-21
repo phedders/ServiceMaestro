@@ -1801,6 +1801,272 @@ export function fixLowercaseChords(lyrics: string): SongLowercaseChordFix {
   };
 }
 
+export type SongInstructionKind = "last-time" | "jump" | "ending" | "repeat" | "other";
+
+export interface SongInstructionMatch {
+  /** Parenthesised instruction, including parentheses. */
+  text: string;
+  /** Instruction text without parentheses. */
+  inner: string;
+  /** One-based line number in the source lyrics. */
+  line: number;
+  /** Compact page ID of the section containing the instruction. */
+  section: string | null;
+  /** Compact page ID the instruction points at, when recognised. */
+  target: string | null;
+  kind: SongInstructionKind;
+}
+
+export interface SongInstructionAnalysis {
+  instructions: SongInstructionMatch[];
+  suggestedVerseOrder: string | null;
+  suggestedOrderReason: string | null;
+}
+
+export interface SongInstructionRemoval {
+  lyrics: string;
+  removed: SongInstructionMatch[];
+}
+
+const INSTRUCTION_SECTION_WORDS: Record<string, string[]> = {
+  v: ["verse"],
+  verse: ["v"],
+  c: ["chorus"],
+  chorus: ["c"],
+  b: ["bridge"],
+  bridge: ["b"],
+  i: ["intro", "in"],
+  intro: ["i", "in"],
+  in: ["intro", "i"],
+  o: ["out", "outro"],
+  out: ["o", "outro"],
+  outro: ["o", "out"],
+  e: ["ending"],
+  ending: ["e"],
+  t: ["tag"],
+  tag: ["t"],
+  r: ["refrain"],
+  refrain: ["r"],
+  p: ["prechorus", "pc"],
+  pc: ["prechorus", "p"],
+  prechorus: ["pc", "p"],
+  tr: ["turnaround", "turn"],
+  turnaround: ["tr", "turn"],
+  turn: ["tr", "turnaround"],
+  il: ["interlude"],
+  interlude: ["il"],
+  ins: ["instrumental", "inst", "int"],
+  inst: ["instrumental", "ins", "int"],
+  int: ["instrumental", "ins", "inst"],
+  instrumental: ["ins", "inst", "int"],
+};
+
+const INSTRUCTION_PREFIXES = Object.keys(INSTRUCTION_SECTION_WORDS).sort(
+  (a, b) => b.length - a.length,
+);
+
+function instructionToken(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, "");
+}
+
+function cleanInstructionTarget(value: string): string {
+  return value
+    .replace(/[.;:,]+$/g, "")
+    .replace(/^the\s+/i, "")
+    .trim();
+}
+
+function songInstructionKind(inner: string): SongInstructionKind | null {
+  const value = inner.trim();
+  if (/^last\s+time\b/i.test(value)) return "last-time";
+  if (/^(?:1st|2nd|3rd|first|second|third|final)\s+ending\b/i.test(value)) return "ending";
+  if (/^repeat\b/i.test(value)) return "repeat";
+  if (
+    /^(?:back\s+to|to)\s+(?:the\s+)?(?:chorus|verse|bridge|intro|outro|ending|tag|turnaround|instrumental|interlude|pre-?chorus|refrain|v\d|c\d|b\d|o|out|in|i)\b/i.test(
+      value,
+    )
+  ) {
+    return "jump";
+  }
+  if (/^(?:tag|vamp|instrumental|interlude|ending|end)\b/i.test(value)) return "other";
+  if (/^(?:x\s*\d+|\d+\s*x)$/i.test(value)) return "other";
+  return null;
+}
+
+function songInstructionTarget(inner: string): string | null {
+  const lastTime = inner.match(/^last\s+time(?:\s+through)?\s+(?:to\s+)?(.+)$/i);
+  if (lastTime) return cleanInstructionTarget(lastTime[1]);
+  const jump = inner.match(/^(?:back\s+to|to)\s+(.+)$/i);
+  if (jump) return cleanInstructionTarget(jump[1]);
+  const repeat = inner.match(/^repeat\s+(?:the\s+)?(.+)$/i);
+  if (repeat) return cleanInstructionTarget(repeat[1]);
+  return null;
+}
+
+interface InstructionSection {
+  id: string;
+  label: string;
+}
+
+function instructionSectionAliases(section: InstructionSection): Set<string> {
+  const aliases = new Set<string>();
+  const add = (value: string) => {
+    const token = instructionToken(value);
+    if (token) aliases.add(token);
+  };
+  add(section.label);
+  add(section.id);
+  const id = instructionToken(section.id);
+  for (const prefix of INSTRUCTION_PREFIXES) {
+    if (!id.startsWith(prefix)) continue;
+    const suffix = id.slice(prefix.length);
+    if (!/^\d*[a-z]?$/.test(suffix)) continue;
+    for (const word of INSTRUCTION_SECTION_WORDS[prefix] ?? []) add(`${word}${suffix}`);
+    break;
+  }
+  return aliases;
+}
+
+function resolveInstructionSection(
+  phrase: string,
+  sections: InstructionSection[],
+): string | null {
+  const target = {
+    id: suggestSongPageId(phrase) ?? instructionToken(phrase),
+    label: phrase,
+  };
+  const targetAliases = instructionSectionAliases(target);
+  for (const section of sections) {
+    const aliases = instructionSectionAliases(section);
+    if ([...targetAliases].some((alias) => aliases.has(alias))) return section.id;
+  }
+  return null;
+}
+
+function suggestInstructionOrder(
+  instructions: SongInstructionMatch[],
+  sections: InstructionSection[],
+  allSectionIds: string[],
+): Pick<SongInstructionAnalysis, "suggestedVerseOrder" | "suggestedOrderReason"> {
+  const instruction = instructions.find(
+    (entry) => entry.kind === "last-time" && entry.section && entry.target,
+  );
+  if (!instruction?.section || !instruction.target) {
+    return { suggestedVerseOrder: null, suggestedOrderReason: null };
+  }
+  const ids = [...new Set(sections.map((section) => section.id))];
+  const verses = ids.filter((id) => /^v\d+[a-z]?$/i.test(id));
+  if (verses.length < 2) {
+    return { suggestedVerseOrder: null, suggestedOrderReason: null };
+  }
+
+  const source = instruction.section;
+  const target = instruction.target;
+  if (source === target || !/^c\d*[a-z]?$/i.test(source)) {
+    return { suggestedVerseOrder: null, suggestedOrderReason: null };
+  }
+  const firstVerse = ids.indexOf(verses[0]);
+  const prefix = ids
+    .slice(0, firstVerse)
+    .filter((id) => id !== source && id !== target && !verses.includes(id));
+  const order = [...prefix];
+  verses.forEach((verse, index) => {
+    order.push(verse);
+    if (source !== verse) order.push(source);
+    if (index === verses.length - 1 && target !== source) order.push(target);
+  });
+  // Keep duplicate section blocks (for example two turnarounds) in the
+  // suggested order so the renderer does not append an unused copy later.
+  const coreCounts = new Map<string, number>();
+  for (const id of order) coreCounts.set(id, (coreCounts.get(id) ?? 0) + 1);
+  const seenCounts = new Map<string, number>();
+  for (const id of allSectionIds) {
+    const seen = (seenCounts.get(id) ?? 0) + 1;
+    seenCounts.set(id, seen);
+    if (seen <= (coreCounts.get(id) ?? 0)) continue;
+    order.push(id);
+  }
+
+  const sourceLabel = sections.find((section) => section.id === source)?.label ?? source;
+  const targetLabel = sections.find((section) => section.id === target)?.label ?? target;
+  return {
+    suggestedVerseOrder: order.join(" "),
+    suggestedOrderReason: `${instruction.text} — repeat ${sourceLabel} after each verse, then use ${targetLabel} after the final verse.`,
+  };
+}
+
+/**
+ * Finds SongSelect-style performance instructions such as
+ * "(Last time to Chorus 1b)" and proposes a verse order when the instruction
+ * describes a last-time jump.
+ */
+export function songInstructionAnalysis(lyrics: string): SongInstructionAnalysis {
+  const lines = lyrics.replace(/\r\n?/g, "\n").split("\n");
+  const sections: InstructionSection[] = [];
+  const allSectionIds: string[] = [];
+  for (const line of lines) {
+    const match = line.match(/^\s*\[([^\]]+)\]\s*$/);
+    if (!match) continue;
+    const label = match[1].trim();
+    const id = suggestSongPageId(label) ?? label;
+    allSectionIds.push(id);
+    if (!sections.some((section) => section.id === id)) sections.push({ id, label });
+  }
+
+  const instructions: SongInstructionMatch[] = [];
+  let currentSection: string | null = null;
+  lines.forEach((line, index) => {
+    const sectionMatch = line.match(/^\s*\[([^\]]+)\]\s*$/);
+    if (sectionMatch) {
+      currentSection = suggestSongPageId(sectionMatch[1]) ?? sectionMatch[1].trim();
+      return;
+    }
+    for (const match of line.matchAll(/\(([^)]+)\)/g)) {
+      const inner = match[1].trim().replace(/\s+/g, " ");
+      const kind = songInstructionKind(inner);
+      if (!kind) continue;
+      const targetPhrase = songInstructionTarget(inner);
+      instructions.push({
+        text: match[0],
+        inner,
+        line: index + 1,
+        section: currentSection,
+        target: targetPhrase ? resolveInstructionSection(targetPhrase, sections) : null,
+        kind,
+      });
+    }
+  });
+
+  return { instructions, ...suggestInstructionOrder(instructions, sections, allSectionIds) };
+}
+
+/** Removes only recognised SongSelect instructions from the lyrics. */
+export function removeSongInstructions(lyrics: string): SongInstructionRemoval {
+  const analysis = songInstructionAnalysis(lyrics);
+  if (!analysis.instructions.length) return { lyrics, removed: [] };
+  const cleaned = lyrics
+    .replace(/\r\n?/g, "\n")
+    .split("\n")
+    .map((line) => {
+      let changed = false;
+      const without = line.replace(/\(([^)]+)\)/g, (match, raw: string) => {
+        const inner = raw.trim().replace(/\s+/g, " ");
+        if (!songInstructionKind(inner)) return match;
+        changed = true;
+        return "";
+      });
+      if (!changed) return line;
+      return without
+        .replace(/[ \t]{2,}/g, " ")
+        .replace(/^[ \t]+/, "")
+        .replace(/[ \t]+$/, "");
+    })
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+  return { lyrics: cleaned, removed: analysis.instructions };
+}
+
 export function songPageNameCandidates(lyrics: string): string[] {
   const seen = new Map<string, string>();
   for (const match of lyrics.matchAll(/\[([^\]]+)\]/g)) {

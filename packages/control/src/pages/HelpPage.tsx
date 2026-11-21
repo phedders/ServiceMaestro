@@ -353,6 +353,11 @@ export default function HelpPage({ onOpenSettings }: { onOpenSettings: () => voi
                 output. Step through pages in the preview or open it fullscreen.
               </li>
               <li>
+                SongSelect performance directions such as
+                <code>(Last time to Chorus 1b)</code> are detected in the song editor. Review them to
+                remove the instruction text and, where possible, apply a suggested verse order.
+              </li>
+              <li>
                 Attach scores, tabs, ChordPro files or lyric sheets for the read-only musicians view.
               </li>
               <li>

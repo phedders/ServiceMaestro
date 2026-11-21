@@ -5235,6 +5235,68 @@ body.resizing-live-queue {
 .songselect-info-field {
   margin: 10px 0 0;
 }
+.song-instructions-panel {
+  margin: 12px 0;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  background: var(--panel-2);
+}
+
+.song-instructions-panel .panel-heading {
+  margin-bottom: 8px;
+}
+
+.song-instruction-list {
+  display: grid;
+  gap: 6px;
+  margin: 8px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.song-instruction-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.song-instruction-list code {
+  color: #cfe8f7;
+  overflow-wrap: anywhere;
+}
+
+.song-instruction-list span {
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.song-instruction-order {
+  display: grid;
+  gap: 4px;
+  margin: 10px 0;
+}
+
+.song-instruction-order > div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.song-instruction-order code {
+  padding: 2px 6px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  overflow-wrap: anywhere;
+}
+
+.song-instructions-panel .button-row {
+  margin-top: 8px;
+}
+
 
 .songselect-info-field textarea {
   min-height: 72px;

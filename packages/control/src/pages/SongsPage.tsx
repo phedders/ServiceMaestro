@@ -1,5 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { simplifySongPageIds } from "@sm/shared";
+import {
+  removeSongInstructions,
+  simplifySongPageIds,
+  songInstructionAnalysis,
+} from "@sm/shared";
 import type {
   ChordProFilePreview,
   LiveState,
@@ -119,6 +123,7 @@ export default function SongsPage({
     title: string;
     pageCount: number;
   } | null>(null);
+  const [instructionPanelDismissed, setInstructionPanelDismissed] = useState(false);
   const [lowercasePrompt, setLowercasePrompt] = useState<{
     songId: string;
     title: string;
@@ -190,6 +195,12 @@ export default function SongsPage({
         if (updated) {
           select(updated);
           await refreshAssets(updated.id);
+          const instructionTotal = songInstructionAnalysis(updated.lyrics).instructions.length;
+          if (instructionTotal > 0) {
+            notify(
+              `Found ${instructionTotal} song instruction${instructionTotal === 1 ? "" : "s"} — review the suggested options in the editor`,
+            );
+          }
         }
         if (result.lowercaseChords.count > 0) {
           setLowercasePrompt({
@@ -211,6 +222,12 @@ export default function SongsPage({
     if (!selectedId || selectedId === updated.id) {
       select(updated);
       await refreshAssets(updated.id);
+    }
+    const instructionTotal = songInstructionAnalysis(updated.lyrics).instructions.length;
+    if (instructionTotal > 0) {
+      notify(
+        `Found ${instructionTotal} song instruction${instructionTotal === 1 ? "" : "s"} — review the suggested options in the editor`,
+      );
     }
   }
 
@@ -235,6 +252,21 @@ export default function SongsPage({
     if (!lyricsRevision) return;
     lyricsRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
   }, [lyricsRevision]);
+
+  function removeInstructionsFromLyrics() {
+    const result = removeSongInstructions(form.lyrics);
+    if (!result.removed.length) return;
+    setForm({ ...form, lyrics: result.lyrics });
+    notify(
+      `Removed ${result.removed.length} song instruction${result.removed.length === 1 ? "" : "s"} — review and save the song`,
+    );
+  }
+
+  function applyInstructionVerseOrder() {
+    if (!instructionSuggestion) return;
+    setForm({ ...form, verseOrder: instructionSuggestion });
+    notify("Verse order updated from the song instructions — review and save the song");
+  }
 
   async function previewFullscreen() {
     setPreviewingFullscreen(true);
@@ -357,6 +389,28 @@ export default function SongsPage({
   }, [songs, search, searchFieldMode, searchBody]);
 
   const selectedSong = songs.find((song) => song.id === selectedId) ?? null;
+  const instructionAnalysis = useMemo(() => songInstructionAnalysis(form.lyrics), [form.lyrics]);
+  const savedInstructionAnalysis = useMemo(
+    () => (selectedSong ? songInstructionAnalysis(selectedSong.lyrics) : null),
+    [selectedSong],
+  );
+  const instructionSuggestion =
+    instructionAnalysis.suggestedVerseOrder ??
+    (instructionAnalysis.instructions.length === 0
+      ? (savedInstructionAnalysis?.suggestedVerseOrder ?? null)
+      : null);
+  const instructionReason =
+    instructionAnalysis.suggestedOrderReason ??
+    (instructionAnalysis.instructions.length === 0
+      ? (savedInstructionAnalysis?.suggestedOrderReason ?? null)
+      : null);
+  const instructionCount = instructionAnalysis.instructions.length;
+  const showInstructionPanel =
+    !instructionPanelDismissed && (instructionCount > 0 || Boolean(instructionSuggestion));
+
+  useEffect(() => {
+    setInstructionPanelDismissed(false);
+  }, [selectedId, instructionCount, instructionSuggestion]);
   const baselineForm = selectedSong ? formFromSong(selectedSong) : EMPTY;
   const songChanges = changeList([
     { label: "Title", before: baselineForm.title, after: form.title },
@@ -986,6 +1040,78 @@ export default function SongsPage({
             />
           </label>
         </div>
+
+        {showInstructionPanel && (
+          <section className="song-instructions-panel">
+            <div className="panel-heading">
+              <div>
+                <h3>{instructionCount > 0 ? "Song instructions found" : "Suggested verse order"}</h3>
+                <p className="muted">
+                  {instructionCount > 0
+                    ? "These parenthetical directions came from the imported lyrics and control the song order."
+                    : "Instructions have been removed from the editor. This order was suggested by the saved lyrics."}
+                </p>
+              </div>
+              <button
+                type="button"
+                className="button ghost small"
+                onClick={() => setInstructionPanelDismissed(true)}
+                title="Hide these suggestions until the lyrics change"
+              >
+                Dismiss
+              </button>
+            </div>
+            {instructionCount > 0 && (
+              <ul className="song-instruction-list">
+                {instructionAnalysis.instructions.map((instruction, index) => (
+                  <li key={`${instruction.line}:${instruction.text}:${index}`}>
+                    <code>{instruction.text}</code>
+                    <span>
+                      Line {instruction.line}
+                      {instruction.section ? ` · section [${instruction.section}]` : ""}
+                      {instruction.target ? ` → [${instruction.target}]` : ""}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {instructionSuggestion && (
+              <div className="song-instruction-order">
+                <div>
+                  <strong>Suggested verse order</strong>
+                  <code>{instructionSuggestion}</code>
+                </div>
+                {instructionReason && <p className="hint">{instructionReason}</p>}
+              </div>
+            )}
+            <div className="button-row">
+              {instructionCount > 0 && (
+                <button
+                  type="button"
+                  className="button ghost small"
+                  onClick={removeInstructionsFromLyrics}
+                  title="Remove these parenthetical directions from the lyrics"
+                >
+                  Remove instructions
+                </button>
+              )}
+              {instructionSuggestion && (
+                <button
+                  type="button"
+                  className="button primary small"
+                  onClick={applyInstructionVerseOrder}
+                  disabled={form.verseOrder.trim() === instructionSuggestion}
+                  title="Put the suggested section order into the Verse order field"
+                >
+                  {form.verseOrder.trim() === instructionSuggestion
+                    ? "Suggested order applied"
+                    : "Use suggested verse order"}
+                </button>
+              )}
+            </div>
+            <p className="hint">Changes apply to the editor; choose Save song to keep them.</p>
+          </section>
+        )}
 
         <label className="songselect-info-field">
           SongSelect info
