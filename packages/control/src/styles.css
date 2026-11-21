@@ -1904,6 +1904,44 @@ body.resizing-live-queue {
   gap: 10px;
   margin-bottom: 18px;
 }
+.song-meta-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+  margin-bottom: 12px;
+}
+
+.song-meta-grid > label {
+  flex: 1 1 180px;
+  min-width: 0;
+}
+
+.song-meta-grid .meta-title,
+.song-meta-grid .meta-alt,
+.song-meta-grid .meta-verse-order {
+  flex: 2 1 220px;
+}
+
+.song-meta-grid .meta-author {
+  flex: 1 1 160px;
+}
+
+.song-meta-grid .meta-copyright {
+  flex: 1 1 200px;
+}
+
+.song-meta-grid .meta-key {
+  flex: 0 0 82px;
+}
+
+.song-meta-grid .meta-ccli {
+  flex: 0 0 112px;
+}
+
+.song-meta-grid .meta-date {
+  flex: 0 0 142px;
+}
+
 
 .setlist-item {
   border: 1px solid var(--border);

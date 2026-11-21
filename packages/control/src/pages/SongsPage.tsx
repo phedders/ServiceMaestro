@@ -987,12 +987,12 @@ export default function SongsPage({
           </div>
         </div>
 
-        <div className="meta-grid">
-          <label className="grow">
+        <div className="meta-grid song-meta-grid">
+          <label className="meta-title">
             Title
             <input value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} />
           </label>
-          <label className="grow">
+          <label className="meta-alt">
             Alternative titles
             <input
               value={form.alternateTitles}
@@ -1000,7 +1000,7 @@ export default function SongsPage({
               placeholder="Other names, separated by commas or new lines"
             />
           </label>
-          <label>
+          <label className="meta-key">
             Key
             <input
               value={form.key}
@@ -1008,22 +1008,22 @@ export default function SongsPage({
               placeholder="G"
             />
           </label>
-          <label>
-            Author
-            <input value={form.author} onChange={(event) => setForm({ ...form, author: event.target.value })} />
-          </label>
-          <label>
+          <label className="meta-ccli">
             CCLI
             <input value={form.ccli} onChange={(event) => setForm({ ...form, ccli: event.target.value })} />
           </label>
-          <label className="grow">
+          <label className="meta-author">
+            Author
+            <input value={form.author} onChange={(event) => setForm({ ...form, author: event.target.value })} />
+          </label>
+          <label className="meta-copyright">
             Copyright
             <input
               value={form.copyright}
               onChange={(event) => setForm({ ...form, copyright: event.target.value })}
             />
           </label>
-          <label className="grow">
+          <label className="meta-verse-order">
             Verse order
             <input
               value={form.verseOrder}
@@ -1031,12 +1031,20 @@ export default function SongsPage({
               placeholder="e.g. V1 C V2 C B C"
             />
           </label>
-          <label className="grow">
+          <label className="meta-date">
             Last modified
             <input
-              value={selectedSong ? compactDateTime(selectedSong.updatedAt) : "Not saved yet"}
+              value={selectedSong ? compactDate(selectedSong.updatedAt) : "Not saved yet"}
               readOnly
-              title="Date and time this song was last saved"
+              title={selectedSong ? `Last saved ${compactDateTime(selectedSong.updatedAt)}` : "Not saved yet"}
+            />
+          </label>
+          <label className="meta-date">
+            First created
+            <input
+              value={selectedSong ? compactDate(selectedSong.createdAt) : "Not saved yet"}
+              readOnly
+              title={selectedSong ? `Created ${compactDateTime(selectedSong.createdAt)}` : "Not saved yet"}
             />
           </label>
         </div>
