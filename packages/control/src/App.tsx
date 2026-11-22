@@ -418,6 +418,19 @@ export default function App() {
   }, [user, standaloneMusicians]);
 
   useEffect(() => {
+    const shortTitle = (value: string) => {
+      const text = value.replace(/\s+/g, " ").trim();
+      return text.length > 220 ? `${text.slice(0, 217)}…` : text;
+    };
+    const labelText = (element: HTMLElement) => {
+      const label = element.closest("label");
+      if (!label) return "";
+      const clone = label.cloneNode(true) as HTMLElement;
+      clone
+        .querySelectorAll("input, select, textarea, button, option")
+        .forEach((node) => node.remove());
+      return clone.textContent ?? "";
+    };
     const applyTitles = () => {
       document
         .querySelectorAll<HTMLElement>("button, a.button, a.nav-link, a.image-thumb, label.button")
@@ -428,6 +441,29 @@ export default function App() {
             element.innerText.replace(/\s+/g, " ").trim() ||
             element.querySelector("img")?.alt;
           if (label) element.title = label;
+        });
+      document
+        .querySelectorAll<HTMLElement>("input, select, textarea")
+        .forEach((element) => {
+          if (element.title) return;
+          if (
+            element instanceof HTMLInputElement && element.type === "hidden"
+          ) {
+            return;
+          }
+          const describedBy = element.getAttribute("aria-describedby");
+          const description = describedBy
+            ? document.getElementById(describedBy)?.textContent ?? ""
+            : "";
+          const label =
+            element.getAttribute("aria-label") ||
+            description ||
+            labelText(element) ||
+            element.getAttribute("placeholder") ||
+            element.getAttribute("name") ||
+            "";
+          const title = shortTitle(label);
+          if (title) element.title = title;
         });
     };
     applyTitles();

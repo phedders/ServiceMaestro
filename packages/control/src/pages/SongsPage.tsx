@@ -1335,8 +1335,13 @@ export default function SongsPage({
                   type="file"
                   accept=".pdf,.txt,.png,.jpg,.jpeg,.webp,.cho,.crd,.chordpro"
                   onChange={(event) => setAssetFile(event.target.files?.[0] ?? null)}
+                  title="Choose a file for musicians"
                 />
-                <select value={assetKind} onChange={(event) => setAssetKind(event.target.value)}>
+                <select
+                  value={assetKind}
+                  onChange={(event) => setAssetKind(event.target.value)}
+                  title="Musician file type"
+                >
                   <option value="score_pdf">Score PDF</option>
                   <option value="guitar_tab">Guitar tab</option>
                   <option value="chordpro">ChordPro file</option>
@@ -1508,6 +1513,7 @@ export default function SongsPage({
                           action: event.target.value as "skip" | "replace" | "duplicate",
                         })
                       }
+                      title="Import action for this duplicate"
                     >
                       <option value="skip">Skip</option>
                       <option value="replace">Replace existing song</option>

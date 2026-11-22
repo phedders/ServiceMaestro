@@ -170,6 +170,7 @@ export default function BackgroundsPage({
             type="file"
             accept="image/png,image/jpeg,image/gif,image/webp,image/avif,image/svg+xml"
             onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+            title="Choose a background image file"
           />
           <input
             value={name}

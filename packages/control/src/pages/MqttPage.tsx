@@ -397,6 +397,7 @@ export default function MqttPage({
                         updateMapping(mapping.id, { command: event.target.value })
                       }
                       placeholder="live/next"
+                      title="Incoming command suffix"
                     />
                   </td>
                   <td>
@@ -407,6 +408,7 @@ export default function MqttPage({
                           method: event.target.value as MqttIncomingMapping["method"],
                         })
                       }
+                      title="Incoming HTTP method"
                     >
                       {["GET", "POST", "PUT", "PATCH", "DELETE"].map((method) => (
                         <option key={method} value={method}>
@@ -420,6 +422,7 @@ export default function MqttPage({
                       value={mapping.path}
                       onChange={(event) => updateMapping(mapping.id, { path: event.target.value })}
                       placeholder="/api/live/command"
+                      title="Incoming Service Maestro API path"
                     />
                   </td>
                   <td>
@@ -445,6 +448,7 @@ export default function MqttPage({
                       }
                       placeholder={'{"type":"next"}'}
                       rows={3}
+                      title="Incoming request body template"
                     />
                   </td>
                   <td>
@@ -660,6 +664,7 @@ export default function MqttPage({
                           })
                         }
                         placeholder="Label"
+                        title="Dropdown argument label"
                       />
                       <input
                         value={option.payload}
@@ -673,6 +678,7 @@ export default function MqttPage({
                           })
                         }
                         placeholder="Payload"
+                        title="Payload sent when this argument is chosen"
                       />
                       <button
                         className="button ghost small danger-text"

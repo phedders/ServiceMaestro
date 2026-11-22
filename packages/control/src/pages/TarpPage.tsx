@@ -589,6 +589,7 @@ export default function TarpPage({
               <select
                 value={newPresentationAspect}
                 onChange={(event) => setNewPresentationAspect(event.target.value as TarpAspect)}
+                title="New presentation aspect ratio"
               >
                 <option value="16:9">16:9</option>
                 <option value="16:10">16:10</option>
@@ -597,6 +598,7 @@ export default function TarpPage({
               <select
                 value={newPresentationTheme}
                 onChange={(event) => setNewPresentationTheme(event.target.value)}
+                title="New presentation theme"
               >
                 <option value="">No theme</option>
                 {themes.map((theme) => (

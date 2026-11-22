@@ -3043,7 +3043,11 @@ export default function SetlistsPage({
                       ? `${filteredSongs.length} match${filteredSongs.length === 1 ? "" : "es"}`
                       : `${songs.length} songs`}
                   </span>
-                  <select value={songToAdd} onChange={(event) => setSongToAdd(event.target.value)}>
+                  <select
+                    value={songToAdd}
+                    onChange={(event) => setSongToAdd(event.target.value)}
+                    title="Song to add"
+                  >
                     <option value="">Choose a song…</option>
                     {filteredSongs.map((song) => (
                       <option key={song.id} value={song.id}>
@@ -3068,6 +3072,7 @@ export default function SetlistsPage({
                   <select
                     value={textFormat}
                     onChange={(event) => setTextFormat(event.target.value as TextFormat)}
+                    title="Text format"
                   >
                     <option value="markdown">Markdown (default)</option>
                     <option value="text">Plain text</option>
@@ -3077,6 +3082,7 @@ export default function SetlistsPage({
                   <select
                     value={textAlign}
                     onChange={(event) => setTextAlign(event.target.value as "left" | "center")}
+                    title="Text alignment"
                   >
                     <option value="left">Align left</option>
                     <option value="center">Centre</option>
@@ -3199,7 +3205,11 @@ export default function SetlistsPage({
 
               {addKind === "image" && (
                 <>
-                  <select value={imageToAdd} onChange={(event) => setImageToAdd(event.target.value)}>
+                  <select
+                    value={imageToAdd}
+                    onChange={(event) => setImageToAdd(event.target.value)}
+                    title="Image to add"
+                  >
                     <option value="">Choose an image…</option>
                     {images.map((image) => (
                       <option key={image.path} value={image.path}>
@@ -3210,6 +3220,7 @@ export default function SetlistsPage({
                   <input
                     type="file"
                     accept="image/png,image/jpeg,image/gif,image/webp,image/avif,image/svg+xml"
+                    title="Choose an image file to upload"
                     onChange={async (event) => {
                       const file = event.target.files?.[0];
                       if (!file) return;
@@ -3239,6 +3250,7 @@ export default function SetlistsPage({
                     onChange={(event) =>
                       setImageFitAdd(event.target.value as "scale" | "actual" | "crop" | "stretch")
                     }
+                    title="Image display"
                   >
                     <option value="scale">Scale to screen (default)</option>
                     <option value="actual">1:1 actual size</option>
@@ -3252,6 +3264,7 @@ export default function SetlistsPage({
                 <>
                   <select
                     value={imageListFolder === null ? "" : folderKey(imageListFolder)}
+                    title="Image folder"
                     onChange={(event) => {
                       if (!event.target.value) {
                         setImageListFolder(null);
@@ -3323,7 +3336,11 @@ export default function SetlistsPage({
 
               {addKind === "tarp" && (
                 <>
-                  <select value={tarpToAdd} onChange={(event) => setTarpToAdd(event.target.value)}>
+                  <select
+                    value={tarpToAdd}
+                    onChange={(event) => setTarpToAdd(event.target.value)}
+                    title="Tarp presentation to add"
+                  >
                     <option value="">Choose a Tarp presentation…</option>
                     {tarpPresentations.map((presentation) => (
                       <option key={presentation.id} value={presentation.id}>

@@ -223,6 +223,7 @@ export default function ImagesPage({
             accept="image/png,image/jpeg,image/gif,image/webp,image/avif,image/svg+xml"
             onChange={(event) => setFile(event.target.files?.[0] ?? null)}
             disabled={!canWrite}
+            title="Choose an image file to upload"
           />
           <button
             className="button primary"

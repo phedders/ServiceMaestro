@@ -124,7 +124,11 @@ export function ActivityPanel({
           </p>
         </div>
         <div className="button-row">
-          <select value={module} onChange={(event) => setModule(event.target.value)}>
+          <select
+            value={module}
+            onChange={(event) => setModule(event.target.value)}
+            title="Activity module filter"
+          >
             {FILTER_MODULES.map((entry) => (
               <option key={entry.id || "all"} value={entry.id}>
                 {entry.label}
