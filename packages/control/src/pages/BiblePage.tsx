@@ -305,7 +305,7 @@ export default function BiblePage({
                     : "Read-only access to Bible"
                 }
               >
-                Add to live session
+                Add to live page queue
               </button>
             </div>
           </div>
