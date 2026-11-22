@@ -32,7 +32,7 @@ export function QuickText({ onSend }: { onSend: (text: string) => void }) {
           disabled={!text.trim()}
           title={
             text.trim()
-              ? "Display this text immediately on the live outputs"
+              ? "Append this text to the live page queue and show it"
               : "Type some text before displaying it"
           }
         >

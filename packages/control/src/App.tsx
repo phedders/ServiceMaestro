@@ -517,7 +517,7 @@ export default function App() {
     try {
       const result = await api.quickText(text, "direct");
       setLive(result.state);
-      notify("Quick text displayed");
+      notify("Quick text added to the live queue");
     } catch (error) {
       notify(error instanceof ApiError ? error.message : "Could not display text", "error");
     }
@@ -539,7 +539,7 @@ export default function App() {
     try {
       const result = await api.quickImage(path, title);
       setLive(result.state);
-      notify("Image sent live");
+      notify("Image added to the live queue");
     } catch (error) {
       notify(error instanceof ApiError ? error.message : "Could not display image", "error");
     }

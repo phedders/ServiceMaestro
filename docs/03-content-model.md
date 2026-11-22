@@ -286,7 +286,7 @@ Supported types: `text` (default), `markdown`/`md`, `html`, `rst`/`restructuredt
 
 ### 4.4 Why a separate editor (not just quick text)
 
-The existing system has "quick text" (blank lines → pages). That stays as a shortcut, but authored text items add: named reuse, versioning, themes, explicit page control, and safe HTML. Quick text creates a transient `text_item` under the hood, so everything shares one renderer.
+The existing system has "quick text" (blank lines → pages). That stays as a shortcut, but authored text items add: named reuse, versioning, themes, explicit page control, and safe HTML. Quick text appends a temporary text item to the live page queue under the hood, so everything shares one renderer.
 
 ## 5. Themes (modular theming)
 

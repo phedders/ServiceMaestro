@@ -162,7 +162,7 @@ Key fields:
 | --- | --- |
 | `sessionId`, `status` | Active session and whether it is `live`, `rehearsal`, `ended` or `idle`. |
 | `setlistId`, `setlistName` | Source set list. Empty/null outside a session. |
-| `itemIndex`, `pageIndex`, `pageCount` | Current set-list item and zero-based page position. `itemIndex` is `-1` for a transient quick item. |
+| `itemIndex`, `pageIndex`, `pageCount` | Current set-list item and zero-based page position. `itemIndex` is `-1` while a quick song or presentation overlay is showing. |
 | `mode` | Active item kind: `song`, `text`, `image`, `image_list`, `tarp`, `presentation`, or `idle` when no session is active. Blanking is reported by `blank`, not by `mode`. |
 | `blank` | Output is hidden or faded out. |
 | `transition` | Fullscreen page-change transition: `fade` or `scroll`. Other outputs use their own per-output transition setting. |
@@ -274,10 +274,11 @@ socket.emit("live:quickText", {
 | Field | Rules |
 | --- | --- |
 | `text` | Required string, 1–50,000 characters. |
-| `mode` | Optional `direct` or `setlist`. Reserved for compatibility; the server currently treats quick text as a direct transient overlay. |
+| `mode` | Optional `direct` or `setlist`. Reserved for compatibility; the server appends quick text to the current live page queue. |
 
-Quick text is a temporary item. It does not edit the set list, and navigation can return to the item
-that was live before it. The quick-text event is also recorded in the activity log.
+Quick text appends its pages to the current live page queue, becomes the active page and does not
+edit the set list. Changing to another set-list item clears the appended queue, including quick
+text and quick images. The quick-text event is also recorded in the activity log.
 
 ## 6. HTTP equivalents
 
@@ -571,7 +572,7 @@ curl -k -b /tmp/sm-cookies \
   "$SM_URL/api/live/command" |
   jq '.state | {title, pageIndex, pageCount}'
 
-# Show transient quick text.
+# Append quick text to the live page queue.
 curl -k -b /tmp/sm-cookies \
   -H 'Content-Type: application/json' \
   --data '{"text":"Welcome — please stand","mode":"direct"}' \
@@ -586,7 +587,7 @@ curl -k -b /tmp/sm-cookies \
 Bash cannot speak the Socket.IO protocol by itself. This script uses `curl` for login and the
 project's Node `socket.io-client` for the WebSocket connection. It is **read-only by default**:
 without an argument it connects, prints the first snapshot and exits. Pass `next` to send one
-command, or pass any other text to show it as quick text.
+command, or pass any other text to append it as quick text.
 
 ```bash
 #!/usr/bin/env bash
@@ -594,7 +595,7 @@ command, or pass any other text to show it as quick text.
 # Usage:
 #   SM_PASSWORD='…' ./sm-socket-example.sh            # print state and exit
 #   SM_PASSWORD='…' ./sm-socket-example.sh next       # send next
-#   SM_PASSWORD='…' ./sm-socket-example.sh 'Welcome'  # show quick text
+#   SM_PASSWORD='…' ./sm-socket-example.sh 'Welcome'  # append quick text
 #
 # Requires: curl, awk and node with socket.io-client available.
 # Run from the Service Maestro repository root.

@@ -301,7 +301,7 @@ export default function BiblePage({
                 disabled={!canWrite || !verses.length || live.status === "idle"}
                 title={
                   canWrite
-                    ? "Shows the passage immediately; it is not saved to the set list"
+                    ? "Appends the passage to the live page queue and shows it; it is not saved to the set list"
                     : "Read-only access to Bible"
                 }
               >

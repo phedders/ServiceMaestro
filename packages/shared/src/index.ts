@@ -596,6 +596,7 @@ export interface LivePage {
   itemIndex?: number;
   sourcePageIndex?: number;
   itemKind?: ItemKind;
+  itemTitle?: string;
   /** True when this page is showing an operator page override. */
   edited?: boolean;
 }

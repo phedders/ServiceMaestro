@@ -64,6 +64,7 @@ interface SessionRecord {
   state: LiveState;
   autoplayDirection: 1 | -1;
   queuePageOverrides?: Record<string, Record<string, PageOverride>>;
+  quickAppendedItems?: SnapshotItem[];
 }
 
 function now(): string {
@@ -980,6 +981,7 @@ class LiveService {
       state.blank = false;
     }
 
+    this.syncPagePresentation();
     state.version += 1;
     state.updatedAt = now();
     this.persist();
@@ -1003,25 +1005,7 @@ class LiveService {
       verseOrder: null,
       notes: null,
     };
-    if (!record.transient) {
-      record.transientReturnItemIndex =
-        record.state.itemIndex >= 0 ? record.state.itemIndex : 0;
-    }
-    record.transient = item;
-    record.state.mode = "text";
-    record.state.title = "Quick text";
-    record.state.itemIndex = -1;
-    record.state.pageIndex = 0;
-    record.state.halfPageMode = false;
-    record.state.halfPageOffset = 0;
-    record.state.blank = false;
-    record.state.appendedItems = [];
-    this.renderCurrent();
-    record.state.version += 1;
-    record.state.updatedAt = now();
-    this.persist();
-    this.broadcast();
-    return this.getState();
+    return this.appendQuickItem(item);
   }
 
   quickSong(
@@ -1092,24 +1076,7 @@ class LiveService {
       verseOrder: null,
       notes: null,
     };
-    if (!record.transient) {
-      record.transientReturnItemIndex =
-        record.state.itemIndex >= 0 ? record.state.itemIndex : 0;
-    }
-    record.transient = item;
-    record.state.mode = "image";
-    record.state.title = item.title;
-    record.state.itemIndex = -1;
-    record.state.pageIndex = 0;
-    record.state.halfPageMode = false;
-    record.state.halfPageOffset = 0;
-    record.state.blank = false;
-    this.renderCurrent();
-    record.state.version += 1;
-    record.state.updatedAt = now();
-    this.persist();
-    this.broadcast();
-    return this.getState();
+    return this.appendQuickItem(item);
   }
 
   quickPresentation(embedUrl: string, title?: string): LiveState {
@@ -1149,6 +1116,79 @@ class LiveService {
     return this.getState();
   }
 
+  /**
+   * Append a one-off text/image to the live page queue and make its first page
+   * active. Existing set-list and appended pages stay in the queue.
+   */
+  private appendQuickItem(item: SnapshotItem): LiveState {
+    const record = this.active;
+    if (!record) return idleState();
+    const state = record.state;
+
+    // Leave a quick-song or presentation overlay without discarding the
+    // underlying live page queue.
+    if (record.transient) {
+      const returnIndex = record.transientReturnItemIndex;
+      record.transient = null;
+      record.transientReturnItemIndex = null;
+      if (
+        returnIndex != null &&
+        returnIndex >= 0 &&
+        returnIndex < record.items.length
+      ) {
+        state.itemIndex = returnIndex;
+      } else if (state.itemIndex < 0 || state.itemIndex >= record.items.length) {
+        state.itemIndex = 0;
+      }
+      state.pageIndex = 0;
+      state.halfPageMode = false;
+      state.halfPageOffset = 0;
+    }
+
+    record.quickAppendedItems = [...(record.quickAppendedItems ?? []), item];
+    state.queuedItemIndex = null;
+    state.queuedTitle = null;
+    state.queuedPages = [];
+    state.queuedMaxLines = null;
+    state.queuedOutOfDatePages = [];
+    state.stagePreview = false;
+
+    const addedPages = this.pagesFor(
+      item,
+      resolveItemMaxLines(item, state.displayConfig ?? getDisplayConfig()),
+    ).length;
+    this.renderCurrent();
+    const firstPage = addedPages
+      ? state.pageCount - addedPages
+      : Math.max(0, state.pageCount - 1);
+    state.pageIndex = Math.max(
+      0,
+      Math.min(firstPage, Math.max(0, state.pageCount - 1)),
+    );
+    state.blank = false;
+    state.halfPageMode = false;
+    state.halfPageOffset = 0;
+    this.syncPagePresentation();
+    state.version += 1;
+    state.updatedAt = now();
+    this.persist();
+    this.broadcast();
+    return this.getState();
+  }
+
+  /**
+   * Keep the display mode and title in step with appended pages so an image
+   * or text page added to the queue renders with the right template.
+   */
+  private syncPagePresentation(): void {
+    const record = this.active;
+    if (!record) return;
+    const page = record.state.pages[record.state.pageIndex];
+    if (!page) return;
+    if (page.itemKind) record.state.mode = page.itemKind;
+    if (page.itemTitle) record.state.title = page.itemTitle;
+  }
+
   private clearQueuePageOverrides(itemIndex: number): void {
     const record = this.active;
     if (!record?.queuePageOverrides) return;
@@ -1174,6 +1214,7 @@ class LiveService {
     state.queuedOutOfDatePages = [];
     state.outOfDatePages = [];
     state.appendedItems = [];
+    this.active.quickAppendedItems = [];
     state.itemIndex = index;
     state.pageIndex = 0;
     state.halfPageMode = false;
@@ -1244,6 +1285,7 @@ class LiveService {
     state.pageIndex = Math.max(0, Math.min(index, Math.max(0, state.pageCount - 1)));
     state.halfPageMode = false;
     state.halfPageOffset = 0;
+    this.syncPagePresentation();
   }
 
   private move(delta: number): void {
@@ -1346,10 +1388,17 @@ class LiveService {
               )
             : [];
         });
-    record.state.pages = [...pages, ...appendedPages].map((page, index) => ({
-      ...page,
-      index,
-    }));
+    const quickPages = record.transient
+      ? []
+      : (record.quickAppendedItems ?? []).flatMap((quick) =>
+          this.pagesFor(quick, resolveItemMaxLines(quick, displayConfig)),
+        );
+    record.state.pages = [...pages, ...appendedPages, ...quickPages].map(
+      (page, index) => ({
+        ...page,
+        index,
+      }),
+    );
     record.state.pageCount = record.state.pages.length;
     record.state.pageIndex = Math.max(
       0,
@@ -1375,6 +1424,7 @@ class LiveService {
     record.state.pagesOutOfDate = false;
     record.state.outOfDatePages = [];
     record.state.queuedOutOfDatePages = [];
+    this.syncPagePresentation();
   }
 
   previewPageSource(
@@ -1588,6 +1638,7 @@ class LiveService {
       page.itemIndex = itemIndex;
       page.sourcePageIndex = page.index;
       page.itemKind = item.kind;
+      page.itemTitle = item.title;
       const override =
         itemIndex == null
           ? undefined
@@ -1658,6 +1709,7 @@ class LiveService {
     record.autoplayDirection = step.direction;
     if (step.done || step.pageIndex === record.state.pageIndex) return;
     record.state.pageIndex = step.pageIndex;
+    this.syncPagePresentation();
     record.state.version += 1;
     record.state.updatedAt = now();
     this.persist();

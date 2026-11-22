@@ -309,7 +309,7 @@ export default function ImagesPage({
                           ? "Read-only access to images"
                           : live.status === "idle"
                             ? "Start a live session first"
-                            : `Show “${image.name}” immediately on all live outputs without changing the set list or live queue`
+                            : `Append “${image.name}” to the live page queue and show it without changing the set list`
                       }
                     >
                       {livePath === image.path ? "Sending…" : "LIVE"}

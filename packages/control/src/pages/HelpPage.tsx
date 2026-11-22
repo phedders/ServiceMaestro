@@ -182,8 +182,8 @@ export default function HelpPage({ onOpenSettings }: { onOpenSettings: () => voi
             <h3>Quick text and footer</h3>
             <ul className="help-list">
               <li>
-                <strong>Quick text</strong> displays immediately without being saved to the set list.
-                Ctrl/⌘ + Enter sends it.
+                <strong>Quick text</strong> appends to the live page queue, becomes active
+                immediately and is not saved to the set list. Ctrl/⌘ + Enter sends it.
               </li>
               <li>
                 <strong>Footer</strong> adds optional text beneath the current item; press Enter or
@@ -400,8 +400,9 @@ export default function HelpPage({ onOpenSettings }: { onOpenSettings: () => voi
                 48px.
               </li>
               <li>
-                The <strong>LIVE</strong> button on an image card shows it immediately on every
-                output without adding it to the set list or changing the live queue.
+                The <strong>LIVE</strong> button on an image card appends it to the current live
+                page queue and makes it active without adding it to the set list. The same applies
+                to quick text and Bible passages.
               </li>
               <li>
                 A folder can be converted into a <strong>multiple images</strong> item. Autoplay is

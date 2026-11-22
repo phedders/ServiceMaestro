@@ -108,7 +108,7 @@ If a command receives a `401`, the CLI retries once after logging in when both
 | `sm lines 5` | Set lines per page for the current queue; while a set-list item is live, the value is stored on that item |
 | `sm footer "Welcome"` / `sm footer --clear` | Set or clear the footer |
 | `sm bible-verses` / `sm bible-verses off` | Toggle or set Bible verse numbers |
-| `sm quick-text "Please stand"` | Show transient quick text; omit the text or use `-` to pipe stdin |
+| `sm quick-text "Please stand"` | Append quick text to the live page queue; omit the text or use `-` to pipe stdin |
 | `sm autoplay on --mode loop --delay 8` | Override the current image-list/Tarp autoplay |
 | `sm autoplay --reset` | Restore the saved autoplay settings |
 | `sm items` | List the live queue |
@@ -140,7 +140,7 @@ commands immediately as keys are pressed.
 | `v` | Toggle Bible verse numbers |
 | `a` / `A` | Toggle autoplay / reset the temporary autoplay override |
 | `f` | Prompt for footer text |
-| `x` | Prompt for transient quick text |
+| `x` | Prompt for quick text to append to the live page queue |
 | `g` / `i` | Prompt for a one-based page / item number |
 | `r` | Refresh immediately |
 | `?` | Show or hide the full shortcut list |
