@@ -1,9 +1,12 @@
+import { suggestSongPageId, type LivePage } from "@sm/shared";
+
 export type ShortcutAction =
   | "toggleBlank"
   | "nextPage"
   | "previousPage"
   | "nextItem"
-  | "previousItem";
+  | "previousItem"
+  | "jumpChorus";
 
 export interface KeyboardShortcuts {
   toggleBlank: string;
@@ -11,6 +14,7 @@ export interface KeyboardShortcuts {
   previousPage: string;
   nextItem: string;
   previousItem: string;
+  jumpChorus: string;
 }
 
 export const SHORTCUT_LABELS: Array<{ action: ShortcutAction; label: string; hint: string }> = [
@@ -23,6 +27,11 @@ export const SHORTCUT_LABELS: Array<{ action: ShortcutAction; label: string; hin
     label: "Previous set-list item",
     hint: "Show the first page of the previous item",
   },
+  {
+    action: "jumpChorus",
+    label: "Jump to chorus",
+    hint: "Jump to the first page labelled Chorus or c",
+  },
 ];
 
 export const DEFAULT_SHORTCUTS: KeyboardShortcuts = {
@@ -31,6 +40,7 @@ export const DEFAULT_SHORTCUTS: KeyboardShortcuts = {
   previousPage: "ArrowLeft",
   nextItem: "ArrowDown",
   previousItem: "ArrowUp",
+  jumpChorus: "C",
 };
 
 const STORAGE_KEY = "sm-keyboard-shortcuts";
@@ -76,6 +86,7 @@ export function loadKeyboardShortcuts(): KeyboardShortcuts {
       previousPage: parsed.previousPage ?? DEFAULT_SHORTCUTS.previousPage,
       nextItem: parsed.nextItem ?? DEFAULT_SHORTCUTS.nextItem,
       previousItem: parsed.previousItem ?? DEFAULT_SHORTCUTS.previousItem,
+      jumpChorus: parsed.jumpChorus ?? DEFAULT_SHORTCUTS.jumpChorus,
     };
   } catch {
     return { ...DEFAULT_SHORTCUTS };
@@ -89,6 +100,36 @@ export function saveKeyboardShortcuts(shortcuts: KeyboardShortcuts): void {
   } catch {
     // Private browsing/storage problems should not break live control.
   }
+}
+
+function matchesChorus(section: string): boolean {
+  const value = section.trim();
+  if (!value) return false;
+  if (/^(?:c|chorus)(?:\s*\d+[a-z]?)?$/i.test(value)) return true;
+  const id = suggestSongPageId(value);
+  return Boolean(id && /^c\d*[a-z]?$/i.test(id));
+}
+
+function matchesVerse(section: string, verse: number): boolean {
+  const value = section.trim();
+  if (!value) return false;
+  if (new RegExp(`^(?:v|verse)\\s*${verse}[a-z]?$`, "i").test(value)) return true;
+  const id = suggestSongPageId(value);
+  return Boolean(id && new RegExp(`^v${verse}[a-z]?$`, "i").test(id));
+}
+
+/** Finds the first page whose section label is Chorus/c or Verse N/vN. */
+export function findSectionPage(
+  pages: LivePage[],
+  target: "chorus" | number,
+): number | null {
+  const index = pages.findIndex((page) => {
+    if (!page.section) return false;
+    return target === "chorus"
+      ? matchesChorus(page.section)
+      : matchesVerse(page.section, target);
+  });
+  return index >= 0 ? index : null;
 }
 
 const LIST_KEYS = new Set(["ArrowUp", "ArrowDown", "PageUp", "PageDown"]);

@@ -642,8 +642,10 @@ export default function HelpPage({ onOpenSettings }: { onOpenSettings: () => voi
           ))}
         </div>
         <p className="hint">
-          Page navigation can stop at the end of an item or continue into the previous/next item.
-          Change that behaviour in <em>Settings → Live navigation</em>.
+          Number keys <code>1</code>–<code>9</code> jump to the first page labelled Verse 1–9 (or
+          v1–v9). <code>C</code> jumps to the first Chorus/c page. Page navigation can stop at the
+          end of an item or continue into the previous/next item; change that behaviour in{" "}
+          <em>Settings → Live navigation</em>.
         </p>
       </section>
 

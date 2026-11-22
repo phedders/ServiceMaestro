@@ -1131,7 +1131,8 @@ export default function SettingsPage({
         </div>
         <p className="hint">
           Defaults: <code>B</code> hide/show, <code>←</code>/<code>→</code> pages,{" "}
-          <code>↑</code>/<code>↓</code> set-list items. Press a field and then the desired key
+          <code>↑</code>/<code>↓</code> set-list items, <code>C</code> jump to chorus, and{" "}
+          <code>1</code>–<code>9</code> jump to Verse 1–9. Press a field and then the desired key
           combination; Backspace or Delete clears it.
         </p>
       </section>

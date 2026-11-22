@@ -45,6 +45,7 @@ import ArchivesPage from "./pages/ArchivesPage";
 const TarpPage = lazy(() => import("./pages/TarpPage"));
 import {
   SHORTCUT_CHANGE_EVENT,
+  findSectionPage,
   handleListNavigation,
   isTypingTarget,
   loadKeyboardShortcuts,
@@ -447,6 +448,28 @@ export default function App() {
         const target = Math.max(0, currentItem - 1);
         event.preventDefault();
         command({ type: "goto", itemIndex: target });
+        return;
+      }
+      if (shortcutMatches(event, shortcuts.jumpChorus)) {
+        const pageIndex = findSectionPage(live.pages, "chorus");
+        if (pageIndex != null) {
+          event.preventDefault();
+          command({ type: "goto", pageIndex });
+        }
+        return;
+      }
+      if (
+        !event.ctrlKey &&
+        !event.altKey &&
+        !event.metaKey &&
+        !event.shiftKey &&
+        /^[1-9]$/.test(event.key)
+      ) {
+        const pageIndex = findSectionPage(live.pages, Number(event.key));
+        if (pageIndex != null) {
+          event.preventDefault();
+          command({ type: "goto", pageIndex });
+        }
       }
     };
 
