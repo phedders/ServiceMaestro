@@ -6930,6 +6930,36 @@ body.resizing-live-queue {
   font-size: 1.2rem;
 }
 
+.live-shortcuts .help-shortcuts {
+  grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+  gap: 6px;
+}
+
+.live-shortcuts .help-shortcut {
+  padding: 5px 8px;
+  border-radius: 7px;
+  gap: 8px;
+}
+
+.live-shortcuts .help-shortcut > div {
+  gap: 0;
+}
+
+.live-shortcuts .help-shortcut span {
+  display: none;
+}
+
+.live-shortcuts .help-shortcut strong {
+  font-size: 0.74rem;
+  font-weight: 600;
+}
+
+.live-shortcuts .help-shortcut kbd {
+  padding: 2px 6px;
+  border-radius: 5px;
+  font-size: 0.68rem;
+}
+
 .page-edit-save-hint {
   margin: 10px 0 0;
 }

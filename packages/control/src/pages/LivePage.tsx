@@ -1058,7 +1058,7 @@ export default function LivePage({
         </div>
         <div className="help-shortcuts">
           {SHORTCUT_LABELS.map(({ action, label, hint }) => (
-            <div key={action} className="help-shortcut">
+            <div key={action} className="help-shortcut" title={hint}>
               <div>
                 <strong>{label}</strong>
                 <span className="muted">{hint}</span>
@@ -1066,7 +1066,10 @@ export default function LivePage({
               <kbd>{formatShortcut(shortcuts[action])}</kbd>
             </div>
           ))}
-          <div className="help-shortcut">
+          <div
+            className="help-shortcut"
+            title="Jump to the first page labelled Verse 1–9 (or v1–v9)"
+          >
             <div>
               <strong>Jump to verse</strong>
               <span className="muted">Jump to the first page labelled Verse 1–9 (or v1–v9)</span>
