@@ -191,6 +191,7 @@ interface ItemDraft {
   tarpDelay: number;
   keyOverride: string;
   transpose: number;
+  maxLinesOverride: number | null;
   verseOrder: string;
   verseOrderId: string;
   notes: string;
@@ -219,6 +220,7 @@ function itemDraftFrom(item: SetlistItem, song: Song | undefined): ItemDraft {
     tarpDelay: tarp?.delaySeconds ?? 6,
     keyOverride: item.keyOverride ?? "",
     transpose: item.transpose,
+    maxLinesOverride: item.maxLinesOverride ?? null,
     verseOrder: defaultItemVerseOrder(item, song),
     verseOrderId:
       song?.verseOrders.find((entry) => entry.order === item.verseOrder)?.id ?? "",
@@ -306,6 +308,9 @@ function ItemRow({
   const [tarpDelay, setTarpDelay] = useState(initialTarp?.delaySeconds ?? 6);
   const [keyOverride, setKeyOverride] = useState(item.keyOverride ?? "");
   const [transpose, setTranspose] = useState(item.transpose);
+  const [maxLinesOverride, setMaxLinesOverride] = useState<number | null>(
+    item.maxLinesOverride ?? null,
+  );
   const [verseOrder, setVerseOrder] = useState(() => defaultItemVerseOrder(item, song));
   const [verseOrderId, setVerseOrderId] = useState(
     song?.verseOrders.find((entry) => entry.order === item.verseOrder)?.id ?? "",
@@ -341,6 +346,7 @@ function ItemRow({
     setContent(item.kind === "song" ? item.content ?? song?.lyrics ?? "" : next.content);
     setKeyOverride(item.keyOverride ?? "");
     setTranspose(item.transpose);
+    setMaxLinesOverride(item.maxLinesOverride ?? null);
     setVerseOrder(defaultItemVerseOrder(item, song));
     setVerseOrderId(
       song?.verseOrders.find((entry) => entry.order === item.verseOrder)?.id ?? "",
@@ -382,6 +388,7 @@ function ItemRow({
     tarpDelay,
     keyOverride,
     transpose,
+    maxLinesOverride,
     verseOrder,
     verseOrderId,
     notes,
@@ -413,6 +420,11 @@ function ItemRow({
     { label: "Tarp delay", before: savedDraft.tarpDelay, after: currentDraft.tarpDelay },
     { label: "Key override", before: savedDraft.keyOverride, after: currentDraft.keyOverride },
     { label: "Transpose", before: savedDraft.transpose, after: currentDraft.transpose },
+    {
+      label: "Lines / page",
+      before: savedDraft.maxLinesOverride,
+      after: currentDraft.maxLinesOverride,
+    },
     { label: "Verse order", before: savedDraft.verseOrder, after: currentDraft.verseOrder },
     { label: "Saved verse order", before: savedDraft.verseOrderId, after: currentDraft.verseOrderId },
     { label: "Notes", before: savedDraft.notes, after: currentDraft.notes },
@@ -440,6 +452,7 @@ function ItemRow({
     setContent(item.kind === "song" ? item.content ?? song?.lyrics ?? "" : next.content);
     setKeyOverride(item.keyOverride ?? "");
     setTranspose(item.transpose);
+    setMaxLinesOverride(item.maxLinesOverride ?? null);
     setVerseOrder(defaultItemVerseOrder(item, song));
     setVerseOrderId(
       song?.verseOrders.find((entry) => entry.order === item.verseOrder)?.id ?? "",
@@ -479,6 +492,7 @@ function ItemRow({
         title: title.trim() || content.split("/").pop() || "Image",
         content,
         imageFit,
+        maxLinesOverride: maxLinesOverride ?? null,
         notes: notes || null,
         ...stingerFields(),
       };
@@ -496,6 +510,7 @@ function ItemRow({
           delaySeconds: listDelay,
         }),
         imageFit,
+        maxLinesOverride: maxLinesOverride ?? null,
         notes: notes || null,
         ...stingerFields(),
       };
@@ -513,6 +528,7 @@ function ItemRow({
           mode: tarpMode,
           delaySeconds: tarpDelay,
         }),
+        maxLinesOverride: maxLinesOverride ?? null,
         notes: notes || null,
         ...stingerFields(),
       };
@@ -531,6 +547,7 @@ function ItemRow({
           : nextContent,
       keyOverride: keyOverride || null,
       transpose: Number(transpose) || 0,
+      maxLinesOverride: maxLinesOverride ?? null,
       verseOrder: verseOrder || null,
       notes: notes || null,
       backgroundId: backgroundId || null,
@@ -1169,6 +1186,25 @@ function ItemRow({
                 onChange={(event) => setTranspose(Number(event.target.value))}
               />
             </label>
+            {(item.kind === "song" || item.kind === "text") && (
+              <label>
+                Lines / page
+                <input
+                  type="number"
+                  min={1}
+                  max={30}
+                  value={maxLinesOverride ?? ""}
+                  placeholder="Default"
+                  onChange={(event) => {
+                    const value = event.target.value.trim();
+                    setMaxLinesOverride(
+                      value ? Math.max(1, Math.min(30, Number(value))) : null,
+                    );
+                  }}
+                  title="Optional lines/page for this item. Leave empty to use the Display config default. Changing Lines/page in the live transport stores the value here."
+                />
+              </label>
+            )}
             {item.kind === "song" && (song?.verseOrders.length ?? 0) > 0 && (
               <label>
                 Saved verse order

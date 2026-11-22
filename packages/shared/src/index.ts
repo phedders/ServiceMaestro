@@ -483,6 +483,7 @@ export interface SetlistItem {
   keyOverride: string | null;
   transpose: number;
   maxLines: number;
+  maxLinesOverride: number | null;
   verseOrder: string | null;
   notes: string | null;
 }
@@ -2469,6 +2470,7 @@ export const setlistItemInputSchema = z.object({
   keyOverride: z.string().trim().max(10).optional().nullable(),
   transpose: z.number().int().min(-24).max(24).optional(),
   maxLines: z.number().int().min(1).max(30).optional(),
+  maxLinesOverride: z.number().int().min(1).max(30).nullable().optional(),
   verseOrder: z.string().trim().max(1000).optional().nullable(),
   notes: z.string().trim().max(2000).optional().nullable(),
 });

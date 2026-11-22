@@ -34,6 +34,7 @@ import { renderTarpPages } from "./tarp-render.js";
 interface SnapshotItem extends RenderItem {
   itemId: string | null;
   songId: string | null;
+  maxLinesOverride?: number | null;
   backgroundId?: string | null;
   stingerId?: string | null;
   stingerPageOverrides?: Record<string, string>;
@@ -62,6 +63,16 @@ interface SessionRecord {
 
 function now(): string {
   return new Date().toISOString();
+}
+
+function resolveItemMaxLines(
+  item: SnapshotItem | undefined,
+  config: DisplayConfig | undefined,
+): number {
+  const fallback = Math.max(1, Math.min(30, Number(config?.maxLines ?? 4) || 4));
+  if (!item) return fallback;
+  const value = item.maxLinesOverride ?? fallback;
+  return Math.max(1, Math.min(30, Number(value) || fallback));
 }
 
 export function idleState(): LiveState {
@@ -142,6 +153,7 @@ function resolveSetlistItems(setlistId: string): { name: string; items: Snapshot
     key_override: string | null;
     transpose: number;
     max_lines: number;
+    max_lines_override: number | null;
     verse_order: string | null;
     notes: string | null;
   }>;
@@ -163,6 +175,7 @@ function resolveSetlistItems(setlistId: string): { name: string; items: Snapshot
         keyOverride: row.key_override,
         transpose: row.transpose,
         maxLines: row.max_lines,
+        maxLinesOverride: row.max_lines_override ?? null,
         verseOrder: row.verse_order ?? song?.verseOrder ?? null,
         notes: row.notes,
       };
@@ -176,6 +189,7 @@ function resolveSetlistItems(setlistId: string): { name: string; items: Snapshot
         content: row.content ?? "",
         transpose: 0,
         maxLines: row.max_lines,
+        maxLinesOverride: row.max_lines_override ?? null,
         verseOrder: null,
         notes: row.notes,
       };
@@ -193,6 +207,7 @@ function resolveSetlistItems(setlistId: string): { name: string; items: Snapshot
             : "scale",
         transpose: 0,
         maxLines: row.max_lines,
+        maxLinesOverride: row.max_lines_override ?? null,
         verseOrder: null,
         notes: row.notes,
       };
@@ -207,6 +222,7 @@ function resolveSetlistItems(setlistId: string): { name: string; items: Snapshot
       textAlign: row.text_align === "center" ? "center" : "left",
       transpose: 0,
       maxLines: row.max_lines,
+      maxLinesOverride: row.max_lines_override ?? null,
       verseOrder: null,
       notes: row.notes,
     };
@@ -502,7 +518,7 @@ class LiveService {
       transition: "fade",
       halfPageMode: false,
       halfPageOffset: 0,
-      maxLines: displayConfig.maxLines,
+      maxLines: resolveItemMaxLines(first, displayConfig),
       transpose: 0,
       footer: "",
       bibleVerseNumbers: true,
@@ -632,8 +648,10 @@ class LiveService {
       record.state.pageIndex = 0;
       record.state.halfPageMode = false;
       record.state.halfPageOffset = 0;
-      record.state.maxLines =
-        record.state.displayConfig?.maxLines ?? getDisplayConfig().maxLines;
+      record.state.maxLines = resolveItemMaxLines(
+        items[0],
+        record.state.displayConfig ?? getDisplayConfig(),
+      );
       record.state.items = summaries(items);
       record.state.pendingUpdate = false;
       record.state.pendingRevision = null;
@@ -662,8 +680,10 @@ class LiveService {
     record.state.pageIndex = 0;
     record.state.halfPageMode = false;
     record.state.halfPageOffset = 0;
-    record.state.maxLines =
-      record.state.displayConfig?.maxLines ?? getDisplayConfig().maxLines;
+    record.state.maxLines = resolveItemMaxLines(
+      record.items[0],
+      record.state.displayConfig ?? getDisplayConfig(),
+    );
     record.state.items = summaries(record.items);
     record.state.pendingUpdate = false;
     record.state.pendingRevision = null;
@@ -816,6 +836,7 @@ class LiveService {
       }
       case "maxLines": {
         state.maxLines = Math.max(1, Math.min(30, Number(command.value ?? 4)));
+        this.rememberItemMaxLines(state.maxLines);
         this.renderCurrent();
         break;
       }
@@ -1064,6 +1085,10 @@ class LiveService {
     state.halfPageOffset = 0;
     state.mode = items[index].kind;
     state.title = items[index].title;
+    state.maxLines = resolveItemMaxLines(
+      items[index],
+      state.displayConfig ?? getDisplayConfig(),
+    );
     this.renderCurrent();
   }
 
@@ -1074,7 +1099,10 @@ class LiveService {
     const item = items[index];
     state.queuedItemIndex = index;
     state.queuedTitle = item.title;
-    state.queuedPages = this.pagesFor(item);
+    state.queuedPages = this.pagesFor(
+      item,
+      resolveItemMaxLines(item, state.displayConfig ?? getDisplayConfig()),
+    );
   }
 
   private commitQueuedItem(): boolean {
@@ -1162,6 +1190,24 @@ class LiveService {
     this.setItem(nextItem);
   }
 
+  private rememberItemMaxLines(value: number): void {
+    const record = this.active;
+    if (!record || record.transient) return;
+    const item = record.items[record.state.itemIndex];
+    if (!item?.itemId) return;
+    item.maxLines = value;
+    item.maxLinesOverride = value;
+    db.prepare(
+      "UPDATE setlist_items SET max_lines = ?, max_lines_override = ? WHERE id = ?",
+    ).run(value, value, item.itemId);
+    if (record.setlistId) {
+      db.prepare("UPDATE setlists SET updated_at = ? WHERE id = ?").run(
+        now(),
+        record.setlistId,
+      );
+    }
+  }
+
   private renderCurrent(): void {
     if (!this.active) return;
     const record = this.active;
@@ -1172,11 +1218,14 @@ class LiveService {
       return;
     }
     const pages = this.pagesFor(item);
+    const displayConfig = record.state.displayConfig ?? getDisplayConfig();
     const appendedPages = record.transient
       ? []
       : (record.state.appendedItems ?? []).flatMap((index) => {
           const appended = record.items[index];
-          return appended ? this.pagesFor(appended) : [];
+          return appended
+            ? this.pagesFor(appended, resolveItemMaxLines(appended, displayConfig))
+            : [];
         });
     record.state.pages = [...pages, ...appendedPages].map((page, index) => ({
       ...page,
@@ -1195,11 +1244,16 @@ class LiveService {
 
     if (record.state.queuedItemIndex != null) {
       const queued = record.items[record.state.queuedItemIndex];
-      if (queued) record.state.queuedPages = this.pagesFor(queued);
+      if (queued) {
+        record.state.queuedPages = this.pagesFor(
+          queued,
+          resolveItemMaxLines(queued, displayConfig),
+        );
+      }
     }
   }
 
-  private pagesFor(item: SnapshotItem): LiveState["pages"] {
+  private pagesFor(item: SnapshotItem, maxLinesOverride?: number): LiveState["pages"] {
     if (!this.active) return [];
     const stored = this.active.state.displayConfig;
     const config = { ...getDisplayConfig(), ...(stored ?? {}) };
@@ -1210,7 +1264,7 @@ class LiveService {
             return content ? renderTarpPages(content.presentationId) : [];
           })()
         : buildPages(item, this.active.state.transpose, {
-            maxLines: this.active.state.maxLines || config.maxLines,
+            maxLines: maxLinesOverride ?? (this.active.state.maxLines || config.maxLines),
             maxWords: config.maxWords,
             smartPageSplits: config.smartPageSplits,
             smartWrapMinWords: config.smartWrapMinWords,

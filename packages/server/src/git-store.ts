@@ -337,8 +337,9 @@ function importSetlist(manifest: SetlistManifest): void {
     `INSERT INTO setlist_items
      (id, setlist_id, position, kind, song_id, title, content, content_source,
       text_format, text_align, image_fit, background_id, stinger_id,
-      stinger_overrides_json, key_override, transpose, max_lines, verse_order, notes)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      stinger_overrides_json, key_override, transpose, max_lines, max_lines_override,
+      verse_order, notes)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   );
 
   for (const item of manifest.items) {
@@ -374,6 +375,9 @@ function importSetlist(manifest: SetlistManifest): void {
       }
     }
 
+    const maxLinesOverride =
+      item.maxLinesOverride ??
+      (item.maxLines && item.maxLines !== 4 ? item.maxLines : null);
     insert.run(
       `git-item-${manifest.setlist.id}-${item.position}`,
       id,
@@ -395,7 +399,8 @@ function importSetlist(manifest: SetlistManifest): void {
       item.stingerPageOverrides ? JSON.stringify(item.stingerPageOverrides) : null,
       item.keyOverride ?? null,
       item.transpose ?? 0,
-      item.maxLines ?? 4,
+      maxLinesOverride ?? 4,
+      maxLinesOverride,
       item.verseOrder ?? null,
       item.notes ?? null,
     );

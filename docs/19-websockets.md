@@ -238,7 +238,7 @@ Valid payloads:
 | `{ "type": "appendItem", "itemIndex": 4 }` | Append an item's pages to the current live queue. |
 | `{ "type": "blank", "value": true }` | Set blank on/off. Omit `value` to toggle. |
 | `{ "type": "transpose", "delta": 1 }` | Change transpose by `-12…12` semitones per command. The state is clamped to `-24…24`. |
-| `{ "type": "maxLines", "value": 4 }` | Set lines per page, `1…30`. |
+| `{ "type": "maxLines", "value": 4 }` | Set lines per page for the current queue, `1…30`. While a set-list item is live, the value is stored on that item. |
 | `{ "type": "footer", "text": "…" }` | Set footer text, up to 500 characters. Empty text clears it. |
 | `{ "type": "bibleVerseNumbers", "value": false }` | Show or hide Bible verse numbers. Omit `value` to toggle. Defaults to shown. |
 | `{ "type": "autoplay", "autoplay": true, "mode": "loop", "delaySeconds": 8 }` | Override autoplay for the current image-list/Tarp item. Fields are optional; `mode` is `single`, `loop` or `bounce`; `delaySeconds` is `1…300`. |

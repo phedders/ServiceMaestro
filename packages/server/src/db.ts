@@ -116,6 +116,7 @@ db.exec(`
     key_override TEXT,
     transpose INTEGER NOT NULL DEFAULT 0,
     max_lines INTEGER NOT NULL DEFAULT 4,
+    max_lines_override INTEGER,
     verse_order TEXT,
     notes TEXT
   );
@@ -337,6 +338,10 @@ ensureColumn("setlist_items", "content_source", "TEXT NOT NULL DEFAULT 'text'");
 ensureColumn("setlist_items", "background_id", "TEXT");
 ensureColumn("setlist_items", "stinger_id", "TEXT");
 ensureColumn("setlist_items", "stinger_overrides_json", "TEXT");
+ensureColumn("setlist_items", "max_lines_override", "INTEGER");
+db.prepare(
+  "UPDATE setlist_items SET max_lines_override = max_lines WHERE max_lines_override IS NULL AND max_lines <> 4",
+).run();
 ensureColumn("setlists", "background_id", "TEXT");
 ensureColumn("setlists", "stinger_id", "TEXT");
 ensureColumn("setlists", "archived_at", "TEXT");

@@ -42,6 +42,7 @@ const itemSchema = z.object({
   keyOverride: z.string().nullable().optional(),
   transpose: z.number().int().optional(),
   maxLines: z.number().int().optional(),
+  maxLinesOverride: z.number().int().nullable().optional(),
   verseOrder: z.string().nullable().optional(),
   notes: z.string().nullable().optional(),
   content: z.string().nullable().optional(),
@@ -236,6 +237,7 @@ export function buildSetlistExport(
     key_override: string | null;
     transpose: number;
     max_lines: number;
+    max_lines_override: number | null;
     verse_order: string | null;
     notes: string | null;
     churchsuite_item_id: number | null;
@@ -281,6 +283,7 @@ export function buildSetlistExport(
         keyOverride: row.key_override,
         transpose: row.transpose,
         maxLines: row.max_lines,
+        maxLinesOverride: row.max_lines_override ?? null,
         verseOrder: row.verse_order,
         notes: row.notes,
         content: row.content,
@@ -318,6 +321,7 @@ export function buildSetlistExport(
         keyOverride: null,
         transpose: 0,
         maxLines: row.max_lines,
+        maxLinesOverride: row.max_lines_override ?? null,
         verseOrder: null,
         notes: row.notes,
         content: row.content ?? "",
@@ -339,6 +343,7 @@ export function buildSetlistExport(
       keyOverride: row.key_override,
       transpose: row.transpose,
       maxLines: row.max_lines,
+      maxLinesOverride: row.max_lines_override ?? null,
       verseOrder: row.verse_order,
       notes: row.notes,
       content: row.content ?? "",
@@ -503,9 +508,9 @@ export function importSetlistFile(
     `INSERT INTO setlist_items
      (id, setlist_id, position, kind, song_id, title, content, content_source,
       text_format, text_align, image_fit, background_id, stinger_id,
-      stinger_overrides_json, key_override, transpose, max_lines, verse_order, notes,
-      churchsuite_item_id, churchsuite_snapshot)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      stinger_overrides_json, key_override, transpose, max_lines, max_lines_override,
+      verse_order, notes, churchsuite_item_id, churchsuite_snapshot)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   );
 
   let importedItems = 0;
@@ -562,6 +567,9 @@ export function importSetlistFile(
       }
     }
 
+    const maxLinesOverride =
+      item.maxLinesOverride ??
+      (item.maxLines && item.maxLines !== 4 ? item.maxLines : null);
     insertItem.run(
       randomUUID(),
       setlistId,
@@ -583,7 +591,8 @@ export function importSetlistFile(
       item.stingerPageOverrides ? JSON.stringify(item.stingerPageOverrides) : null,
       item.keyOverride ?? null,
       item.transpose ?? 0,
-      item.maxLines ?? 4,
+      maxLinesOverride ?? 4,
+      maxLinesOverride,
       item.verseOrder ?? null,
       item.notes ?? null,
       item.churchsuiteItemId ?? null,

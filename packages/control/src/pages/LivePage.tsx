@@ -1010,9 +1010,9 @@ export default function LivePage({
             />
           </label>
           <p className="hint">
-            Used when a set list is loaded into the live queue. The Transport{" "}
-            <strong>Lines/page</strong> control changes the current queue without changing this
-            default.
+            Used when a set-list item without its own <strong>Lines / page</strong> setting is
+            loaded. Changing the Transport <strong>Lines/page</strong> control stores that value on
+            the current item; this default remains the fallback.
           </p>
         </div>
       </ReadOnlyFieldset>

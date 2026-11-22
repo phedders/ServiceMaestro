@@ -134,8 +134,9 @@ export default function HelpPage({ onOpenSettings }: { onOpenSettings: () => voi
                 <strong>Transpose</strong> changes the current song by semitones.
               </li>
               <li>
-                <strong>Lines / page</strong> changes automatic page splitting for the current queue.
-                The default for newly loaded set lists is set by
+                <strong>Lines / page</strong> changes automatic page splitting for the current
+                queue. When a set-list item is live, that value is stored on the item. Items use
+                their own <strong>Lines / page</strong> metadata from the set-list editor, otherwise
                 <strong>Display config → Default lines / page</strong>.
               </li>
               <li>

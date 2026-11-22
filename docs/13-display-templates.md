@@ -148,7 +148,7 @@ A **Display config** panel on the Live page controls:
 - **Global background** — none, solid colour, gradient, CSS pattern, background-library preset or image-library file. It is used when the set list/item does not select a background; item/set-list backgrounds take precedence. The lower-third output keeps its transparent background.
 - **Lower-third font** — independent font for the lower-third output.
 - **Lower-third text size** — independent 50–200% scale for the lower-third output.
-- **Default lines per page** — the initial lines-per-page value used when a set list is loaded into the live queue. The Transport **Lines / page** control changes the current queue without changing this default.
+- **Default lines per page** — the fallback lines-per-page value used when a set-list item is loaded without a specific setting. Each item can set **Lines / page** in the set-list editor. Changing the Transport **Lines / page** control while an item is live stores that value on the current item, so moving back to it later restores the operator's choice.
 - **Max words per page** — a second hard limit; pages split on whichever of max lines or max words is reached first.
 - **Lower-third image max height** — percentage of the viewport used as the image height limit (default 30%).
 - **Lower-third border padding** — the gap between the viewport bottom and the lower-third text/image area (default 48px). For images it is also subtracted from the maximum height. Images keep their aspect ratio and are never stretched. Text is shown in a dark 80%-opaque rounded panel with a lighter border. The panel remains visible while page text fades between pages, and fades out only for blank/idle states.

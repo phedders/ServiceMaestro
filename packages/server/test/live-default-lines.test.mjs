@@ -32,24 +32,31 @@ test("display config lines/page is the default for a newly loaded queue", () => 
       ).run(id, "Set " + id, "2026-11-22", now, now);
     }
     db.prepare(
-      "INSERT INTO setlist_items (id, setlist_id, position, kind, song_id, title, max_lines) VALUES (?, ?, ?, ?, ?, ?, ?)",
-    ).run("default-item-a", "default-set-a", 0, "song", "default-song-a", "Song A", 2);
+      "INSERT INTO setlist_items (id, setlist_id, position, kind, song_id, title, max_lines, max_lines_override) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+    ).run("default-item-a", "default-set-a", 0, "song", "default-song-a", "Song A", 4, null);
     db.prepare(
-      "INSERT INTO setlist_items (id, setlist_id, position, kind, song_id, title, max_lines) VALUES (?, ?, ?, ?, ?, ?, ?)",
-    ).run("default-item-b", "default-set-b", 0, "song", "default-song-b", "Song B", 2);
+      "INSERT INTO setlist_items (id, setlist_id, position, kind, song_id, title, max_lines, max_lines_override) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+    ).run("default-item-b", "default-set-b", 0, "song", "default-song-b", "Song B", 3, 3);
 
     saveDisplayConfig({ ...getDisplayConfig(), maxLines: 6 });
     const started = live.start("default-set-a", "live");
     const transport = live.command({ type: "maxLines", value: 7 });
+    const overrideAfterTransport = db
+      .prepare("SELECT max_lines_override FROM setlist_items WHERE id = ?")
+      .get("default-item-a").max_lines_override;
 
     saveDisplayConfig({ ...getDisplayConfig(), maxLines: 8 });
     const savedConfig = getDisplayConfig();
     const configUpdated = live.updateDisplayConfig(savedConfig);
 
     const appliedNow = live.applyCurrent("default-set-b", "now", null);
-
     const afterTransport = live.command({ type: "maxLines", value: 9 });
-    const queuedApply = live.applyCurrent("default-set-a", "next", null);
+    const overrideB = db
+      .prepare("SELECT max_lines_override FROM setlist_items WHERE id = ?")
+      .get("default-item-b").max_lines_override;
+
+    const appliedA = live.applyCurrent("default-set-a", "now", null);
+    const queuedApply = live.applyCurrent("default-set-b", "next", null);
     let appliedPending = queuedApply;
     for (let step = 0; step < 50 && appliedPending.pendingUpdate; step += 1) {
       appliedPending = live.command({ type: "next" });
@@ -59,11 +66,14 @@ test("display config lines/page is the default for a newly loaded queue", () => 
     console.log(JSON.stringify({
       started: started.maxLines,
       transport: transport.maxLines,
+      overrideAfterTransport,
       savedDefault: savedConfig.maxLines,
       configUpdated: configUpdated.maxLines,
       configMaxLines: configUpdated.displayConfig.maxLines,
       appliedNow: appliedNow.maxLines,
       afterTransport: afterTransport.maxLines,
+      overrideB,
+      appliedA: appliedA.maxLines,
       appliedPending: appliedPending.maxLines,
       pendingUpdate: appliedPending.pendingUpdate,
       restarted: restarted.maxLines,
@@ -86,12 +96,15 @@ test("display config lines/page is the default for a newly loaded queue", () => 
 
   assert.equal(data.started, 6);
   assert.equal(data.transport, 7);
+  assert.equal(data.overrideAfterTransport, 7);
   assert.equal(data.savedDefault, 8);
   assert.equal(data.configUpdated, 7);
   assert.equal(data.configMaxLines, 8);
-  assert.equal(data.appliedNow, 8);
+  assert.equal(data.appliedNow, 3);
   assert.equal(data.afterTransport, 9);
+  assert.equal(data.overrideB, 9);
+  assert.equal(data.appliedA, 7);
   assert.equal(data.pendingUpdate, false);
-  assert.equal(data.appliedPending, 8);
-  assert.equal(data.restarted, 8);
+  assert.equal(data.appliedPending, 9);
+  assert.equal(data.restarted, 7);
 });

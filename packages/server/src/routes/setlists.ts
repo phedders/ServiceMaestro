@@ -51,6 +51,7 @@ interface ItemRow {
   key_override: string | null;
   transpose: number;
   max_lines: number;
+  max_lines_override: number | null;
   verse_order: string | null;
   notes: string | null;
 }
@@ -99,6 +100,7 @@ function mapItem(row: ItemRow): SetlistItem {
     keyOverride: row.key_override,
     transpose: row.transpose,
     maxLines: row.max_lines,
+    maxLinesOverride: row.max_lines_override ?? null,
     verseOrder: row.verse_order,
     notes: row.notes,
   };
@@ -173,7 +175,7 @@ export async function setlistRoutes(app: FastifyInstance): Promise<void> {
         ? Math.max(-24, Math.min(24, Math.trunc(requestedTranspose)))
         : 0;
       const config = getDisplayConfig();
-      const maxLines = item.maxLines || config.maxLines;
+      const maxLines = item.maxLinesOverride ?? config.maxLines;
       const pages = buildPages(
         {
           kind: "text",
@@ -396,12 +398,19 @@ export async function setlistRoutes(app: FastifyInstance): Promise<void> {
         .prepare("SELECT COALESCE(MAX(position), -1) + 1 AS next FROM setlist_items WHERE setlist_id = ?")
         .get(id) as { next: number };
       const itemId = randomUUID();
+      const maxLinesOverride =
+        data.maxLinesOverride !== undefined
+          ? data.maxLinesOverride
+          : data.maxLines !== undefined
+            ? data.maxLines
+            : null;
       db.prepare(
         `INSERT INTO setlist_items
          (id, setlist_id, position, kind, song_id, title, content, content_source,
           text_format, text_align, image_fit, background_id, stinger_id,
-          stinger_overrides_json, key_override, transpose, max_lines, verse_order, notes)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          stinger_overrides_json, key_override, transpose, max_lines, max_lines_override,
+          verse_order, notes)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       ).run(
         itemId,
         id,
@@ -419,7 +428,8 @@ export async function setlistRoutes(app: FastifyInstance): Promise<void> {
         data.stingerPageOverrides ? JSON.stringify(data.stingerPageOverrides) : null,
         data.keyOverride ?? null,
         data.transpose ?? 0,
-        data.maxLines ?? 4,
+        maxLinesOverride ?? 4,
+        maxLinesOverride,
         data.verseOrder ?? null,
         data.notes ?? null,
       );
@@ -486,11 +496,17 @@ export async function setlistRoutes(app: FastifyInstance): Promise<void> {
           if (data.format === undefined) nextFormat = extracted.format;
         }
       }
+      const nextMaxLinesOverride =
+        data.maxLinesOverride !== undefined
+          ? data.maxLinesOverride
+          : data.maxLines !== undefined
+            ? data.maxLines
+            : (existing.max_lines_override ?? null);
       db.prepare(
         `UPDATE setlist_items SET title = ?, content = ?, content_source = ?, text_format = ?,
          text_align = ?, image_fit = ?, background_id = ?, stinger_id = ?,
          stinger_overrides_json = ?, key_override = ?, transpose = ?, max_lines = ?,
-         verse_order = ?, notes = ? WHERE id = ?`,
+         max_lines_override = ?, verse_order = ?, notes = ? WHERE id = ?`,
       ).run(
         data.title ?? existing.title,
         nextContent,
@@ -507,7 +523,8 @@ export async function setlistRoutes(app: FastifyInstance): Promise<void> {
           : existing.stinger_overrides_json,
         data.keyOverride !== undefined ? data.keyOverride : existing.key_override,
         data.transpose ?? existing.transpose,
-        data.maxLines ?? existing.max_lines,
+        nextMaxLinesOverride ?? 4,
+        nextMaxLinesOverride,
         data.verseOrder !== undefined ? data.verseOrder : existing.verse_order,
         data.notes !== undefined ? data.notes : existing.notes,
         itemId,
@@ -542,7 +559,12 @@ export async function setlistRoutes(app: FastifyInstance): Promise<void> {
       const content = data.content !== undefined ? data.content : existing.content;
       const key = data.keyOverride !== undefined ? data.keyOverride : existing.key_override;
       const transpose = data.transpose ?? existing.transpose;
-      const maxLines = data.maxLines ?? existing.max_lines;
+      const maxLinesOverride =
+        data.maxLinesOverride !== undefined
+          ? data.maxLinesOverride
+          : data.maxLines !== undefined
+            ? data.maxLines
+            : (existing.max_lines_override ?? null);
       const verseOrder = data.verseOrder !== undefined ? data.verseOrder : existing.verse_order;
       const notes = data.notes !== undefined ? data.notes : existing.notes;
       const now = new Date().toISOString();
@@ -562,8 +584,9 @@ export async function setlistRoutes(app: FastifyInstance): Promise<void> {
         // screen/page settings remain specific to this set list.
         db.prepare(
           `UPDATE setlist_items SET title = ?, content = NULL, key_override = NULL,
-             transpose = ?, max_lines = ?, verse_order = NULL, notes = ? WHERE id = ?`,
-        ).run(title, transpose, maxLines, notes, itemId);
+             transpose = ?, max_lines = ?, max_lines_override = ?, verse_order = NULL,
+             notes = ? WHERE id = ?`,
+        ).run(title, transpose, maxLinesOverride ?? 4, maxLinesOverride, notes, itemId);
         db.prepare("UPDATE setlists SET updated_at = ? WHERE id = ?").run(now, id);
       });
       apply();

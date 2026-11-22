@@ -105,7 +105,7 @@ If a command receives a `401`, the CLI retries once after logging in when both
 | `sm blank` / `sm blank on` / `sm blank off` | Toggle or set output blanking |
 | `sm show` | Unblank the output |
 | `sm transpose -1` | Transpose the current song by semitones |
-| `sm lines 5` | Set lines per page |
+| `sm lines 5` | Set lines per page for the current queue; while a set-list item is live, the value is stored on that item |
 | `sm footer "Welcome"` / `sm footer --clear` | Set or clear the footer |
 | `sm bible-verses` / `sm bible-verses off` | Toggle or set Bible verse numbers |
 | `sm quick-text "Please stand"` | Show transient quick text; omit the text or use `-` to pipe stdin |
