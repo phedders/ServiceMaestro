@@ -117,6 +117,7 @@ export default function App() {
     churchSuite: "off",
     mqtt: "off",
   });
+  const [churchSuiteConfigured, setChurchSuiteConfigured] = useState<boolean | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuPosition, setMenuPosition] = useState<{
     top: number;
@@ -256,10 +257,40 @@ export default function App() {
   }, [user, standaloneMusicians]);
 
   useEffect(() => {
+    if (!user || standaloneMusicians || adapters.churchSuite === "off") {
+      setChurchSuiteConfigured(null);
+      return;
+    }
+    let cancelled = false;
+    api
+      .churchsuiteStatus()
+      .then((result) => {
+        if (!cancelled) setChurchSuiteConfigured(result.status.configured);
+      })
+      .catch(() => {
+        if (!cancelled) setChurchSuiteConfigured(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user, standaloneMusicians, adapters.churchSuite]);
+
+  useEffect(() => {
     if (standaloneMusicians) return;
-    if (page === "churchsuite" && adapters.churchSuite === "off") setPage("live");
+    const churchSuiteAvailable =
+      adapters.churchSuite !== "off" &&
+      churchSuiteConfigured === true &&
+      Boolean(user && (user.role === "admin" || user.permissions.churchsuite === true));
+    if (page === "churchsuite" && !churchSuiteAvailable) setPage("live");
     if (page === "mqtt" && adapters.mqtt === "off") setPage("live");
-  }, [page, adapters.churchSuite, adapters.mqtt, standaloneMusicians]);
+  }, [
+    page,
+    adapters.churchSuite,
+    adapters.mqtt,
+    churchSuiteConfigured,
+    user,
+    standaloneMusicians,
+  ]);
 
   const adapterContext = useMemo(
     () => ({
@@ -271,6 +302,10 @@ export default function App() {
     }),
     [adapters],
   );
+  const churchSuiteAvailable =
+    adapterContext.churchSuiteEnabled &&
+    churchSuiteConfigured === true &&
+    (user?.role === "admin" || user?.permissions.churchsuite === true);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -944,7 +979,7 @@ export default function App() {
         title: "Open the service-day guide and troubleshooting reference",
       },
     ];
-    if (adapterContext.churchSuiteEnabled) {
+    if (churchSuiteAvailable) {
       const helpIndex = items.findIndex((item) => item.page === "help");
       items.splice(helpIndex >= 0 ? helpIndex : items.length, 0, {
         page: "churchsuite",
@@ -1170,7 +1205,7 @@ export default function App() {
           >
             <span className="nav-icon">✝</span> Bible
           </button>
-          {adapterContext.churchSuiteEnabled && (
+          {churchSuiteAvailable && (
             <button
               className={`nav-primary nav-churchsuite ${page === "churchsuite" ? "active" : ""}`}
               onClick={() => setPage("churchsuite")}
@@ -1372,7 +1407,7 @@ export default function App() {
             </Suspense>
           )}
           {page === "bible" && <BiblePage live={live} onQuickText={quickText} notify={notify} />}
-          {page === "churchsuite" && adapterContext.churchSuiteEnabled && (
+          {page === "churchsuite" && churchSuiteAvailable && (
             <ChurchsuitePage notify={notify} onOpenSetlists={() => setPage("setlists")} />
           )}
           {page === "settings" && <SettingsPage user={user} notify={notify} />}
