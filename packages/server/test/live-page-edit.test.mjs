@@ -63,6 +63,22 @@ test("page edits can be saved in the queue, set list or source item", () => {
     });
     const sourceReloaded = live.command({ type: "goto", pageIndex: 0 });
 
+    live.command({
+      type: "editPage",
+      itemIndex: 0,
+      pageIndex: 0,
+      source: "Queued page zero",
+      target: "queue",
+    });
+    const twoEdits = live.command({
+      type: "editPage",
+      itemIndex: 0,
+      pageIndex: 1,
+      source: "Queued page one",
+      target: "queue",
+    });
+    const oneReload = live.command({ type: "goto", pageIndex: 0 });
+
     const queued = live.command({ type: "queueItem", itemIndex: 1 });
     const queuedEdit = live.command({
       type: "editPage",
@@ -109,6 +125,14 @@ test("page edits can be saved in the queue, set list or source item", () => {
       sourceReloaded: {
         stale: sourceReloaded.outOfDatePages,
         source: sourceReloaded.pages[0].source,
+      },
+      twoEdits: {
+        stale: twoEdits.outOfDatePages,
+      },
+      oneReload: {
+        stale: oneReload.outOfDatePages,
+        pageZero: oneReload.pages[0].source,
+        pageOne: oneReload.pages[1].source,
       },
       queued: {
         source: queued.queuedPages[0].source,
@@ -179,6 +203,12 @@ test("page edits can be saved in the queue, set list or source item", () => {
     source: "[Verse 1]\nSource saved line",
   });
 
+  assert.deepEqual(data.twoEdits, { stale: [0, 1] });
+  assert.deepEqual(data.oneReload, {
+    stale: [1],
+    pageZero: "Queued page zero",
+    pageOne: "Set list saved line",
+  });
   assert.deepEqual(data.queued, {
     source: "first text page\nsecond line",
     queuedItemIndex: 1,

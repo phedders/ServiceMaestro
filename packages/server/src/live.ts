@@ -848,7 +848,8 @@ class LiveService {
       case "goto": {
         let selected = false;
         if (typeof command.pageIndex === "number") {
-          if (state.pagesOutOfDate || state.outOfDatePages?.length) this.renderCurrent();
+          if (state.pagesOutOfDate) this.renderCurrent();
+          else if (state.queuedItemIndex == null) this.reloadPage(command.pageIndex);
           if (state.queuedItemIndex != null) {
             this.setItem(state.queuedItemIndex);
           }
@@ -1493,6 +1494,60 @@ class LiveService {
     );
   }
 
+  private pageOverrideFor(
+    item: SnapshotItem,
+    itemIndex: number,
+    pageIndex: number,
+  ): PageOverride | undefined {
+    const key = String(pageIndex);
+    return (
+      this.active?.queuePageOverrides?.[String(itemIndex)]?.[key] ??
+      item.pageOverrides?.[key] ??
+      item.sourcePageOverrides?.[key]
+    );
+  }
+
+  /**
+   * Apply a saved page edit to the live page in place. Unlike a full
+   * renderCurrent this leaves every other page (and the item's pagination)
+   * exactly as the operator last saw it.
+   */
+  private reloadPage(pageIndex: number): void {
+    const record = this.active;
+    if (!record) return;
+    const page = record.state.pages[pageIndex];
+    if (!page) return;
+    let nextPage = page;
+    if (page.itemIndex != null && page.sourcePageIndex != null) {
+      const item = record.items[page.itemIndex];
+      const override = item
+        ? this.pageOverrideFor(item, page.itemIndex, page.sourcePageIndex)
+        : undefined;
+      if (item && override) {
+        const rendered = renderPageSource(
+          item,
+          override.source,
+          record.state.transpose,
+        );
+        nextPage = {
+          ...page,
+          html: rendered.html,
+          section: rendered.section,
+          source: override.source,
+          edited: true,
+        };
+      }
+    }
+    if (nextPage !== page) {
+      record.state.pages = record.state.pages.map((entry, index) =>
+        index === pageIndex ? nextPage : entry,
+      );
+    }
+    record.state.outOfDatePages = (record.state.outOfDatePages ?? []).filter(
+      (index) => index !== pageIndex,
+    );
+  }
+
   private pagesFor(
     item: SnapshotItem,
     maxLinesOverride?: number,
@@ -1515,18 +1570,14 @@ class LiveService {
             smartWrapModules: config.smartWrapModules,
             textScale: config.textScale,
           });
-    const queueOverrides =
-      itemIndex == null
-        ? undefined
-        : this.active.queuePageOverrides?.[String(itemIndex)];
     for (const page of pages) {
       page.itemIndex = itemIndex;
       page.sourcePageIndex = page.index;
       page.itemKind = item.kind;
       const override =
-        queueOverrides?.[String(page.index)] ??
-        item.pageOverrides?.[String(page.index)] ??
-        item.sourcePageOverrides?.[String(page.index)];
+        itemIndex == null
+          ? undefined
+          : this.pageOverrideFor(item, itemIndex, page.index);
       if (override) {
         const rendered = renderPageSource(
           item,
