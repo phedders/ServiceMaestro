@@ -616,7 +616,7 @@ The reference format is the canonical schema; the bundle is a ZIP whose `manifes
   "format": "sm.setlist",
   "formatVersion": 1,
   "exportedAt": "2026-11-10T14:30:00Z",
-  "generator": "service-maestro/0.2.1",
+  "generator": "service-maestro/0.3.0",
   "timezone": "Europe/London",
   "scope": {
     "revisionNo": 3,

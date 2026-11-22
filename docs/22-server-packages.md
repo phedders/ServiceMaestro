@@ -31,7 +31,7 @@ the bundled Node.js runtime and `better-sqlite3` prebuilt binaries.
 ## Install from Debian/Ubuntu
 
 ```sh
-sudo apt install ./dist/server/service-maestro-server_0.2.1_amd64.deb
+sudo apt install ./dist/server/service-maestro-server_0.3.0_amd64.deb
 ```
 
 ## Install from RPM
@@ -39,13 +39,13 @@ sudo apt install ./dist/server/service-maestro-server_0.2.1_amd64.deb
 On Fedora/RHEL-compatible systems:
 
 ```sh
-sudo dnf install ./dist/server/service-maestro-server-0.2.1-1.x86_64.rpm
+sudo dnf install ./dist/server/service-maestro-server-0.3.0-1.x86_64.rpm
 ```
 
 Or:
 
 ```sh
-sudo rpm -Uvh ./dist/server/service-maestro-server-0.2.1-1.x86_64.rpm
+sudo rpm -Uvh ./dist/server/service-maestro-server-0.3.0-1.x86_64.rpm
 ```
 
 ## First start
@@ -149,8 +149,8 @@ The source RPM contains the packaged runtime, application payload, systemd unit
 and spec file:
 
 ```sh
-rpm -qip dist/server/service-maestro-server-0.2.1-1.src.rpm
-rpmbuild --rebuild dist/server/service-maestro-server-0.2.1-1.src.rpm
+rpm -qip dist/server/service-maestro-server-0.3.0-1.src.rpm
+rpmbuild --rebuild dist/server/service-maestro-server-0.3.0-1.src.rpm
 ```
 
 ## Hosted APT and DNF repositories
@@ -212,8 +212,8 @@ The package bundle is a scratch OCI image containing all installable files and a
 `SHA256SUMS` file. Retrieve it with:
 
 ```sh
-docker pull ghcr.io/phedders/servicemaestro-packages:0.2.1
-id=$(docker create ghcr.io/phedders/servicemaestro-packages:0.2.1)
+docker pull ghcr.io/phedders/servicemaestro-packages:0.3.0
+id=$(docker create ghcr.io/phedders/servicemaestro-packages:0.3.0)
 docker cp "$id:/packages" .
 docker rm "$id"
 ```
@@ -221,7 +221,7 @@ docker rm "$id"
 Or use OCI tooling such as `skopeo`:
 
 ```sh
-skopeo copy docker://ghcr.io/phedders/servicemaestro-packages:0.2.1 dir:sm-packages
+skopeo copy docker://ghcr.io/phedders/servicemaestro-packages:0.3.0 dir:sm-packages
 ```
 
 
