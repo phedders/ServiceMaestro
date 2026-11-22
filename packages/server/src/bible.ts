@@ -393,8 +393,71 @@ export function getPassage(
     book: book.number,
     bookName: book.name,
     chapter,
+    toChapter: chapter,
     from: start,
     to: end,
+    verses: selected.map((verse) => ({ ...verse, chapter })),
+  };
+}
+
+/**
+ * Return a range that can span consecutive chapters. `from`/`to` are verse
+ * numbers in the first and last chapters; `toChapter` defaults to the start
+ * chapter.
+ */
+export function getPassageRange(
+  code: string,
+  bookNumber: number,
+  fromChapter: number,
+  fromVerse?: number,
+  toChapter?: number,
+  toVerse?: number,
+  catalog = getBibleCatalog(),
+): BiblePassage | null {
+  const adapter = catalog.translations.get(code.toUpperCase());
+  if (!adapter) return null;
+  const book = adapter.books.find((candidate) => candidate.number === bookNumber);
+  if (!book) return null;
+  const startChapter = Math.max(1, Math.min(fromChapter, book.chapters));
+  const endChapter = Math.max(
+    startChapter,
+    Math.min(toChapter ?? startChapter, book.chapters),
+  );
+  const selected: BibleVerse[] = [];
+  for (let chapter = startChapter; chapter <= endChapter; chapter += 1) {
+    const chapterVerses = adapter.chapter(bookNumber, chapter);
+    if (!chapterVerses.length) continue;
+    const start =
+      chapter === startChapter
+        ? Math.max(1, fromVerse ?? chapterVerses[0].number)
+        : chapterVerses[0].number;
+    const end =
+      chapter === endChapter
+        ? Math.max(
+            start,
+            Math.min(
+              toVerse ?? chapterVerses[chapterVerses.length - 1].number,
+              999,
+            ),
+          )
+        : chapterVerses[chapterVerses.length - 1].number;
+    for (const verse of chapterVerses) {
+      if (verse.number < start || verse.number > end) continue;
+      selected.push({ ...verse, chapter });
+    }
+  }
+  if (!selected.length) return null;
+  const first = selected[0];
+  const last = selected[selected.length - 1];
+  return {
+    translation: adapter.info.code,
+    translationName: displayName(adapter.info),
+    book: book.number,
+    bookName: book.name,
+    chapter: first.chapter ?? startChapter,
+    toChapter: last.chapter ?? endChapter,
+    from: first.number,
+    to: last.number,
     verses: selected,
   };
 }

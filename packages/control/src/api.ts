@@ -1002,7 +1002,14 @@ export const api = {
     request<{ passage: BiblePassage }>(
       `/api/bible/chapter?translation=${encodeURIComponent(translation)}&book=${book}&chapter=${chapter}`,
     ),
-  biblePassage: (translation: string, book: number, chapter: number, from?: number, to?: number) => {
+  biblePassage: (
+    translation: string,
+    book: number,
+    chapter: number,
+    from?: number,
+    to?: number,
+    toChapter?: number,
+  ) => {
     const params = new URLSearchParams({
       translation,
       book: String(book),
@@ -1010,6 +1017,7 @@ export const api = {
     });
     if (from) params.set("from", String(from));
     if (to) params.set("to", String(to));
+    if (toChapter) params.set("toChapter", String(toChapter));
     return request<{ passage: BiblePassage }>(`/api/bible/passage?${params.toString()}`);
   },
 };

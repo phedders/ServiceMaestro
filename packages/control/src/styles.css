@@ -5457,6 +5457,24 @@ body.resizing-live-queue {
   padding-right: 5px;
 }
 
+.bible-more-fields {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.bible-more-fields label {
+  flex: 1 1 0;
+  max-width: 190px;
+  min-width: 0;
+}
+
+.bible-more-fields select {
+  width: 100%;
+  min-width: 0;
+}
+
 .bible-actions {
   display: flex;
   justify-content: space-between;
@@ -5560,6 +5578,19 @@ body.resizing-live-queue {
   font-size: 0.7em;
   margin-right: 0.35em;
   font-weight: 700;
+}
+
+.bible-chapter-heading {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin: 14px 0 7px;
+}
+
+.bible-chapter:first-child .bible-chapter-heading {
+  margin-top: 0;
 }
 
 @media (max-width: 1000px) {

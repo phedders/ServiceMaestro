@@ -5,6 +5,7 @@ import type {
   BibleLayout,
   BiblePassage,
   BibleTranslationInfo,
+  BibleVerse,
   LiveState,
   SetlistSummary,
 } from "@sm/shared";
@@ -29,9 +30,14 @@ export default function BiblePage({
   const [books, setBooks] = useState<BibleBook[]>([]);
   const [bookNumber, setBookNumber] = useSessionState("bible:book", 1);
   const [chapter, setChapter] = useSessionState("bible:chapter", 1);
-  const [passage, setPassage] = useState<BiblePassage | null>(null);
+  const [chapterPassage, setChapterPassage] = useState<BiblePassage | null>(null);
+  const [rangePassage, setRangePassage] = useState<BiblePassage | null>(null);
+  const [endChapterPassage, setEndChapterPassage] = useState<BiblePassage | null>(null);
   const [from, setFrom] = useState(1);
-  const [to, setTo] = useState(1);
+  const [to, setTo] = useState<number | "more">(1);
+  const [toChapter, setToChapter] = useState(2);
+  const [toVerse, setToVerse] = useState(1);
+  const multiChapter = to === "more";
   const [loading, setLoading] = useState(true);
   const [includeReference, setIncludeReference] = useSessionState(
     "bible:include-reference",
@@ -94,38 +100,145 @@ export default function BiblePage({
 
   useEffect(() => {
     if (!translation || !bookNumber || !chapter) return;
-    setPassage(null);
+    let cancelled = false;
+    setChapterPassage(null);
+    setRangePassage(null);
+    setEndChapterPassage(null);
     api
       .bibleChapter(translation, bookNumber, chapter)
       .then((result) => {
-        setPassage(result.passage);
+        if (cancelled) return;
+        setChapterPassage(result.passage);
         const first = result.passage.verses[0]?.number ?? 1;
         const last = result.passage.verses[result.passage.verses.length - 1]?.number ?? first;
         setFrom(first);
         setTo(last);
+        setToChapter(chapter + 1);
+        setToVerse(last);
       })
       .catch((error) => {
+        if (cancelled) return;
         notify(error instanceof ApiError ? error.message : "Could not load passage", "error");
       });
+    return () => {
+      cancelled = true;
+    };
   }, [translation, bookNumber, chapter]);
 
+  useEffect(() => {
+    if (!multiChapter || !translation || !bookNumber || !toChapter) {
+      setEndChapterPassage(null);
+      return;
+    }
+    let cancelled = false;
+    api
+      .bibleChapter(translation, bookNumber, toChapter)
+      .then((result) => {
+        if (cancelled) return;
+        setEndChapterPassage(result.passage);
+        const first = result.passage.verses[0]?.number ?? 1;
+        const last = result.passage.verses[result.passage.verses.length - 1]?.number ?? first;
+        setToVerse((current) =>
+          current >= first && current <= last ? current : last,
+        );
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        notify(error instanceof ApiError ? error.message : "Could not load end chapter", "error");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [multiChapter, translation, bookNumber, toChapter]);
+
+  useEffect(() => {
+    if (
+      !multiChapter ||
+      !translation ||
+      !bookNumber ||
+      !chapter ||
+      !toChapter ||
+      !endChapterPassage ||
+      endChapterPassage.chapter !== toChapter
+    ) {
+      setRangePassage(null);
+      return;
+    }
+    let cancelled = false;
+    api
+      .biblePassage(translation, bookNumber, chapter, from, toVerse, toChapter)
+      .then((result) => {
+        if (!cancelled) setRangePassage(result.passage);
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        notify(error instanceof ApiError ? error.message : "Could not load passage range", "error");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    multiChapter,
+    translation,
+    bookNumber,
+    chapter,
+    from,
+    toChapter,
+    toVerse,
+    endChapterPassage,
+  ]);
+
   const book = books.find((candidate) => candidate.number === bookNumber);
+  const endVerse = typeof to === "number" ? to : toVerse;
 
   const verses = useMemo(() => {
-    if (!passage) return [];
-    return passage.verses.filter((verse) => verse.number >= from && verse.number <= to);
-  }, [passage, from, to]);
+    if (multiChapter) return rangePassage?.verses ?? [];
+    if (!chapterPassage) return [];
+    return chapterPassage.verses.filter(
+      (verse) => verse.number >= from && verse.number <= endVerse,
+    );
+  }, [multiChapter, rangePassage, chapterPassage, from, endVerse]);
+
+  const chapterGroups = useMemo(() => {
+    const groups: Array<{ chapter: number; verses: BibleVerse[] }> = [];
+    for (const verse of verses) {
+      const number = verse.chapter ?? chapterPassage?.chapter ?? chapter;
+      let group = groups.find((entry) => entry.chapter === number);
+      if (!group) {
+        group = { chapter: number, verses: [] };
+        groups.push(group);
+      }
+      group.verses.push(verse);
+    }
+    return groups;
+  }, [verses, chapterPassage, chapter]);
 
   function reference() {
-    if (!passage) return "";
-    return `${passage.bookName} ${passage.chapter}:${from}${
-      to !== from ? `–${to}` : ""
-    } (${passage.translationName})`;
+    const active = multiChapter ? rangePassage ?? chapterPassage : chapterPassage;
+    if (!active) return "";
+    if (multiChapter) {
+      return `${active.bookName} ${active.chapter}:${from}–${toChapter}:${toVerse} (${active.translationName})`;
+    }
+    return `${active.bookName} ${active.chapter}:${from}${
+      endVerse !== from ? `–${endVerse}` : ""
+    } (${active.translationName})`;
+  }
+
+  function selectedText(verseNumbers = false) {
+    if (!chapterGroups.length) return "";
+    return chapterGroups
+      .map((group) => {
+        const text = formatBibleVerses(group.verses, layout, { verseNumbers });
+        return chapterGroups.length > 1
+          ? `${chapterPassage?.bookName ?? "Chapter"} ${group.chapter}\n${text}`
+          : text;
+      })
+      .join("\n\n");
   }
 
   function passageBody(verseNumbers = false) {
-    if (!verses.length) return "";
-    const text = formatBibleVerses(verses, layout, { verseNumbers });
+    const text = selectedText(verseNumbers);
+    if (!text) return "";
     return includeReference ? `${reference()}\n${text}` : text;
   }
 
@@ -230,7 +343,7 @@ export default function BiblePage({
           <label className="bible-field-from">
             From
             <select value={from} onChange={(event) => setFrom(Number(event.target.value))}>
-              {(passage?.verses ?? []).map((verse) => (
+              {(chapterPassage?.verses ?? []).map((verse) => (
                 <option key={verse.number} value={verse.number}>
                   {verse.number}
                 </option>
@@ -239,14 +352,67 @@ export default function BiblePage({
           </label>
           <label className="bible-field-to">
             To
-            <select value={to} onChange={(event) => setTo(Number(event.target.value))}>
-              {(passage?.verses ?? []).map((verse) => (
+            <select
+              value={to}
+              onChange={(event) => {
+                const value = event.target.value;
+                if (value === "more") {
+                  setTo("more");
+                  setToChapter(
+                    Math.min(
+                      chapter + 1,
+                      Math.max(1, book?.chapters ?? chapter + 1),
+                    ),
+                  );
+                  setToVerse(1);
+                  return;
+                }
+                setTo(Number(value));
+              }}
+            >
+              {(chapterPassage?.verses ?? []).map((verse) => (
                 <option key={verse.number} value={verse.number}>
                   {verse.number}
                 </option>
               ))}
+              {book && chapter < book.chapters && (
+                <option value="more">&lt;More&gt;</option>
+              )}
             </select>
           </label>
+          {multiChapter && (
+            <div className="bible-more-fields">
+              <label>
+                To chapter
+                <select
+                  value={toChapter}
+                  onChange={(event) => setToChapter(Number(event.target.value))}
+                >
+                  {Array.from(
+                    { length: Math.max(0, (book?.chapters ?? chapter) - chapter) },
+                    (_, index) => chapter + 1 + index,
+                  ).map((number) => (
+                    <option key={number} value={number}>
+                      {number}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                To verse
+                <select
+                  value={toVerse}
+                  onChange={(event) => setToVerse(Number(event.target.value))}
+                >
+                  {(endChapterPassage?.verses ?? []).map((verse) => (
+                    <option key={verse.number} value={verse.number}>
+                      {verse.number}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+          )}
         </div>
 
         <div className="bible-actions">
@@ -282,7 +448,7 @@ export default function BiblePage({
               <button
                 className="button ghost"
                 onClick={() => {
-                  navigator.clipboard?.writeText(formatBibleVerses(verses, layout));
+                  navigator.clipboard?.writeText(selectedText());
                   notify("Passage copied");
                 }}
                 disabled={!verses.length}
@@ -321,28 +487,37 @@ export default function BiblePage({
 
       <section className="panel">
         <div className="panel-heading">
-          <h2>{passage ? reference() : "Passage"}</h2>
+          <h2>{chapterPassage ? reference() : "Passage"}</h2>
           <span className="muted">{verses.length} verses</span>
         </div>
-        {passage ? (
+        {chapterPassage ? (
           <div className={`bible-passage ${layout === "paragraph" ? "paragraph" : "verses"}`}>
-            {layout === "paragraph" ? (
-              <p>
-                {verses.map((verse) => (
-                  <span key={verse.number}>
-                    <sup>{verse.number}</sup>
-                    {verse.text}{" "}
-                  </span>
-                ))}
-              </p>
-            ) : (
-              verses.map((verse) => (
-                <p key={verse.number}>
-                  <sup>{verse.number}</sup>
-                  {verse.text}
-                </p>
-              ))
-            )}
+            {chapterGroups.map((group) => (
+              <div key={group.chapter} className="bible-chapter">
+                {chapterGroups.length > 1 && (
+                  <h3 className="bible-chapter-heading">
+                    {chapterPassage.bookName} {group.chapter}
+                  </h3>
+                )}
+                {layout === "paragraph" ? (
+                  <p>
+                    {group.verses.map((verse) => (
+                      <span key={`${group.chapter}:${verse.number}`}>
+                        <sup>{verse.number}</sup>
+                        {verse.text}{" "}
+                      </span>
+                    ))}
+                  </p>
+                ) : (
+                  group.verses.map((verse) => (
+                    <p key={`${group.chapter}:${verse.number}`}>
+                      <sup>{verse.number}</sup>
+                      {verse.text}
+                    </p>
+                  ))
+                )}
+              </div>
+            ))}
           </div>
         ) : (
           <p className="muted">Choose a chapter to load a passage.</p>

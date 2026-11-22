@@ -2260,6 +2260,7 @@ export interface BibleBook {
 export interface BibleVerse {
   number: number;
   text: string;
+  chapter?: number;
 }
 
 export interface BiblePassage {
@@ -2268,6 +2269,7 @@ export interface BiblePassage {
   book: number;
   bookName: string;
   chapter: number;
+  toChapter?: number;
   from: number;
   to: number;
   verses: BibleVerse[];

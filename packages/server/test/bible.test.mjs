@@ -9,6 +9,7 @@ import {
   cleanVerseText,
   getBooks,
   getPassage,
+  getPassageRange,
   listTranslations,
   loadBibleCatalog,
   setBibleShortNames,
@@ -53,6 +54,8 @@ test("loads MyBible, BibleDb and JSON schemas", () => {
     INSERT INTO book VALUES (1, 1, 1, 'Genesis'), (2, 2, 1, 'Exodus');
     INSERT INTO verse VALUES (1, 1, 1, 1, 'In the beginning &amp; <i>God</i>');
     INSERT INTO verse VALUES (2, 1, 1, 2, 'The earth was formless');
+    INSERT INTO verse VALUES (3, 1, 2, 1, 'Second chapter first');
+    INSERT INTO verse VALUES (4, 1, 2, 2, 'Second chapter second');
     INSERT INTO metadata VALUES ('name', 'TESTA'), ('copyright', '(C) Test A');
   `);
   a.close();
@@ -91,6 +94,19 @@ test("loads MyBible, BibleDb and JSON schemas", () => {
   const passage = getPassage("TESTA", 1, 1, 1, 2, catalog);
   assert.equal(passage?.verses.length, 2);
   assert.equal(passage?.verses[0].text, "In the beginning & God");
+
+  const range = getPassageRange("TESTA", 1, 1, 2, 2, 1, catalog);
+  assert.equal(range?.from, 2);
+  assert.equal(range?.to, 1);
+  assert.equal(range?.chapter, 1);
+  assert.equal(range?.toChapter, 2);
+  assert.deepEqual(
+    range?.verses.map((verse) => [verse.chapter, verse.number, verse.text]),
+    [
+      [1, 2, "The earth was formless"],
+      [2, 1, "Second chapter first"],
+    ],
+  );
 
   const study = getPassage("TESTB", 1, 1, undefined, undefined, catalog);
   assert.equal(study?.verses[0].text, "In the beginning");

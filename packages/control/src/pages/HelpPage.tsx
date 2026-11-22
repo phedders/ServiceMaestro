@@ -447,9 +447,11 @@ export default function HelpPage({ onOpenSettings }: { onOpenSettings: () => voi
             <h3>{churchSuiteEnabled ? "Bible and ChurchSuite" : "Bible"}</h3>
             <ul className="help-list">
               <li>
-                Choose a translation, book, chapter and verse range. <strong>Include reference</strong>
-                adds the citation to the text. The default translation is selected under{" "}
-                <strong>Settings → Bible</strong>.
+                Choose a translation, book, chapter and verse range. Select{" "}
+                <strong>&lt;More&gt;</strong> in the <strong>To</strong> field to continue into
+                following chapters; <strong>To chapter</strong> and <strong>To verse</strong> set
+                the end of the range. <strong>Include reference</strong> adds the citation to the
+                text. The default translation is selected under <strong>Settings → Bible</strong>.
               </li>
               <li>
                 <strong>Layout</strong> chooses <strong>Paragraph</strong> or{" "}
@@ -459,7 +461,7 @@ export default function HelpPage({ onOpenSettings }: { onOpenSettings: () => voi
               </li>
               <li>
                 <strong>Add to current setlist</strong> saves the passage; <strong>Add to live
-                session</strong> displays it now without saving.
+                page queue</strong> appends it to the live queue without saving.
               </li>
               {churchSuiteEnabled && (
                 <>

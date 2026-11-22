@@ -3,7 +3,7 @@ import { requireAuth, requirePermission } from "../auth.js";
 import {
   getBooks,
   getChapter,
-  getPassage,
+  getPassageRange,
   listTranslations,
   reloadBibleCatalog,
 } from "../bible.js";
@@ -43,6 +43,7 @@ export async function bibleRoutes(app: FastifyInstance): Promise<void> {
       translation?: string;
       book?: string;
       chapter?: string;
+      toChapter?: string;
       from?: string;
       to?: string;
     };
@@ -51,9 +52,17 @@ export async function bibleRoutes(app: FastifyInstance): Promise<void> {
     if (!query.translation || !book || !chapter) {
       return reply.code(400).send({ error: "translation, book and chapter are required" });
     }
+    const toChapter = query.toChapter ? int(query.toChapter) : undefined;
     const from = query.from ? int(query.from) : undefined;
     const to = query.to ? int(query.to) : undefined;
-    const passage = getPassage(query.translation, book, chapter, from ?? undefined, to ?? undefined);
+    const passage = getPassageRange(
+      query.translation,
+      book,
+      chapter,
+      from ?? undefined,
+      toChapter ?? undefined,
+      to ?? undefined,
+    );
     if (!passage) return reply.code(404).send({ error: "Passage not found" });
     return { passage };
   });
