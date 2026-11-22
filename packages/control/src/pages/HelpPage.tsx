@@ -14,6 +14,7 @@ const QUICK_LINKS = [
   { id: "setlists", label: "Set lists" },
   { id: "items", label: "Songs, text & images" },
   { id: "outputs", label: "Outputs / OBS" },
+  { id: "tools", label: "More tools" },
   { id: "shortcuts", label: "Shortcuts" },
   { id: "troubleshooting", label: "Troubleshooting" },
 ];
@@ -523,6 +524,97 @@ export default function HelpPage({ onOpenSettings }: { onOpenSettings: () => voi
               </ul>
             </article>
           )}
+        </div>
+      </section>
+
+      <section id="tools" className="panel help-section">
+        <div className="panel-heading">
+          <div>
+            <h2>More tools</h2>
+            <p className="muted">Utilities for content upkeep, hardware and special services.</p>
+          </div>
+        </div>
+        <div className="help-grid">
+          <article className="help-card">
+            <h3>Tarp presentations</h3>
+            <ul className="help-list">
+              <li>
+                <strong>Menu → Experimental → Tarp</strong> builds reusable animated pages with
+                separate normal and lower-third layouts, themes, transitions and object timings.
+              </li>
+              <li>
+                A set-list <strong>Tarp</strong> item references a presentation. Editing the
+                presentation does not affect a running service until the set list is published and
+                applied.
+              </li>
+              <li>
+                Archived presentations stay available to existing set-list items and can be
+                restored from <strong>Menu → Archives</strong>.
+              </li>
+            </ul>
+          </article>
+
+          <article className="help-card">
+            <h3>USB clicker</h3>
+            <ul className="help-list">
+              <li>
+                <strong>Menu → Experimental → Clicker</strong> captures keys from a USB presentation
+                remote and maps them to page, item, blank, transpose or line-count actions.
+              </li>
+              <li>
+                Mappings are saved per user. Use <strong>Enable clicker on this page for testing</strong>
+                to verify the remote before a service; normal keyboard keys can also trigger the
+                mapping while that test mode is active.
+              </li>
+            </ul>
+          </article>
+
+          <article className="help-card">
+            <h3>External presentations</h3>
+            <ul className="help-list">
+              <li>
+                <strong>Menu → Experimental → Presentations</strong> saves public HTTPS embed links
+                for Canva, Google Slides, PowerPoint or other iframe-friendly providers.
+              </li>
+              <li>
+                <strong>Show live</strong> displays the selected embed as a temporary presentation
+                page. Click inside the frame before using the keyboard or clicker.
+              </li>
+              <li>
+                Private SharePoint/OneDrive links often block embedding; open those in a new window
+                and sign in there instead.
+              </li>
+            </ul>
+          </article>
+
+          <article className="help-card">
+            <h3>Archives and duplicates</h3>
+            <ul className="help-list">
+              <li>
+                <strong>Menu → Archives</strong> restores or permanently deletes archived songs, set
+                lists and Tarp presentations. Archived songs still work in existing set-list
+                snapshots.
+              </li>
+              <li>
+                <strong>Menu → DeDupe</strong> groups likely duplicate songs, compares metadata and
+                lyric differences, and lets you keep the preferred version before removing others.
+              </li>
+            </ul>
+          </article>
+
+          <article className="help-card">
+            <h3>Users and permissions</h3>
+            <ul className="help-list">
+              <li>
+                <strong>Menu → Users</strong> is available to administrators. Set a role and
+                per-module write permissions, reset passwords, and review the activity log.
+              </li>
+              <li>
+                Each user can register passkeys and save personal SongSelect, Clicker and
+                Presentation settings without changing another operator’s setup.
+              </li>
+            </ul>
+          </article>
         </div>
       </section>
 

@@ -245,6 +245,7 @@ Git; see [Git-backed shared data](docs/11-git-data-sync.md).
 | MQTT bridge | [docs/16-mqtt.md](docs/16-mqtt.md) |
 | USB clicker remotes | [docs/17-clicker.md](docs/17-clicker.md) |
 | External presentations | [docs/18-external-presentations.md](docs/18-external-presentations.md) |
+| Archives, duplicates and users | [docs/23-utility-pages.md](docs/23-utility-pages.md) |
 | WebSocket API | [docs/19-websockets.md](docs/19-websockets.md) |
 | Shell CLI | [docs/20-cli.md](docs/20-cli.md) |
 | Windows/macOS desktop packages | [docs/21-desktop.md](docs/21-desktop.md) |
