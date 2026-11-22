@@ -186,7 +186,13 @@ export default function BiblePage({
         <div className="bible-controls">
           <label className="bible-field-translation">
             Translation
-            <select value={translation} onChange={(event) => setTranslation(event.target.value)}>
+            <select
+              value={translation}
+              onChange={(event) => setTranslation(event.target.value)}
+              title={
+                translations.find((item) => item.code === translation)?.shortName ?? undefined
+              }
+            >
               {translations.map((item) => (
                 <option key={item.code} value={item.code} title={item.name}>
                   {item.shortName} — {item.books} books / {item.verses.toLocaleString()} verses
@@ -202,6 +208,7 @@ export default function BiblePage({
                 setBookNumber(Number(event.target.value));
                 setChapter(1);
               }}
+              title={book?.name}
             >
               {books.map((item) => (
                 <option key={item.number} value={item.number}>
