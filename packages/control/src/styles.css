@@ -1678,24 +1678,49 @@ body.resizing-live-queue {
   margin-top: 10px;
 }
 
-.display-config-grid {
+.display-config-sections {
   display: grid;
-  grid-template-columns: 1.8fr 1fr 1.5fr 0.8fr 0.8fr;
-  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.display-config-section {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.012);
+}
+
+.display-config-section.display-config-wide {
+  grid-column: 1 / -1;
+}
+
+.display-config-section h3 {
+  font-size: 0.92rem;
+  margin: 0;
+}
+
+.display-config-section .muted {
+  margin: 3px 0 0;
+}
+
+.display-config-section .hint {
+  margin: 0;
+}
+
+.display-config-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 12px;
   align-items: end;
 }
 
-.display-background-settings {
+.display-config-fields .smart-split-field,
+.display-config-fields .smart-wrap-modules {
   grid-column: 1 / -1;
-  display: grid;
-  gap: 10px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--border);
-}
-
-.display-background-settings h3 {
-  font-size: 0.92rem;
-  margin-bottom: 3px;
 }
 
 .display-background-grid {
@@ -1714,36 +1739,18 @@ body.resizing-live-queue {
   flex: 1 1 340px;
 }
 
-.display-config-grid input[type="color"] {
+.display-config-sections input[type="color"] {
   height: 38px;
   padding: 3px;
 }
 
-.display-config-grid input[type="range"] {
+.display-config-sections input[type="range"] {
   padding: 0;
-}
-.queue-defaults {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  gap: 10px 14px;
-  margin-top: 14px;
-  padding-top: 14px;
-  border-top: 1px solid var(--border);
-}
-
-.queue-defaults label {
-  flex: 0 0 180px;
-}
-
-.queue-defaults .hint {
-  flex: 1 1 360px;
-  margin: 0;
 }
 
 @media (max-width: 900px) {
-  .display-config-grid {
-    grid-template-columns: 1fr 1fr;
+  .display-config-sections {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -6552,8 +6559,8 @@ body.resizing-live-queue {
     grid-template-columns: 1fr;
   }
 
-  .display-config-grid {
-    grid-template-columns: 1fr 1fr;
+  .display-config-fields {
+    grid-template-columns: 1fr;
   }
 }
 

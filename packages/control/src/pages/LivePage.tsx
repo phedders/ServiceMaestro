@@ -685,10 +685,10 @@ export default function LivePage({
             title="Save and broadcast the display style/page-splitting settings"
           />
         </div>
-        <div className="display-config-grid">
-          <div className="display-background-settings">
+        <div className="display-config-sections">
+          <section className="display-config-section display-config-wide">
             <div>
-              <h3>Background</h3>
+              <h3>Global background</h3>
               <p className="muted">
                 Global background for outputs when the set list or item does not specify one.
               </p>
@@ -842,207 +842,236 @@ export default function LivePage({
               Set-list and item backgrounds take precedence. Images are stretched to cover the
               output without changing their aspect ratio.
             </p>
-          </div>
-          <label>
-            Global font
-            <FontSelect
-              value={displayConfig.fontFamily}
-              fonts={fonts}
-              onChange={(fontFamily) => setDisplayConfig({ ...displayConfig, fontFamily })}
-              title="Choose the global display font"
-            />
-          </label>
-          <label>
-            Text colour
-            <input
-              type="color"
-              value={displayConfig.textColor}
-              onChange={(event) => setDisplayConfig({ ...displayConfig, textColor: event.target.value })}
-            />
-          </label>
-          <label>
-            Global text size · {Math.round(displayConfig.textScale * 100)}%
-            <input
-              type="range"
-              min={50}
-              max={200}
-              step={5}
-              value={displayConfig.textScale * 100}
-              onChange={(event) =>
-                setDisplayConfig({ ...displayConfig, textScale: Number(event.target.value) / 100 })
-              }
-            />
-          </label>
-          <label>
-            Font size units
-            <select
-              value={displayConfig.fontSizeUnit}
-              onChange={(event) =>
-                setDisplayConfig({
-                  ...displayConfig,
-                  fontSizeUnit: event.target.value as DisplayConfig["fontSizeUnit"],
-                })
-              }
-              title="Choose how display text sizes scale with the output screen"
-            >
-              <option value="responsive">Responsive (rem/vw clamp)</option>
-              <option value="vmin">vmin (shortest screen edge)</option>
-            </select>
-          </label>
-          <label>
-            Lower-third font
-            <FontSelect
-              value={displayConfig.lowerThirdFontFamily}
-              fonts={fonts}
-              onChange={(lowerThirdFontFamily) =>
-                setDisplayConfig({ ...displayConfig, lowerThirdFontFamily })
-              }
-              title="Choose the lower-third display font"
-            />
-          </label>
-          <label>
-            Lower-third text size · {Math.round(displayConfig.lowerThirdTextScale * 100)}%
-            <input
-              type="range"
-              min={50}
-              max={200}
-              step={5}
-              value={displayConfig.lowerThirdTextScale * 100}
-              onChange={(event) =>
-                setDisplayConfig({
-                  ...displayConfig,
-                  lowerThirdTextScale: Number(event.target.value) / 100,
-                })
-              }
-            />
-          </label>
-          <label>
-            Max words / page
-            <input
-              type="number"
-              min={1}
-              max={500}
-              value={displayConfig.maxWords}
-              onChange={(event) =>
-                setDisplayConfig({ ...displayConfig, maxWords: Number(event.target.value) || 90 })
-              }
-            />
-          </label>
-          <label>
-            Smart wrap minimum words
-            <input
-              type="number"
-              min={1}
-              max={100}
-              value={displayConfig.smartWrapMinWords}
-              onChange={(event) =>
-                setDisplayConfig({
-                  ...displayConfig,
-                  smartWrapMinWords: Math.max(
-                    1,
-                    Math.min(100, Number(event.target.value) || 15),
-                  ),
-                })
-              }
-            />
-          </label>
-          <div className="smart-wrap-modules">
-            <span className="field-label">Server smart wrap applies to</span>
-            <div className="button-row">
-              {(
-                [
-                  ["songs", "Songs"],
-                  ["text", "Text"],
-                  ["bible", "Bible"],
-                ] as const
-              ).map(([module, label]) => (
-                <label key={module} className="checkbox">
-                  <input
-                    type="checkbox"
-                    checked={displayConfig.smartWrapModules.includes(module)}
-                    onChange={(event) => toggleSmartWrapModule(module, event.target.checked)}
-                  />
-                  {label}
-                </label>
-              ))}
+          </section>
+
+          <section className="display-config-section">
+            <h3>Global</h3>
+            <div className="display-config-fields">
+              <label>
+                Global font
+                <FontSelect
+                  value={displayConfig.fontFamily}
+                  fonts={fonts}
+                  onChange={(fontFamily) => setDisplayConfig({ ...displayConfig, fontFamily })}
+                  title="Choose the global display font"
+                />
+              </label>
+              <label>
+                Global text size · {Math.round(displayConfig.textScale * 100)}%
+                <input
+                  type="range"
+                  min={50}
+                  max={200}
+                  step={5}
+                  value={displayConfig.textScale * 100}
+                  onChange={(event) =>
+                    setDisplayConfig({
+                      ...displayConfig,
+                      textScale: Number(event.target.value) / 100,
+                    })
+                  }
+                />
+              </label>
+              <label>
+                Text colour
+                <input
+                  type="color"
+                  value={displayConfig.textColor}
+                  onChange={(event) =>
+                    setDisplayConfig({ ...displayConfig, textColor: event.target.value })
+                  }
+                />
+              </label>
+              <label>
+                Font size units
+                <select
+                  value={displayConfig.fontSizeUnit}
+                  onChange={(event) =>
+                    setDisplayConfig({
+                      ...displayConfig,
+                      fontSizeUnit: event.target.value as DisplayConfig["fontSizeUnit"],
+                    })
+                  }
+                  title="Choose how display text sizes scale with the output screen"
+                >
+                  <option value="responsive">Responsive (rem/vw clamp)</option>
+                  <option value="vmin">vmin (shortest screen edge)</option>
+                </select>
+              </label>
             </div>
-          </div>
-          <label>
-            Lower-third image max height · {displayConfig.lowerThirdImageMaxHeightPercent}%
-            <input
-              type="range"
-              min={5}
-              max={80}
-              step={1}
-              value={displayConfig.lowerThirdImageMaxHeightPercent}
-              onChange={(event) =>
-                setDisplayConfig({
-                  ...displayConfig,
-                  lowerThirdImageMaxHeightPercent: Number(event.target.value),
-                })
-              }
-            />
-          </label>
-          <label>
-            Lower-third border padding · {displayConfig.lowerThirdImagePadding}px
-            <input
-              type="number"
-              min={0}
-              max={200}
-              value={displayConfig.lowerThirdImagePadding}
-              onChange={(event) =>
-                setDisplayConfig({
-                  ...displayConfig,
-                  lowerThirdImagePadding: Math.round(Math.max(0, Number(event.target.value) || 0)),
-                })
-              }
-            />
-          </label>
-          <label className="checkbox smart-split-field">
-            <input
-              type="checkbox"
-              checked={displayConfig.smartPageSplits}
-              onChange={(event) =>
-                setDisplayConfig({ ...displayConfig, smartPageSplits: event.target.checked })
-              }
-            />
-            <span>
-              Smart page splits
-              <small>
-                Estimate 1080p coverage from font size and words. Pages break on whichever limit is
-                reached first. Server smart wrap splits selected modules only when a line reaches
-                the minimum word count; shorter lines are wrapped by the browser.
-              </small>
-            </span>
-          </label>
-        </div>
-        <p className="hint">
-          Lower-third font and text size are independent of the global settings. Text and images are
-          anchored to the bottom with the configured border padding. Images keep their original
-          aspect ratio and are never stretched; their maximum height is a percentage of the screen,
-          reduced by that padding. Font size units apply to all display templates: responsive keeps
-          the existing rem/vw clamps, while vmin scales text from the shortest screen edge for more
-          predictable portrait and ultrawide layouts.
-        </p>
-        <div className="queue-defaults">
-          <label>
-            Default lines / page
-            <input
-              type="number"
-              min={1}
-              max={20}
-              value={displayConfig.maxLines}
-              onChange={(event) =>
-                setDisplayConfig({ ...displayConfig, maxLines: Number(event.target.value) || 4 })
-              }
-            />
-          </label>
-          <p className="hint">
-            Used when a set-list item without its own <strong>Lines / page</strong> setting is
-            loaded. Changing the Transport <strong>Lines/page</strong> control stores that value on
-            the current item and marks the current page out of date until you reselect a page; this
-            default remains the fallback.
-          </p>
+            <p className="hint">
+              Font size units apply to all display templates. Responsive keeps the existing rem/vw
+              clamps, while vmin scales text from the shortest screen edge for more predictable
+              portrait and ultrawide layouts.
+            </p>
+          </section>
+
+          <section className="display-config-section">
+            <h3>Lower-third</h3>
+            <div className="display-config-fields">
+              <label>
+                Lower-third font
+                <FontSelect
+                  value={displayConfig.lowerThirdFontFamily}
+                  fonts={fonts}
+                  onChange={(lowerThirdFontFamily) =>
+                    setDisplayConfig({ ...displayConfig, lowerThirdFontFamily })
+                  }
+                  title="Choose the lower-third display font"
+                />
+              </label>
+              <label>
+                Lower-third text size · {Math.round(displayConfig.lowerThirdTextScale * 100)}%
+                <input
+                  type="range"
+                  min={50}
+                  max={200}
+                  step={5}
+                  value={displayConfig.lowerThirdTextScale * 100}
+                  onChange={(event) =>
+                    setDisplayConfig({
+                      ...displayConfig,
+                      lowerThirdTextScale: Number(event.target.value) / 100,
+                    })
+                  }
+                />
+              </label>
+              <label>
+                Lower-third image max height · {displayConfig.lowerThirdImageMaxHeightPercent}%
+                <input
+                  type="range"
+                  min={5}
+                  max={80}
+                  step={1}
+                  value={displayConfig.lowerThirdImageMaxHeightPercent}
+                  onChange={(event) =>
+                    setDisplayConfig({
+                      ...displayConfig,
+                      lowerThirdImageMaxHeightPercent: Number(event.target.value),
+                    })
+                  }
+                />
+              </label>
+              <label>
+                Lower-third border padding · {displayConfig.lowerThirdImagePadding}px
+                <input
+                  type="number"
+                  min={0}
+                  max={200}
+                  value={displayConfig.lowerThirdImagePadding}
+                  onChange={(event) =>
+                    setDisplayConfig({
+                      ...displayConfig,
+                      lowerThirdImagePadding: Math.round(
+                        Math.max(0, Number(event.target.value) || 0),
+                      ),
+                    })
+                  }
+                />
+              </label>
+            </div>
+            <p className="hint">
+              Lower-third font and text size are independent of the global settings. Text and
+              images are anchored to the bottom with the configured border padding. Images keep
+              their original aspect ratio and are never stretched; their maximum height is a
+              percentage of the screen, reduced by that padding.
+            </p>
+          </section>
+
+          <section className="display-config-section display-config-wide">
+            <h3>Page layout</h3>
+            <div className="display-config-fields">
+              <label>
+                Default lines / page
+                <input
+                  type="number"
+                  min={1}
+                  max={20}
+                  value={displayConfig.maxLines}
+                  onChange={(event) =>
+                    setDisplayConfig({ ...displayConfig, maxLines: Number(event.target.value) || 4 })
+                  }
+                />
+              </label>
+              <label>
+                Max words / page
+                <input
+                  type="number"
+                  min={1}
+                  max={500}
+                  value={displayConfig.maxWords}
+                  onChange={(event) =>
+                    setDisplayConfig({ ...displayConfig, maxWords: Number(event.target.value) || 90 })
+                  }
+                />
+              </label>
+              <label>
+                Smart wrap minimum words
+                <input
+                  type="number"
+                  min={1}
+                  max={100}
+                  value={displayConfig.smartWrapMinWords}
+                  onChange={(event) =>
+                    setDisplayConfig({
+                      ...displayConfig,
+                      smartWrapMinWords: Math.max(
+                        1,
+                        Math.min(100, Number(event.target.value) || 15),
+                      ),
+                    })
+                  }
+                />
+              </label>
+              <label className="checkbox smart-split-field">
+                <input
+                  type="checkbox"
+                  checked={displayConfig.smartPageSplits}
+                  onChange={(event) =>
+                    setDisplayConfig({ ...displayConfig, smartPageSplits: event.target.checked })
+                  }
+                />
+                <span>
+                  Smart page splits
+                  <small>
+                    Estimate 1080p coverage from font size and words. Pages break on whichever
+                    limit is reached first. Server smart wrap splits selected modules only when a
+                    line reaches the minimum word count; shorter lines are wrapped by the browser.
+                  </small>
+                </span>
+              </label>
+              <div className="smart-wrap-modules">
+                <span className="field-label">Server smart wrap applies to</span>
+                <div className="button-row">
+                  {(
+                    [
+                      ["songs", "Songs"],
+                      ["text", "Text"],
+                      ["bible", "Bible"],
+                    ] as const
+                  ).map(([module, label]) => (
+                    <label key={module} className="checkbox">
+                      <input
+                        type="checkbox"
+                        checked={displayConfig.smartWrapModules.includes(module)}
+                        onChange={(event) =>
+                          toggleSmartWrapModule(module, event.target.checked)
+                        }
+                      />
+                      {label}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <p className="hint">
+              Default lines / page is used when a set-list item without its own{" "}
+              <strong>Lines / page</strong> setting is loaded. Changing the Transport{" "}
+              <strong>Lines/page</strong> control stores that value on the current item and marks
+              the current page out of date until you reselect a page; this default remains the
+              fallback.
+            </p>
+          </section>
         </div>
       </ReadOnlyFieldset>
 
