@@ -1395,6 +1395,14 @@ body.resizing-live-queue {
   overflow: auto;
 }
 
+.page-row-wrap {
+  position: relative;
+}
+
+.page-row {
+  width: 100%;
+}
+
 .page-row,
 .item-row {
   position: relative;
@@ -1481,18 +1489,46 @@ body.resizing-live-queue {
   background: var(--accent-soft);
 }
 
+.page-row.has-edit,
 .page-row.stale {
-  padding-right: 34px;
+  padding-right: 66px;
 }
 
 .page-stale-icon {
   position: absolute;
   top: 7px;
-  right: 9px;
+  right: 38px;
   color: var(--warning);
   font-size: 1rem;
   font-weight: 700;
   line-height: 1;
+}
+
+.page-edit {
+  position: absolute;
+  top: 7px;
+  right: 9px;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--panel);
+  color: var(--accent);
+  font-size: 0.78rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.page-edit:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.page-edit:disabled {
+  color: var(--muted);
+  opacity: 0.45;
+  cursor: default;
 }
 
 .page-number {
@@ -6839,6 +6875,63 @@ body.resizing-live-queue {
 
 .song-edit-modal {
   width: min(1040px, 96vw);
+}
+
+.page-edit-modal {
+  width: min(920px, 96vw);
+}
+
+.page-edit-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.page-edit-tabs {
+  display: flex;
+  gap: 6px;
+}
+
+.page-edit-source {
+  width: 100%;
+  min-height: 260px;
+  resize: vertical;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.page-edit-rendered-wrap {
+  min-height: 260px;
+  max-height: 48vh;
+  overflow: auto;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background:
+    radial-gradient(circle at 50% 20%, rgba(76, 194, 255, 0.08), transparent 55%),
+    #05080d;
+}
+
+.page-edit-rendered {
+  width: 100%;
+  max-width: 760px;
+  font-size: 1.2rem;
+}
+
+.page-edit-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+  border-top: 1px solid var(--border);
+  padding-top: 14px;
 }
 
 .chordpro-update-modal {

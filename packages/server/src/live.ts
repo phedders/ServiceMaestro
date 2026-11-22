@@ -15,12 +15,13 @@ import type {
   LiveAutoplaySettings,
   LiveAutoplayState,
   LiveState,
+  PageOverride,
   SetlistRevisionInfo,
   Song,
   TextFormat,
 } from "@sm/shared";
 import { db } from "./db.js";
-import { buildPages, type RenderItem } from "./render.js";
+import { buildPages, renderPageSource, type RenderItem } from "./render.js";
 import { resolveTemplates } from "./templates.js";
 import { displayOutputsMap } from "./display-outputs.js";
 import { getDisplayConfig } from "./display-config.js";
@@ -30,6 +31,7 @@ import { getBackground } from "./backgrounds.js";
 import { renderDisplayBackground } from "./display-background.js";
 import { getStinger } from "./stingers.js";
 import { renderTarpPages } from "./tarp-render.js";
+import { parsePageOverrides } from "./page-overrides.js";
 
 interface SnapshotItem extends RenderItem {
   itemId: string | null;
@@ -38,6 +40,8 @@ interface SnapshotItem extends RenderItem {
   backgroundId?: string | null;
   stingerId?: string | null;
   stingerPageOverrides?: Record<string, string>;
+  pageOverrides?: Record<string, PageOverride>;
+  sourcePageOverrides?: Record<string, PageOverride>;
   notes: string | null;
 }
 
@@ -59,6 +63,7 @@ interface SessionRecord {
   pending: PendingUpdate | null;
   state: LiveState;
   autoplayDirection: 1 | -1;
+  queuePageOverrides?: Record<string, Record<string, PageOverride>>;
 }
 
 function now(): string {
@@ -85,6 +90,8 @@ export function idleState(): LiveState {
     pageIndex: 0,
     pageCount: 0,
     pagesOutOfDate: false,
+    outOfDatePages: [],
+    queuedOutOfDatePages: [],
     stagePreview: false,
     mode: "idle",
     title: "",
@@ -159,12 +166,13 @@ function resolveSetlistItems(setlistId: string): { name: string; items: Snapshot
     max_lines_override: number | null;
     verse_order: string | null;
     notes: string | null;
+    page_overrides_json: string | null;
   }>;
 
   const items: SnapshotItem[] = rows.map((row) => {
     if (row.kind === "song" && row.song_id) {
       const song = db.prepare("SELECT * FROM songs WHERE id = ?").get(row.song_id) as
-        | (Song & { lyrics_markdown: number })
+        | (Song & { lyrics_markdown: number; page_overrides_json?: string | null })
         | undefined;
       return {
         kind: "song",
@@ -180,6 +188,8 @@ function resolveSetlistItems(setlistId: string): { name: string; items: Snapshot
         maxLines: row.max_lines,
         maxLinesOverride: row.max_lines_override ?? null,
         verseOrder: row.verse_order ?? song?.verseOrder ?? null,
+        pageOverrides: parsePageOverrides(row.page_overrides_json),
+        sourcePageOverrides: parsePageOverrides(song?.page_overrides_json),
         notes: row.notes,
       };
     }
@@ -194,6 +204,7 @@ function resolveSetlistItems(setlistId: string): { name: string; items: Snapshot
         maxLines: row.max_lines,
         maxLinesOverride: row.max_lines_override ?? null,
         verseOrder: null,
+        pageOverrides: parsePageOverrides(row.page_overrides_json),
         notes: row.notes,
       };
     }
@@ -212,6 +223,7 @@ function resolveSetlistItems(setlistId: string): { name: string; items: Snapshot
         maxLines: row.max_lines,
         maxLinesOverride: row.max_lines_override ?? null,
         verseOrder: null,
+        pageOverrides: parsePageOverrides(row.page_overrides_json),
         notes: row.notes,
       };
     }
@@ -227,6 +239,7 @@ function resolveSetlistItems(setlistId: string): { name: string; items: Snapshot
       maxLines: row.max_lines,
       maxLinesOverride: row.max_lines_override ?? null,
       verseOrder: null,
+      pageOverrides: parsePageOverrides(row.page_overrides_json),
       notes: row.notes,
     };
   });
@@ -519,6 +532,8 @@ class LiveService {
       pageIndex: 0,
       pageCount: 0,
       pagesOutOfDate: false,
+      outOfDatePages: [],
+      queuedOutOfDatePages: [],
       stagePreview: false,
       mode: first.kind,
       title: first.title,
@@ -833,7 +848,7 @@ class LiveService {
       case "goto": {
         let selected = false;
         if (typeof command.pageIndex === "number") {
-          if (state.pagesOutOfDate) this.renderCurrent();
+          if (state.pagesOutOfDate || state.outOfDatePages?.length) this.renderCurrent();
           if (state.queuedItemIndex != null) {
             this.setItem(state.queuedItemIndex);
           }
@@ -878,13 +893,25 @@ class LiveService {
             queued.maxLinesOverride = value;
             state.queuedMaxLines = value;
             this.persistItemMaxLines(queued, value);
-            state.queuedPages = this.pagesFor(queued, value);
+            state.queuedPages = this.pagesFor(queued, value, state.queuedItemIndex);
+            state.queuedOutOfDatePages = [];
             break;
           }
         }
         state.maxLines = value;
         this.rememberItemMaxLines(value);
         state.pagesOutOfDate = true;
+        break;
+      }
+      case "editPage": {
+        this.editPage(
+          Number(command.itemIndex),
+          Number(command.pageIndex),
+          String(command.source ?? ""),
+          command.target === "setlist" || command.target === "source"
+            ? command.target
+            : "queue",
+        );
         break;
       }
       case "footer":
@@ -1002,7 +1029,11 @@ class LiveService {
   ): LiveState {
     if (!this.active) return idleState();
     const song = db.prepare("SELECT * FROM songs WHERE id = ?").get(songId) as
-      | (Song & { lyrics_markdown: number; verse_order: string | null })
+      | (Song & {
+          lyrics_markdown: number;
+          verse_order: string | null;
+          page_overrides_json?: string | null;
+        })
       | undefined;
     if (!song) throw new Error("Song not found");
     const record = this.active;
@@ -1018,6 +1049,7 @@ class LiveService {
       transpose: options.transpose ?? 0,
       maxLines: record.state.maxLines,
       verseOrder: options.verseOrder ?? song.verse_order,
+      sourcePageOverrides: parsePageOverrides(song.page_overrides_json),
       notes: null,
     };
     if (!record.transient) {
@@ -1126,6 +1158,8 @@ class LiveService {
     state.queuedTitle = null;
     state.queuedPages = [];
     state.queuedMaxLines = null;
+    state.queuedOutOfDatePages = [];
+    state.outOfDatePages = [];
     state.appendedItems = [];
     state.itemIndex = index;
     state.pageIndex = 0;
@@ -1153,7 +1187,8 @@ class LiveService {
       item,
       state.displayConfig ?? getDisplayConfig(),
     );
-    state.queuedPages = this.pagesFor(item, state.queuedMaxLines);
+    state.queuedPages = this.pagesFor(item, state.queuedMaxLines, index);
+    state.queuedOutOfDatePages = [];
   }
 
   private commitQueuedItem(): boolean {
@@ -1180,6 +1215,8 @@ class LiveService {
     state.queuedItemIndex = null;
     state.queuedTitle = null;
     state.queuedPages = [];
+    state.queuedOutOfDatePages = [];
+    state.outOfDatePages = [];
     state.appendedItems = [...(state.appendedItems ?? []), index];
     state.halfPageMode = false;
     state.halfPageOffset = 0;
@@ -1276,14 +1313,22 @@ class LiveService {
       record.state.pagesOutOfDate = false;
       return;
     }
-    const pages = this.pagesFor(item);
+    const pages = this.pagesFor(
+      item,
+      undefined,
+      record.transient ? -1 : record.state.itemIndex,
+    );
     const displayConfig = record.state.displayConfig ?? getDisplayConfig();
     const appendedPages = record.transient
       ? []
       : (record.state.appendedItems ?? []).flatMap((index) => {
           const appended = record.items[index];
           return appended
-            ? this.pagesFor(appended, resolveItemMaxLines(appended, displayConfig))
+            ? this.pagesFor(
+                appended,
+                resolveItemMaxLines(appended, displayConfig),
+                index,
+              )
             : [];
         });
     record.state.pages = [...pages, ...appendedPages].map((page, index) => ({
@@ -1308,13 +1353,151 @@ class LiveService {
         record.state.queuedPages = this.pagesFor(
           queued,
           record.state.queuedMaxLines,
+          record.state.queuedItemIndex ?? 0,
         );
       }
     }
     record.state.pagesOutOfDate = false;
+    record.state.outOfDatePages = [];
+    record.state.queuedOutOfDatePages = [];
   }
 
-  private pagesFor(item: SnapshotItem, maxLinesOverride?: number): LiveState["pages"] {
+  previewPageSource(
+    itemIndex: number,
+    source: string,
+  ): { html: string; section: string | null } {
+    const record = this.active;
+    if (!record) throw new Error("No live session");
+    const item = record.items[itemIndex];
+    if (!item) throw new Error("Item not found");
+    if (item.kind !== "song" && item.kind !== "text") {
+      throw new Error("This page cannot be edited here");
+    }
+    return renderPageSource(item, source, record.state.transpose);
+  }
+
+  private editPage(
+    itemIndex: number,
+    pageIndex: number,
+    source: string,
+    target: "queue" | "setlist" | "source",
+  ): void {
+    const record = this.active;
+    if (!record || !Number.isInteger(itemIndex) || itemIndex < 0) return;
+    if (!Number.isInteger(pageIndex) || pageIndex < 0) return;
+    const item = record.items[itemIndex];
+    if (!item) return;
+    if (item.kind !== "song" && item.kind !== "text") return;
+
+    const rendered = renderPageSource(item, source, record.state.transpose);
+    const override: PageOverride = {
+      source,
+      html: rendered.html,
+      section: rendered.section,
+      updatedAt: now(),
+    };
+    const key = String(pageIndex);
+    const isQueued =
+      record.state.queuedItemIndex != null &&
+      itemIndex === record.state.queuedItemIndex &&
+      itemIndex !== record.state.itemIndex;
+
+    if (target !== "queue") {
+      const queue = record.queuePageOverrides?.[String(itemIndex)];
+      if (queue) {
+        delete queue[key];
+        if (!Object.keys(queue).length) delete record.queuePageOverrides?.[String(itemIndex)];
+      }
+    }
+
+    if (target === "setlist") {
+      if (!item.itemId) return;
+      item.pageOverrides = { ...(item.pageOverrides ?? {}), [key]: override };
+      this.persistItemPageOverrides(item);
+    } else if (target === "source") {
+      if (item.kind === "song" && item.songId) {
+        item.sourcePageOverrides = {
+          ...(item.sourcePageOverrides ?? {}),
+          [key]: override,
+        };
+        if (item.pageOverrides?.[key]) {
+          const next = { ...item.pageOverrides };
+          delete next[key];
+          item.pageOverrides = next;
+        }
+        this.persistSongPageOverrides(item.songId, item.sourcePageOverrides);
+        this.persistItemPageOverrides(item);
+      } else if (item.itemId) {
+        // Text items live only inside a set list, so "Save to text" persists
+        // the same page-level override on the item that owns the text.
+        item.pageOverrides = { ...(item.pageOverrides ?? {}), [key]: override };
+        this.persistItemPageOverrides(item);
+      } else {
+        return;
+      }
+    } else {
+      record.queuePageOverrides ??= {};
+      record.queuePageOverrides[String(itemIndex)] ??= {};
+      record.queuePageOverrides[String(itemIndex)][key] = override;
+    }
+
+    this.persistSnapshotItems();
+
+    if (isQueued) {
+      record.state.queuedOutOfDatePages = [
+        ...new Set([...(record.state.queuedOutOfDatePages ?? []), pageIndex]),
+      ].sort((a, b) => a - b);
+    } else {
+      const livePages = record.state.pages
+        .filter(
+          (page) =>
+            page.itemIndex === itemIndex && page.sourcePageIndex === pageIndex,
+        )
+        .map((page) => page.index);
+      record.state.outOfDatePages = [
+        ...new Set([...(record.state.outOfDatePages ?? []), ...livePages]),
+      ].sort((a, b) => a - b);
+    }
+  }
+
+  private persistItemPageOverrides(item: SnapshotItem): void {
+    const record = this.active;
+    if (!record || !item.itemId) return;
+    db.prepare("UPDATE setlist_items SET page_overrides_json = ? WHERE id = ?").run(
+      JSON.stringify(item.pageOverrides ?? {}),
+      item.itemId,
+    );
+    if (record.setlistId) {
+      db.prepare("UPDATE setlists SET updated_at = ? WHERE id = ?").run(
+        now(),
+        record.setlistId,
+      );
+    }
+  }
+
+  private persistSongPageOverrides(
+    songId: string,
+    overrides: Record<string, PageOverride>,
+  ): void {
+    db.prepare(
+      "UPDATE songs SET page_overrides_json = ?, updated_at = ? WHERE id = ?",
+    ).run(JSON.stringify(overrides), now(), songId);
+  }
+
+  private persistSnapshotItems(): void {
+    const record = this.active;
+    if (!record) return;
+    db.prepare("UPDATE service_sessions SET snapshot_json = ? WHERE id = ?").run(
+      JSON.stringify(record.items),
+      record.id,
+    );
+  }
+
+  private pagesFor(
+    item: SnapshotItem,
+    maxLinesOverride?: number,
+    itemIndex?: number,
+  ): LiveState["pages"] {
     if (!this.active) return [];
     const stored = this.active.state.displayConfig;
     const config = { ...getDisplayConfig(), ...(stored ?? {}) };
@@ -1332,10 +1515,34 @@ class LiveService {
             smartWrapModules: config.smartWrapModules,
             textScale: config.textScale,
           });
+    const queueOverrides =
+      itemIndex == null
+        ? undefined
+        : this.active.queuePageOverrides?.[String(itemIndex)];
     for (const page of pages) {
-      const pageOverride = item.stingerPageOverrides?.[String(page.index + 1)];
+      page.itemIndex = itemIndex;
+      page.sourcePageIndex = page.index;
+      page.itemKind = item.kind;
+      const override =
+        queueOverrides?.[String(page.index)] ??
+        item.pageOverrides?.[String(page.index)] ??
+        item.sourcePageOverrides?.[String(page.index)];
+      if (override) {
+        const rendered = renderPageSource(
+          item,
+          override.source,
+          this.active.state.transpose,
+        );
+        page.html = rendered.html;
+        page.section = rendered.section;
+        page.source = override.source;
+        page.edited = true;
+      }
+      const stingerOverride = item.stingerPageOverrides?.[String(page.index + 1)];
       const stingerId =
-        pageOverride === NO_STINGER_ID ? null : pageOverride ?? item.stingerId ?? null;
+        stingerOverride === NO_STINGER_ID
+          ? null
+          : stingerOverride ?? item.stingerId ?? null;
       page.stinger = stingerId ? getStinger(stingerId) : null;
     }
     return pages;

@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import {
   liveCommandSchema,
   liveApplySchema,
+  livePagePreviewSchema,
   quickImageSchema,
   quickPresentationSchema,
   quickSongSchema,
@@ -37,6 +38,22 @@ export async function liveRoutes(app: FastifyInstance): Promise<void> {
       const parsed = liveCommandSchema.safeParse(request.body);
       if (!parsed.success) return reply.code(400).send({ error: "Invalid command", issues: parsed.error.issues });
       return { state: live.command(parsed.data) };
+    },
+  );
+
+  app.post(
+    "/api/live/page-preview",
+    { preHandler: [requireAuth, requirePermission("live")] },
+    async (request, reply) => {
+      const parsed = livePagePreviewSchema.safeParse(request.body);
+      if (!parsed.success) {
+        return reply.code(400).send({ error: "Invalid page preview", issues: parsed.error.issues });
+      }
+      try {
+        return live.previewPageSource(parsed.data.itemIndex, parsed.data.source);
+      } catch (error) {
+        return reply.code(400).send({ error: (error as Error).message });
+      }
     },
   );
 

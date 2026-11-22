@@ -714,6 +714,7 @@ export function buildPages(
         index,
         section: null,
         html: `<div class="text-html" style="text-align:${align}">${renderRichText(chunk, format)}</div>`,
+        source: chunk,
       }));
     }
     blocks = parsed.body
@@ -745,10 +746,79 @@ export function buildPages(
       item.kind === "text"
         ? ` style="text-align:${item.textAlign === "center" ? "center" : "left"}"`
         : "";
+    const sourceLines = block.lines.map((line) => line.text);
+    const source =
+      item.kind === "song" && block.section
+        ? `[${block.section}]\n${sourceLines.join("\n")}`
+        : sourceLines.join("\n");
     return {
       index,
       section: block.section,
       html: `<div class="slide-inner"${alignStyle}>${label}${lines}</div>`,
+      source,
     };
   });
+}
+
+/**
+ * Render one operator-edited page from its raw lyric/text source. The result
+ * is deliberately kept to a single page: page overrides replace one page and
+ * must not reflow the rest of the item.
+ */
+export function renderPageSource(
+  item: RenderItem,
+  source: string,
+  liveTranspose = 0,
+): { html: string; section: string | null } {
+  const base = item.transpose || 0;
+  const keyShift = keyDelta(item.key ?? null, item.keyOverride ?? null);
+  const semitones = base + liveTranspose + keyShift;
+  const align = item.textAlign === "center" ? "center" : "left";
+
+  if (item.kind === "text") {
+    const parsed = parseTextContent(item.content ?? "");
+    const format = item.format ?? parsed.format;
+    if (format !== "text") {
+      return {
+        section: null,
+        html: `<div class="text-html" style="text-align:${align}">${renderRichText(source, format)}</div>`,
+      };
+    }
+    const lines = parseText(source)
+      .flatMap((block) => block.lines)
+      .map(
+        (line) =>
+          `<div class="line">${renderLine(line.text, semitones, {
+            markdown: false,
+            splitWords: false,
+            bibleVerseNumbers: item.contentSource === "bible",
+          })}</div>`,
+      )
+      .join("");
+    return {
+      section: null,
+      html: `<div class="slide-inner" style="text-align:${align}">${lines}</div>`,
+    };
+  }
+
+  const blocks = parseSong(source);
+  const section = blocks.find((block) => block.section)?.section ?? null;
+  const lines = blocks
+    .flatMap((block) => block.lines)
+    .map(
+      (line) =>
+        `<div class="line">${renderLine(line.text, semitones, {
+          markdown: Boolean(item.lyricsMarkdown),
+          splitWords: true,
+          bibleVerseNumbers: false,
+        })}</div>`,
+    )
+    .join("");
+  const label = section
+    ? `<div class="section-label">${escapeHtml(section)}</div>`
+    : "";
+  return {
+    section,
+    html: `<div class="slide-inner">${label}${lines}</div>`,
+  };
 }

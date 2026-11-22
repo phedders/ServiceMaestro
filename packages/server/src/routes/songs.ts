@@ -27,6 +27,7 @@ import { saveSongToGit, deleteSongFromGit, deleteSongsFromGit } from "../git-sto
 import { addDefaultVerseTags } from "../lyrics.js";
 import { parseChordPro } from "../importers/index.js";
 import { getAppSettings } from "../settings.js";
+import { parsePageOverrides } from "../page-overrides.js";
 import { findDuplicateGroups, findSongAlternatives } from "../song-matching.js";
 import { createSongPreview } from "../song-preview.js";
 
@@ -46,6 +47,7 @@ interface SongRow {
   source_format: string | null;
   source_path: string | null;
   songselect_info: string | null;
+  page_overrides_json?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -109,6 +111,7 @@ function mapSong(row: SongRow): Song {
     sourceFormat: row.source_format,
     sourcePath: row.source_path,
     songSelectInfo: row.songselect_info,
+    pageOverrides: parsePageOverrides(row.page_overrides_json),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };

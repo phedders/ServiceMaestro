@@ -19,6 +19,7 @@ import { live } from "../live.js";
 import { saveSetlistToGit, deleteSetlistFromGit, saveSongToGit } from "../git-store.js";
 import { buildPages, extractTextFormat } from "../render.js";
 import { getDisplayConfig } from "../display-config.js";
+import { parsePageOverrides } from "../page-overrides.js";
 
 interface SetlistRow {
   id: string;
@@ -54,6 +55,7 @@ interface ItemRow {
   max_lines_override: number | null;
   verse_order: string | null;
   notes: string | null;
+  page_overrides_json: string | null;
 }
 
 interface SongRow {
@@ -103,6 +105,7 @@ function mapItem(row: ItemRow): SetlistItem {
     maxLinesOverride: row.max_lines_override ?? null,
     verseOrder: row.verse_order,
     notes: row.notes,
+    pageOverrides: parsePageOverrides(row.page_overrides_json),
   };
 }
 

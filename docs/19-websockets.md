@@ -145,6 +145,7 @@ messages to merge.
   "queuedItemIndex": null,
   "queuedTitle": null,
   "queuedPages": [],
+  "queuedOutOfDatePages": [],
   "appendedItems": [],
   "autoplay": null,
   "autoplayOverrides": {},
@@ -168,6 +169,7 @@ Key fields:
 | `halfPageMode`, `halfPageOffset` | Half-page scroll preview state. `halfPageOffset = 1` shows the lower half of the current page and the top of the next; `0` shows the top half of the current page. |
 | `pagesOutOfDate` | True after a max-lines change until the operator reselects a page. |
 | `stagePreview`, `queuedItemIndex`, `queuedPages` | A queued item selected from the set list, and whether outputs with **Stage previews** enabled are showing that queued item instead of the live pages. |
+| `outOfDatePages`, `queuedOutOfDatePages` | Page indexes with a saved page edit waiting for a reload. Clicking the page reloads the edited content. |
 | `transpose`, `maxLines`, `footer` | Current live overrides. |
 | `bibleVerseNumbers` | Show or hide the superscript verse numbers on Bible paragraph pages. Defaults to `true`. |
 | `pages` | Rendered pages for the current item. `html` is already sanitized and styled. `stinger` is an optional transition overlay. |
@@ -243,6 +245,8 @@ Valid payloads:
 | `{ "type": "blank", "value": true }` | Set blank on/off. Omit `value` to toggle. |
 | `{ "type": "transpose", "delta": 1 }` | Change transpose by `-12…12` semitones per command. The state is clamped to `-24…24`. |
 | `{ "type": "maxLines", "value": 4 }` | Set lines per page for the current queue, `1…30`. While a set-list item is live, the value is stored on that item. |
+| `{ "type": "editPage", "itemIndex": 0, "pageIndex": 1, "source": "[Chorus]\n…", "target": "queue" }` | Save an edited page. `target` is `queue` (session only), `setlist`, or `source` (song/text). The page is marked out of date until it is reloaded. |
+| `POST /api/live/page-preview` with `{ "itemIndex": 0, "source": "…" }` | Render an edited source page for the editor preview without saving it. |
 | `{ "type": "footer", "text": "…" }` | Set footer text, up to 500 characters. Empty text clears it. |
 | `{ "type": "bibleVerseNumbers", "value": false }` | Show or hide Bible verse numbers. Omit `value` to toggle. Defaults to shown. |
 | `{ "type": "autoplay", "autoplay": true, "mode": "loop", "delaySeconds": 8 }` | Override autoplay for the current image-list/Tarp item. Fields are optional; `mode` is `single`, `loop` or `bounce`; `delaySeconds` is `1…300`. |

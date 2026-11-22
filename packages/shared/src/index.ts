@@ -199,6 +199,7 @@ export interface Song {
   differentFromIds: string[];
   sourceFormat: string | null;
   sourcePath: string | null;
+  pageOverrides?: Record<string, PageOverride>;
   createdAt: string;
   updatedAt: string;
 }
@@ -486,6 +487,7 @@ export interface SetlistItem {
   maxLinesOverride: number | null;
   verseOrder: string | null;
   notes: string | null;
+  pageOverrides?: Record<string, PageOverride>;
 }
 
 export interface SetlistSummary {
@@ -576,11 +578,26 @@ export interface LiveItemSummary {
   notes: string | null;
 }
 
+export interface PageOverride {
+  source: string;
+  html: string;
+  section: string | null;
+  updatedAt?: string;
+}
+
 export interface LivePage {
   index: number;
   section: string | null;
   html: string;
   stinger?: StingerAsset | null;
+  /** Raw lyric/text source for this page, when the page can be edited. */
+  source?: string | null;
+  /** Session item index and page index that produced this page. */
+  itemIndex?: number;
+  sourcePageIndex?: number;
+  itemKind?: ItemKind;
+  /** True when this page is showing an operator page override. */
+  edited?: boolean;
 }
 
 export interface DisplayTemplate {
@@ -1567,6 +1584,10 @@ export interface LiveState {
   pageIndex: number;
   pageCount: number;
   pagesOutOfDate: boolean;
+  /** Live page indexes whose edited content is waiting for a reload. */
+  outOfDatePages?: number[];
+  /** Queued page indexes whose edited content is waiting for a reload. */
+  queuedOutOfDatePages?: number[];
   stagePreview: boolean;
   mode:
     | "song"
@@ -2508,6 +2529,13 @@ export const liveCommandSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("blank"), value: z.boolean().optional() }),
   z.object({ type: z.literal("transpose"), delta: z.number().int().min(-12).max(12) }),
   z.object({ type: z.literal("maxLines"), value: z.number().int().min(1).max(30) }),
+  z.object({
+    type: z.literal("editPage"),
+    itemIndex: z.number().int().min(0),
+    pageIndex: z.number().int().min(0),
+    source: z.string().max(200_000),
+    target: z.enum(["queue", "setlist", "source"]),
+  }),
   z.object({ type: z.literal("footer"), text: z.string().max(500) }),
   z.object({ type: z.literal("bibleVerseNumbers"), value: z.boolean().optional() }),
   z.object({
@@ -2518,6 +2546,11 @@ export const liveCommandSchema = z.discriminatedUnion("type", [
     reset: z.boolean().optional(),
   }),
 ]);
+
+export const livePagePreviewSchema = z.object({
+  itemIndex: z.number().int().min(0),
+  source: z.string().max(200_000),
+});
 
 export const quickTextSchema = z.object({
   text: z.string().min(1).max(50_000),

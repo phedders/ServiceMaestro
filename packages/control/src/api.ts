@@ -853,6 +853,11 @@ export const api = {
       method: "POST",
       body: JSON.stringify(payload),
     }),
+  livePagePreview: (itemIndex: number, source: string) =>
+    request<{ html: string; section: string | null }>("/api/live/page-preview", {
+      method: "POST",
+      body: JSON.stringify({ itemIndex, source }),
+    }),
   quickText: (text: string, mode: "direct" | "setlist" = "direct") =>
     request<{ state: LiveState }>("/api/live/quick-text", {
       method: "POST",

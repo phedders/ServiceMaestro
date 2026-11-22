@@ -193,6 +193,8 @@ Starting a live session now sets `blank: true`. Outputs remain black/transparent
 
 Each item also has a **+** button in the Live Items panel. It appends that item’s rendered pages to the current live page queue without modifying the set-list entry. Appended pages survive display-config/transpose changes and restart with the session; changing to another item clears the appended queue.
 
+Each page in the Pages panel has an **edit** button. The quick editor shows the raw lyric/text source for that page with a **Rendered text** toggle. Saving can target the current live **queue**, the set-list item, or the source **song/text**. A saved page is not sent live immediately: it shows a reload ↻ icon until the operator clicks that page, matching the lines/page reload behaviour. Page overrides replace only the edited page, so the rest of the item keeps its normal pagination. Text items store the override on their set-list item; songs store **Save to song** overrides on the song with set-list overrides taking precedence.
+
 ## 6. Preview pane size
 
 The Live page preview is no longer full-width: it sits beside the Transport panel at roughly the same height, with a maximum height of 280 px. The default dashboard layout gives Preview the same grid height as Transport (4 rows); existing saved layouts are unchanged, and **Reset** restores the new default.
