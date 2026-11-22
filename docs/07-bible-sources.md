@@ -121,8 +121,9 @@ At startup (or when files change):
 ## 6. Query and API mapping
 
 ```ts
-passage(translation, { book, chapter, from, to }) ->
-  { translation, bookName, chapter, from, to, verses: [{ number, text, comment? }] }
+passage(translation, { book, chapter, from, toChapter, to }) ->
+  { translation, bookName, chapter, toChapter, from, to,
+    verses: [{ chapter, number, text, comment? }] }
 ```
 
 - Book/chapter navigation uses the normalized cache; the UI can offer the canonical 66 books plus only translations that are present.
