@@ -32,6 +32,13 @@ import { QuickText } from "../components/QuickText";
 import { findPreviewScreen, loadPreviewScreenId } from "../preview-screen";
 import { compactDate } from "../service-date";
 import { useSessionState } from "../session-state";
+import {
+  SHORTCUT_CHANGE_EVENT,
+  SHORTCUT_LABELS,
+  formatShortcut,
+  loadKeyboardShortcuts,
+  type KeyboardShortcuts,
+} from "../keyboard";
 
 const FALLBACK_FONTS: FontOption[] = [
   {
@@ -135,6 +142,7 @@ export default function LivePage({
   const [fonts, setFonts] = useState<FontOption[]>(FALLBACK_FONTS);
   const [backgrounds, setBackgrounds] = useState<BackgroundAsset[]>([]);
   const [images, setImages] = useState<ImageAsset[]>([]);
+  const [shortcuts, setShortcuts] = useState<KeyboardShortcuts>(loadKeyboardShortcuts);
   const [displayConfig, setDisplayConfig] = useState<DisplayConfig>(
     live.displayConfig ?? {
       fontFamily: '"Clear Sans", "Segoe UI", system-ui, -apple-system, sans-serif',
@@ -162,6 +170,17 @@ export default function LivePage({
   const [queueHeight, setQueueHeight] = useState(initialQueueHeight);
   const [phoneLinear, setPhoneLinear] = useState(initialPhoneLinear);
   const [fullscreenPageList, setFullscreenPageList] = useState(initialFullscreenPageList);
+
+  useEffect(() => {
+    const refresh = () => setShortcuts(loadKeyboardShortcuts());
+    window.addEventListener(SHORTCUT_CHANGE_EVENT, refresh);
+    window.addEventListener("storage", refresh);
+    return () => {
+      window.removeEventListener(SHORTCUT_CHANGE_EVENT, refresh);
+      window.removeEventListener("storage", refresh);
+    };
+  }, []);
+
   const queueResizeRef = useRef<{ startY: number; startHeight: number } | null>(null);
 
   useEffect(() => {
@@ -1026,6 +1045,36 @@ export default function LivePage({
           </p>
         </div>
       </ReadOnlyFieldset>
+
+      <section className="panel wide-panel live-shortcuts">
+        <div className="panel-heading">
+          <div>
+            <h2>Keyboard shortcuts</h2>
+            <p className="muted">
+              These work from the control window unless you are typing in an input, textarea or
+              select. Change the configurable keys in <em>Settings → Keyboard shortcuts</em>.
+            </p>
+          </div>
+        </div>
+        <div className="help-shortcuts">
+          {SHORTCUT_LABELS.map(({ action, label, hint }) => (
+            <div key={action} className="help-shortcut">
+              <div>
+                <strong>{label}</strong>
+                <span className="muted">{hint}</span>
+              </div>
+              <kbd>{formatShortcut(shortcuts[action])}</kbd>
+            </div>
+          ))}
+          <div className="help-shortcut">
+            <div>
+              <strong>Jump to verse</strong>
+              <span className="muted">Jump to the first page labelled Verse 1–9 (or v1–v9)</span>
+            </div>
+            <kbd>1 – 9</kbd>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }

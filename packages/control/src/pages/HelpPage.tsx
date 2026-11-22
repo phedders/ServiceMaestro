@@ -3,6 +3,7 @@ import { useAdapters } from "../adapters";
 import {
   SHORTCUT_CHANGE_EVENT,
   SHORTCUT_LABELS,
+  formatShortcut,
   loadKeyboardShortcuts,
   type KeyboardShortcuts,
 } from "../keyboard";
@@ -16,23 +17,6 @@ const QUICK_LINKS = [
   { id: "shortcuts", label: "Shortcuts" },
   { id: "troubleshooting", label: "Troubleshooting" },
 ];
-
-const KEY_LABELS: Record<string, string> = {
-  ArrowLeft: "←",
-  ArrowRight: "→",
-  ArrowUp: "↑",
-  ArrowDown: "↓",
-  Space: "Space",
-  Escape: "Esc",
-};
-
-function formatShortcut(value: string): string {
-  if (!value) return "Not set";
-  return value
-    .split("+")
-    .map((part) => KEY_LABELS[part] ?? part)
-    .join(" + ");
-}
 
 export default function HelpPage({ onOpenSettings }: { onOpenSettings: () => void }) {
   const { songSelectEnabled, churchSuiteEnabled, mqttEnabled } = useAdapters();

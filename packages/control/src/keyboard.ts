@@ -46,6 +46,23 @@ export const DEFAULT_SHORTCUTS: KeyboardShortcuts = {
 const STORAGE_KEY = "sm-keyboard-shortcuts";
 export const SHORTCUT_CHANGE_EVENT = "sm-shortcuts-changed";
 
+const KEY_LABELS: Record<string, string> = {
+  ArrowLeft: "←",
+  ArrowRight: "→",
+  ArrowUp: "↑",
+  ArrowDown: "↓",
+  Space: "Space",
+  Escape: "Esc",
+};
+
+export function formatShortcut(value: string): string {
+  if (!value) return "Not set";
+  return value
+    .split("+")
+    .map((part) => KEY_LABELS[part] ?? part)
+    .join(" + ");
+}
+
 function normalizeKey(value: string): string {
   if (value === " ") return "Space";
   if (value.length === 1) return value.toUpperCase();
