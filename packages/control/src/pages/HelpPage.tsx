@@ -135,8 +135,9 @@ export default function HelpPage({ onOpenSettings }: { onOpenSettings: () => voi
               </li>
               <li>
                 <strong>Lines / page</strong> changes automatic page splitting for the current
-                queue. When a set-list item is live, that value is stored on the item. Items use
-                their own <strong>Lines / page</strong> metadata from the set-list editor, otherwise
+                item and stores the value on that set-list item. The current page is marked out of
+                date until you click it again or select another page. Items use their own{" "}
+                <strong>Lines / page</strong> metadata from the set-list editor, otherwise
                 <strong>Display config → Default lines / page</strong>.
               </li>
               <li>

@@ -11,6 +11,7 @@ export function PageList({
 }) {
   const pages = live.queuedItemIndex != null ? live.queuedPages ?? [] : live.pages;
   const currentPage = live.queuedItemIndex != null ? 0 : live.pageIndex;
+  const stale = live.queuedItemIndex == null && live.pagesOutOfDate;
   if (!pages.length) {
     return <p className="muted">{live.queuedItemIndex != null ? "Queued item has no pages." : "No pages in the current item."}</p>;
   }
@@ -19,9 +20,15 @@ export function PageList({
       {pages.map((page) => (
         <button
           key={page.index}
-          className={`page-row ${page.index === currentPage ? "current" : ""}`}
+          className={`page-row ${page.index === currentPage ? "current" : ""} ${
+            stale && page.index === currentPage ? "stale" : ""
+          }`}
           onClick={() => onCommand({ type: "goto", pageIndex: page.index })}
-          title={`Show page ${page.index + 1}`}
+          title={
+            stale && page.index === currentPage
+              ? `Pages are out of date after a lines/page change. Click to reload page ${page.index + 1}.`
+              : `Show page ${page.index + 1}`
+          }
         >
           <span className="page-meta">
             <span className="page-number">{page.index + 1}</span>
@@ -30,6 +37,11 @@ export function PageList({
             )}
           </span>
           <span className="page-text" dangerouslySetInnerHTML={{ __html: page.html }} />
+          {stale && page.index === currentPage && (
+            <span className="page-stale-icon" aria-hidden="true">
+              ↻
+            </span>
+          )}
         </button>
       ))}
     </div>

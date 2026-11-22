@@ -48,6 +48,7 @@ test("display config lines/page is the default for a newly loaded queue", () => 
     saveDisplayConfig({ ...getDisplayConfig(), maxLines: 8 });
     const savedConfig = getDisplayConfig();
     const configUpdated = live.updateDisplayConfig(savedConfig);
+    const reloaded = live.command({ type: "goto", pageIndex: 0 });
 
     const appliedNow = live.applyCurrent("default-set-b", "now", null);
     const afterTransport = live.command({ type: "maxLines", value: 9 });
@@ -66,12 +67,17 @@ test("display config lines/page is the default for a newly loaded queue", () => 
     console.log(JSON.stringify({
       started: started.maxLines,
       transport: transport.maxLines,
+      transportStale: transport.pagesOutOfDate,
       overrideAfterTransport,
       savedDefault: savedConfig.maxLines,
       configUpdated: configUpdated.maxLines,
       configMaxLines: configUpdated.displayConfig.maxLines,
+      configStale: configUpdated.pagesOutOfDate,
+      reloadedStale: reloaded.pagesOutOfDate,
       appliedNow: appliedNow.maxLines,
+      appliedNowStale: appliedNow.pagesOutOfDate,
       afterTransport: afterTransport.maxLines,
+      afterTransportStale: afterTransport.pagesOutOfDate,
       overrideB,
       appliedA: appliedA.maxLines,
       appliedPending: appliedPending.maxLines,
@@ -96,12 +102,17 @@ test("display config lines/page is the default for a newly loaded queue", () => 
 
   assert.equal(data.started, 6);
   assert.equal(data.transport, 7);
+  assert.equal(data.transportStale, true);
   assert.equal(data.overrideAfterTransport, 7);
   assert.equal(data.savedDefault, 8);
   assert.equal(data.configUpdated, 7);
   assert.equal(data.configMaxLines, 8);
+  assert.equal(data.configStale, true);
+  assert.equal(data.reloadedStale, false);
   assert.equal(data.appliedNow, 3);
+  assert.equal(data.appliedNowStale, false);
   assert.equal(data.afterTransport, 9);
+  assert.equal(data.afterTransportStale, true);
   assert.equal(data.overrideB, 9);
   assert.equal(data.appliedA, 7);
   assert.equal(data.pendingUpdate, false);

@@ -84,6 +84,7 @@ export function idleState(): LiveState {
     itemIndex: 0,
     pageIndex: 0,
     pageCount: 0,
+    pagesOutOfDate: false,
     mode: "idle",
     title: "",
     blank: false,
@@ -455,6 +456,7 @@ class LiveService {
       state.pendingUpdate = Boolean(pending);
       state.pendingRevision = pending?.revisionNo ?? null;
       if (typeof state.bibleVerseNumbers !== "boolean") state.bibleVerseNumbers = true;
+      if (typeof state.pagesOutOfDate !== "boolean") state.pagesOutOfDate = false;
       if (state.transition !== "scroll") state.transition = "fade";
       if (typeof state.halfPageMode !== "boolean") state.halfPageMode = false;
       if (!Number.isInteger(state.halfPageOffset)) state.halfPageOffset = 0;
@@ -512,6 +514,7 @@ class LiveService {
       itemIndex: 0,
       pageIndex: 0,
       pageCount: 0,
+      pagesOutOfDate: false,
       mode: first.kind,
       title: first.title,
       blank: true,
@@ -616,9 +619,12 @@ class LiveService {
   updateDisplayConfig(config: DisplayConfig): LiveState {
     if (!this.active) return this.getState();
     // This is the default for the next queue load. The transport maxLines
-    // command remains the live override for the current queue.
+    // command remains the live override for the current queue. If the current
+    // pages are already stale, keep them stale until the operator explicitly
+    // reloads a page.
+    const pagesOutOfDate = this.active.state.pagesOutOfDate;
     this.active.state.displayConfig = config;
-    this.renderCurrent();
+    if (!pagesOutOfDate) this.renderCurrent();
     this.active.state.version += 1;
     this.active.state.updatedAt = now();
     this.persist();
@@ -710,6 +716,7 @@ class LiveService {
         break;
       }
       case "nextHalf": {
+        if (state.pagesOutOfDate) this.renderCurrent();
         const pages = state.pages;
         if (!pages.length) break;
         if (!state.halfPageMode) {
@@ -732,6 +739,7 @@ class LiveService {
         break;
       }
       case "prevHalf": {
+        if (state.pagesOutOfDate) this.renderCurrent();
         const pages = state.pages;
         if (!pages.length) break;
         const lastPage = pages.length - 1;
@@ -804,6 +812,7 @@ class LiveService {
       case "goto": {
         let selected = false;
         if (typeof command.pageIndex === "number") {
+          if (state.pagesOutOfDate) this.renderCurrent();
           if (state.queuedItemIndex != null) {
             this.setItem(state.queuedItemIndex);
           }
@@ -837,7 +846,7 @@ class LiveService {
       case "maxLines": {
         state.maxLines = Math.max(1, Math.min(30, Number(command.value ?? 4)));
         this.rememberItemMaxLines(state.maxLines);
-        this.renderCurrent();
+        state.pagesOutOfDate = true;
         break;
       }
       case "footer":
@@ -1147,6 +1156,7 @@ class LiveService {
     if (!this.active) return;
     const record = this.active;
     const { state, items } = record;
+    if (state.pagesOutOfDate) this.renderCurrent();
     state.halfPageMode = false;
     state.halfPageOffset = 0;
 
@@ -1215,6 +1225,7 @@ class LiveService {
     if (!item) {
       record.state.pages = [];
       record.state.pageCount = 0;
+      record.state.pagesOutOfDate = false;
       return;
     }
     const pages = this.pagesFor(item);
@@ -1251,6 +1262,7 @@ class LiveService {
         );
       }
     }
+    record.state.pagesOutOfDate = false;
   }
 
   private pagesFor(item: SnapshotItem, maxLinesOverride?: number): LiveState["pages"] {

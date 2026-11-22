@@ -1012,7 +1012,8 @@ export default function LivePage({
           <p className="hint">
             Used when a set-list item without its own <strong>Lines / page</strong> setting is
             loaded. Changing the Transport <strong>Lines/page</strong> control stores that value on
-            the current item; this default remains the fallback.
+            the current item and marks the current page out of date until you reselect a page; this
+            default remains the fallback.
           </p>
         </div>
       </ReadOnlyFieldset>

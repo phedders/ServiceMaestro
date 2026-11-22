@@ -1397,6 +1397,7 @@ body.resizing-live-queue {
 
 .page-row,
 .item-row {
+  position: relative;
   display: flex;
   gap: 12px;
   align-items: flex-start;
@@ -1478,6 +1479,20 @@ body.resizing-live-queue {
 .item-row.current {
   border-color: rgba(76, 194, 255, 0.55);
   background: var(--accent-soft);
+}
+
+.page-row.stale {
+  padding-right: 34px;
+}
+
+.page-stale-icon {
+  position: absolute;
+  top: 7px;
+  right: 9px;
+  color: var(--warning);
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1;
 }
 
 .page-number {

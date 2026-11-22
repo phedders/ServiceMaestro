@@ -1189,20 +1189,22 @@ function ItemRow({
             {(item.kind === "song" || item.kind === "text") && (
               <label>
                 Lines / page
-                <input
-                  type="number"
-                  min={1}
-                  max={30}
+                <select
                   value={maxLinesOverride ?? ""}
-                  placeholder="Default"
-                  onChange={(event) => {
-                    const value = event.target.value.trim();
+                  onChange={(event) =>
                     setMaxLinesOverride(
-                      value ? Math.max(1, Math.min(30, Number(value))) : null,
-                    );
-                  }}
-                  title="Optional lines/page for this item. Leave empty to use the Display config default. Changing Lines/page in the live transport stores the value here."
-                />
+                      event.target.value ? Number(event.target.value) : null,
+                    )
+                  }
+                  title="Default uses the Display config default. A number overrides it for this item. Changing Lines/page in the live transport stores the value here."
+                >
+                  <option value="">Default</option>
+                  {Array.from({ length: 30 }, (_, index) => index + 1).map((value) => (
+                    <option key={value} value={value}>
+                      {value}
+                    </option>
+                  ))}
+                </select>
               </label>
             )}
             {item.kind === "song" && (song?.verseOrders.length ?? 0) > 0 && (

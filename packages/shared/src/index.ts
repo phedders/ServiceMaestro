@@ -1560,6 +1560,7 @@ export interface LiveState {
   itemIndex: number;
   pageIndex: number;
   pageCount: number;
+  pagesOutOfDate: boolean;
   mode:
     | "song"
     | "text"

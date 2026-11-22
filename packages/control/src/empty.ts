@@ -8,6 +8,7 @@ export const EMPTY_LIVE: LiveState = {
   itemIndex: 0,
   pageIndex: 0,
   pageCount: 0,
+  pagesOutOfDate: false,
   mode: "idle",
   title: "",
   blank: false,
