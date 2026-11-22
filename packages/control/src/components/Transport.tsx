@@ -17,6 +17,10 @@ export function Transport({
 }) {
   const active = live.status !== "idle";
   const autoplay = live.autoplay;
+  const queuedSelection =
+    live.queuedItemIndex != null && live.queuedItemIndex !== live.itemIndex;
+  const shownMaxLines =
+    queuedSelection && live.queuedMaxLines != null ? live.queuedMaxLines : live.maxLines;
   return (
     <div className={`transport ${compact ? "compact" : ""}`}>
       <div className="transport-row">
@@ -98,16 +102,18 @@ export function Transport({
           <button
             className="button ghost small"
             disabled={!active}
-            onClick={() => onCommand({ type: "maxLines", value: Math.max(1, live.maxLines - 1) })}
+            onClick={() => onCommand({ type: "maxLines", value: Math.max(1, shownMaxLines - 1) })}
             title="Reduce the maximum lines per page"
           >
             −
           </button>
-          <strong>{live.maxLines}</strong>
+          <strong title={queuedSelection ? "Selected queued item" : undefined}>
+            {shownMaxLines}
+          </strong>
           <button
             className="button ghost small"
             disabled={!active}
-            onClick={() => onCommand({ type: "maxLines", value: Math.min(20, live.maxLines + 1) })}
+            onClick={() => onCommand({ type: "maxLines", value: Math.min(30, shownMaxLines + 1) })}
             title="Increase the maximum lines per page"
           >
             +

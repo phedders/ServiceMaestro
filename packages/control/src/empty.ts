@@ -22,6 +22,7 @@ export const EMPTY_LIVE: LiveState = {
   bibleVerseNumbers: true,
   pages: [],
   items: [],
+  queuedMaxLines: null,
   version: 0,
   updatedAt: new Date(0).toISOString(),
   pendingUpdate: false,

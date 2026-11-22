@@ -1595,6 +1595,7 @@ export interface LiveState {
   queuedItemIndex?: number | null;
   queuedTitle?: string | null;
   queuedPages?: LivePage[];
+  queuedMaxLines: number | null;
   appendedItems?: number[];
   autoplay?: LiveAutoplayState | null;
   autoplayOverrides?: Record<string, LiveAutoplaySettings>;

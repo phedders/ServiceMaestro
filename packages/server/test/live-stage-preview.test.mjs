@@ -34,6 +34,9 @@ test("stage preview is only enabled for a queued, not-live item", () => {
     db.prepare(
       "INSERT INTO setlist_items (id, setlist_id, position, kind, song_id, title, max_lines) VALUES (?, ?, ?, ?, ?, ?, ?)",
     ).run("preview-item-b", "preview-set", 1, "song", "preview-song-b", "Song B", 4);
+    db.prepare(
+      "UPDATE setlist_items SET max_lines = 5, max_lines_override = 5 WHERE id = ?",
+    ).run("preview-item-b");
 
     const started = live.start("preview-set", "live");
     const queued = live.command({ type: "queueItem", itemIndex: 1 });
@@ -42,6 +45,7 @@ test("stage preview is only enabled for a queued, not-live item", () => {
     const sameItemPreview = live.command({ type: "stagePreview" });
     const queuedAgain = live.command({ type: "queueItem", itemIndex: 1 });
     const previewAgain = live.command({ type: "stagePreview" });
+    const transportWhileQueued = live.command({ type: "maxLines", value: 7 });
     const wentLive = live.command({ type: "goto", itemIndex: 1 });
 
     console.log(JSON.stringify({
@@ -54,28 +58,38 @@ test("stage preview is only enabled for a queued, not-live item", () => {
         itemIndex: queued.itemIndex,
         queuedItemIndex: queued.queuedItemIndex,
         stagePreview: queued.stagePreview,
+        queuedMaxLines: queued.queuedMaxLines,
       },
       preview: {
         itemIndex: preview.itemIndex,
         pageIndex: preview.pageIndex,
         queuedItemIndex: preview.queuedItemIndex,
         stagePreview: preview.stagePreview,
+        queuedMaxLines: preview.queuedMaxLines,
         pagesChanged: preview.pages.length !== started.pages.length,
       },
       otherQueue: {
         queuedItemIndex: otherQueue.queuedItemIndex,
         stagePreview: otherQueue.stagePreview,
+        queuedMaxLines: otherQueue.queuedMaxLines,
       },
       sameItemPreview: sameItemPreview.stagePreview,
       queuedAgain: {
         queuedItemIndex: queuedAgain.queuedItemIndex,
         stagePreview: queuedAgain.stagePreview,
+        queuedMaxLines: queuedAgain.queuedMaxLines,
       },
       previewAgain: previewAgain.stagePreview,
+      transportWhileQueued: {
+        maxLines: transportWhileQueued.maxLines,
+        queuedMaxLines: transportWhileQueued.queuedMaxLines,
+        livePagesStale: transportWhileQueued.pagesOutOfDate,
+      },
       wentLive: {
         itemIndex: wentLive.itemIndex,
         queuedItemIndex: wentLive.queuedItemIndex,
         stagePreview: wentLive.stagePreview,
+        maxLines: wentLive.maxLines,
       },
     }));
   `;
@@ -103,27 +117,37 @@ test("stage preview is only enabled for a queued, not-live item", () => {
     itemIndex: 0,
     queuedItemIndex: 1,
     stagePreview: false,
+    queuedMaxLines: 5,
   });
   assert.deepEqual(data.preview, {
     itemIndex: 0,
     pageIndex: 0,
     queuedItemIndex: 1,
     stagePreview: true,
+    queuedMaxLines: 5,
     pagesChanged: false,
   });
   assert.deepEqual(data.otherQueue, {
     queuedItemIndex: 0,
     stagePreview: false,
+    queuedMaxLines: 4,
   });
   assert.equal(data.sameItemPreview, false);
   assert.deepEqual(data.queuedAgain, {
     queuedItemIndex: 1,
     stagePreview: false,
+    queuedMaxLines: 5,
   });
   assert.equal(data.previewAgain, true);
+  assert.deepEqual(data.transportWhileQueued, {
+    maxLines: 4,
+    queuedMaxLines: 7,
+    livePagesStale: false,
+  });
   assert.deepEqual(data.wentLive, {
     itemIndex: 1,
     queuedItemIndex: null,
     stagePreview: false,
+    maxLines: 7,
   });
 });

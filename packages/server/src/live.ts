@@ -98,6 +98,7 @@ export function idleState(): LiveState {
     bibleVerseNumbers: true,
     pages: [],
     items: [],
+    queuedMaxLines: null,
     version: 0,
     updatedAt: now(),
     pendingUpdate: false,
@@ -478,6 +479,7 @@ class LiveService {
       this.active.state.queuedItemIndex = null;
       this.active.state.queuedTitle = null;
       this.active.state.queuedPages = [];
+      this.active.state.queuedMaxLines = null;
       if (this.active.state.itemIndex < 0) {
         this.active.state.itemIndex = 0;
         this.active.state.pageIndex = 0;
@@ -537,6 +539,7 @@ class LiveService {
       queuedItemIndex: null,
       queuedTitle: null,
       queuedPages: [],
+      queuedMaxLines: null,
       appendedItems: [],
       displayConfig,
     };
@@ -646,6 +649,7 @@ class LiveService {
     record.state.queuedItemIndex = null;
     record.state.queuedTitle = null;
     record.state.queuedPages = [];
+    record.state.queuedMaxLines = null;
     record.state.appendedItems = [];
     record.state.stagePreview = false;
     if (mode === "now") {
@@ -697,6 +701,7 @@ class LiveService {
     record.state.items = summaries(record.items);
     record.state.pendingUpdate = false;
     record.state.pendingRevision = null;
+    record.state.queuedMaxLines = null;
     record.state.appendedItems = [];
     record.state.stagePreview = false;
     this.renderCurrent();
@@ -860,8 +865,25 @@ class LiveService {
         break;
       }
       case "maxLines": {
-        state.maxLines = Math.max(1, Math.min(30, Number(command.value ?? 4)));
-        this.rememberItemMaxLines(state.maxLines);
+        const value = Math.max(1, Math.min(30, Number(command.value ?? 4)));
+        const record = this.active;
+        if (
+          record &&
+          state.queuedItemIndex != null &&
+          state.queuedItemIndex !== state.itemIndex
+        ) {
+          const queued = record.items[state.queuedItemIndex];
+          if (queued) {
+            queued.maxLines = value;
+            queued.maxLinesOverride = value;
+            state.queuedMaxLines = value;
+            this.persistItemMaxLines(queued, value);
+            state.queuedPages = this.pagesFor(queued, value);
+            break;
+          }
+        }
+        state.maxLines = value;
+        this.rememberItemMaxLines(value);
         state.pagesOutOfDate = true;
         break;
       }
@@ -1103,6 +1125,7 @@ class LiveService {
     state.queuedItemIndex = null;
     state.queuedTitle = null;
     state.queuedPages = [];
+    state.queuedMaxLines = null;
     state.appendedItems = [];
     state.itemIndex = index;
     state.pageIndex = 0;
@@ -1126,10 +1149,11 @@ class LiveService {
     state.queuedItemIndex = index;
     state.queuedTitle = item.title;
     state.stagePreview = false;
-    state.queuedPages = this.pagesFor(
+    state.queuedMaxLines = resolveItemMaxLines(
       item,
-      resolveItemMaxLines(item, state.displayConfig ?? getDisplayConfig()),
+      state.displayConfig ?? getDisplayConfig(),
     );
+    state.queuedPages = this.pagesFor(item, state.queuedMaxLines);
   }
 
   private commitQueuedItem(): boolean {
@@ -1218,13 +1242,9 @@ class LiveService {
     this.setItem(nextItem);
   }
 
-  private rememberItemMaxLines(value: number): void {
+  private persistItemMaxLines(item: SnapshotItem, value: number): void {
     const record = this.active;
-    if (!record || record.transient) return;
-    const item = record.items[record.state.itemIndex];
-    if (!item?.itemId) return;
-    item.maxLines = value;
-    item.maxLinesOverride = value;
+    if (!record || !item.itemId) return;
     db.prepare(
       "UPDATE setlist_items SET max_lines = ?, max_lines_override = ? WHERE id = ?",
     ).run(value, value, item.itemId);
@@ -1234,6 +1254,16 @@ class LiveService {
         record.setlistId,
       );
     }
+  }
+
+  private rememberItemMaxLines(value: number): void {
+    const record = this.active;
+    if (!record || record.transient) return;
+    const item = record.items[record.state.itemIndex];
+    if (!item) return;
+    item.maxLines = value;
+    item.maxLinesOverride = value;
+    this.persistItemMaxLines(item, value);
   }
 
   private renderCurrent(): void {
@@ -1274,9 +1304,10 @@ class LiveService {
     if (record.state.queuedItemIndex != null) {
       const queued = record.items[record.state.queuedItemIndex];
       if (queued) {
+        record.state.queuedMaxLines = resolveItemMaxLines(queued, displayConfig);
         record.state.queuedPages = this.pagesFor(
           queued,
-          resolveItemMaxLines(queued, displayConfig),
+          record.state.queuedMaxLines,
         );
       }
     }
