@@ -6930,6 +6930,10 @@ body.resizing-live-queue {
   font-size: 1.2rem;
 }
 
+.page-edit-save-hint {
+  margin: 10px 0 0;
+}
+
 .page-edit-actions {
   display: flex;
   justify-content: flex-end;

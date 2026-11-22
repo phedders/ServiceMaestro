@@ -245,7 +245,7 @@ Valid payloads:
 | `{ "type": "blank", "value": true }` | Set blank on/off. Omit `value` to toggle. |
 | `{ "type": "transpose", "delta": 1 }` | Change transpose by `-12…12` semitones per command. The state is clamped to `-24…24`. |
 | `{ "type": "maxLines", "value": 4 }` | Set lines per page for the current queue, `1…30`. While a set-list item is live, the value is stored on that item. |
-| `{ "type": "editPage", "itemIndex": 0, "pageIndex": 1, "source": "[Chorus]\n…", "target": "queue" }` | Save an edited page. `target` is `queue` (session only), `setlist`, or `source` (song/text). The page is marked out of date until it is reloaded. |
+| `{ "type": "editPage", "itemIndex": 0, "pageIndex": 1, "source": "[Chorus]\n…", "target": "queue" }` | Save an edited page. `target` is `queue` (current page queue only; discarded when the item is reloaded), `setlist`, or `source` (song/text). The page is marked out of date until it is reloaded. |
 | `POST /api/live/page-preview` with `{ "itemIndex": 0, "source": "…" }` | Render an edited source page for the editor preview without saving it. |
 | `{ "type": "footer", "text": "…" }` | Set footer text, up to 500 characters. Empty text clears it. |
 | `{ "type": "bibleVerseNumbers", "value": false }` | Show or hide Bible verse numbers. Omit `value` to toggle. Defaults to shown. |

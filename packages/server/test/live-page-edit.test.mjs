@@ -43,6 +43,9 @@ test("page edits can be saved in the queue, set list or source item", () => {
       source: "[Chorus]\\nQueue saved line",
       target: "queue",
     });
+    const queueSetlistRow = db
+      .prepare("SELECT page_overrides_json FROM setlist_items WHERE id = ?")
+      .get("edit-item-song");
     const queueReloaded = live.command({ type: "goto", pageIndex: 0 });
 
     const setlistEdit = live.command({
@@ -88,6 +91,7 @@ test("page edits can be saved in the queue, set list or source item", () => {
       target: "queue",
     });
     const queuedReloaded = live.command({ type: "goto", itemIndex: 1 });
+    const requeued = live.command({ type: "queueItem", itemIndex: 1 });
 
     const preview = live.previewPageSource(0, "[Bridge]\\nPreview line");
 
@@ -101,6 +105,7 @@ test("page edits can be saved in the queue, set list or source item", () => {
       queueEdit: {
         stale: queueEdit.outOfDatePages,
         pageSource: queueEdit.pages[0].source,
+        setlistRow: queueSetlistRow,
       },
       queueReloaded: {
         stale: queueReloaded.outOfDatePages,
@@ -148,6 +153,10 @@ test("page edits can be saved in the queue, set list or source item", () => {
         source: queuedReloaded.pages[0].source,
         html: queuedReloaded.pages[0].html,
       },
+      requeued: {
+        queuedItemIndex: requeued.queuedItemIndex,
+        source: requeued.queuedPages[0].source,
+      },
       preview,
     }));
   `;
@@ -175,6 +184,7 @@ test("page edits can be saved in the queue, set list or source item", () => {
   assert.deepEqual(data.queueEdit, {
     stale: [0],
     pageSource: "line 1\nline 2\nline 3\nline 4",
+    setlistRow: { page_overrides_json: null },
   });
   assert.deepEqual(data.queueReloaded, {
     stale: [],
@@ -222,6 +232,10 @@ test("page edits can be saved in the queue, set list or source item", () => {
     queuedItemIndex: null,
     source: "Queued text edit",
     html: '<div class="slide-inner" style="text-align:left"><div class="line">Queued text edit</div></div>',
+  });
+  assert.deepEqual(data.requeued, {
+    queuedItemIndex: 1,
+    source: "first text page\nsecond line",
   });
   assert.deepEqual(data.preview, {
     section: "Bridge",

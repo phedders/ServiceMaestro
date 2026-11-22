@@ -139,7 +139,7 @@ export function PageEditDialog({
             type="button"
             className="button ghost"
             onClick={() => save("queue")}
-            title="Apply this edit only to the current live queue"
+            title="Save in queue — save in the current page queue only."
           >
             Save in queue
           </button>
@@ -170,6 +170,10 @@ export function PageEditDialog({
             Save to {sourceLabel}
           </button>
         </div>
+        <p className="hint page-edit-save-hint">
+          <strong>Save in queue</strong> — save in the current page queue only. If the set-list
+          item is reloaded into the queue, the change is discarded.
+        </p>
       </div>
     </div>
   );

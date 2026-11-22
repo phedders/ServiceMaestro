@@ -1149,10 +1149,22 @@ class LiveService {
     return this.getState();
   }
 
+  private clearQueuePageOverrides(itemIndex: number): void {
+    const record = this.active;
+    if (!record?.queuePageOverrides) return;
+    delete record.queuePageOverrides[String(itemIndex)];
+    if (!Object.keys(record.queuePageOverrides).length) {
+      record.queuePageOverrides = undefined;
+    }
+  }
+
   private setItem(index: number): void {
     if (!this.active) return;
     const { state, items } = this.active;
     if (index < 0 || index >= items.length) return;
+    // Committing the queued item keeps its queue-only page edits. Loading an
+    // item from anywhere else is a fresh queue load and discards them.
+    if (state.queuedItemIndex !== index) this.clearQueuePageOverrides(index);
     this.active.transient = null;
     this.active.transientReturnItemIndex = null;
     state.queuedItemIndex = null;
@@ -1180,6 +1192,7 @@ class LiveService {
     if (!this.active) return;
     const { state, items } = this.active;
     if (!Number.isFinite(index) || index < 0 || index >= items.length) return;
+    this.clearQueuePageOverrides(index);
     const item = items[index];
     state.queuedItemIndex = index;
     state.queuedTitle = item.title;
@@ -1211,6 +1224,7 @@ class LiveService {
     if (!this.active) return;
     const { state, items } = this.active;
     if (!Number.isFinite(index) || index < 0 || index >= items.length) return;
+    this.clearQueuePageOverrides(index);
     // Appending affects the live page queue; return the Pages panel to the
     // live queue instead of leaving a previously queued item preview visible.
     state.queuedItemIndex = null;
@@ -1442,7 +1456,7 @@ class LiveService {
       record.queuePageOverrides[String(itemIndex)][key] = override;
     }
 
-    this.persistSnapshotItems();
+    if (target !== "queue") this.persistSnapshotItems();
 
     if (isQueued) {
       record.state.queuedOutOfDatePages = [

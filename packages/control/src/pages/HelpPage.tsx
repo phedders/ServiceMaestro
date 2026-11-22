@@ -164,8 +164,9 @@ export default function HelpPage({ onOpenSettings }: { onOpenSettings: () => voi
               <li>
                 Each page has an <strong>edit</strong> (✎) button. Edit the raw lyric/text source,
                 switch to <strong>Rendered text</strong> to preview it, then save the change to the
-                live queue, the set-list item, or the source song/text. The page shows a reload ↻
-                icon until you click it, so the change is not sent live by accident.
+                current page queue, the set-list item, or the source song/text. A queue-only change
+                is discarded when that set-list item is reloaded into the queue. The page shows a
+                reload ↻ icon until you click it, so the change is not sent live by accident.
               </li>
               <li>
                 <strong>Fullscreen version</strong> in the Pages heading hides chord symbols and
