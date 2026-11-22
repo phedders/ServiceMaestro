@@ -599,8 +599,9 @@ class LiveService {
 
   updateDisplayConfig(config: DisplayConfig): LiveState {
     if (!this.active) return this.getState();
+    // This is the default for the next queue load. The transport maxLines
+    // command remains the live override for the current queue.
     this.active.state.displayConfig = config;
-    this.active.state.maxLines = config.maxLines;
     this.renderCurrent();
     this.active.state.version += 1;
     this.active.state.updatedAt = now();
@@ -631,6 +632,8 @@ class LiveService {
       record.state.pageIndex = 0;
       record.state.halfPageMode = false;
       record.state.halfPageOffset = 0;
+      record.state.maxLines =
+        record.state.displayConfig?.maxLines ?? getDisplayConfig().maxLines;
       record.state.items = summaries(items);
       record.state.pendingUpdate = false;
       record.state.pendingRevision = null;
@@ -659,6 +662,8 @@ class LiveService {
     record.state.pageIndex = 0;
     record.state.halfPageMode = false;
     record.state.halfPageOffset = 0;
+    record.state.maxLines =
+      record.state.displayConfig?.maxLines ?? getDisplayConfig().maxLines;
     record.state.items = summaries(record.items);
     record.state.pendingUpdate = false;
     record.state.pendingRevision = null;

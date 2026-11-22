@@ -134,7 +134,9 @@ export default function HelpPage({ onOpenSettings }: { onOpenSettings: () => voi
                 <strong>Transpose</strong> changes the current song by semitones.
               </li>
               <li>
-                <strong>Lines / page</strong> temporarily changes automatic page splitting.
+                <strong>Lines / page</strong> changes automatic page splitting for the current queue.
+                The default for newly loaded set lists is set by
+                <strong>Display config → Default lines / page</strong>.
               </li>
               <li>
                 <strong>Transition</strong> chooses <strong>Fade</strong> or <strong>Scroll</strong>

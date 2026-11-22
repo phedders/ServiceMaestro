@@ -1665,6 +1665,24 @@ body.resizing-live-queue {
 .display-config-grid input[type="range"] {
   padding: 0;
 }
+.queue-defaults {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px 14px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+.queue-defaults label {
+  flex: 0 0 180px;
+}
+
+.queue-defaults .hint {
+  flex: 1 1 360px;
+  margin: 0;
+}
 
 @media (max-width: 900px) {
   .display-config-grid {

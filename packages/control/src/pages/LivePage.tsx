@@ -438,7 +438,11 @@ export default function LivePage({
       before: savedDisplayConfig.background,
       after: displayConfig.background,
     },
-    { label: "Lines per page", before: savedDisplayConfig.maxLines, after: displayConfig.maxLines },
+    {
+      label: "Default lines / page",
+      before: savedDisplayConfig.maxLines,
+      after: displayConfig.maxLines,
+    },
     { label: "Max words", before: savedDisplayConfig.maxWords, after: displayConfig.maxWords },
     {
       label: "Smart page splits",
@@ -885,18 +889,6 @@ export default function LivePage({
             />
           </label>
           <label>
-            Max lines / page
-            <input
-              type="number"
-              min={1}
-              max={20}
-              value={displayConfig.maxLines}
-              onChange={(event) =>
-                setDisplayConfig({ ...displayConfig, maxLines: Number(event.target.value) || 4 })
-              }
-            />
-          </label>
-          <label>
             Max words / page
             <input
               type="number"
@@ -1004,6 +996,25 @@ export default function LivePage({
           the existing rem/vw clamps, while vmin scales text from the shortest screen edge for more
           predictable portrait and ultrawide layouts.
         </p>
+        <div className="queue-defaults">
+          <label>
+            Default lines / page
+            <input
+              type="number"
+              min={1}
+              max={20}
+              value={displayConfig.maxLines}
+              onChange={(event) =>
+                setDisplayConfig({ ...displayConfig, maxLines: Number(event.target.value) || 4 })
+              }
+            />
+          </label>
+          <p className="hint">
+            Used when a set list is loaded into the live queue. The Transport{" "}
+            <strong>Lines/page</strong> control changes the current queue without changing this
+            default.
+          </p>
+        </div>
       </ReadOnlyFieldset>
     </div>
   );
