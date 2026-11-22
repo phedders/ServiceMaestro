@@ -5435,8 +5435,25 @@ body.resizing-live-queue {
 
 .bible-controls {
   display: grid;
-  grid-template-columns: 2fr 2fr 0.7fr 0.7fr 0.7fr;
+  grid-template-columns: minmax(200px, 2fr) minmax(160px, 1.8fr) 78px 64px 64px;
   gap: 10px;
+  align-items: end;
+}
+
+.bible-controls > label {
+  min-width: 0;
+}
+
+.bible-controls select {
+  width: 100%;
+  min-width: 0;
+}
+
+.bible-controls .bible-field-chapter select,
+.bible-controls .bible-field-from select,
+.bible-controls .bible-field-to select {
+  padding-left: 8px;
+  padding-right: 5px;
 }
 
 .bible-actions {
@@ -5546,13 +5563,24 @@ body.resizing-live-queue {
 
 @media (max-width: 1100px) {
   .bible-controls {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1.8fr) 76px 62px 62px;
   }
 }
 
 @media (max-width: 760px) {
   .bible-controls {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+
+  .bible-controls .bible-field-translation,
+  .bible-controls .bible-field-book {
+    grid-column: span 3;
+  }
+
+  .bible-controls .bible-field-chapter,
+  .bible-controls .bible-field-from,
+  .bible-controls .bible-field-to {
+    grid-column: span 2;
   }
 
   .bible-actions {

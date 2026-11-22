@@ -184,7 +184,7 @@ export default function BiblePage({
           <span className="muted">{live.status === "idle" ? "Start a live session to display" : "Ready"}</span>
         </div>
         <div className="bible-controls">
-          <label>
+          <label className="bible-field-translation">
             Translation
             <select value={translation} onChange={(event) => setTranslation(event.target.value)}>
               {translations.map((item) => (
@@ -194,7 +194,7 @@ export default function BiblePage({
               ))}
             </select>
           </label>
-          <label>
+          <label className="bible-field-book">
             Book
             <select
               value={bookNumber}
@@ -210,7 +210,7 @@ export default function BiblePage({
               ))}
             </select>
           </label>
-          <label>
+          <label className="bible-field-chapter">
             Chapter
             <select value={chapter} onChange={(event) => setChapter(Number(event.target.value))}>
               {Array.from({ length: book?.chapters ?? 0 }, (_, index) => index + 1).map((number) => (
@@ -220,7 +220,7 @@ export default function BiblePage({
               ))}
             </select>
           </label>
-          <label>
+          <label className="bible-field-from">
             From
             <select value={from} onChange={(event) => setFrom(Number(event.target.value))}>
               {(passage?.verses ?? []).map((verse) => (
@@ -230,7 +230,7 @@ export default function BiblePage({
               ))}
             </select>
           </label>
-          <label>
+          <label className="bible-field-to">
             To
             <select value={to} onChange={(event) => setTo(Number(event.target.value))}>
               {(passage?.verses ?? []).map((verse) => (
