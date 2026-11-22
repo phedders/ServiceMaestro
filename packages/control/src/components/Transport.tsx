@@ -250,10 +250,12 @@ export function Transport({
         {active ? (
           <>
             <span>{live.title || live.setlistName}</span>
-            <span>
-              page {live.pageCount ? live.pageIndex + 1 : 0} / {live.pageCount}
-              {live.halfPageMode ? " · ½" : ""}
-            </span>
+            {compact && (
+              <span>
+                page {live.pageCount ? live.pageIndex + 1 : 0} / {live.pageCount}
+                {live.halfPageMode ? " · ½" : ""}
+              </span>
+            )}
           </>
         ) : (
           <span>Start a session to control the output.</span>

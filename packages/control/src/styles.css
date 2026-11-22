@@ -696,6 +696,12 @@ img.brand-mark.large {
   font-size: 1rem;
 }
 
+.transport-page-summary {
+  color: var(--muted);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
 .button {
   border: 1px solid var(--border);
   background: var(--panel-2);

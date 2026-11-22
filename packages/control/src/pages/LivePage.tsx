@@ -534,7 +534,16 @@ export default function LivePage({
 
       <ReadOnlyFieldset className="panel">
         <div className="panel-heading">
-          <h2>Transport</h2>
+          <h2>
+            Transport
+            {live.pageCount > 0 && (
+              <span className="transport-page-summary">
+                {" :: Page "}
+                {live.pageIndex + 1}/{live.pageCount}
+                {live.halfPageMode ? " · ½" : ""}
+              </span>
+            )}
+          </h2>
           <span className="muted">{live.setlistName}</span>
         </div>
         <Transport live={live} onCommand={onCommand} />
