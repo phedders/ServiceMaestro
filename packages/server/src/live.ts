@@ -85,6 +85,7 @@ export function idleState(): LiveState {
     pageIndex: 0,
     pageCount: 0,
     pagesOutOfDate: false,
+    stagePreview: false,
     mode: "idle",
     title: "",
     blank: false,
@@ -457,6 +458,7 @@ class LiveService {
       state.pendingRevision = pending?.revisionNo ?? null;
       if (typeof state.bibleVerseNumbers !== "boolean") state.bibleVerseNumbers = true;
       if (typeof state.pagesOutOfDate !== "boolean") state.pagesOutOfDate = false;
+      state.stagePreview = false;
       if (state.transition !== "scroll") state.transition = "fade";
       if (typeof state.halfPageMode !== "boolean") state.halfPageMode = false;
       if (!Number.isInteger(state.halfPageOffset)) state.halfPageOffset = 0;
@@ -515,6 +517,7 @@ class LiveService {
       pageIndex: 0,
       pageCount: 0,
       pagesOutOfDate: false,
+      stagePreview: false,
       mode: first.kind,
       title: first.title,
       blank: true,
@@ -644,6 +647,7 @@ class LiveService {
     record.state.queuedTitle = null;
     record.state.queuedPages = [];
     record.state.appendedItems = [];
+    record.state.stagePreview = false;
     if (mode === "now") {
       record.items = items;
       record.revisionId = revisionId;
@@ -694,6 +698,7 @@ class LiveService {
     record.state.pendingUpdate = false;
     record.state.pendingRevision = null;
     record.state.appendedItems = [];
+    record.state.stagePreview = false;
     this.renderCurrent();
   }
 
@@ -713,6 +718,17 @@ class LiveService {
         break;
       case "transition": {
         state.transition = command.value === "scroll" ? "scroll" : "fade";
+        break;
+      }
+      case "stagePreview": {
+        if (
+          state.queuedItemIndex == null ||
+          state.queuedItemIndex === state.itemIndex ||
+          !state.queuedPages?.length
+        ) {
+          break;
+        }
+        state.stagePreview = true;
         break;
       }
       case "nextHalf": {
@@ -1092,6 +1108,7 @@ class LiveService {
     state.pageIndex = 0;
     state.halfPageMode = false;
     state.halfPageOffset = 0;
+    state.stagePreview = false;
     state.mode = items[index].kind;
     state.title = items[index].title;
     state.maxLines = resolveItemMaxLines(
@@ -1108,6 +1125,7 @@ class LiveService {
     const item = items[index];
     state.queuedItemIndex = index;
     state.queuedTitle = item.title;
+    state.stagePreview = false;
     state.queuedPages = this.pagesFor(
       item,
       resolveItemMaxLines(item, state.displayConfig ?? getDisplayConfig()),

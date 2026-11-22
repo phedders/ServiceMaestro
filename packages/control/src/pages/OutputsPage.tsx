@@ -302,6 +302,11 @@ export default function OutputsPage({
             { label: "Text", before: baselineOutput.text, after: draft.text },
             { label: "Pages", before: baselineOutput.content.pages, after: draft.content.pages },
             {
+              label: "Stage previews",
+              before: baselineOutput.stagePreviews,
+              after: draft.stagePreviews,
+            },
+            {
               label: "Meta/title",
               before: baselineOutput.content.showMeta,
               after: draft.content.showMeta,
@@ -874,6 +879,17 @@ export default function OutputsPage({
                     Show scrollbar
                   </label>
                 )}
+                <label
+                  className="checkbox output-checkbox"
+                  title="When Stage preview is pressed, show the queued set-list item on this output"
+                >
+                  <input
+                    type="checkbox"
+                    checked={draft.stagePreviews}
+                    onChange={(event) => setField("stagePreviews", event.target.checked)}
+                  />
+                  Stage previews
+                </label>
               </div>
             </div>
           </section>

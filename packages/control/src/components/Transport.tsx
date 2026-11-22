@@ -45,6 +45,25 @@ export function Transport({
           Next ½
         </button>
         <button
+          type="button"
+          className={`button ${live.stagePreview ? "primary" : "ghost"}`}
+          disabled={
+            !active ||
+            live.queuedItemIndex == null ||
+            live.queuedItemIndex === live.itemIndex ||
+            !live.queuedPages?.length
+          }
+          aria-pressed={live.stagePreview}
+          onClick={() => onCommand({ type: "stagePreview" })}
+          title={
+            live.queuedItemIndex != null && live.queuedItemIndex !== live.itemIndex
+              ? "Preload the queued item on outputs with Stage previews enabled, starting at page 1"
+              : "Select an item in the Pages panel to enable stage preview"
+          }
+        >
+          Stage preview
+        </button>
+        <button
           className={`button ${live.blank ? "danger" : "ghost"}`}
           disabled={!active}
           onClick={() => onCommand({ type: "blank", value: !live.blank })}

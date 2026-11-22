@@ -9,6 +9,7 @@ export const EMPTY_LIVE: LiveState = {
   pageIndex: 0,
   pageCount: 0,
   pagesOutOfDate: false,
+  stagePreview: false,
   mode: "idle",
   title: "",
   blank: false,

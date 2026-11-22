@@ -689,6 +689,7 @@ export interface DisplayOutput {
   aliases: string[];
   fade: DisplayOutputFade;
   fadeDurationMs: number;
+  stagePreviews: boolean;
   background: string;
   backgroundAlpha: number;
   layout: {
@@ -748,6 +749,7 @@ export const DEFAULT_DISPLAY_OUTPUTS: DisplayOutput[] = [
     aliases: ["main", "lower", "lowerthird", "twothirds"],
     fade: "text",
     fadeDurationMs: 240,
+    stagePreviews: false,
     background: "#000000",
     backgroundAlpha: 0,
     layout: {
@@ -793,6 +795,7 @@ export const DEFAULT_DISPLAY_OUTPUTS: DisplayOutput[] = [
     aliases: ["two-thirds", "two_thirds"],
     fade: "template",
     fadeDurationMs: 240,
+    stagePreviews: false,
     background: "#000000",
     backgroundAlpha: 1,
     layout: {
@@ -838,6 +841,7 @@ export const DEFAULT_DISPLAY_OUTPUTS: DisplayOutput[] = [
     aliases: ["full", "fullscreen", "mainfull"],
     fade: "template",
     fadeDurationMs: 240,
+    stagePreviews: false,
     background: "#000000",
     backgroundAlpha: 1,
     layout: {
@@ -883,6 +887,7 @@ export const DEFAULT_DISPLAY_OUTPUTS: DisplayOutput[] = [
     aliases: ["stage"],
     fade: "template",
     fadeDurationMs: 240,
+    stagePreviews: false,
     background: "#000000",
     backgroundAlpha: 1,
     layout: {
@@ -928,6 +933,7 @@ export const DEFAULT_DISPLAY_OUTPUTS: DisplayOutput[] = [
     aliases: ["chords"],
     fade: "template",
     fadeDurationMs: 240,
+    stagePreviews: false,
     background: "#000000",
     backgroundAlpha: 1,
     layout: {
@@ -1561,6 +1567,7 @@ export interface LiveState {
   pageIndex: number;
   pageCount: number;
   pagesOutOfDate: boolean;
+  stagePreview: boolean;
   mode:
     | "song"
     | "text"
@@ -2492,6 +2499,7 @@ export const liveCommandSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("nextHalf") }),
   z.object({ type: z.literal("prevHalf") }),
   z.object({ type: z.literal("transition"), value: z.enum(["fade", "scroll"]) }),
+  z.object({ type: z.literal("stagePreview") }),
   z.object({ type: z.literal("page"), delta: z.number().int().min(-50).max(50) }),
   z.object({ type: z.literal("goto"), itemIndex: z.number().int().min(0).optional(), pageIndex: z.number().int().min(0).optional() }),
   z.object({ type: z.literal("queueItem"), itemIndex: z.number().int().min(0) }),
@@ -2678,6 +2686,7 @@ export const displayOutputSchema = z.object({
   aliases: z.array(z.string().trim().min(1).max(80)).max(30).default([]),
   fade: z.enum(["none", "text", "template", "scroll"]).default("template"),
   fadeDurationMs: z.number().int().min(0).max(2000).default(240),
+  stagePreviews: z.boolean().default(false),
   background: displayOutputHexColor.default("#000000"),
   backgroundAlpha: z.number().min(0).max(1).default(1),
   layout: displayOutputLayoutSchema.default({}),

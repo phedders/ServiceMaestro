@@ -1179,6 +1179,29 @@ body.sm-output-configured.mode-image .sm-footer {
   }
 
   function apply(state) {
+    const configuredOutput = state.outputs && state.outputs[outputId];
+    const queuedPages = state.queuedPages;
+    if (
+      state.stagePreview &&
+      configuredOutput?.stagePreviews &&
+      state.queuedItemIndex != null &&
+      state.queuedItemIndex !== state.itemIndex &&
+      Array.isArray(queuedPages) &&
+      queuedPages.length
+    ) {
+      const queuedItem = state.items?.[state.queuedItemIndex];
+      state = {
+        ...state,
+        pages: queuedPages,
+        pageIndex: 0,
+        pageCount: queuedPages.length,
+        title: state.queuedTitle || queuedItem?.title || state.title,
+        mode: queuedItem?.kind || state.mode,
+        halfPageMode: false,
+        halfPageOffset: 0,
+        pagesOutOfDate: false,
+      };
+    }
     const page = state.pages && state.pages[state.pageIndex];
     const idle = !page || state.mode === "idle";
     const blank = Boolean(state.blank) || idle;

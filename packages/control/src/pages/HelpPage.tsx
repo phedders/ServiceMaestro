@@ -141,6 +141,12 @@ export default function HelpPage({ onOpenSettings }: { onOpenSettings: () => voi
                 <strong>Display config → Default lines / page</strong>.
               </li>
               <li>
+                <strong>Stage preview</strong> is available after selecting a queued set-list item
+                that is not live yet. It loads that item from page 1 on outputs with{" "}
+                <strong>Stage previews</strong> enabled, without changing fullscreen or other
+                outputs. It turns off automatically when the queued item goes live.
+              </li>
+              <li>
                 <strong>Transition</strong> chooses <strong>Fade</strong> or <strong>Scroll</strong>
                 for fullscreen page changes. Other outputs use their own transition setting under
                 <strong>Menu → Outputs</strong>. Scroll applies only to consecutive pages; jumps
