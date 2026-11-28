@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   applyBiblePartRange,
   parseBibleReference,
+  parseBibleReferences,
   verseFromPart,
 } from "../dist/bible-reference.js";
 
@@ -24,6 +25,52 @@ test("parses Bible references with verse-part suffixes", () => {
     toPart: "a",
   });
   assert.equal(parseBibleReference("1 Corinthians 14")?.from, null);
+});
+
+test("splits combined Bible readings joined with and", () => {
+  assert.deepEqual(
+    parseBibleReferences("Isaiah 7:10-17 and Matthew 1:18-25"),
+    [
+      {
+        bookName: "Isaiah",
+        chapter: 7,
+        from: 10,
+        to: 17,
+        fromPart: null,
+        toPart: null,
+      },
+      {
+        bookName: "Matthew",
+        chapter: 1,
+        from: 18,
+        to: 25,
+        fromPart: null,
+        toPart: null,
+      },
+    ],
+  );
+  assert.deepEqual(parseBibleReferences("Reading: Isaiah 7:10–17 & Matthew 1:18–25"), [
+    {
+      bookName: "Isaiah",
+      chapter: 7,
+      from: 10,
+      to: 17,
+      fromPart: null,
+      toPart: null,
+    },
+    {
+      bookName: "Matthew",
+      chapter: 1,
+      from: 18,
+      to: 25,
+      fromPart: null,
+      toPart: null,
+    },
+  ]);
+  assert.equal(
+    parseBibleReferences("Isaiah 7:10-17 and something else").length,
+    0,
+  );
 });
 
 test("starts a verse at the second sentence when the reference says b", () => {

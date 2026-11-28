@@ -469,8 +469,10 @@ export default function HelpPage({ onOpenSettings }: { onOpenSettings: () => voi
                   <li>
                     ChurchSuite plans can be reviewed and turned into a draft set list. Matched songs
                     link to the library. When several local songs match, compare their metadata and
-                    lyrics and choose the right version before importing. Unmatched named items become
-                    editable text placeholders. Plan object types listed under{" "}
+                    lyrics and choose the right version before importing. A reading containing
+                    multiple references joined with <strong>and</strong> becomes separate Bible
+                    items. Unmatched named items become editable text placeholders. Plan object
+                    types listed under{" "}
                     <strong>Settings → ChurchSuite empty items</strong> become empty items with no
                     pages, keeping their text in the notes. A time in the plan title, such as
                   <strong>The 10:30 Service</strong>, pre-fills the service time.

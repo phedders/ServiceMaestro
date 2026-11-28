@@ -9,6 +9,24 @@ export interface ParsedBibleReference {
   toPart: string | null;
 }
 
+export function parseBibleReferences(value: string): ParsedBibleReference[] {
+  const cleaned = value.trim();
+  if (!cleaned) return [];
+  const segments = cleaned
+    .split(/\s+(?:and|&)\s+/i)
+    .map((segment) => segment.trim())
+    .filter(Boolean);
+  const parsed = segments.map(parseBibleReference);
+  if (
+    parsed.length > 1 &&
+    parsed.every((entry): entry is ParsedBibleReference => Boolean(entry))
+  ) {
+    return parsed;
+  }
+  const single = parseBibleReference(cleaned);
+  return single ? [single] : [];
+}
+
 export function parseBibleReference(value: string): ParsedBibleReference | null {
   const cleaned = value
     .replace(/^reading\s*:\s*/i, "")

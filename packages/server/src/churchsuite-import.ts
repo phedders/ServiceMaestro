@@ -18,7 +18,7 @@ import {
 import { getBooks, getPassage, listTranslations } from "./bible.js";
 import {
   applyBiblePartRange,
-  parseBibleReference,
+  parseBibleReferences,
   type ParsedBibleReference,
 } from "./bible-reference.js";
 import { db } from "./db.js";
@@ -169,71 +169,74 @@ function readingTexts(item: ChurchsuitePlanItem): string[] {
     .filter((value): value is string => Boolean(value));
 }
 
-function readingForItem(
+export function readingsForItem(
   item: ChurchsuitePlanItem,
   typeName: string,
-): ChurchSuiteBibleReading | null {
-  if (!normalize(typeName).includes("reading")) return null;
+): ChurchSuiteBibleReading[] {
+  if (!normalize(typeName).includes("reading")) return [];
   const translation =
     listTranslations().find(
       (entry) => entry.code === getAppSettings().defaultBibleTranslation,
     ) ?? listTranslations()[0];
-  if (!translation) return null;
+  if (!translation) return [];
   const books = getBooks(translation.code);
-  if (!books?.length) return null;
+  if (!books?.length) return [];
   const bookByName = new Map<string, BibleBook>(
     books.map((book) => [normalizeBookName(book.name), book]),
   );
-  let parsed: ParsedBibleReference | null = null;
+  const readings: ChurchSuiteBibleReading[] = [];
+  const seen = new Set<string>();
   for (const text of readingTexts(item)) {
-    parsed = parseBibleReference(text);
-    if (parsed && bookByName.has(normalizeBookName(parsed.bookName))) break;
-    parsed = null;
+    for (const parsed of parseBibleReferences(text)) {
+      const book = bookByName.get(normalizeBookName(parsed.bookName));
+      if (!book) continue;
+      const passage = getPassage(
+        translation.code,
+        book.number,
+        parsed.chapter,
+        parsed.from ?? undefined,
+        parsed.to ?? undefined,
+      );
+      if (!passage) continue;
+      const fromLabel = `${passage.from}${parsed.fromPart ?? ""}`;
+      const toLabel = `${passage.to}${parsed.toPart ?? ""}`;
+      const hasRange = passage.to !== passage.from || Boolean(parsed.toPart);
+      const reference = `${passage.bookName} ${passage.chapter}${
+        parsed.from ? `:${fromLabel}${hasRange ? `–${toLabel}` : ""}` : ""
+      }`;
+      const key = `${reference}|${translation.code}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const previewVerses = applyBiblePartRange(
+        passage.verses,
+        parsed.fromPart,
+        parsed.toPart,
+      );
+      const preview = previewVerses
+        .slice(0, 2)
+        .map((verse) => `${verse.number} ${verse.text}`)
+        .join(" ")
+        .slice(0, 240);
+      readings.push({
+        reference,
+        translation: passage.translation,
+        translationName: passage.translationName,
+        book: passage.book,
+        bookName: passage.bookName,
+        chapter: passage.chapter,
+        from: passage.from,
+        to: passage.to,
+        fromPart: parsed.fromPart,
+        toPart: parsed.toPart,
+        verseCount: passage.verses.length,
+        summary: `${reference} · ${passage.verses.length} verse${
+          passage.verses.length === 1 ? "" : "s"
+        } · ${passage.translationName}`,
+        preview,
+      });
+    }
   }
-  if (!parsed) return null;
-  const book = bookByName.get(normalizeBookName(parsed.bookName));
-  if (!book) return null;
-  const passage = getPassage(
-    translation.code,
-    book.number,
-    parsed.chapter,
-    parsed.from ?? undefined,
-    parsed.to ?? undefined,
-  );
-  if (!passage) return null;
-  const fromLabel = `${passage.from}${parsed.fromPart ?? ""}`;
-  const toLabel = `${passage.to}${parsed.toPart ?? ""}`;
-  const hasRange = passage.to !== passage.from || Boolean(parsed.toPart);
-  const reference = `${passage.bookName} ${passage.chapter}${
-    parsed.from ? `:${fromLabel}${hasRange ? `–${toLabel}` : ""}` : ""
-  }`;
-  const previewVerses = applyBiblePartRange(
-    passage.verses,
-    parsed.fromPart,
-    parsed.toPart,
-  );
-  const preview = previewVerses
-    .slice(0, 2)
-    .map((verse) => `${verse.number} ${verse.text}`)
-    .join(" ")
-    .slice(0, 240);
-  return {
-    reference,
-    translation: passage.translation,
-    translationName: passage.translationName,
-    book: passage.book,
-    bookName: passage.bookName,
-    chapter: passage.chapter,
-    from: passage.from,
-    to: passage.to,
-    fromPart: parsed.fromPart,
-    toPart: parsed.toPart,
-    verseCount: passage.verses.length,
-    summary: `${reference} · ${passage.verses.length} verse${
-      passage.verses.length === 1 ? "" : "s"
-    } · ${passage.translationName}`,
-    preview,
-  };
+  return readings;
 }
 
 function notesText(value: unknown): string | null {
@@ -302,7 +305,7 @@ export async function previewChurchsuitePlan(planId: number): Promise<ChurchSuit
   const previewItems: ChurchSuiteItemPreview[] = items
     .slice()
     .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
-    .map((item, index) => {
+    .flatMap((item, index) => {
       const type = item.type_id != null ? typeNames.get(item.type_id) : undefined;
       const typeName = type?.name ?? (item.type === "song" ? "Song" : "Item");
       const isSong =
@@ -316,8 +319,7 @@ export async function previewChurchsuitePlan(planId: number): Promise<ChurchSuit
       const matched = matches[0]?.song ?? null;
       const emptyType = emptyTypes.has(normalize(typeName));
       const action = itemAction(item, isSong, matched, emptyType);
-      return {
-        id: item.id,
+      const base = {
         order: item.order ?? index + 1,
         typeId: item.type_id ?? null,
         typeName,
@@ -327,13 +329,27 @@ export async function previewChurchsuitePlan(planId: number): Promise<ChurchSuit
         author,
         notes,
         duration: item.duration ?? null,
-        reading: readingForItem(item, typeName),
         matchedSong: matched
           ? { id: matched.id, title: matched.title, key: matched.key }
           : null,
         matchCandidates: matches.map(matchSummary),
         action,
       };
+      const readings = readingsForItem(item, typeName);
+      if (readings.length > 1) {
+        return readings.map((reading, readingIndex) => ({
+          ...base,
+          // Keep the original plan-item id on the first reading so existing
+          // linked set-list items still match during a later sync.
+          id:
+            readingIndex === 0
+              ? item.id
+              : -(Math.abs(item.id) * 1000 + readingIndex),
+          order: base.order + readingIndex / 100,
+          reading,
+        }));
+      }
+      return [{ ...base, id: item.id, reading: readings[0] ?? null }];
     });
 
   const planSummary: ChurchSuitePlanSummary = {
